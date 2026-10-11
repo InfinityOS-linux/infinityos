@@ -8,8 +8,19 @@
 			<requires profile="GNOME-Desktop"/>
 			<requires profile="BootDiskCore"/>
 		</profile>
+		<profile name="GNOME-Dev-Live" description="GNOME development live image">
+			<requires profile="Workstation-Live"/>
+		</profile>
+		<profile name="GNOME-Dev-Disk" description="GNOME development disk image">
+			<requires profile="Workstation-Disk"/>
+		</profile>
 	</profiles>
 	<packages type="bootstrap" patternType="plusRecommended" profiles="Workstation-Live,Workstation-Disk">
 		<package name="fedora-release-workstation"/>
+	</packages>
+	<packages type="image" profiles="GNOME-Dev-Live,GNOME-Dev-Disk">
+		<package name="git"/>
+		<package name="gnome-builder"/>
+		<package name="gnome-extensions-app"/>
 	</packages>
 </image>

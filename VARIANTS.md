@@ -23,6 +23,8 @@
 |                                | `oem`      | `KDE-Mobile-Disk`                     |
 | Workstation Edition            | `iso`      | `Workstation-Live`                    |
 |                                | `oem`      | `Workstation-Disk`                    |
+| GNOME development remix        | `iso`      | `GNOME-Dev-Live`                      |
+|                                | `oem`      | `GNOME-Dev-Disk`                      |
 | LXQt Spin                      | `iso`      | `LXQt-Live`                           |
 |                                | `oem`      | `LXQt-Disk`                           |
 | Xfce Spin                      | `iso`      | `Xfce-Live`                           |
