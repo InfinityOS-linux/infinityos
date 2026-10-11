@@ -13,6 +13,34 @@ test -f /.profile && . /.profile
 #--------------------------------------
 echo "Configure image: [$kiwi_iname]-[$kiwi_profiles]..."
 
+# Apply Infinity OS defaults only to its GNOME image profiles.
+if [[ "$kiwi_profiles" == *"Infinity-GNOME"* ]]; then
+	rm -f /etc/os-release
+	cat > /etc/os-release << 'EOF'
+NAME="Infinity OS"
+PRETTY_NAME="Infinity OS 44"
+ID=infinityos
+ID_LIKE=fedora
+VERSION_ID=44
+VERSION="44"
+VARIANT="GNOME Workstation"
+VARIANT_ID=workstation
+HOME_URL="https://gitlab.com/godorowski/infinityos"
+DOCUMENTATION_URL="https://gitlab.com/godorowski/infinityos/-/blob/main/README.md"
+EOF
+	install -m 0644 /usr/share/infinityos/zshrc /etc/skel/.zshrc
+	install -D -m 0644 /usr/share/infinityos/gnome-defaults /etc/dconf/db/local.d/00-infinityos
+	install -D -m 0644 /usr/share/infinityos/mimeapps.list /etc/xdg/mimeapps.list
+	printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
+	dconf update
+	useradd -D -s /usr/bin/zsh
+	if id liveuser &>/dev/null; then
+		usermod -s /usr/bin/zsh liveuser
+		install -m 0644 /usr/share/infinityos/zshrc /home/liveuser/.zshrc
+		chown liveuser:liveuser /home/liveuser/.zshrc
+	fi
+fi
+
 #======================================
 # Set SELinux booleans
 #--------------------------------------

@@ -1,0 +1,10 @@
+export ZSH=/usr/share/oh-my-zsh
+zstyle ':omz:update' mode disabled
+ZSH_THEME=""
+plugins=(git sudo colored-man-pages)
+source "$ZSH/oh-my-zsh.sh"
+
+if [[ -f /usr/share/powerline/zsh/powerline.zsh ]]; then
+	command -v powerline-daemon >/dev/null && powerline-daemon -q
+	source /usr/share/powerline/zsh/powerline.zsh
+fi

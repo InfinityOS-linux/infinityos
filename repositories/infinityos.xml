@@ -1,0 +1,23 @@
+<image>
+	<!-- Fedora remains the base; RPM Fusion supplies codecs and NVIDIA packages. -->
+	<repository type="rpm-md" alias="rpmfusion-free" sourcetype="metalink" profiles="Infinity-GNOME-Live,Infinity-GNOME-Disk">
+		<source path="https://mirrors.rpmfusion.org/metalink?repo=free-fedora-$releasever&amp;arch=$basearch">
+			<signing key="file:///usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-free-fedora-$releasever"/>
+		</source>
+	</repository>
+	<repository type="rpm-md" alias="rpmfusion-free-updates" sourcetype="metalink" profiles="Infinity-GNOME-Live,Infinity-GNOME-Disk">
+		<source path="https://mirrors.rpmfusion.org/metalink?repo=free-fedora-updates-released-$releasever&amp;arch=$basearch">
+			<signing key="file:///usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-free-fedora-$releasever"/>
+		</source>
+	</repository>
+	<repository type="rpm-md" alias="rpmfusion-nonfree" sourcetype="metalink" profiles="Infinity-GNOME-Live,Infinity-GNOME-Disk">
+		<source path="https://mirrors.rpmfusion.org/metalink?repo=nonfree-fedora-$releasever&amp;arch=$basearch">
+			<signing key="file:///usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-nonfree-fedora-$releasever"/>
+		</source>
+	</repository>
+	<repository type="rpm-md" alias="rpmfusion-nonfree-updates" sourcetype="metalink" profiles="Infinity-GNOME-Live,Infinity-GNOME-Disk">
+		<source path="https://mirrors.rpmfusion.org/metalink?repo=nonfree-fedora-updates-released-$releasever&amp;arch=$basearch">
+			<signing key="file:///usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-nonfree-fedora-$releasever"/>
+		</source>
+	</repository>
+</image>

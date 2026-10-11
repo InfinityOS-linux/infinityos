@@ -8,19 +8,42 @@
 			<requires profile="GNOME-Desktop"/>
 			<requires profile="BootDiskCore"/>
 		</profile>
-		<profile name="GNOME-Dev-Live" description="GNOME development live image">
+		<profile name="Infinity-GNOME-Live" description="Infinity OS GNOME live image">
 			<requires profile="Workstation-Live"/>
 		</profile>
-		<profile name="GNOME-Dev-Disk" description="GNOME development disk image">
+		<profile name="Infinity-GNOME-Disk" description="Infinity OS GNOME disk image">
 			<requires profile="Workstation-Disk"/>
 		</profile>
 	</profiles>
 	<packages type="bootstrap" patternType="plusRecommended" profiles="Workstation-Live,Workstation-Disk">
 		<package name="fedora-release-workstation"/>
 	</packages>
-	<packages type="image" profiles="GNOME-Dev-Live,GNOME-Dev-Disk">
+	<packages type="image" profiles="Infinity-GNOME-Live,Infinity-GNOME-Disk">
 		<package name="git"/>
 		<package name="gnome-builder"/>
 		<package name="gnome-extensions-app"/>
+		<package name="dconf"/>
+		<package name="firefox"/>
+		<package name="zsh"/>
+		<package name="powerline"/>
+		<package name="powerline-fonts"/>
+		<package name="gnome-shell-extension-blur-my-shell"/>
+		<package name="mesa-dri-drivers"/>
+		<package name="mesa-vulkan-drivers"/>
+		<package name="intel-gpu-firmware" arch="x86_64"/>
+		<package name="amd-gpu-firmware" arch="x86_64"/>
+		<package name="nvidia-gpu-firmware" arch="x86_64"/>
+		<package name="libva-intel-media-driver" arch="x86_64"/>
+		<package name="rpmfusion-free-release"/>
+		<package name="rpmfusion-nonfree-release"/>
+		<package name="ffmpeg-free"/>
+		<package name="gstreamer1-plugin-libav"/>
+		<package name="gstreamer1-plugins-bad-free"/>
+		<package name="gstreamer1-plugins-ugly-free"/>
+		<package name="libavcodec-freeworld"/>
+		<package name="gstreamer1-plugins-bad-freeworld"/>
+		<package name="gstreamer1-plugins-ugly"/>
+		<package name="akmod-nvidia" arch="x86_64"/>
+		<package name="xorg-x11-drv-nvidia" arch="x86_64"/>
 	</packages>
 </image>
