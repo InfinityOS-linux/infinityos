@@ -42,6 +42,13 @@ EOF
 	done
 	install -D -m 0644 /usr/share/infinityos/gnome-defaults /etc/dconf/db/local.d/00-infinityos
 	install -D -m 0644 /usr/share/infinityos/mimeapps.list /etc/xdg/mimeapps.list
+	install -d /etc/gnome-initial-setup
+	cat > /etc/gnome-initial-setup/vendor.conf << 'EOF'
+[pages]
+existing_user_only=language;keyboard
+skip=software
+EOF
+	fedora-third-party enable
 	printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
 	dconf update
 	useradd -D -s /usr/bin/zsh
