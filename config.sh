@@ -35,6 +35,11 @@ EOF
 	if command -v plymouth-set-default-theme >/dev/null; then
 		plymouth-set-default-theme infinityos
 	fi
+	install -d /usr/share/icons /usr/share/licenses/kora
+	tar -xzf /usr/share/infinityos/kora-v2.0.6.tar.gz -C /usr/share/icons --strip-components=1 kora-2.0.6/kora/
+	tar -xOf /usr/share/infinityos/kora-v2.0.6.tar.gz kora-2.0.6/LICENSE > /usr/share/licenses/kora/LICENSE
+	rm /usr/share/infinityos/kora-v2.0.6.tar.gz
+	gtk-update-icon-cache -f -q /usr/share/icons/kora
 	install -m 0644 /usr/share/infinityos/zshrc /etc/skel/.zshrc
 	install -d /etc/skel/.config/gtk-4.0
 	for file in assets gtk.css gtk-dark.css; do

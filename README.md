@@ -8,11 +8,11 @@ GNOME Initial Setup uses the Infinity OS welcome illustration through a GResourc
 
 ## Included in the image
 
-- Firefox as the default browser, GNOME Builder, and GNOME Extensions.
+- Firefox as the default browser, GNOME Builder, and GNOME Extensions; GNOME Tour is omitted in favor of Infinity Launcher.
 - Blur My Shell, Window Is Ready - Notification Remover, and AppIndicator, enabled for new users.
 - Flathub as a system-wide Flatpak remote, with GNOME Software support for Flatpak apps.
 - Minimize and maximize titlebar buttons; Alt+Tab switches windows rather than applications.
-- Orchis Purple Dark Compact as the default GTK and GNOME Shell theme, with a compact Shell panel and macOS-style window buttons on the left.
+- Orchis Purple Dark Compact as the default GTK and GNOME Shell theme, Kora icons, a compact Shell panel, and macOS-style window buttons on the left.
 - GameMode, MangoHud, Gamescope, and gamepad permissions; Steam and Lutris on `x86_64`.
 - Zsh as the default shell for new accounts, Oh My Zsh, Powerline, and Powerline fonts.
 - Fedora Mesa drivers and Intel/AMD firmware on x86_64; NVIDIA `akmod-nvidia` and userspace driver on x86_64.
