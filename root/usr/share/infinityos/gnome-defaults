@@ -1,5 +1,5 @@
 [org/gnome/shell]
-enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com']
+enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com']
 
 [org/gnome/shell/extensions/user-theme]
 name='Orchis-Purple-Dark-Compact'
@@ -25,4 +25,5 @@ picture-uri='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'
 accent-color='purple'
 gtk-theme='Orchis-Purple-Dark-Compact'
 icon-theme='kora'
+cursor-theme='Bibata-Modern-Ice'
 color-scheme='prefer-dark'

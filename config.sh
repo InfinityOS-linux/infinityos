@@ -40,6 +40,11 @@ EOF
 	tar -xOf /usr/share/infinityos/kora-v2.0.6.tar.gz kora-2.0.6/LICENSE > /usr/share/licenses/kora/LICENSE
 	rm /usr/share/infinityos/kora-v2.0.6.tar.gz
 	gtk-update-icon-cache -f -q /usr/share/icons/kora
+	tar -xf /usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz -C /usr/share/icons
+	rm /usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz
+	glib-compile-schemas /usr/share/gnome-shell/extensions/ding@rastersoft.com/schemas
+	install -d /etc/skel/Desktop /etc/environment.d
+	printf 'XCURSOR_THEME=Bibata-Modern-Ice\n' > /etc/environment.d/90-infinityos-cursor.conf
 	install -m 0644 /usr/share/infinityos/zshrc /etc/skel/.zshrc
 	install -d /etc/skel/.config/gtk-4.0
 	for file in assets gtk.css gtk-dark.css; do
@@ -59,6 +64,7 @@ EOF
 	useradd -D -s /usr/bin/zsh
 	if id liveuser &>/dev/null; then
 		usermod -s /usr/bin/zsh liveuser
+		install -d -o liveuser -g liveuser /home/liveuser/Desktop
 		install -m 0644 /usr/share/infinityos/zshrc /home/liveuser/.zshrc
 		chown liveuser:liveuser /home/liveuser/.zshrc
 		install -d -o liveuser -g liveuser /home/liveuser/.config/gtk-4.0

@@ -6,10 +6,14 @@
 | Window Is Ready - Notification Remover | https://extensions.gnome.org/extension/1007/window-is-ready-notification-remover/ | 28, SHA-256 `abe4be91ad0a7086899ff4d92e463149c26b56e20291e75aa8e4443b57926cd6` of the upstream ZIP | Apache-2.0, included beside the extension |
 | Orchis Theme | https://github.com/vinceliuice/Orchis-theme | `a4c48a425e63808345e824495964bd9c2f462e04`, built as `Orchis-Purple-Dark-Compact` with `compact` and `macos` tweaks | GPL-3.0, included at `root/usr/share/themes/Orchis-Purple-Dark-Compact/COPYING` |
 | Kora icon theme | https://github.com/bikass/kora | `v2.0.6` (`58ed0dd8bfda26fbff0b424c46c9bd2c43fa1527`), main `kora` variant | GPL-3.0, extracted to `/usr/share/licenses/kora/LICENSE` during image build |
+| Desktop Icons NG (DING) | https://extensions.gnome.org/extension/2087/desktop-icons-ng-ding/ | 99 for GNOME 50, SHA-256 `f5f80d3371f00b7f3fd073d33c90f1c18750f006a284e76f37c1973685a33acc` of the upstream ZIP | GPL-3.0, included beside the extension |
+| Bibata Modern Ice cursor | https://github.com/ful1e5/Bibata_Cursor | `v2.0.7`, SHA-256 `a68cae60c4dc706350e194ebc91c5fe48bc7bc9d59e119555834a2a7ee5078ef` of the Linux archive | GPL-3.0, included at `root/usr/share/licenses/Bibata-Modern-Ice/LICENSE` |
 
 Orchis was built on Fedora 44 with `sassc` using `./install.sh -d /out -t purple -c dark -s compact --tweaks compact macos --shell 48`. Its complete upstream source at the pinned commit is archived at `assets/third-party/Orchis-theme-a4c48a425e63-source.tar.xz` (SHA-256 `5ac61bcba8117c339267b1f593b41716c42e668bf125eef8e07f637adfbe65f7`). The image bundles only the GNOME/GTK parts of the generated theme. Upstream currently provides GNOME Shell styles through version 48; GNOME 50 compatibility of that stylesheet needs a visual boot test. The Fedora `gnome-shell-extension-user-theme` and `gtk-murrine-engine` packages provide the Shell theme loader and GTK 2 engine.
 
 Kora's pinned source archive is `root/usr/share/infinityos/kora-v2.0.6.tar.gz` (SHA-256 `159bdb7a09409a12e54a71136ec8889c51b0bf7c145c8b20e3509dc1e90089bd`). The image setup extracts the main icon theme and license, regenerates its icon cache, and removes the archive from the installed system.
+
+DING is unpacked from its pinned GNOME Extensions ZIP into `root/usr/share/gnome-shell/extensions/ding@rastersoft.com`; its GSettings schema is compiled during image setup. Bibata Modern Ice is extracted from `root/usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz` into the installed icon themes. Both are enabled only for Infinity OS profiles.
 
 Blur My Shell, Powerline, Firefox, drivers, and codecs are installed as signed packages from Fedora or RPM Fusion at image build time. Their versions follow those repositories' updates.
 
