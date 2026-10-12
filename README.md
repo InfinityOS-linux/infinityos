@@ -4,6 +4,8 @@ Infinity OS is a Fedora 44 Workstation remix with a customized GNOME desktop. Th
 
 The Infinity OS image profiles use Fedora's `generic-release` and `generic-logos` packages in place of Fedora's trademarked release and logo packages. Fedora and RPM Fusion remain the package sources. The visible system identity, wallpaper, icon and Plymouth startup screen use Infinity OS branding, with `#645394` as the base color. GNOME's built-in `purple` accent is the closest available system accent; the exact hex value is used in the artwork.
 
+GNOME Initial Setup uses the Infinity OS welcome illustration through a GResource overlay scoped to its systemd user services. Check the resource path when upgrading GNOME Initial Setup.
+
 ## Included in the image
 
 - Firefox as the default browser, GNOME Builder, and GNOME Extensions.
@@ -15,7 +17,7 @@ The Infinity OS image profiles use Fedora's `generic-release` and `generic-logos
 - Zsh as the default shell for new accounts, Oh My Zsh, Powerline, and Powerline fonts.
 - Fedora Mesa drivers and Intel/AMD firmware on x86_64; NVIDIA `akmod-nvidia` and userspace driver on x86_64.
 - Broad FFmpeg and GStreamer codec support from RPM Fusion.
-- Light and dark Infinity OS wallpapers, logo, boot splash and GNOME defaults.
+- Light and dark Infinity OS wallpapers, logo, boot splash, GNOME defaults, and custom GNOME Initial Setup welcome artwork.
 
 Orchis is bundled as prebuilt theme assets, so image builds do not fetch or compile it. The User Themes extension loads its GNOME Shell stylesheet; GTK 4/libadwaita styling is linked into each new account's configuration. GTK 4/libadwaita and Flatpak apps may render some controls differently from GTK 3, especially after GNOME upgrades. The system's native purple accent remains the closest built-in match to `#645394`.
 
