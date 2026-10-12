@@ -59,6 +59,7 @@ existing_user_only=language;keyboard
 skip=software
 EOF
 	fedora-third-party enable
+	systemctl enable tuned-ppd.service switcheroo-control.service
 	printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
 	dconf update
 	useradd -D -s /usr/bin/zsh
