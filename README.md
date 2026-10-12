@@ -7,13 +7,18 @@ The Infinity OS image profiles use Fedora's `generic-release` and `generic-logos
 ## Included in the image
 
 - Firefox as the default browser, GNOME Builder, and GNOME Extensions.
-- Blur My Shell and Window Is Ready - Notification Remover, enabled for new users.
+- Blur My Shell, Window Is Ready - Notification Remover, and AppIndicator, enabled for new users.
+- Flathub as a system-wide Flatpak remote, with GNOME Software support for Flatpak apps.
+- Minimize and maximize titlebar buttons; Alt+Tab switches windows rather than applications.
+- GameMode, MangoHud, Gamescope, and gamepad permissions; Steam and Lutris on `x86_64`.
 - Zsh as the default shell for new accounts, Oh My Zsh, Powerline, and Powerline fonts.
 - Fedora Mesa drivers and Intel/AMD firmware on x86_64; NVIDIA `akmod-nvidia` and userspace driver on x86_64.
 - Broad FFmpeg and GStreamer codec support from RPM Fusion.
 - Light and dark Infinity OS wallpapers, logo, boot splash and GNOME defaults.
 
 Fedora and Fedora Updates remain the base repositories. [RPM Fusion Free and Nonfree](https://rpmfusion.org/) supply codecs and the NVIDIA driver. Their signed release packages are installed into the image so updates continue to use those repositories. This software may have licensing or patent restrictions in some countries. NVIDIA's kernel module requires a build for the running kernel and may require signing when Secure Boot is enabled.
+
+Gamescope, MangoHud, Steam, and Lutris follow [Bazzite's Fedora-based desktop image](https://github.com/ublue-os/bazzite/blob/main/Containerfile). Infinity OS stays a regular DNF-managed Fedora derivative and uses Fedora's GameMode for on-demand performance instead of Bazzite's image-specific resource service. A moderate `vm.max_map_count=1048576` supports games that use many memory mappings. Steam launch options can use `gamemoderun %command%`, optionally prefixed with `mangohud`. Gamescope and MangoHud are installed but not forced on every application. Hardware-specific power, I/O, and security settings from Bazzite are not applied globally.
 
 ## Build
 

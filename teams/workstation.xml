@@ -34,6 +34,16 @@
 		<package name="git"/>
 		<package name="gnome-builder"/>
 		<package name="gnome-extensions-app"/>
+		<package name="gnome-shell-extension-appindicator"/>
+		<package name="gnome-software"/>
+		<package name="flatpak"/>
+		<ignore name="fedora-flathub-remote"/>
+		<package name="gamemode"/>
+		<package name="mangohud"/>
+		<package name="gamescope"/>
+		<package name="steam-devices"/>
+		<package name="lutris" arch="x86_64"/>
+		<package name="steam" arch="x86_64"/>
 		<package name="dconf"/>
 		<package name="firefox"/>
 		<package name="zsh"/>
