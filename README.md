@@ -10,11 +10,14 @@ The Infinity OS image profiles use Fedora's `generic-release` and `generic-logos
 - Blur My Shell, Window Is Ready - Notification Remover, and AppIndicator, enabled for new users.
 - Flathub as a system-wide Flatpak remote, with GNOME Software support for Flatpak apps.
 - Minimize and maximize titlebar buttons; Alt+Tab switches windows rather than applications.
+- Orchis Purple Dark Compact as the default GTK and GNOME Shell theme, with a compact Shell panel and macOS-style window buttons on the left.
 - GameMode, MangoHud, Gamescope, and gamepad permissions; Steam and Lutris on `x86_64`.
 - Zsh as the default shell for new accounts, Oh My Zsh, Powerline, and Powerline fonts.
 - Fedora Mesa drivers and Intel/AMD firmware on x86_64; NVIDIA `akmod-nvidia` and userspace driver on x86_64.
 - Broad FFmpeg and GStreamer codec support from RPM Fusion.
 - Light and dark Infinity OS wallpapers, logo, boot splash and GNOME defaults.
+
+Orchis is bundled as prebuilt theme assets, so image builds do not fetch or compile it. The User Themes extension loads its GNOME Shell stylesheet; GTK 4/libadwaita styling is linked into each new account's configuration. GTK 4/libadwaita and Flatpak apps may render some controls differently from GTK 3, especially after GNOME upgrades. The system's native purple accent remains the closest built-in match to `#645394`.
 
 Fedora and Fedora Updates remain the base repositories. [RPM Fusion Free and Nonfree](https://rpmfusion.org/) supply codecs and the NVIDIA driver. Their signed release packages are installed into the image so updates continue to use those repositories. This software may have licensing or patent restrictions in some countries. NVIDIA's kernel module requires a build for the running kernel and may require signing when Secure Boot is enabled.
 
@@ -40,4 +43,4 @@ The image has not yet completed a full KIWI build or boot test. The development 
 
 ## Sources and licensing
 
-This repository follows the upstream Fedora KIWI description's GPL-3.0-or-later license in [COPYING](COPYING). Bundled Oh My Zsh and the Window Is Ready extension have their own licenses and pinned source details in [THIRD_PARTY.md](THIRD_PARTY.md). Before distributing an ISO, review the [Fedora Remix guidelines](https://fedoraproject.org/wiki/Remix) and the terms for RPM Fusion and NVIDIA packages.
+This repository follows the upstream Fedora KIWI description's GPL-3.0-or-later license in [COPYING](COPYING). Bundled Oh My Zsh, Orchis and the Window Is Ready extension have their own licenses and pinned source details in [THIRD_PARTY.md](THIRD_PARTY.md). Before distributing an ISO, review the [Fedora Remix guidelines](https://fedoraproject.org/wiki/Remix) and the terms for RPM Fusion and NVIDIA packages.

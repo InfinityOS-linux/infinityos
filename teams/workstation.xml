@@ -35,6 +35,8 @@
 		<package name="gnome-builder"/>
 		<package name="gnome-extensions-app"/>
 		<package name="gnome-shell-extension-appindicator"/>
+		<package name="gnome-shell-extension-user-theme"/>
+		<package name="gtk-murrine-engine"/>
 		<package name="gnome-software"/>
 		<package name="flatpak"/>
 		<ignore name="fedora-flathub-remote"/>

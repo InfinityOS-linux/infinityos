@@ -1,12 +1,15 @@
 [org/gnome/shell]
-enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com']
+enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com']
+
+[org/gnome/shell/extensions/user-theme]
+name='Orchis-Purple-Dark-Compact'
 
 [org/gnome/desktop/wm/preferences]
-button-layout=':minimize,maximize,close'
+button-layout='close,minimize,maximize:'
 
 [org/gnome/desktop/wm/keybindings]
-switch-applications=[]
-switch-applications-backward=[]
+switch-applications=@as []
+switch-applications-backward=@as []
 switch-windows=['<Alt>Tab']
 switch-windows-backward=['<Shift><Alt>Tab']
 
@@ -20,3 +23,5 @@ picture-uri='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'
 
 [org/gnome/desktop/interface]
 accent-color='purple'
+gtk-theme='Orchis-Purple-Dark-Compact'
+color-scheme='prefer-dark'

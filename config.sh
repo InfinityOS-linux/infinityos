@@ -36,6 +36,10 @@ EOF
 		plymouth-set-default-theme infinityos
 	fi
 	install -m 0644 /usr/share/infinityos/zshrc /etc/skel/.zshrc
+	install -d /etc/skel/.config/gtk-4.0
+	for file in assets gtk.css gtk-dark.css; do
+		ln -sfn "/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/$file" "/etc/skel/.config/gtk-4.0/$file"
+	done
 	install -D -m 0644 /usr/share/infinityos/gnome-defaults /etc/dconf/db/local.d/00-infinityos
 	install -D -m 0644 /usr/share/infinityos/mimeapps.list /etc/xdg/mimeapps.list
 	printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
@@ -45,6 +49,10 @@ EOF
 		usermod -s /usr/bin/zsh liveuser
 		install -m 0644 /usr/share/infinityos/zshrc /home/liveuser/.zshrc
 		chown liveuser:liveuser /home/liveuser/.zshrc
+		install -d -o liveuser -g liveuser /home/liveuser/.config/gtk-4.0
+		for file in assets gtk.css gtk-dark.css; do
+			ln -sfn "/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/$file" "/home/liveuser/.config/gtk-4.0/$file"
+		done
 	fi
 fi
 
