@@ -1,6 +1,6 @@
 # Infinity OS
 
-Infinity OS is a Fedora 44 Workstation remix with a customized GNOME desktop. This repository is the image definition, not a released ISO. It is based on Fedora's [KIWI descriptions](https://forge.fedoraproject.org/releng/kiwi-descriptions), branch `f44`.
+Infinity OS is a Fedora 44 Workstation remix with a customized GNOME desktop. This repository contains its image definition. It is based on Fedora's [KIWI descriptions](https://forge.fedoraproject.org/releng/kiwi-descriptions), branch `f44`.
 
 The Infinity OS image profiles use Fedora's `generic-release` and `generic-logos` packages in place of Fedora's trademarked release and logo packages. Fedora and RPM Fusion remain the package sources. The visible system identity, wallpaper, icon and Plymouth startup screen use Infinity OS branding, with `#645394` as the base color. GNOME's built-in `purple` accent is the closest available system accent; the exact hex value is used in the artwork.
 
@@ -39,7 +39,11 @@ sudo ./kiwi-build --kiwi-file=InfinityOS.kiwi --image-type=iso --image-profile=I
 
 The same profile builds `aarch64` on an ARM Fedora host and `x86_64` on an x86_64 Fedora host or CI runner. Apple Silicon Parallels virtualizes ARM Linux; the x86_64 build needs a separate x86_64 builder. `Infinity-GNOME-Disk` is the disk-image profile.
 
-The image has not yet completed a full KIWI build or boot test. The development VM on the connected PRO STORAGE disk is still standard Fedora 44, and its first-run account setup must be completed before it can build this definition. The `/etc/os-release` identity is currently installed by `config.sh` over `generic-release`; a dedicated `infinityos-release` RPM is needed before publishing so future `generic-release` upgrades cannot restore the generic identity.
+The ARM Live ISO has completed a KIWI build and passed its media check in Parallels on Apple Silicon. The Live desktop started with Infinity OS branding and the purple theme. The build artifact is at `PRO STORAGE/InfinityOS/build/InfinityOS.aarch64-44.iso`; its SHA-256 is recorded beside it. The ARM disk profile built a GPT disk with EFI, boot, and root partitions. Its RAW and VMDK files are in the same build directory; the VMDK passed `qemu-img check`.
+
+The `Infinity OS Installed ARM` Parallels VM boots from `PRO STORAGE/InfinityOS/build/parallels/InfinityOS.aarch64-44-generic-initramfs.hdd` and reaches GNOME Initial Setup, showing “Welcome to Infinity OS 44!”. This is a writable, plain Parallels disk converted from the disk image. The first disk attempt used a host-specific initramfs that could not find its root partition in Parallels. The existing RAW disk was repaired with a generic initramfs, and `config.sh` now requests generic initramfs generation for future Infinity OS disk builds. A compressed DMG is kept as an intermediate artifact; attaching that DMG directly as a VM hard drive fails because Parallels treats it as read-only. Account creation and a full user login are still pending.
+
+The `/etc/os-release` identity is currently installed by `config.sh` over `generic-release`; a dedicated `infinityos-release` RPM is needed before publishing so future `generic-release` upgrades cannot restore the generic identity. Further desktop changes should be made in this repository and tested in the development VM, then included in a new image build after the planned changes are complete.
 
 ## Sources and licensing
 

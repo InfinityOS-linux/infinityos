@@ -54,6 +54,10 @@ EOF
 			ln -sfn "/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/$file" "/home/liveuser/.config/gtk-4.0/$file"
 		done
 	fi
+	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Disk"* ]]; then
+		# The build host's storage controller differs from the target VM or PC.
+		printf 'hostonly="no"\n' > /etc/dracut.conf.d/99-infinityos-generic.conf
+	fi
 fi
 
 #======================================
