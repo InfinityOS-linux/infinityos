@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=InfinityLauncher
+Comment=Choose applications for Infinity OS
+Exec=infinity-launcher
+Icon=applications-system
+Terminal=false
+Categories=System;Settings;

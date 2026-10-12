@@ -1,0 +1,8 @@
+{
+  "uuid": "ghostty@infinityos.org",
+  "name": "InfinityTerminal",
+  "description": "Infinity OS drop-down terminal controller",
+  "shell-version": ["50"],
+  "settings-schema": "org.infinityos.GhosTTY",
+  "version": 1
+}

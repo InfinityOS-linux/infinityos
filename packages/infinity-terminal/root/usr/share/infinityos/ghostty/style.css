@@ -1,0 +1,16 @@
+tabbar {
+  background-color: #211a2d;
+  color: #eeeaf6;
+  border-top: 1px solid #645394;
+}
+
+tabbar tab:selected {
+  background-color: #645394;
+  color: #ffffff;
+}
+
+tabbar tab.needs-attention {
+  background-color: #6d2637;
+  color: #ffffff;
+  border-top: 2px solid #eb536f;
+}

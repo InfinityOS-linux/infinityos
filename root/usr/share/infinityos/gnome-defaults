@@ -1,5 +1,8 @@
 [org/gnome/shell]
-enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'GPaste@gnome-shell-extensions.gnome.org', 'ghostty@infinityos.org']
+enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'GPaste@gnome-shell-extensions.gnome.org', 'ghostty@infinityos.org', 'wack-lockscreen-clock@rinzler69-wastaken.github.com']
+
+[org/gnome/desktop/app-folders/folders/System]
+apps=['org.gnome.baobab.desktop', 'org.gnome.DiskUtility.desktop', 'org.gnome.Logs.desktop', 'org.freedesktop.MalcontentControl.desktop', 'org.gnome.SystemMonitor.desktop', 'com.infinityos.GhosTTY.desktop', 'org.gnome.GPaste.Ui.desktop', 'org.gnome.GPaste.Preferences.desktop']
 
 [org/gnome/shell/extensions/user-theme]
 name='Orchis-Purple-Dark-Compact'
@@ -20,6 +23,12 @@ picture-options='zoom'
 
 [org/gnome/desktop/screensaver]
 picture-uri='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'
+
+[org/gnome/system/location]
+enabled=true
+
+[org/gnome/desktop/privacy]
+report-technical-problems=false
 
 [org/gnome/desktop/interface]
 accent-color='purple'

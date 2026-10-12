@@ -1,0 +1,8 @@
+[org/gnome/desktop/interface]
+color-scheme='prefer-dark'
+gtk-theme='Orchis-Purple-Dark-Compact'
+
+[org/gnome/desktop/background]
+picture-uri='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'
+picture-uri-dark='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'
+picture-options='zoom'

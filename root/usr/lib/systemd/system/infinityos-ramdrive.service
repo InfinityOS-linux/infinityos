@@ -1,0 +1,12 @@
+[Unit]
+Description=Clear Infinity OS RAMDrive on orderly shutdown
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/true
+ExecStop=/usr/libexec/infinityos-ramdrive-shutdown
+
+[Install]
+WantedBy=multi-user.target

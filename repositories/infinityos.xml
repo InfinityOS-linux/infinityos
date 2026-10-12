@@ -1,5 +1,10 @@
 <image>
 	<!-- Fedora remains the base; RPM Fusion supplies codecs and NVIDIA packages. -->
+	<repository type="rpm-md" alias="infinityos" profiles="Infinity-GNOME-Live,Infinity-GNOME-Disk">
+		<source path="https://infinityos-ca177d.gitlab.io/rpm/44/$basearch/">
+			<signing key="file:///etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos"/>
+		</source>
+	</repository>
 	<repository type="rpm-md" alias="infinity-build-rpmfusion-free" sourcetype="metalink" profiles="Infinity-GNOME-Live,Infinity-GNOME-Disk">
 		<source path="https://mirrors.rpmfusion.org/metalink?repo=free-fedora-$releasever&amp;arch=$basearch">
 			<signing key="file:///usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-free-fedora-$releasever"/>

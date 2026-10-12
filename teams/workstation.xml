@@ -24,6 +24,8 @@
 		<package name="generic-release"/>
 	</packages>
 	<packages type="image" profiles="Infinity-GNOME-Live,Infinity-GNOME-Disk">
+		<package name="infinity-terminal"/>
+		<package name="infinity-launcher"/>
 		<package name="generic-logos"/>
 		<package name="generic-release-notes"/>
 		<package name="plymouth-theme-spinner"/>
@@ -32,6 +34,8 @@
 		<ignore name="fedora-logos"/>
 		<ignore name="fedora-release-notes"/>
 		<ignore name="gnome-tour"/>
+		<ignore name="libreoffice*"/>
+		<ignore name="unoconv"/>
 		<package name="git"/>
 		<package name="gnome-builder"/>
 		<package name="gnome-extensions-app"/>

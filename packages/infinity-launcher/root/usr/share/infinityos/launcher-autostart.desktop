@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=InfinityLauncher first run
+Exec=infinity-launcher --first-run
+Icon=applications-system
+Terminal=false
+OnlyShowIn=GNOME;
+X-GNOME-Autostart-enabled=true

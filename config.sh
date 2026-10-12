@@ -46,7 +46,7 @@ EOF
 	tar -xf /usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz -C /usr/share/icons
 	rm /usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz
 	glib-compile-schemas /usr/share/gnome-shell/extensions/ding@rastersoft.com/schemas
-	glib-compile-schemas /usr/share/gnome-shell/extensions/ghostty@infinityos.org/schemas
+	glib-compile-schemas /usr/share/gnome-shell/extensions/wack-lockscreen-clock@rinzler69-wastaken.github.com/schemas
 	install -d /etc/skel/Desktop /etc/environment.d
 	printf 'XCURSOR_THEME=Bibata-Modern-Ice\n' > /etc/environment.d/90-infinityos-cursor.conf
 	install -m 0644 /usr/share/infinityos/zshrc /etc/skel/.zshrc
@@ -55,16 +55,17 @@ EOF
 		ln -sfn "/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/$file" "/etc/skel/.config/gtk-4.0/$file"
 	done
 	install -D -m 0644 /usr/share/infinityos/gnome-defaults /etc/dconf/db/local.d/00-infinityos
+	install -D -m 0644 /usr/share/infinityos/repos/infinityos.repo /etc/yum.repos.d/infinityos.repo
+	install -D -m 0644 /usr/share/infinityos/repos/docker-ce.repo /etc/yum.repos.d/docker-ce.repo
 	install -D -m 0644 /usr/share/infinityos/mimeapps.list /etc/xdg/mimeapps.list
 	install -d /etc/gnome-initial-setup
 	cat > /etc/gnome-initial-setup/vendor.conf << 'EOF'
 [pages]
 existing_user_only=language;keyboard
-skip=software
+skip=software;privacy
 EOF
 	fedora-third-party enable
-	systemctl enable tuned-ppd.service switcheroo-control.service
-	install -D -m 0644 /usr/share/infinityos/launcher.desktop /usr/share/applications/infinity-launcher.desktop
+		systemctl enable tuned-ppd.service switcheroo-control.service infinityos-ramdrive.service
 	printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
 	dconf update
 	useradd -D -s /usr/bin/zsh
@@ -81,7 +82,6 @@ EOF
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Disk"* ]]; then
 		# The build host's storage controller differs from the target VM or PC.
 		printf 'hostonly="no"\n' > /etc/dracut.conf.d/99-infinityos-generic.conf
-		install -D -m 0644 /usr/share/infinityos/launcher-autostart.desktop /etc/xdg/autostart/infinity-launcher.desktop
 		systemctl enable infinityos-snapper-setup.service snapper-timeline.timer snapper-cleanup.timer
 	fi
 fi

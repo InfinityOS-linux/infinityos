@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Infinity OS RAMDrive
+Comment=Create the desktop scratch folder and Files bookmark
+Exec=/usr/libexec/infinityos-ramdrive setup
+OnlyShowIn=GNOME;
+NoDisplay=true

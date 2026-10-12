@@ -1,0 +1,11 @@
+#!/usr/bin/bash
+set -eu
+
+# A manual service restart must not erase user files.
+[[ $(systemctl is-system-running 2>/dev/null || true) == stopping ]] || exit 0
+
+while IFS=: read -r user _ uid _ _ home _; do
+    if [[ $uid =~ ^[0-9]+$ ]] && ((uid >= 1000 && uid < 65534)) && [[ $home == /home/* ]]; then
+        runuser -u "$user" -- /usr/libexec/infinityos-ramdrive clear || echo "Could not clear $user RAMDrive" >&2
+    fi
+done < <(getent passwd)

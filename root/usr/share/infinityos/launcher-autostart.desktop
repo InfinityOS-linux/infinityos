@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Infinity Launcher first run
-Exec=/usr/bin/python3 /usr/share/infinityos/launcher.py --first-run
-Icon=applications-system
-Terminal=false
-OnlyShowIn=GNOME;
-X-GNOME-Autostart-enabled=true

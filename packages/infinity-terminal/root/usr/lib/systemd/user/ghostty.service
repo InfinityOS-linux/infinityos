@@ -1,0 +1,9 @@
+[Unit]
+Description=InfinityTerminal persistent terminal
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/infinity-terminal
+Restart=on-failure
+RestartSec=2

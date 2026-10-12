@@ -62,15 +62,25 @@ diff --git a/src/apprt/gtk/class/application.zig b/src/apprt/gtk/class/applicati
 diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 --- a/src/apprt/gtk/class/window.zig
 +++ b/src/apprt/gtk/class/window.zig
-@@ -357,6 +357,7 @@
+@@ -255,6 +255,8 @@
+         /// Tab page that the context menu was opened for.
+         /// setup by `setup-menu`.
+         context_menu_page: ?*adw.TabPage = null,
++        codex_page: ?*adw.TabPage = null,
++        claude_page: ?*adw.TabPage = null,
+ 
+         // Template bindings
+         tab_overview: *adw.TabOverview,
+@@ -357,6 +359,8 @@
              .init("about", actionAbout, null),
              .init("close", actionClose, null),
              .init("close-tab", actionCloseTab, s_variant_type),
 +            .init("close-context-tab", actionCloseContextTab, null),
++            .init("yolo-mode", actionYoloMode, null),
              .init("new-tab", actionNewTab, null),
              .init("new-window", actionNewWindow, null),
              .init("prompt-surface-title", actionPromptSurfaceTitle, null),
-@@ -398,6 +399,7 @@
+@@ -398,6 +402,7 @@
              command: ?configpkg.Command = null,
              working_directory: ?[:0]const u8 = null,
              title: ?[:0]const u8 = null,
@@ -78,7 +88,7 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
  
              pub const none: @This() = .{};
          },
-@@ -409,6 +411,7 @@
+@@ -409,6 +414,7 @@
                  .command = overrides.command,
                  .working_directory = overrides.working_directory,
                  .title = overrides.title,
@@ -86,7 +96,7 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
              },
          );
      }
-@@ -421,6 +424,7 @@
+@@ -421,6 +427,7 @@
              command: ?configpkg.Command = null,
              working_directory: ?[:0]const u8 = null,
              title: ?[:0]const u8 = null,
@@ -94,7 +104,7 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
  
              pub const none: @This() = .{};
          },
-@@ -464,7 +468,10 @@
+@@ -464,8 +471,29 @@
          };
  
          // Add the page and select it
@@ -104,9 +114,28 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +        else
 +            tab_view.insert(tab.as(gtk.Widget), position);
          tab_view.setSelectedPage(page);
++
++        if (self.isInfinity()) {
++            if (overrides.title) |title| {
++                const icon_name: ?[:0]const u8 = if (std.mem.eql(u8, title, "Codex CLI")) icon: {
++                    priv.codex_page = page;
++                    break :icon "infinity-codex";
++                } else if (std.mem.eql(u8, title, "Claude CLI")) icon: {
++                    priv.claude_page = page;
++                    break :icon "infinity-claude";
++                } else if (std.mem.endsWith(u8, title, "YOLO")) "infinity-yolo-red" else null;
++                if (icon_name) |name| {
++                    const icon = gio.ThemedIcon.new(name);
++                    defer icon.unref();
++                    page.setIcon(icon.as(gio.Icon));
++                }
++                if (std.mem.endsWith(u8, title, "YOLO")) page.setNeedsAttention(1);
++            }
++        }
  
          // Create some property bindings
-@@ -582,6 +589,7 @@
+         _ = tab.as(gobject.Object).bindProperty(
+@@ -582,6 +610,7 @@
  
          // Get the page position that contains the tab.
          const page = tab_view.getPage(tab.as(gtk.Widget));
@@ -114,7 +143,7 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
          const pos = tab_view.getPagePosition(page);
  
          // Move it
-@@ -612,6 +620,11 @@
+@@ -612,6 +641,11 @@
      pub fn toggleVisibility(self: *Self) void {
          const widget = self.as(gtk.Widget);
          widget.setVisible(@intFromBool(widget.isVisible() == 0));
@@ -126,7 +155,7 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
      }
  
      /// Updates various appearance properties. This should always be safe
-@@ -1364,6 +1377,10 @@
+@@ -1364,6 +1398,10 @@
          _: *gtk.Window,
          self: *Self,
      ) callconv(.c) c_int {
@@ -137,7 +166,7 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
          if (self.getNeedsConfirmQuit()) {
              // Show a confirmation dialog
              const dialog: *CloseConfirmationDialog = .new(.window);
-@@ -1425,6 +1442,10 @@
+@@ -1425,6 +1463,10 @@
          self: *Self,
      ) callconv(.c) c_int {
          const priv = self.private();
@@ -148,7 +177,22 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
          const child = page.getChild();
          const tab = gobject.ext.cast(Tab, child) orelse
              return @intFromBool(false);
-@@ -1857,6 +1878,16 @@
+@@ -1602,7 +1644,13 @@
+         page: ?*adw.TabPage,
+         self: *Self,
+     ) callconv(.c) void {
+-        self.private().context_menu_page = page;
++        const priv = self.private();
++        priv.context_menu_page = page;
++        const action_map = gobject.ext.cast(gio.ActionMap, self) orelse return;
++        const action = gobject.ext.cast(gio.SimpleAction,
++            action_map.lookupAction("yolo-mode") orelse return) orelse return;
++        action.setEnabled(@intFromBool(page != null and
++            (page == priv.codex_page or page == priv.claude_page)));
+     }
+ 
+     fn surfaceClipboardWrite(
+@@ -1857,6 +1905,36 @@
          const child = page.getChild();
          const tab = gobject.ext.cast(Tab, child) orelse return;
          tab.promptTabTitle();
@@ -162,15 +206,35 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +        const priv = self.private();
 +        const page = priv.context_menu_page orelse return;
 +        priv.tab_view.closePage(page);
++    }
++
++    fn actionYoloMode(
++        _: *gio.SimpleAction,
++        _: ?*glib.Variant,
++        self: *Self,
++    ) callconv(.c) void {
++        const priv = self.private();
++        const page = priv.context_menu_page orelse return;
++        if (page == priv.codex_page) {
++            self.newTabForWindow(null, .{
++                .command = .{ .shell = "zsh -ic 'codex --yolo; exec zsh'" },
++                .title = "Codex YOLO",
++            });
++        } else if (page == priv.claude_page) {
++            self.newTabForWindow(null, .{
++                .command = .{ .shell = "zsh -ic 'claude --dangerously-skip-permissions; exec zsh'" },
++                .title = "Claude YOLO",
++            });
++        }
      }
  
      fn actionPromptSurfaceTitle(
 diff --git a/src/apprt/gtk/ui/1.5/window.blp b/src/apprt/gtk/ui/1.5/window.blp
 --- a/src/apprt/gtk/ui/1.5/window.blp
 +++ b/src/apprt/gtk/ui/1.5/window.blp
-@@ -71,6 +71,7 @@
+@@ -72,6 +72,7 @@
            }
-
+ 
            Gtk.MenuButton {
 +            visible: false;
              notify::active => $notify_menu_active();
@@ -178,15 +242,15 @@ diff --git a/src/apprt/gtk/ui/1.5/window.blp b/src/apprt/gtk/ui/1.5/window.blp
              menu-model: main_menu;
 @@ -94,6 +95,7 @@
            visible: bind $titlebar_style_is_tabs(template.titlebar-style) as <bool>;
-
+ 
            Gtk.WindowControls {
 +            visible: false;
              side: start;
            }
-
-@@ -129,6 +131,7 @@
+ 
+@@ -130,6 +132,7 @@
            }
-
+ 
            Gtk.MenuButton {
 +            visible: false;
              styles [
@@ -194,16 +258,21 @@ diff --git a/src/apprt/gtk/ui/1.5/window.blp b/src/apprt/gtk/ui/1.5/window.blp
              ]
 @@ -142,6 +145,7 @@
            }
-
+ 
            Gtk.WindowControls {
 +            visible: false;
              side: end;
            }
          }
-@@ -317,6 +321,11 @@
+@@ -317,6 +321,16 @@
  
  menu tab_context_menu {
    item {
++    label: _("Start YOLO mode in a red tab");
++    action: "win.yolo-mode";
++  }
++
++  item {
 +    label: _("Close Tab");
 +    action: "win.close-context-tab";
 +  }

@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=GhosTTY
-Comment=Infinity OS drop-down terminal powered by Ghostty
-Exec=ghostty
-Icon=com.infinityos.GhosTTY
-Terminal=false
-Categories=System;TerminalEmulator;
-StartupWMClass=com.infinityos.GhosTTY

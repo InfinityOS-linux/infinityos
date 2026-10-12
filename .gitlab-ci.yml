@@ -1,0 +1,63 @@
+stages:
+  - build
+  - publish
+
+.docker-build:
+  stage: build
+  image: docker:29-cli
+  services:
+    - name: docker:29-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - apk add --no-cache bash curl python3 patch coreutils
+  artifacts:
+    paths:
+      - .build/rpm-output/*.rpm
+    expire_in: 7 days
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+build-launcher:
+  extends: .docker-build
+  script:
+    - INFINITY_PACKAGE_RELEASE="$CI_PIPELINE_IID" packages/build-rpm.sh infinity-launcher
+
+build-terminal-x86_64:
+  extends: .docker-build
+  script:
+    - INFINITY_TARGET_PLATFORM=linux/amd64 INFINITY_PACKAGE_RELEASE="$CI_PIPELINE_IID" packages/build-rpm.sh infinity-terminal
+
+build-terminal-aarch64:
+  extends: .docker-build
+  script:
+    - docker run --privileged --rm tonistiigi/binfmt --install arm64
+    - INFINITY_TARGET_PLATFORM=linux/arm64 INFINITY_PACKAGE_RELEASE="$CI_PIPELINE_IID" packages/build-rpm.sh infinity-terminal
+
+pages:
+  stage: publish
+  image: fedora:44
+  needs:
+    - job: build-launcher
+      artifacts: true
+    - job: build-terminal-x86_64
+      artifacts: true
+    - job: build-terminal-aarch64
+      artifacts: true
+  before_script:
+    - dnf -qy install createrepo_c rpm-sign gnupg2
+  script:
+    - export GNUPGHOME="$(mktemp -d)"
+    - chmod 700 "$GNUPGHOME"
+    - printf '%s' "$RPM_SIGNING_KEY_B64" | base64 -d | gpg --batch --import
+    - packages/publish-repo.sh .build/rpm-output public
+    - rm -rf "$GNUPGHOME"
+  pages:
+    publish: public
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

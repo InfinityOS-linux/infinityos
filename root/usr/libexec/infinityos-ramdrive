@@ -1,0 +1,54 @@
+#!/usr/bin/python3
+"""Set up the desktop scratch folder or clear it during an orderly shutdown."""
+
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+
+ICON = "file:///usr/share/icons/hicolor/scalable/places/infinityos-ramdrive.svg"
+
+
+def ramdrive():
+    desktop = subprocess.run(["xdg-user-dir", "DESKTOP"], check=True, capture_output=True,
+                             text=True).stdout.strip()
+    if not Path(desktop).is_absolute():
+        raise ValueError("Desktop path must be absolute")
+    return Path(desktop) / "RAMDrive"
+
+
+def setup():
+    folder = ramdrive()
+    if folder.is_symlink():
+        raise ValueError("RAMDrive must be a real folder")
+    folder.mkdir(parents=True, exist_ok=True)
+    bookmarks = Path.home() / ".config/gtk-3.0/bookmarks"
+    bookmarks.parent.mkdir(parents=True, exist_ok=True)
+    old = bookmarks.read_text() if bookmarks.exists() else ""
+    uri = folder.as_uri()
+    if not any(line.split(" ", 1)[0] == uri for line in old.splitlines()):
+        with bookmarks.open("a") as output:
+            output.write(("" if not old or old.endswith("\n") else "\n") + f"{uri} RAMDrive\n")
+    subprocess.run(["gio", "set", "-t", "string", str(folder), "metadata::custom-icon", ICON],
+                   check=False)
+
+
+def clear():
+    folder = ramdrive()
+    if folder.is_symlink() or not folder.is_dir():
+        return
+    for item in folder.iterdir():
+        if item.is_dir() and not item.is_symlink():
+            shutil.rmtree(item)
+        else:
+            item.unlink()
+
+
+if __name__ == "__main__":
+    if sys.argv[1:] == ["setup"]:
+        setup()
+    elif sys.argv[1:] == ["clear"]:
+        clear()
+    else:
+        raise SystemExit("Usage: infinityos-ramdrive setup|clear")
