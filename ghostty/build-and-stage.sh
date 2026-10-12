@@ -36,11 +36,11 @@ docker run --rm ${platform_args[@]+"${platform_args[@]}"} \
 	-w /src "$builder" \
 	bash -lc 'DESTDIR=/out zig build --prefix /usr -Doptimize=ReleaseFast -Dcpu=baseline'
 
-target="$description/root/usr"
+target="$description/usr"
 install -d "$target/libexec/infinityos" "$target/share"
 install -m 0755 "$work/install/usr/bin/ghostty" "$target/libexec/infinityos/ghostty"
 cp -a "$work/install/usr/share/ghostty" "$target/share/ghostty"
 if [[ -d "$work/install/usr/share/terminfo" ]]; then
 	cp -a "$work/install/usr/share/terminfo" "$target/share/terminfo"
 fi
-printf 'Staged GhosTTY from Ghostty 1.3.1 for %s\n' "$(docker run --rm ${platform_args[@]+"${platform_args[@]}"} "$builder" uname -m)"
+printf 'Staged InfinityTerminal from Ghostty 1.3.1 for %s\n' "$(docker run --rm ${platform_args[@]+"${platform_args[@]}"} "$builder" uname -m)"
