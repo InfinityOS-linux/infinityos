@@ -1,5 +1,5 @@
 [org/gnome/shell]
-enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'GPaste@gnome-shell-extensions.gnome.org']
+enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'GPaste@gnome-shell-extensions.gnome.org', 'ghostty@infinityos.org']
 
 [org/gnome/shell/extensions/user-theme]
 name='Orchis-Purple-Dark-Compact'
@@ -27,3 +27,12 @@ gtk-theme='Orchis-Purple-Dark-Compact'
 icon-theme='kora'
 cursor-theme='Bibata-Modern-Ice'
 color-scheme='prefer-dark'
+
+[org/gnome/GPaste]
+launch-ui=''
+make-password=''
+pop=''
+show-history=''
+sync-clipboard-to-primary=''
+sync-primary-to-clipboard=''
+upload=''

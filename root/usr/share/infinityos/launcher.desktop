@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Infinity Launcher
+Comment=Choose applications for Infinity OS
+Exec=/usr/bin/python3 /usr/share/infinityos/launcher.py
+Icon=applications-system
+Terminal=false
+Categories=System;Settings;

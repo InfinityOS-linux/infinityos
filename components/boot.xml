@@ -8,7 +8,30 @@
 			<requires profile="HardwareCommon"/>
 			<requires profile="BootCore"/>
 		</profile>
+		<profile name="InfinityBootDiskCore" description="Infinity OS UEFI disk with systemd-boot">
+			<requires profile="BaseCommon"/>
+			<requires profile="HardwareCommon"/>
+			<requires profile="BootCore"/>
+		</profile>
 	</profiles>
+	<preferences profiles="InfinityBootDiskCore" arch="x86_64,aarch64">
+		<type image="oem"
+		      filesystem="btrfs" btrfs_root_is_subvolume="true" btrfs_set_default_volume="false" fsmountoptions="x-systemd.growfs,compress=zstd:1"
+		      kernelcmdline="rhgb quiet" devicepersistency="by-uuid"
+		      efipartsize="2048" firmware="uefi"
+		      rootfs_label="infinityos"
+		      >
+			<bootloader name="systemd_boot" timeout="5"/>
+			<systemdisk name="infinityos">
+				<volume name="@root=root"/>
+				<volume name="home" parent="/"/>
+				<volume name="var" parent="/"/>
+			</systemdisk>
+			<oemconfig>
+				<oem-resize>false</oem-resize>
+			</oemconfig>
+		</type>
+	</preferences>
 	<preferences profiles="BootDiskCore" arch="x86_64,riscv64">
 		<type image="oem"
 		      filesystem="btrfs" btrfs_root_is_subvolume="true" btrfs_set_default_volume="false" fsmountoptions="x-systemd.growfs,compress=zstd:1"
@@ -132,7 +155,7 @@
 		<package name="grub2-efi-ia32-cdboot" arch="x86_64"/>
 		<package name="grub2-efi-x64-cdboot" arch="x86_64"/>
 	</packages>
-	<packages type="image" patternType="plusRecommended" profiles="BootDiskCore">
+	<packages type="image" patternType="plusRecommended" profiles="BootDiskCore,InfinityBootDiskCore">
 		<ignore name="kernel-*debug*"/>
 		<package name="arm-image-installer" arch="aarch64"/>
 		<package name="glibc-all-langpacks"/>
@@ -143,5 +166,9 @@
 		<package name="udisks2-btrfs"/>
 		<package name="uboot-images-armv8" arch="aarch64"/>
 		<package name="uboot-images-riscv64" arch="riscv64"/>
+	</packages>
+	<packages type="image" profiles="InfinityBootDiskCore">
+		<package name="systemd-boot-unsigned"/>
+		<package name="snapper"/>
 	</packages>
 </image>

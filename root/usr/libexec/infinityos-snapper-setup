@@ -1,0 +1,18 @@
+#!/bin/bash
+set -euo pipefail
+
+if ! snapper -c root get-config >/dev/null 2>&1; then
+	snapper -c root create-config -f btrfs /
+fi
+
+snapper -c root set-config \
+	TIMELINE_CREATE=yes \
+	TIMELINE_CLEANUP=yes \
+	TIMELINE_LIMIT_HOURLY=5 \
+	TIMELINE_LIMIT_DAILY=7 \
+	TIMELINE_LIMIT_WEEKLY=4 \
+	TIMELINE_LIMIT_MONTHLY=3 \
+	TIMELINE_LIMIT_YEARLY=0
+
+install -d /var/lib/infinityos
+touch /var/lib/infinityos/snapper-ready

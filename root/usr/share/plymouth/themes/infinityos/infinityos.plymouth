@@ -1,8 +1,22 @@
 [Plymouth Theme]
 Name=Infinity OS
 Description=Infinity OS startup screen
-ModuleName=script
+ModuleName=two-step
 
-[script]
+[two-step]
 ImageDir=/usr/share/plymouth/themes/infinityos
-ScriptFile=/usr/share/plymouth/themes/infinityos/infinityos.script
+HorizontalAlignment=.5
+VerticalAlignment=.5
+BackgroundStartColor=0x000000
+BackgroundEndColor=0x000000
+Transition=none
+MessageBelowAnimation=true
+
+[boot-up]
+UseEndAnimation=false
+
+[shutdown]
+UseEndAnimation=false
+
+[reboot]
+UseEndAnimation=false

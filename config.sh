@@ -33,6 +33,9 @@ EOF
 	printf 'Infinity OS 44\n' > /etc/issue
 	printf 'Infinity OS 44\n' > /etc/issue.net
 	if command -v plymouth-set-default-theme >/dev/null; then
+		for image in bullet capslock entry keyboard keymap-render lock; do
+			cp -f "/usr/share/plymouth/themes/spinner/$image.png" /usr/share/plymouth/themes/infinityos/
+		done
 		plymouth-set-default-theme infinityos
 	fi
 	install -d /usr/share/icons /usr/share/licenses/kora
@@ -43,6 +46,7 @@ EOF
 	tar -xf /usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz -C /usr/share/icons
 	rm /usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz
 	glib-compile-schemas /usr/share/gnome-shell/extensions/ding@rastersoft.com/schemas
+	glib-compile-schemas /usr/share/gnome-shell/extensions/ghostty@infinityos.org/schemas
 	install -d /etc/skel/Desktop /etc/environment.d
 	printf 'XCURSOR_THEME=Bibata-Modern-Ice\n' > /etc/environment.d/90-infinityos-cursor.conf
 	install -m 0644 /usr/share/infinityos/zshrc /etc/skel/.zshrc
@@ -60,6 +64,7 @@ skip=software
 EOF
 	fedora-third-party enable
 	systemctl enable tuned-ppd.service switcheroo-control.service
+	install -D -m 0644 /usr/share/infinityos/launcher.desktop /usr/share/applications/infinity-launcher.desktop
 	printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
 	dconf update
 	useradd -D -s /usr/bin/zsh
@@ -76,6 +81,8 @@ EOF
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Disk"* ]]; then
 		# The build host's storage controller differs from the target VM or PC.
 		printf 'hostonly="no"\n' > /etc/dracut.conf.d/99-infinityos-generic.conf
+		install -D -m 0644 /usr/share/infinityos/launcher-autostart.desktop /etc/xdg/autostart/infinity-launcher.desktop
+		systemctl enable infinityos-snapper-setup.service snapper-timeline.timer snapper-cleanup.timer
 	fi
 fi
 
@@ -99,7 +106,7 @@ rm -f /var/lib/systemd/random-seed
 #======================================
 # Configure grub correctly
 #--------------------------------------
-if [[ "$kiwi_profiles" != *"Container"* ]] && [[ "$kiwi_profiles" != *"FEX"* ]] && [[ "$kiwi_profiles" != *"WSL"* ]]; then
+if [[ "$kiwi_profiles" != *"Container"* ]] && [[ "$kiwi_profiles" != *"FEX"* ]] && [[ "$kiwi_profiles" != *"WSL"* ]] && [[ "$kiwi_profiles" != *"Infinity-GNOME-Disk"* ]]; then
 	## Works around issues with grub-bls
 	## See: https://github.com/OSInside/kiwi/issues/2198
 	echo "GRUB_DEFAULT=saved" >> /etc/default/grub

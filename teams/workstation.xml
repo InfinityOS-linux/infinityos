@@ -14,7 +14,7 @@
 		</profile>
 		<profile name="Infinity-GNOME-Disk" description="Infinity OS GNOME disk image">
 			<requires profile="GNOME-Desktop"/>
-			<requires profile="BootDiskCore"/>
+			<requires profile="InfinityBootDiskCore"/>
 		</profile>
 	</profiles>
 	<packages type="bootstrap" patternType="plusRecommended" profiles="Workstation-Live,Workstation-Disk">
@@ -26,7 +26,7 @@
 	<packages type="image" profiles="Infinity-GNOME-Live,Infinity-GNOME-Disk">
 		<package name="generic-logos"/>
 		<package name="generic-release-notes"/>
-		<package name="plymouth-plugin-script"/>
+		<package name="plymouth-theme-spinner"/>
 		<ignore name="fedora-release"/>
 		<ignore name="fedora-release-workstation"/>
 		<ignore name="fedora-logos"/>
@@ -37,10 +37,13 @@
 		<package name="gnome-extensions-app"/>
 		<package name="gnome-shell-extension-appindicator"/>
 		<package name="gnome-shell-extension-gpaste"/>
+		<package name="gtk4-layer-shell"/>
 		<package name="gnome-shell-extension-user-theme"/>
 		<package name="gtk-murrine-engine"/>
 		<package name="gnome-software"/>
 		<package name="flatpak"/>
+		<package name="python3-gobject"/>
+		<package name="nodejs-npm"/>
 		<ignore name="fedora-flathub-remote"/>
 		<package name="gamemode"/>
 		<package name="tuned-ppd"/>

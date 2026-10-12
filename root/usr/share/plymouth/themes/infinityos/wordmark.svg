@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="310" height="80" viewBox="0 0 310 80">
+  <rect x="2" y="8" width="64" height="64" rx="14" fill="#645394"/>
+  <path d="M12 40c0-10.25 13.125-12.875 21.5 0 8.375 12.875 21.75 10.25 21.75 0S41.875 27.125 33.5 40C25.125 52.875 12 50.25 12 40Z" fill="none" stroke="#fff" stroke-width="5.25" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="82" y="56" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif" font-size="48" font-weight="600">Infinity</text>
+</svg>

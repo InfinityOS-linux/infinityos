@@ -1,3 +1,4 @@
+export PATH="$HOME/.local/bin:$PATH"
 export ZSH=/usr/share/oh-my-zsh
 zstyle ':omz:update' mode disabled
 ZSH_THEME=""

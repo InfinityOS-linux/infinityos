@@ -1,2 +1,4 @@
 outdir-build/
 outdir/
+.build/
+work/

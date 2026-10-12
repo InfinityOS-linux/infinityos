@@ -1,2 +1,2 @@
 [org/gnome/login-screen]
-logo='/usr/share/icons/hicolor/256x256/apps/infinityos-logo.png'
+logo='/usr/share/plymouth/themes/infinityos/login-logo.png'

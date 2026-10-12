@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<image schemaversion="7.4" name="InfinityOS">
+<image schemaversion="7.4" name="InfinityOS" displayname="Infinity OS 44">
 	<description type="system">
 		<author>Infinity OS Contributors</author>
 		<contact>https://gitlab.com/godorowski/infinityos</contact>

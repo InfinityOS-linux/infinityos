@@ -12,6 +12,10 @@ GNOME Initial Setup uses the Infinity OS welcome illustration through a GResourc
 - Blur My Shell, Window Is Ready - Notification Remover, AppIndicator, and Desktop Icons NG (DING), enabled for new users. DING allows files and folders on the desktop.
 - Flathub as a system-wide Flatpak remote, with GNOME Software support for Flatpak apps.
 - Minimize and maximize titlebar buttons; Alt+Tab switches windows rather than applications.
+- GhosTTY opens or hides with Super+T, leaving Ctrl+T available for a new Firefox tab.
+- GhosTTY uses a patched Ghostty renderer, a GNOME Shell panel button, and a persistent user service. Codex and Claude CLI tabs appear when their commands are installed; the first shell tab stays pinned.
+- Infinity Launcher starts on first login with System, Gaming, Creative, Programming, and AI tabs; selections install only after Save.
+- The disk image uses systemd-boot, a writable Btrfs root, and automatic Snapper timelines and cleanup.
 - Orchis Purple Dark Compact as the default GTK and GNOME Shell theme, Kora icons, Bibata Modern Ice cursors, a compact Shell panel, and macOS-style window buttons on the left.
 - GameMode, MangoHud, Gamescope, and gamepad permissions; Steam and Lutris on `x86_64`.
 - Zsh as the default shell for new accounts, Oh My Zsh, Powerline, and Powerline fonts.
@@ -41,9 +45,20 @@ sudo ./kiwi-build --kiwi-file=InfinityOS.kiwi --image-type=iso --image-profile=I
 
 The same profile builds `aarch64` on an ARM Fedora host and `x86_64` on an x86_64 Fedora host or CI runner. Apple Silicon Parallels virtualizes ARM Linux; the x86_64 build needs a separate x86_64 builder. `Infinity-GNOME-Disk` is the disk-image profile.
 
-The ARM Live ISO has completed a KIWI build and passed its media check in Parallels on Apple Silicon. The Live desktop started with Infinity OS branding and the purple theme. The build artifact is at `PRO STORAGE/InfinityOS/build/InfinityOS.aarch64-44.iso`; its SHA-256 is recorded beside it. The ARM disk profile built a GPT disk with EFI, boot, and root partitions. Its RAW and VMDK files are in the same build directory; the VMDK passed `qemu-img check`.
+Before building the image, run `ghostty/build-and-stage.sh DESCRIPTION_DIR` to compile the patched Ghostty 1.3.1 for the target architecture and stage its binary and resources in a copy of this KIWI description. Set `INFINITY_TARGET_PLATFORM=linux/arm64` or `linux/amd64` when building on a different host architecture. Keep the staged binary architecture the same as the image architecture.
 
-The `Infinity OS Installed ARM` Parallels VM boots from `PRO STORAGE/InfinityOS/build/parallels/InfinityOS.aarch64-44-generic-initramfs.hdd` and reaches GNOME Initial Setup, showing “Welcome to Infinity OS 44!”. This is a writable, plain Parallels disk converted from the disk image. The first disk attempt used a host-specific initramfs that could not find its root partition in Parallels. The existing RAW disk was repaired with a generic initramfs, and `config.sh` now requests generic initramfs generation for future Infinity OS disk builds. A compressed DMG is kept as an intermediate artifact; attaching that DMG directly as a VM hard drive fails because Parallels treats it as read-only. Account creation and a full user login are still pending.
+Build the disk from that staged description on a Fedora host with Btrfs ACL support, using a local build target:
+
+```sh
+sudo kiwi-ng --type=oem --profile=Infinity-GNOME-Disk --kiwi-file=InfinityOS.kiwi system build --description /path/to/staged-description --target-dir /var/tmp/infinityos-build
+sudo ./scripts/finalize-infinity-disk /var/tmp/infinityos-build/InfinityOS.aarch64-44.raw
+```
+
+Change the RAW filename to the output for the target architecture. The finalizer corrects KIWI's `0700` root subvolume permissions to `0755`; without this, non-root system services fail at boot. The `kiwi-build` wrapper runs it automatically for `Infinity-GNOME-Disk`. Docker Desktop's LinuxKit kernel lacks Btrfs ACL support, so it cannot finish this disk profile correctly. The Fedora ARM Builder VM on Apple Silicon can build it. A future `x86_64` build uses the same staged description and command on an `x86_64` Fedora host or CI runner.
+
+The ARM disk image is at `PRO STORAGE/InfinityOS/build/InfinityOS.aarch64-44-next.raw`, with a compressed `.raw.zst` beside it. It has a 2 GB EFI partition and a writable Btrfs partition with `root`, `home`, and `var` subvolumes. The GPT passed `sgdisk -v`. The current Live ISO predates the disk changes and needs a later rebuild before distribution.
+
+The `Infinity OS 44 ARM` Parallels VM boots from `PRO STORAGE/InfinityOS/build/parallels/InfinityOS-44-arm.hdd` into a regular GNOME session. The disk is a writable plain Parallels image. Infinity Launcher and GhosTTY run in the development VM; GhosTTY's outside-click behavior still needs an input test because Parallels did not forward automated clicks to the guest. `config.sh` requests a generic initramfs so the VM can find its root partition in Parallels.
 
 The `/etc/os-release` identity is currently installed by `config.sh` over `generic-release`; a dedicated `infinityos-release` RPM is needed before publishing so future `generic-release` upgrades cannot restore the generic identity. Further desktop changes should be made in this repository and tested in the development VM, then included in a new image build after the planned changes are complete.
 

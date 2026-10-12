@@ -1,0 +1,11 @@
+[Unit]
+Description=Initialize Infinity OS Btrfs snapshots
+After=local-fs.target
+ConditionPathExists=!/var/lib/infinityos/snapper-ready
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/infinityos-snapper-setup
+
+[Install]
+WantedBy=multi-user.target

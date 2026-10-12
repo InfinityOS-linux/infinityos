@@ -1,0 +1,9 @@
+[Unit]
+Description=GhosTTY persistent terminal
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/ghostty
+Restart=on-failure
+RestartSec=2
