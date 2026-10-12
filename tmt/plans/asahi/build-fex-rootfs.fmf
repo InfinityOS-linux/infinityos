@@ -7,6 +7,6 @@ adjust:
 environment:
     image_type: erofs
     image_profile: FEX-RootFS
-    kiwi_file: Fedora.kiwi
+    kiwi_file: InfinityOS.kiwi
 execute:
     how: tmt

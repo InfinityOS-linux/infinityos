@@ -1,6 +1,6 @@
 ## Image variants
 
-### For the `Fedora.kiwi` kiwi file
+### For the `InfinityOS.kiwi` kiwi file
 
 | Name                           | Image type | Image profiles                        |
 |--------------------------------|------------|---------------------------------------|

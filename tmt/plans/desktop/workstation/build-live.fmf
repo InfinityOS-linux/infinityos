@@ -4,7 +4,7 @@ discover:
 environment:
     image_type: iso
     image_profile: Workstation-Live
-    kiwi_file: Fedora.kiwi
+    kiwi_file: InfinityOS.kiwi
 execute:
     how: tmt
 provision:

@@ -9,16 +9,28 @@
 			<requires profile="BootDiskCore"/>
 		</profile>
 		<profile name="Infinity-GNOME-Live" description="Infinity OS GNOME live image">
-			<requires profile="Workstation-Live"/>
+			<requires profile="GNOME-Desktop"/>
+			<requires profile="LiveInstall"/>
 		</profile>
 		<profile name="Infinity-GNOME-Disk" description="Infinity OS GNOME disk image">
-			<requires profile="Workstation-Disk"/>
+			<requires profile="GNOME-Desktop"/>
+			<requires profile="BootDiskCore"/>
 		</profile>
 	</profiles>
 	<packages type="bootstrap" patternType="plusRecommended" profiles="Workstation-Live,Workstation-Disk">
 		<package name="fedora-release-workstation"/>
 	</packages>
+	<packages type="bootstrap" profiles="Infinity-GNOME-Live,Infinity-GNOME-Disk">
+		<package name="generic-release"/>
+	</packages>
 	<packages type="image" profiles="Infinity-GNOME-Live,Infinity-GNOME-Disk">
+		<package name="generic-logos"/>
+		<package name="generic-release-notes"/>
+		<package name="plymouth-plugin-script"/>
+		<ignore name="fedora-release"/>
+		<ignore name="fedora-release-workstation"/>
+		<ignore name="fedora-logos"/>
+		<ignore name="fedora-release-notes"/>
 		<package name="git"/>
 		<package name="gnome-builder"/>
 		<package name="gnome-extensions-app"/>

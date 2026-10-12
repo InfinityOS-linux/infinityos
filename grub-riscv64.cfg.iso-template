@@ -25,16 +25,16 @@ set timeout_style=${boot_timeout_style}
 
 search ${search_params}
 
-menuentry "Start ${title}" --class fedora --class gnu-linux --class gnu --class os {
+menuentry "Start ${title}" --class infinityos --class gnu-linux --class gnu --class os {
 	linux ($$root)${bootpath}/${kernel_file} ${boot_options}
 	initrd ($$root)${bootpath}/${initrd_file}
 }
-menuentry "Test this media & start ${title}" --class fedora --class gnu-linux --class gnu --class os {
+menuentry "Test this media & start ${title}" --class infinityos --class gnu-linux --class gnu --class os {
 	linux ($$root)${bootpath}/${kernel_file} ${boot_options} rd.live.check
 	initrd ($$root)${bootpath}/${initrd_file}
 }
 submenu "Troubleshooting -->" {
-	menuentry "Start ${title} in basic graphics mode" --class fedora --class gnu-linux --class gnu --class os {
+	menuentry "Start ${title} in basic graphics mode" --class infinityos --class gnu-linux --class gnu --class os {
 		linux ($$root)${bootpath}/${kernel_file} ${boot_options} $${basicgfx}
 		initrd ($$root)${bootpath}/${initrd_file}
 	}

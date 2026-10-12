@@ -2,6 +2,8 @@
 
 Infinity OS is a Fedora 44 Workstation remix with a customized GNOME desktop. This repository is the image definition, not a released ISO. It is based on Fedora's [KIWI descriptions](https://forge.fedoraproject.org/releng/kiwi-descriptions), branch `f44`.
 
+The Infinity OS image profiles use Fedora's `generic-release` and `generic-logos` packages in place of Fedora's trademarked release and logo packages. Fedora and RPM Fusion remain the package sources. The visible system identity, wallpaper, icon and Plymouth startup screen use Infinity OS branding, with `#645394` as the base color. GNOME's built-in `purple` accent is the closest available system accent; the exact hex value is used in the artwork.
+
 ## Included in the image
 
 - Firefox as the default browser, GNOME Builder, and GNOME Extensions.
@@ -9,6 +11,7 @@ Infinity OS is a Fedora 44 Workstation remix with a customized GNOME desktop. Th
 - Zsh as the default shell for new accounts, Oh My Zsh, Powerline, and Powerline fonts.
 - Fedora Mesa drivers and Intel/AMD firmware on x86_64; NVIDIA `akmod-nvidia` and userspace driver on x86_64.
 - Broad FFmpeg and GStreamer codec support from RPM Fusion.
+- Light and dark Infinity OS wallpapers, logo, boot splash and GNOME defaults.
 
 Fedora and Fedora Updates remain the base repositories. [RPM Fusion Free and Nonfree](https://rpmfusion.org/) supply codecs and the NVIDIA driver. Their signed release packages are installed into the image so updates continue to use those repositories. This software may have licensing or patent restrictions in some countries. NVIDIA's kernel module requires a build for the running kernel and may require signing when Secure Boot is enabled.
 
@@ -23,12 +26,12 @@ sudo dnf install kiwi kiwi-systemdeps distribution-gpg-keys
 For a Live ISO, from this repository:
 
 ```sh
-sudo ./kiwi-build --kiwi-file=Fedora.kiwi --image-type=iso --image-profile=Infinity-GNOME-Live --output-dir=./outdir
+sudo ./kiwi-build --kiwi-file=InfinityOS.kiwi --image-type=iso --image-profile=Infinity-GNOME-Live --output-dir=./outdir
 ```
 
 The same profile builds `aarch64` on an ARM Fedora host and `x86_64` on an x86_64 Fedora host or CI runner. Apple Silicon Parallels virtualizes ARM Linux; the x86_64 build needs a separate x86_64 builder. `Infinity-GNOME-Disk` is the disk-image profile.
 
-The image has not yet completed a full KIWI build. The development VM on the connected PRO STORAGE disk is currently standard Fedora 44, and its first-run account setup must be completed before it can build this definition.
+The image has not yet completed a full KIWI build or boot test. The development VM on the connected PRO STORAGE disk is still standard Fedora 44, and its first-run account setup must be completed before it can build this definition. The `/etc/os-release` identity is currently installed by `config.sh` over `generic-release`; a dedicated `infinityos-release` RPM is needed before publishing so future `generic-release` upgrades cannot restore the generic identity.
 
 ## Sources and licensing
 

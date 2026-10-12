@@ -25,9 +25,16 @@ VERSION_ID=44
 VERSION="44"
 VARIANT="GNOME Workstation"
 VARIANT_ID=workstation
+LOGO=infinityos-logo
+ANSI_COLOR="0;38;2;100;83;148"
 HOME_URL="https://gitlab.com/godorowski/infinityos"
 DOCUMENTATION_URL="https://gitlab.com/godorowski/infinityos/-/blob/main/README.md"
 EOF
+	printf 'Infinity OS 44\n' > /etc/issue
+	printf 'Infinity OS 44\n' > /etc/issue.net
+	if command -v plymouth-set-default-theme >/dev/null; then
+		plymouth-set-default-theme infinityos
+	fi
 	install -m 0644 /usr/share/infinityos/zshrc /etc/skel/.zshrc
 	install -D -m 0644 /usr/share/infinityos/gnome-defaults /etc/dconf/db/local.d/00-infinityos
 	install -D -m 0644 /usr/share/infinityos/mimeapps.list /etc/xdg/mimeapps.list

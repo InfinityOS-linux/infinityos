@@ -4,6 +4,6 @@ discover:
 environment:
     image_type: oem
     image_profile: Cloud-Base-GCE
-    kiwi_file: Fedora.kiwi
+    kiwi_file: InfinityOS.kiwi
 execute:
     how: tmt
