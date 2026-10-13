@@ -20,12 +20,39 @@
     <scolor>#130e20</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>GNOME Original</name>
-    <filename>/usr/share/backgrounds/gnome/adwaita-l.jxl</filename>
-    <filename-dark>/usr/share/backgrounds/gnome/adwaita-d.jxl</filename-dark>
+    <name>02 Infinity OS — Nocturne</name>
+    <filename>/usr/share/backgrounds/infinityos/infinityos-nocturne.png</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/infinityos-nocturne.png</filename-dark>
     <options>zoom</options>
     <shade_type>solid</shade_type>
-    <pcolor>#3071AE</pcolor>
-    <scolor>#000000</scolor>
+    <pcolor>#130d1d</pcolor>
+    <scolor>#0d0915</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>03 Infinity OS — Monolith</name>
+    <filename>/usr/share/backgrounds/infinityos/infinityos-monolith.png</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/infinityos-monolith.png</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#17101f</pcolor>
+    <scolor>#0c0912</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>04 Infinity OS — Violet Veil</name>
+    <filename>/usr/share/backgrounds/infinityos/infinityos-veil.png</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/infinityos-veil.png</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#17101f</pcolor>
+    <scolor>#0c0912</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>05 Infinity OS — Lavender Mist</name>
+    <filename>/usr/share/backgrounds/infinityos/infinityos-mist.png</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/infinityos-mist.png</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#f5f0f7</pcolor>
+    <scolor>#d8c9ed</scolor>
   </wallpaper>
 </wallpapers>

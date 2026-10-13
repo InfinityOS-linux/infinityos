@@ -44,7 +44,6 @@ EOF
 	cp -a /usr/share/infinityos/folder-icons/. /usr/share/icons/kora/places/scalable/
 	cp -f /usr/share/icons/hicolor/256x256/apps/infinityos-logo.png /usr/share/cockpit/branding/infinityos/logo.png
 	cp -f /usr/share/backgrounds/infinityos/infinityos-dark.png /usr/share/cockpit/branding/infinityos/wallpaper.png
-	install -m 0644 /usr/share/infinityos/background-catalog.xml /usr/share/gnome-background-properties/adwaita.xml
 	tar -xOf /usr/share/infinityos/kora-v2.0.6.tar.gz kora-2.0.6/LICENSE > /usr/share/licenses/kora/LICENSE
 	rm /usr/share/infinityos/kora-v2.0.6.tar.gz
 	gtk-update-icon-cache -f -q /usr/share/icons/kora

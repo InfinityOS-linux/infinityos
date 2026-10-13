@@ -37,6 +37,11 @@ build-repos:
   script:
     - INFINITY_PACKAGE_RELEASE="$CI_PIPELINE_IID" packages/build-rpm.sh infinityos-repos
 
+build-wallpapers:
+  extends: .docker-build
+  script:
+    - INFINITY_PACKAGE_RELEASE="$CI_PIPELINE_IID" packages/build-rpm.sh infinityos-wallpapers
+
 build-terminal-x86_64:
   extends: .docker-build
   script:
@@ -56,6 +61,8 @@ pages:
     - job: build-launcher
       artifacts: true
     - job: build-repos
+      artifacts: true
+    - job: build-wallpapers
       artifacts: true
     - job: build-terminal-x86_64
       artifacts: true

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-package=${1:?Usage: packages/build-rpm.sh infinity-launcher|infinity-terminal|infinityos-repos}
+package=${1:?Usage: packages/build-rpm.sh infinity-launcher|infinity-terminal|infinityos-repos|infinityos-wallpapers}
 case "$package" in
   infinity-launcher) version=1.0.0 ;;
   infinity-terminal) version=1.3.1 ;;
   infinityos-repos) version=1.0.0 ;;
+  infinityos-wallpapers) version=1.0.0 ;;
   *) echo "Unknown package: $package" >&2; exit 2 ;;
 esac
 
@@ -13,9 +14,21 @@ repo=$(cd "$(dirname "$0")/.." && pwd)
 work=${INFINITY_PACKAGE_WORK_DIR:-"$repo/.build/rpm/$package"}
 rm -rf "$work"
 mkdir -p "$work/source/$package-$version" "$work/rpmbuild/SOURCES" "$work/rpmbuild/RPMS"
-cp -a "$repo/packages/$package/root/." "$work/source/$package-$version/"
+if [[ -d "$repo/packages/$package/root" ]]; then
+  cp -a "$repo/packages/$package/root/." "$work/source/$package-$version/"
+fi
 
-if [[ "$package" == infinityos-repos ]]; then
+if [[ "$package" == infinityos-wallpapers ]]; then
+  install -d "$work/source/$package-$version/usr/share/backgrounds/infinityos" \
+    "$work/source/$package-$version/usr/share/gnome-background-properties" \
+    "$work/source/$package-$version/usr/share/licenses/infinityos-wallpapers"
+  cp -a "$repo/root/usr/share/backgrounds/infinityos/." \
+    "$work/source/$package-$version/usr/share/backgrounds/infinityos/"
+  install -m 0644 "$repo/root/usr/share/infinityos/background-catalog.xml" \
+    "$work/source/$package-$version/usr/share/gnome-background-properties/00-infinityos.xml"
+  install -m 0644 "$repo/COPYING" \
+    "$work/source/$package-$version/usr/share/licenses/infinityos-wallpapers/COPYING"
+elif [[ "$package" == infinityos-repos ]]; then
   install -d "$work/source/$package-$version/etc/yum.repos.d" \
     "$work/source/$package-$version/etc/pki/rpm-gpg" \
     "$work/source/$package-$version/usr/share/licenses/infinityos-repos"
