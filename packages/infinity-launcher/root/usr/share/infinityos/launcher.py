@@ -49,7 +49,7 @@ button.infinity-save:hover { background: #8569b8; }
 button.infinity-save:disabled { background: #413451; color: #a99cb8; }
 button.infinity-close { background: #251d30; border: 1px solid #40334f; border-radius: 20px; color: #d6c9e6; min-width: 34px; min-height: 34px; }
 button.infinity-close:hover { background: #403250; color: white; }
-box.infinity-footer { border-top: 1px solid #392d49; }
+box.infinity-footer { border-top: 1px solid #392d49; padding-top: 16px; }
 label.infinity-muted { color: #a99db8; }
 """
 
