@@ -1,0 +1,17 @@
+#!/bin/bash
+set -euo pipefail
+
+font_dir=/usr/share/fonts/msttcore
+if [[ -s "$font_dir/arial.ttf" && -s "$font_dir/times.ttf" && -s "$font_dir/verdana.ttf" ]]; then
+    exit 0
+fi
+
+install -d /usr/share/doc/infinityos-corefonts
+/usr/libexec/infinityos-corefonts/refresh-msttcore-fonts.sh -F "$font_dir" -L /usr/share/doc/infinityos-corefonts/
+for font in arial.ttf times.ttf verdana.ttf; do
+    if [[ ! -s "$font_dir/$font" ]]; then
+        echo "Microsoft core font missing after download: $font" >&2
+        exit 1
+    fi
+done
+fc-cache -f "$font_dir"

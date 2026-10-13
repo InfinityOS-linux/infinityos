@@ -41,6 +41,9 @@ EOF
 	fi
 	install -d /usr/share/icons /usr/share/licenses/kora
 	tar -xzf /usr/share/infinityos/kora-v2.0.6.tar.gz -C /usr/share/icons --strip-components=1 kora-2.0.6/kora/
+	cp -a /usr/share/infinityos/folder-icons/. /usr/share/icons/kora/places/scalable/
+	cp -f /usr/share/icons/hicolor/256x256/apps/infinityos-logo.png /usr/share/cockpit/branding/infinityos/logo.png
+	cp -f /usr/share/backgrounds/infinityos/infinityos-dark.png /usr/share/cockpit/branding/infinityos/wallpaper.png
 	tar -xOf /usr/share/infinityos/kora-v2.0.6.tar.gz kora-2.0.6/LICENSE > /usr/share/licenses/kora/LICENSE
 	rm /usr/share/infinityos/kora-v2.0.6.tar.gz
 	gtk-update-icon-cache -f -q /usr/share/icons/kora
@@ -66,7 +69,7 @@ existing_user_only=language;keyboard
 skip=software;privacy
 EOF
 	fedora-third-party enable
-		systemctl enable tuned-ppd.service switcheroo-control.service infinityos-ramdrive.service
+		systemctl enable systemd-resolved.service tlp.service tlp-pd.service switcheroo-control.service infinityos-ramdrive.service infinityos-corefonts.service infinityos-corefonts.timer
 	printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
 	dconf update
 	useradd -D -s /usr/bin/zsh
@@ -88,6 +91,8 @@ EOF
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Live"* ]]; then
 		# Live media mounts its root dynamically; disk-image UUIDs must not reach the ISO.
 		: > /etc/fstab
+		# PatternFly's dark token set is selected on the document root.
+		sed -i 's/<html lang="en">/<html lang="en" class="pf-v6-theme-dark">/' /usr/share/cockpit/anaconda-webui/index.html
 	fi
 fi
 

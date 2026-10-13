@@ -31,6 +31,7 @@ APPS = (
     App("System", "Opera GX", "flatpak", "com.opera.opera-gx", "Gaming browser with performance controls.", True, group="Web browsers", icon="web-browser-symbolic"),
     App("System", "Brave", "flatpak", "com.brave.Browser", "Privacy-focused Chromium browser.", group="Web browsers", icon="web-browser-symbolic"),
     App("System", "VLC", "flatpak", "org.videolan.VLC", "Play video, audio and network streams.", group="Media players", icon="applications-multimedia-symbolic"),
+    App("System", "Spotify", "flatpak", "com.spotify.Client", "Stream music, podcasts and audiobooks.", group="Media players", icon="com.spotify.Client"),
     App("System", "mpv", "flatpak", "io.mpv.Mpv", "Lightweight video player with keyboard controls.", group="Media players", icon="applications-multimedia-symbolic"),
     App("System", "qBittorrent", "flatpak", "org.qbittorrent.qBittorrent", "Torrent client with search and queue controls.", group="Download managers", icon="folder-download-symbolic"),
     App("System", "Transmission", "flatpak", "com.transmissionbt.Transmission", "Simple, lightweight torrent client.", group="Download managers", icon="folder-download-symbolic"),
@@ -147,7 +148,7 @@ def install(app, home=None):
     elif app.kind == "dnf":
         if app.source == "docker-ce" and not Path("/etc/yum.repos.d/docker-ce.repo").exists():
             _run(["pkexec", "dnf", "config-manager", "addrepo", "--from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo"])
-        _run(["pkexec", "dnf", "-y", "install", "docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin", "docker-compose-plugin"])
+        _run(["pkexec", "dnf", "--enablerepo=docker-ce-stable", "-y", "install", "docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin", "docker-compose-plugin"])
         _run(["pkexec", "systemctl", "enable", "--now", "docker.service"])
     elif app.kind == "npm":
         if not shutil.which("npm"):

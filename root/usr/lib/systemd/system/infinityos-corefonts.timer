@@ -1,0 +1,10 @@
+[Unit]
+Description=Retry Microsoft Core Fonts installation when a network is available
+
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=30min
+Unit=infinityos-corefonts.service
+
+[Install]
+WantedBy=timers.target

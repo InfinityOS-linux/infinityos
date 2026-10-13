@@ -20,4 +20,4 @@ sudo dnf install infinity-launcher infinity-terminal
 sudo dnf upgrade
 ```
 
-InfinityLauncher downloads the latest GitHub release RPMs for Storytold apps and OpenGamepadUI when selected. These third-party RPMs are installed directly, so their future upgrades do not come from the Infinity OS repository. Docker CE is installed from Docker's official Fedora repository, which is enabled in Infinity OS but does not install Docker until selected.
+InfinityLauncher downloads the latest GitHub release RPMs for Storytold apps and OpenGamepadUI when selected. These third-party RPMs are installed directly, so their future upgrades do not come from the Infinity OS repository. Docker CE is installed from Docker's official Fedora repository, which stays disabled until Docker is selected.

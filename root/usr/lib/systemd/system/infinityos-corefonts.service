@@ -1,0 +1,12 @@
+[Unit]
+Description=Install Microsoft Core Fonts for the Web after first network connection
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/infinityos-install-corefonts
+TimeoutStartSec=15min
+
+[Install]
+WantedBy=multi-user.target

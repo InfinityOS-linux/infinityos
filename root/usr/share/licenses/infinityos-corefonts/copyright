@@ -1,0 +1,14 @@
+This is msttcore-fonts.
+
+The packaging and the refresh-msttcore-fonts script are
+Copyright (C) 2012 Rob Janes,
+and subject to the GPL, version 2 or later.
+
+The full text of GPL version 2 is included as GPL-2.0.txt in this directory.
+
+Infinity OS changed the SourceForge URLs to HTTPS and skips X server updates
+when no graphical session is present. The fonts are downloaded on the user's
+machine and are not included in the distributed image.
+
+Please read the READ_ME!.gz file in /usr/share/doc/msttcore-fonts-installer for
+licensing terms for the fonts themselves.

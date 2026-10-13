@@ -50,7 +50,8 @@
 		<package name="nodejs-npm"/>
 		<ignore name="fedora-flathub-remote"/>
 		<package name="gamemode"/>
-		<package name="tuned-ppd"/>
+		<package name="tlp"/>
+		<package name="tlp-pd"/>
 		<package name="switcheroo-control"/>
 		<package name="mangohud"/>
 		<package name="gamescope"/>
@@ -71,13 +72,18 @@
 		<package name="libva-intel-media-driver" arch="x86_64"/>
 		<package name="rpmfusion-free-release"/>
 		<package name="rpmfusion-nonfree-release"/>
-		<package name="ffmpeg-free"/>
+		<package name="ffmpeg"/>
 		<package name="gstreamer1-plugin-libav"/>
 		<package name="gstreamer1-plugins-bad-free"/>
 		<package name="gstreamer1-plugins-ugly-free"/>
 		<package name="libavcodec-freeworld"/>
 		<package name="gstreamer1-plugins-bad-freeworld"/>
 		<package name="gstreamer1-plugins-ugly"/>
+		<package name="file-roller"/>
+		<package name="unrar"/>
+		<package name="7zip"/>
+		<package name="cabextract"/>
+		<package name="curl"/>
 		<package name="akmod-nvidia" arch="x86_64"/>
 		<package name="xorg-x11-drv-nvidia" arch="x86_64"/>
 	</packages>

@@ -1,0 +1,27 @@
+/* Infinity OS branding for Anaconda WebUI and Cockpit. */
+#badge {
+    inline-size: 225px;
+    block-size: 80px;
+    background: url("logo.png") center / contain no-repeat;
+}
+
+#brand::before {
+    content: "Infinity OS";
+}
+
+.anaconda {
+    --brand-default-light: #a88ad9;
+    --brand-default: #645394;
+    --brand-default-dark: #4d3b79;
+    --pf-t--global--color--brand--default: var(--brand-default-light);
+    --pf-t--global--color--brand--hover: var(--brand-default);
+}
+
+.anaconda .logo {
+    background-image: url("logo.png");
+}
+
+html.pf-v6-theme-dark body.anaconda {
+    color-scheme: dark;
+    background: linear-gradient(#0c0914c9, #0c0914e0), url("wallpaper.png") center / cover fixed;
+}

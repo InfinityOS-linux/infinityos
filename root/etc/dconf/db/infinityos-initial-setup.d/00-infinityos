@@ -1,6 +1,7 @@
 [org/gnome/desktop/interface]
 color-scheme='prefer-dark'
 gtk-theme='Orchis-Purple-Dark-Compact'
+accent-color='purple'
 
 [org/gnome/desktop/background]
 picture-uri='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'

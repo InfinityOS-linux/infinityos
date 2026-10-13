@@ -26,7 +26,7 @@ GNOME starts with desktop icons, AppIndicator support, Blur My Shell, the Window
 
 ## Packages and updates
 
-Fedora and Fedora Updates provide the base system. RPM Fusion provides multimedia codecs and nonfree hardware packages. Infinity OS builds `infinity-launcher` and `infinity-terminal` as signed RPMs and publishes them through its own DNF repository. See [`packages/README.md`](packages/README.md) for the build, signing, and release flow. Docker CE uses Docker's official Fedora repository when selected in InfinityLauncher.
+Fedora and Fedora Updates provide the base system. RPM Fusion provides multimedia codecs and nonfree hardware packages. The desktop includes FFmpeg, GNOME Files archive integration, UnRAR, 7-Zip, TLP, and purple folder icons. Microsoft Core Fonts are downloaded and checksum-verified on the installed machine after network access is available; font files are not distributed in the image. Infinity OS builds `infinity-launcher` and `infinity-terminal` as signed RPMs and publishes them through its own DNF repository. See [`packages/README.md`](packages/README.md) for the build, signing, and release flow. Docker CE uses Docker's official Fedora repository when selected in InfinityLauncher.
 
 The image build requires the Infinity OS RPM repository to be published and reachable. The GitLab pipeline publishes it after a successful build on `main`. Applications installed directly from third-party GitHub releases do not receive updates from the Infinity OS repository.
 
