@@ -32,8 +32,9 @@ build-terminal-x86_64:
 
 build-terminal-aarch64:
   extends: .docker-build
+  tags:
+    - saas-linux-small-arm64
   script:
-    - docker run --privileged --rm tonistiigi/binfmt --install arm64
     - INFINITY_TARGET_PLATFORM=linux/arm64 INFINITY_PACKAGE_RELEASE="$CI_PIPELINE_IID" packages/build-rpm.sh infinity-terminal
 
 pages:
