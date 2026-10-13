@@ -32,6 +32,7 @@ DOCUMENTATION_URL="https://gitlab.com/godorowski/infinityos/-/blob/main/README.m
 EOF
 	printf 'Infinity OS 44\n' > /etc/issue
 	printf 'Infinity OS 44\n' > /etc/issue.net
+	chmod 0644 /etc/os-release /etc/issue /etc/issue.net
 	if command -v plymouth-set-default-theme >/dev/null; then
 		for image in bullet capslock entry keyboard keymap-render lock; do
 			cp -f "/usr/share/plymouth/themes/spinner/$image.png" /usr/share/plymouth/themes/infinityos/
@@ -104,6 +105,7 @@ fi
 ## Clear machine-id on pre generated images
 rm -f /etc/machine-id
 echo 'uninitialized' > /etc/machine-id
+chmod 0644 /etc/machine-id
 ## remove random seed, the newly installed instance should make its own
 rm -f /var/lib/systemd/random-seed
 
@@ -344,6 +346,7 @@ if [[ "$kiwi_profiles" == *"Container"* ]] || [[ "$kiwi_profiles" == *"FEX"* ]];
 	# Remove machine-id on pre generated images
 	rm -f /etc/machine-id
 	touch /etc/machine-id
+	chmod 0644 /etc/machine-id
 
 	echo "# resolv placeholder" > /etc/resolv.conf
 	chmod 644 /etc/resolv.conf
