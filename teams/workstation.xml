@@ -26,6 +26,7 @@
 	<packages type="image" profiles="Infinity-GNOME-Live,Infinity-GNOME-Disk">
 		<package name="infinityos-wallpapers"/>
 		<package name="infinityos-repos"/>
+		<package name="infinityos-ramdrive"/>
 		<package name="infinity-terminal"/>
 		<package name="infinity-launcher"/>
 		<package name="generic-logos"/>

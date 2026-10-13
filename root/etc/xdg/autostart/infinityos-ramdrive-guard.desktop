@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Infinity OS RAMDrive shutdown guard
+Exec=/usr/libexec/infinityos-ramdrive-guard
+Terminal=false
+NoDisplay=true
+OnlyShowIn=GNOME;
+X-GNOME-Autostart-enabled=true

@@ -1,0 +1,90 @@
+#!/usr/bin/python3
+"""Warn through GNOME's shutdown dialog while RAMDrive contains files."""
+
+import locale
+from pathlib import Path
+
+import gi
+
+gi.require_version("Gio", "2.0")
+gi.require_version("GLib", "2.0")
+from gi.repository import Gio, GLib
+
+
+def ramdrive():
+    desktop = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DESKTOP)
+    return Path(desktop or Path.home() / "Desktop") / "RAMDrive"
+
+
+def has_files(folder):
+    if folder.is_symlink() or not folder.is_dir():
+        return False
+    try:
+        return next(folder.iterdir(), None) is not None
+    except OSError:
+        # Treat an unreadable RAMDrive as occupied; shutdown must not silently erase it.
+        return True
+
+
+class ShutdownGuard:
+    def __init__(self, folder=None, proxy=None):
+        self.folder = folder or ramdrive()
+        self.proxy = proxy or Gio.DBusProxy.new_for_bus_sync(
+            Gio.BusType.SESSION, Gio.DBusProxyFlags.NONE, None,
+            "org.gnome.SessionManager", "/org/gnome/SessionManager",
+            "org.gnome.SessionManager", None,
+        )
+        self.cookie = None
+        self.monitor = None
+
+    def watch(self, changed):
+        if self.monitor is None and self.folder.is_dir() and not self.folder.is_symlink():
+            self.monitor = Gio.File.new_for_path(str(self.folder)).monitor_directory(
+                Gio.FileMonitorFlags.NONE, None)
+            self.monitor.connect("changed", lambda *_args: changed())
+
+    def update(self):
+        occupied = has_files(self.folder)
+        if occupied and self.cookie is None:
+            language = (locale.getlocale()[0] or "").split("_")[0]
+            reason = (
+                "RAMDrive zawiera pliki. Wyłączyć lub uruchomić ponownie i usunąć je? "
+                "Anuluj, aby zachować pliki."
+                if language == "pl" else
+                "RAMDrive contains files. Shut down or restart and delete them? "
+                "Cancel to keep the files."
+            )
+            result = self.proxy.call_sync(
+                "Inhibit", GLib.Variant("(susu)", ("infinityos-ramdrive", 0, reason, 1)),
+                Gio.DBusCallFlags.NONE, 3000, None,
+            )
+            self.cookie = result.unpack()[0]
+        elif not occupied and self.cookie is not None:
+            self.proxy.call_sync(
+                "Uninhibit", GLib.Variant("(u)", (self.cookie,)),
+                Gio.DBusCallFlags.NONE, 3000, None,
+            )
+            self.cookie = None
+        return True
+
+
+def main():
+    guard = ShutdownGuard()
+    loop = GLib.MainLoop()
+
+    def refresh():
+        try:
+            guard.watch(refresh)
+            guard.update()
+        except GLib.Error as error:
+            # GNOME may still be starting; retry without blocking the desktop.
+            print(f"RAMDrive guard: {error}", flush=True)
+        return True
+
+    refresh()
+    GLib.timeout_add_seconds(2, refresh)
+    loop.run()
+
+
+if __name__ == "__main__":
+    main()

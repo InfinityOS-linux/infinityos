@@ -14,9 +14,11 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, GLib, Gtk
 
 from launcher_backend import APPS, available, install, installed
+from launcher_i18n import tr
 
 
 MARKER = Path.home() / ".config/infinityos/launcher-complete"
+NEXT_START = Path.home() / ".config/infinityos/launcher-next-start"
 ICON_DIR = Path(__file__).with_name("launcher-icons")
 SECTIONS = (
     ("AI", "utilities-terminal-symbolic", "Assistants and command-line tools"),
@@ -112,13 +114,13 @@ class InfinityLauncher(Gtk.Application):
         title_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
         title_box.set_hexpand(True)
         title_box.set_halign(Gtk.Align.CENTER)
-        eyebrow = label("WELCOME TO INFINITY OS", "infinity-eyebrow")
+        eyebrow = label(tr("WELCOME TO INFINITY OS"), "infinity-eyebrow")
         eyebrow.set_xalign(0.5)
         title_box.append(eyebrow)
         title = label("InfinityLauncher", "infinity-title")
         title.set_xalign(0.5)
         title_box.append(title)
-        subtitle = label("Make it yours. Pick the apps you want, then add more anytime.", "infinity-subtitle")
+        subtitle = label(tr("Make it yours. Pick the apps you want, then add more anytime."), "infinity-subtitle")
         subtitle.set_xalign(0.5)
         title_box.append(subtitle)
         heading.set_child(title_box)
@@ -126,7 +128,7 @@ class InfinityLauncher(Gtk.Application):
         close.add_css_class("infinity-close")
         close.set_halign(Gtk.Align.END)
         close.set_valign(Gtk.Align.CENTER)
-        close.set_tooltip_text("Close")
+        close.set_tooltip_text(tr("Close"))
         close.connect("clicked", lambda _button: self.window.close())
         heading.add_overlay(close)
         backdrop.append(heading)
@@ -154,7 +156,7 @@ class InfinityLauncher(Gtk.Application):
             tab_icon = Gtk.Image.new_from_icon_name(icon)
             tab_icon.set_pixel_size(17)
             tab_content.append(tab_icon)
-            tab_content.append(Gtk.Label(label=section))
+            tab_content.append(Gtk.Label(label=tr(section)))
             tab.set_child(tab_content)
             tab.connect("toggled", self._select_tab, section.lower())
             navigation.append(tab)
@@ -169,11 +171,14 @@ class InfinityLauncher(Gtk.Application):
         footer.set_margin_end(28)
         footer.set_margin_top(10)
         footer.set_margin_bottom(22)
-        self.status = label("Your changes install when you click Apply.", "infinity-muted")
+        self.status = label(tr("Your changes install when you click Apply."), "infinity-muted")
         self.status.set_wrap(True)
         self.status.set_hexpand(True)
         footer.append(self.status)
-        self.save_button = Gtk.Button(label="Apply")
+        self.next_start = Gtk.CheckButton(label=tr("Run at next startup"))
+        self.next_start.set_active(NEXT_START.exists() and not self.first_run)
+        footer.append(self.next_start)
+        self.save_button = Gtk.Button(label=tr("Apply"))
         self.save_button.add_css_class("infinity-save")
         self.save_button.connect("clicked", self._save)
         footer.append(self.save_button)
@@ -197,15 +202,15 @@ class InfinityLauncher(Gtk.Application):
         scroller.set_child(body)
         page_heading = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         page_heading.set_margin_bottom(7)
-        page_heading.append(label(section, "infinity-page-title"))
-        page_heading.append(label(description, "infinity-muted"))
+        page_heading.append(label(tr(section), "infinity-page-title"))
+        page_heading.append(label(tr(description), "infinity-muted"))
         body.append(page_heading)
         previous_group = None
         for app in (item for item in APPS if item.category == section):
             if app.group != previous_group:
                 if previous_group:
                     body.append(Gtk.Separator())
-                group = label(app.group.upper(), "infinity-section")
+                group = label(tr(app.group).upper(), "infinity-section")
                 group.set_margin_top(10)
                 group.set_margin_bottom(3)
                 body.append(group)
@@ -234,11 +239,11 @@ class InfinityLauncher(Gtk.Application):
             details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
             details.set_hexpand(True)
             details.append(label(app.name, "infinity-app-name"))
-            note = label(app.description, "infinity-muted")
+            note = label(tr(app.description), "infinity-muted")
             note.set_wrap(True)
             details.append(note)
             if app.website.startswith("https://github.com/storytold/"):
-                link = Gtk.LinkButton(uri=app.website, label="View source and releases")
+                link = Gtk.LinkButton(uri=app.website, label=tr("View source and releases"))
                 link.set_halign(Gtk.Align.START)
                 details.append(link)
             row.append(details)
@@ -249,9 +254,9 @@ class InfinityLauncher(Gtk.Application):
             switch.set_active(already)
             switch.set_sensitive(supported and not already)
             if already:
-                note.set_text("Installed")
+                note.set_text(tr("Installed"))
             elif not supported:
-                note.set_text("Available on x86_64")
+                note.set_text(tr("Available on x86_64"))
             self.switches[app] = switch
             self.notes[app] = note
             row.append(switch)
@@ -273,7 +278,8 @@ class InfinityLauncher(Gtk.Application):
     def _install(self, selected):
         errors = []
         for index, app in enumerate(selected, 1):
-            GLib.idle_add(self.status.set_text, f"Installing {index}/{len(selected)}: {app.name}…")
+            GLib.idle_add(self.status.set_text, tr("Installing {index}/{total}: {name}…").format(
+                index=index, total=len(selected), name=app.name))
             try:
                 install(app)
             except Exception as exc:
@@ -283,16 +289,16 @@ class InfinityLauncher(Gtk.Application):
         GLib.idle_add(self._finished, errors)
 
     def _installed(self, app):
-        self.notes[app].set_text("Installed")
+        self.notes[app].set_text(tr("Installed"))
         self.switches[app].set_active(True)
         return False
 
     def _finished(self, errors):
         self.busy = False
         if errors:
-            self.status.set_text("Could not install:\n" + "\n".join(errors))
+            self.status.set_text(tr("Could not install:\n") + "\n".join(errors))
             for app, switch in self.switches.items():
-                if self.notes[app].get_text() != "Installed" and available(app):
+                if self.notes[app].get_text() != tr("Installed") and available(app):
                     switch.set_sensitive(True)
             self.save_button.set_sensitive(True)
         else:
@@ -336,6 +342,11 @@ class InfinityLauncher(Gtk.Application):
         self._animate(opening=False)
 
     def _finish_close(self):
+        NEXT_START.parent.mkdir(parents=True, exist_ok=True)
+        if self.next_start.get_active():
+            NEXT_START.touch()
+        else:
+            NEXT_START.unlink(missing_ok=True)
         self.window.destroy()
         self.window = None
         if self.first_run or self.applied:
@@ -344,7 +355,7 @@ class InfinityLauncher(Gtk.Application):
 
     def _close_requested(self, _window):
         if self.busy:
-            self.status.set_text("Wait for installation to finish.")
+            self.status.set_text(tr("Wait for installation to finish."))
             return True
         self._begin_close()
         return True
@@ -352,6 +363,7 @@ class InfinityLauncher(Gtk.Application):
 
 if __name__ == "__main__":
     first_run = "--first-run" in sys.argv
-    if first_run and (MARKER.exists() or getpass.getuser() in ("gnome-initial-setup", "liveuser")):
+    if first_run and (getpass.getuser() in ("gnome-initial-setup", "liveuser") or
+                      (MARKER.exists() and not NEXT_START.exists())):
         raise SystemExit(0)
     raise SystemExit(InfinityLauncher(first_run=first_run).run([sys.argv[0]]))

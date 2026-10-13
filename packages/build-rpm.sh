@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-package=${1:?Usage: packages/build-rpm.sh infinity-launcher|infinity-terminal|infinityos-repos|infinityos-wallpapers}
+package=${1:?Usage: packages/build-rpm.sh infinity-launcher|infinity-terminal|infinityos-repos|infinityos-wallpapers|infinityos-ramdrive}
 case "$package" in
   infinity-launcher) version=1.0.0 ;;
   infinity-terminal) version=1.3.1 ;;
   infinityos-repos) version=1.0.0 ;;
   infinityos-wallpapers) version=1.0.0 ;;
+  infinityos-ramdrive) version=1.0.0 ;;
   *) echo "Unknown package: $package" >&2; exit 2 ;;
 esac
 
@@ -38,6 +39,22 @@ elif [[ "$package" == infinityos-repos ]]; then
     "$work/source/$package-$version/etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos"
   install -m 0644 "$repo/COPYING" \
     "$work/source/$package-$version/usr/share/licenses/infinityos-repos/COPYING"
+elif [[ "$package" == infinityos-ramdrive ]]; then
+  install -d "$work/source/$package-$version/usr/libexec" \
+    "$work/source/$package-$version/usr/lib/systemd/system" \
+    "$work/source/$package-$version/etc/xdg/autostart" \
+    "$work/source/$package-$version/usr/share/licenses/infinityos-ramdrive"
+  install -m 0755 "$repo/root/usr/libexec/infinityos-ramdrive" \
+    "$repo/root/usr/libexec/infinityos-ramdrive-shutdown" \
+    "$repo/root/usr/libexec/infinityos-ramdrive-guard" \
+    "$work/source/$package-$version/usr/libexec/"
+  install -m 0644 "$repo/root/usr/lib/systemd/system/infinityos-ramdrive.service" \
+    "$work/source/$package-$version/usr/lib/systemd/system/"
+  install -m 0644 "$repo/root/etc/xdg/autostart/infinityos-ramdrive.desktop" \
+    "$repo/root/etc/xdg/autostart/infinityos-ramdrive-guard.desktop" \
+    "$work/source/$package-$version/etc/xdg/autostart/"
+  install -m 0644 "$repo/COPYING" \
+    "$work/source/$package-$version/usr/share/licenses/infinityos-ramdrive/COPYING"
 elif [[ "$package" == infinity-launcher ]]; then
   install -d "$work/source/$package-$version/usr/bin" \
     "$work/source/$package-$version/usr/share/applications" \
