@@ -39,7 +39,7 @@ APPS = (
     App("System", "Evolution", "flatpak", "org.gnome.Evolution", "GNOME email, calendar and contacts.", group="Email clients", icon="mail-unread-symbolic"),
     App("System", "BlueMail", "flatpak", "net.blix.BlueMail", "Email client with a unified inbox.", True, group="Email clients", icon="mail-unread-symbolic"),
     App("System", "Mailspring", "flatpak", "com.getmailspring.Mailspring", "Email client with a modern inbox.", group="Email clients", icon="mail-unread-symbolic"),
-    App("System", "OpenLogi", "github-rpm", "AprilNEA/OpenLogi", "Configure Logitech mouse buttons, DPI and SmartShift locally.", website="https://github.com/AprilNEA/OpenLogi", group="Device tools", icon="input-mouse-symbolic"),
+    App("System", "OpenLogi", "github-rpm", "AprilNEA/OpenLogi", "Configure Logitech mouse buttons, DPI and SmartShift locally.", website="https://github.com/AprilNEA/OpenLogi", group="Device tools", icon="openlogi"),
     App("Gaming", "Steam", "flatpak", "com.valvesoftware.Steam", "Steam games and store.", True, group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Heroic Games Launcher", "flatpak", "com.heroicgameslauncher.hgl", "Epic, GOG and Amazon games.", True, group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Lutris", "flatpak", "net.lutris.Lutris", "Games from multiple stores.", True, group="Game launchers", icon="applications-games-symbolic"),
