@@ -1,0 +1,8 @@
+/* GTK 4.20+ updates media queries when the GNOME color scheme changes. */
+@media (prefers-color-scheme: light) {
+  @import url("/usr/share/themes/Orchis-Purple-Light-Compact/gtk-4.0/gtk.css");
+}
+
+@media (prefers-color-scheme: dark) {
+  @import url("/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/gtk.css");
+}

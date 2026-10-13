@@ -69,7 +69,7 @@ class InfinityLauncher(Gtk.Application):
         css = Gtk.CssProvider()
         css.load_from_data(CSS)
         Gtk.StyleContext.add_provider_for_display(
-            self.window.get_display(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+            self.window.get_display(), css, Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)
 
         backdrop = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         backdrop.set_halign(Gtk.Align.CENTER)

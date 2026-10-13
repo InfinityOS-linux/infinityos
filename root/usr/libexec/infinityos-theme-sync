@@ -9,11 +9,15 @@ apply_theme() {
     fi
 
     mkdir -p "$HOME/.config/gtk-4.0"
-    for file in assets gtk.css gtk-dark.css; do
+    link="$HOME/.config/gtk-4.0/gtk.css"
+    if [[ ! -e "$link" && ! -L "$link" ]] ||
+       [[ -L "$link" && $(readlink "$link") == /usr/share/themes/Orchis-Purple-*/gtk-4.0/gtk.css ]]; then
+        ln -sfn /usr/share/infinityos/gtk4-adaptive.css "$link"
+    fi
+    for file in assets gtk-dark.css; do
         link="$HOME/.config/gtk-4.0/$file"
-        if [[ ! -e "$link" && ! -L "$link" ]] ||
-           [[ -L "$link" && $(readlink "$link") == /usr/share/themes/Orchis-Purple-*/gtk-4.0/* ]]; then
-            ln -sfn "/usr/share/themes/$theme/gtk-4.0/$file" "$link"
+        if [[ -L "$link" && $(readlink "$link") == /usr/share/themes/Orchis-Purple-*/gtk-4.0/* ]]; then
+            rm "$link"
         fi
     done
 

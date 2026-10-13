@@ -56,9 +56,7 @@ EOF
 	printf 'XCURSOR_THEME=Bibata-Modern-Ice\n' > /etc/environment.d/90-infinityos-cursor.conf
 	install -m 0644 /usr/share/infinityos/zshrc /etc/skel/.zshrc
 	install -d /etc/skel/.config/gtk-4.0
-	for file in assets gtk.css gtk-dark.css; do
-		ln -sfn "/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/$file" "/etc/skel/.config/gtk-4.0/$file"
-	done
+	ln -sfn /usr/share/infinityos/gtk4-adaptive.css /etc/skel/.config/gtk-4.0/gtk.css
 	install -D -m 0644 /usr/share/infinityos/gnome-defaults /etc/dconf/db/local.d/00-infinityos
 	install -D -m 0644 /usr/share/infinityos/blur-defaults /etc/dconf/db/local.d/01-infinity-blur
 	install -D -m 0644 /usr/share/infinityos/repos/infinityos.repo /etc/yum.repos.d/infinityos.repo
@@ -82,9 +80,7 @@ EOF
 		install -m 0644 /usr/share/infinityos/zshrc /home/liveuser/.zshrc
 		chown liveuser:liveuser /home/liveuser/.zshrc
 		install -d -o liveuser -g liveuser /home/liveuser/.config/gtk-4.0
-		for file in assets gtk.css gtk-dark.css; do
-			ln -sfn "/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/$file" "/home/liveuser/.config/gtk-4.0/$file"
-		done
+		ln -sfn /usr/share/infinityos/gtk4-adaptive.css /home/liveuser/.config/gtk-4.0/gtk.css
 	fi
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Disk"* ]]; then
 		# The build host's storage controller differs from the target VM or PC.
