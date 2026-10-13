@@ -144,8 +144,11 @@ export var DesktopMenu = class extends MenuHelper.MenuHelper {
 
     async showDesktopMenu(x, y, grid) {
         this._pasteAction.enabled = false;
-        if (this._lastBgMenu !== null)
+        if (this._lastBgMenu !== null) {
+            this._lastBgMenu.menuPopover.popdown();
             this._lastBgMenu.grid.remove(this._lastBgMenu.menuPopover);
+            this._lastBgMenu = null;
+        }
 
         const menu = this._createDesktopBackgroundMenu();
         const menuPopover = Gtk.PopoverMenu.new_from_model_full(menu, Gtk.PopoverMenuFlags.NESTED);

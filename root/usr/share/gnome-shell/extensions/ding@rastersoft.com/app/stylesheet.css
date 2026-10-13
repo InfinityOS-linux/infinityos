@@ -26,7 +26,13 @@
 }
 
 .file-item-hover {
-   background-color: rgba(238, 238, 238, 0.2);
+   background-color: transparent;
+}
+
+.file-item-hover > .file-icon-surface,
+.file-item-hover .file-label {
+    background-color: rgba(100, 83, 148, 0.18);
+    border-radius: 8px;
 }
 
 .not-found {
@@ -44,11 +50,35 @@ window.testwindow {
 }
 
 .desktop-icons-selected {
-    background-color: alpha(@desktop_icons_bg_color, 0.5);
-    border-color: alpha(@desktop_icons_bg_color, 0.0);
+    background-color: transparent;
+    border-color: transparent;
 }
 
 .desktop-icons-selected-keyboard:not(:backdrop) {
-    background-color: alpha(@desktop_icons_bg_color, 0.5);
-    border-color: alpha(@desktop_icons_bg_color, 0.8);
+    background-color: transparent;
+    border-color: transparent;
+}
+
+.desktop-icons-selected > .file-icon-surface,
+.desktop-icons-selected .file-label {
+    background-color: rgba(100, 83, 148, 0.38);
+    border-radius: 8px;
+}
+
+.desktop-icons-selected-keyboard > .file-icon-surface,
+.desktop-icons-selected-keyboard .file-label {
+    outline: 2px solid rgba(190, 168, 255, 0.9);
+    outline-offset: 1px;
+}
+
+popover.desktopmenu > contents,
+popover.fileitemmenu > contents {
+    min-width: 320px;
+}
+
+popover.desktopmenu modelbutton,
+popover.fileitemmenu modelbutton {
+    min-height: 26px;
+    padding-top: 3px;
+    padding-bottom: 3px;
 }

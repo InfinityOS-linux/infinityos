@@ -204,8 +204,11 @@ export var FileItemMenu = class extends MenuHelper.MenuHelper {
 
     showMenu(fileItem) {
         this._currentFileItem = fileItem;
-        if (this._lastMenu !== null)
+        if (this._lastMenu !== null) {
+            this._lastMenu.menuPopover.popdown();
             this._lastMenu.menuPopover.unparent();
+            this._lastMenu = null;
+        }
 
         const menu = this._createMenu(fileItem);
         const menuPopover = Gtk.PopoverMenu.new_from_model_full(menu, Gtk.PopoverMenuFlags.NESTED);
