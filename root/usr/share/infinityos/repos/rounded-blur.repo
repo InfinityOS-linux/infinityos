@@ -1,0 +1,8 @@
+[copr:copr.fedorainfracloud.org:ublue-os:packages]
+name=GNOME Rounded Blur for Fedora $releasever - $basearch
+baseurl=https://download.copr.fedorainfracloud.org/results/ublue-os/packages/fedora-$releasever-$basearch/
+enabled=1
+includepkgs=gnome-rounded-blur
+gpgcheck=1
+repo_gpgcheck=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-ublue-os-packages

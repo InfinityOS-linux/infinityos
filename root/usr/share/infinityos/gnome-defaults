@@ -1,11 +1,22 @@
 [org/gnome/shell]
-enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'GPaste@gnome-shell-extensions.gnome.org', 'ghostty@infinityos.org', 'wack-lockscreen-clock@rinzler69-wastaken.github.com']
+enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'GPaste@gnome-shell-extensions.gnome.org', 'ghostty@infinityos.org', 'wack-lockscreen-clock@rinzler69-wastaken.github.com', 'wack-shell@rinzler69-wastaken.github.com']
 
 [org/gnome/desktop/app-folders/folders/System]
 apps=['org.gnome.baobab.desktop', 'org.gnome.DiskUtility.desktop', 'org.gnome.Logs.desktop', 'org.freedesktop.MalcontentControl.desktop', 'org.gnome.SystemMonitor.desktop', 'com.infinityos.GhosTTY.desktop', 'org.gnome.GPaste.Ui.desktop', 'org.gnome.GPaste.Preferences.desktop']
 
 [org/gnome/shell/extensions/user-theme]
 name='Orchis-Purple-Dark-Compact'
+
+[org/gnome/shell/extensions/wack-lockscreen-clock]
+lockscreen-mode='cupertino'
+
+[org/gnome/shell/extensions/wack-shell]
+use-custom-logo=true
+custom-logo-path='/usr/share/icons/hicolor/scalable/apps/infinityos-symbolic.svg'
+logo-icon-size=20
+menu-button-terminal='infinity-terminal'
+hide-qs-power-options=false
+enable-panel-proximity=false
 
 [org/gnome/desktop/wm/preferences]
 button-layout='close,minimize,maximize:'

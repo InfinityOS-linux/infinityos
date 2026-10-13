@@ -751,7 +751,7 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 .popup-menu .popup-menu-content {
   padding: 4px;
   margin: 0 3px 14px;
-  background-color: rgba(23, 21, 29, 0.97);
+  background-color: rgba(24, 18, 34, 0.84);
   border-radius: 16px;
   border: none;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
@@ -2698,7 +2698,7 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
   height: 30px;
   border: none;
   box-shadow: none;
-  background-color: rgba(0, 0, 0, 0.65);
+  background-color: rgba(20, 14, 30, 0.32);
   margin: 0;
   border-radius: 0;
 }
@@ -3134,7 +3134,7 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 }
 
 #dash .dash-background {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(100, 83, 148, 0.24);
   border-radius: 9999px;
   padding-top: 12px;
   padding-bottom: 12px;
@@ -3320,7 +3320,7 @@ StWidget.focused .app-grid-running-dot {
 .app-folder-dialog {
   border-radius: 60px;
   border: none;
-  background-color: rgba(36, 36, 36, 0.95);
+  background-color: rgba(28, 21, 40, 0.72);
   color: white;
   spacing: 6px;
   box-shadow: none;

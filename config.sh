@@ -51,6 +51,7 @@ EOF
 	rm /usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz
 	glib-compile-schemas /usr/share/gnome-shell/extensions/ding@rastersoft.com/schemas
 	glib-compile-schemas /usr/share/gnome-shell/extensions/wack-lockscreen-clock@rinzler69-wastaken.github.com/schemas
+	glib-compile-schemas /usr/share/gnome-shell/extensions/wack-shell@rinzler69-wastaken.github.com/schemas
 	install -d /etc/skel/Desktop /etc/environment.d
 	printf 'XCURSOR_THEME=Bibata-Modern-Ice\n' > /etc/environment.d/90-infinityos-cursor.conf
 	install -m 0644 /usr/share/infinityos/zshrc /etc/skel/.zshrc
@@ -59,8 +60,10 @@ EOF
 		ln -sfn "/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/$file" "/etc/skel/.config/gtk-4.0/$file"
 	done
 	install -D -m 0644 /usr/share/infinityos/gnome-defaults /etc/dconf/db/local.d/00-infinityos
+	install -D -m 0644 /usr/share/infinityos/blur-defaults /etc/dconf/db/local.d/01-infinity-blur
 	install -D -m 0644 /usr/share/infinityos/repos/infinityos.repo /etc/yum.repos.d/infinityos.repo
 	install -D -m 0644 /usr/share/infinityos/repos/docker-ce.repo /etc/yum.repos.d/docker-ce.repo
+	install -D -m 0644 /usr/share/infinityos/repos/rounded-blur.repo /etc/yum.repos.d/rounded-blur.repo
 	install -D -m 0644 /usr/share/infinityos/mimeapps.list /etc/xdg/mimeapps.list
 	install -d /etc/gnome-initial-setup
 	cat > /etc/gnome-initial-setup/vendor.conf << 'EOF'

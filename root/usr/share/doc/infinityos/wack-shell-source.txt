@@ -1,0 +1,9 @@
+WACK Shell source: https://github.com/rinzler69-wastaken/wack-shell
+Pinned upstream commit: bfd72b56ade0db75a86bd7ac57f8e39143e920a9
+License: GPL-3.0 (see LICENSE in the extension directory)
+Infinity OS change: translucent panel styling for the Blur My Shell integration.
+
+The GNOME rounded blur helper comes from the ublue-os/packages COPR and is
+limited by includepkgs=gnome-rounded-blur in rounded-blur.repo. It must match
+the installed Mutter version; an updated signed RPM is needed after an ABI
+change. See https://github.com/aunetx/blur-my-shell/blob/master/scripts/GUIDE.md

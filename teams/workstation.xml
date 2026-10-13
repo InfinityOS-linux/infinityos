@@ -64,6 +64,7 @@
 		<package name="powerline"/>
 		<package name="powerline-fonts"/>
 		<package name="gnome-shell-extension-blur-my-shell"/>
+		<package name="gnome-rounded-blur"/>
 		<package name="mesa-dri-drivers"/>
 		<package name="mesa-vulkan-drivers"/>
 		<package name="intel-gpu-firmware" arch="x86_64"/>
