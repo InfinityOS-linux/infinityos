@@ -27,8 +27,10 @@ cp -a usr etc %{buildroot}/
 /usr/share/infinityos/launcher_backend.py
 /usr/share/infinityos/launcher-icons/
 /usr/share/infinityos/launcher.desktop
+/usr/share/infinityos/launcher-appid.desktop
 /usr/share/infinityos/launcher-autostart.desktop
 /usr/share/applications/infinity-launcher.desktop
+/usr/share/applications/org.infinityos.Launcher.desktop
 /etc/xdg/autostart/infinity-launcher.desktop
 
 %changelog

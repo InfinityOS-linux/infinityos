@@ -36,6 +36,8 @@ export default class DING extends Extension {
         this.data = {};
         this.data.isEnabled = false;
         this.data.launchDesktopId = 0;
+        this.data.launcherWaitId = 0;
+        this.data.launcherWaitExpired = false;
         this.data.currentProcess = null;
 
         /* The constructor of the EmulateX11 class only initializes some
@@ -49,6 +51,7 @@ export default class DING extends Extension {
     }
 
     enable() {
+        this.data.launcherWaitExpired = false;
         if (!this.data.x11Manager)
             this.data.x11Manager = new EmulateX11.EmulateX11WindowType();
 
@@ -68,6 +71,10 @@ export default class DING extends Extension {
     disable() {
         this.DesktopIconsUsableArea = null;
         this.data.isEnabled = false;
+        if (this.data.launcherWaitId) {
+            GLib.source_remove(this.data.launcherWaitId);
+            this.data.launcherWaitId = 0;
+        }
         this.killCurrentProcess();
         this.data.x11Manager.disable();
         this.data.visibleArea.disable();
@@ -279,6 +286,29 @@ export default class DING extends Extension {
      * debug it.
      */
     launchDesktop() {
+        // On the first user session, let InfinityLauncher cover the wallpaper
+        // before DING creates desktop icons. The timeout recovers from a failed
+        // welcome autostart without leaving the desktop empty indefinitely.
+        const user = GLib.get_user_name();
+        const marker = GLib.build_filenamev([GLib.get_home_dir(), '.config', 'infinityos', 'launcher-complete']);
+        if (!this.data.launcherWaitExpired && user !== 'liveuser' && user !== 'gnome-initial-setup' &&
+            !GLib.file_test(marker, GLib.FileTest.EXISTS)) {
+            if (!this.data.launcherWaitId) {
+                const started = GLib.get_monotonic_time();
+                this.data.launcherWaitId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200, () => {
+                    const ready = GLib.file_test(marker, GLib.FileTest.EXISTS);
+                    const expired = GLib.get_monotonic_time() - started > 60000000;
+                    if (!ready && !expired)
+                        return GLib.SOURCE_CONTINUE;
+                    this.data.launcherWaitId = 0;
+                    this.data.launcherWaitExpired = expired;
+                    if (this.data.isEnabled)
+                        this.launchDesktop();
+                    return GLib.SOURCE_REMOVE;
+                });
+            }
+            return;
+        }
         console.log('Launching DING process');
         const argv = [];
         argv.push(GLib.build_filenamev([this.path, 'app', 'ding.js']));

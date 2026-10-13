@@ -23,6 +23,8 @@ if [[ "$package" == infinity-launcher ]]; then
     "$work/source/$package-$version/usr/bin/infinity-launcher"
   install -m 0644 "$repo/packages/infinity-launcher/root/usr/share/infinityos/launcher.desktop" \
     "$work/source/$package-$version/usr/share/applications/infinity-launcher.desktop"
+  install -m 0644 "$repo/packages/infinity-launcher/root/usr/share/infinityos/launcher-appid.desktop" \
+    "$work/source/$package-$version/usr/share/applications/org.infinityos.Launcher.desktop"
   install -m 0644 "$repo/packages/infinity-launcher/root/usr/share/infinityos/launcher-autostart.desktop" \
     "$work/source/$package-$version/etc/xdg/autostart/infinity-launcher.desktop"
   install -m 0644 "$repo/COPYING" \

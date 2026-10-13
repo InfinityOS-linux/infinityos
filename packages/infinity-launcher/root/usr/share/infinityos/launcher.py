@@ -4,6 +4,7 @@
 import getpass
 import sys
 import threading
+from time import monotonic
 from pathlib import Path
 
 import gi
@@ -18,24 +19,38 @@ from launcher_backend import APPS, available, install, installed
 MARKER = Path.home() / ".config/infinityos/launcher-complete"
 ICON_DIR = Path(__file__).with_name("launcher-icons")
 SECTIONS = (
-    ("AI", "utilities-terminal-symbolic"),
-    ("System", "preferences-system-symbolic"),
-    ("Gaming", "applications-games-symbolic"),
-    ("Creative", "applications-graphics-symbolic"),
-    ("Office", "applications-office-symbolic"),
-    ("Programming", "applications-development-symbolic"),
+    ("AI", "utilities-terminal-symbolic", "Assistants and command-line tools"),
+    ("System", "preferences-system-symbolic", "Everyday essentials"),
+    ("Gaming", "applications-games-symbolic", "Games, launchers and friends"),
+    ("Creative", "applications-graphics-symbolic", "Tools for making things"),
+    ("Office", "applications-office-symbolic", "Documents and productivity"),
+    ("Programming", "applications-development-symbolic", "Build your workspace"),
 )
 
 CSS = b"""
-window.infinity-backdrop { background: rgba(7, 5, 13, 0.82); }
-box.infinity-card { background: #17131f; border: 1px solid #635085; border-radius: 22px; box-shadow: 0 0 70px 14px rgba(100,83,148,0.32), 0 22px 70px rgba(0,0,0,0.6); color: #f0ebf6; }
-button.infinity-tab { background: #2a2236; border: 1px solid #40334f; border-radius: 12px; color: #cfc5df; min-height: 62px; }
-button.infinity-tab:checked { background: #645394; border-color: #a18ac7; color: white; }
-box.infinity-row { background: #211b2b; border: 1px solid #392f49; border-radius: 12px; padding: 12px; }
-label.infinity-section { color: #b9a8d7; font-weight: bold; letter-spacing: 1px; }
-button.infinity-save { background: #645394; color: white; border-radius: 10px; min-width: 110px; min-height: 40px; }
-button.infinity-close { background: transparent; color: #cfc5df; }
-label.infinity-muted { color: #a69bb7; }
+window.infinity-window { background: transparent; }
+box.infinity-shade { background: rgba(6, 4, 11, 0.76); }
+box.infinity-card { background: #17121f; border: 1px solid #715b94; border-radius: 22px; box-shadow: 0 0 64px 8px rgba(100,83,148,0.28), 0 24px 72px rgba(0,0,0,0.65); color: #f3eef8; }
+label.infinity-eyebrow { color: #bb9ce5; font-size: 11px; font-weight: 700; letter-spacing: 2px; }
+label.infinity-title { color: #f8f5fc; font-size: 29px; font-weight: 700; }
+label.infinity-subtitle { color: #ada1bd; font-size: 13px; }
+box.infinity-nav { background: #211a2c; border: 1px solid #3c304e; border-radius: 14px; padding: 5px; }
+button.infinity-tab { background: transparent; border: 1px solid transparent; border-radius: 10px; color: #b8abc9; min-height: 42px; padding: 0 8px; font-size: 13px; font-weight: 600; box-shadow: none; }
+button.infinity-tab:hover { background: #332940; color: #f4ecff; }
+button.infinity-tab:checked { background: #66518f; border-color: #9275bd; color: #fff; box-shadow: 0 2px 9px rgba(0,0,0,0.25); }
+button.infinity-tab:focus-visible { outline: 2px solid #c3a2ef; outline-offset: -2px; }
+label.infinity-page-title { color: #f0eaf6; font-size: 19px; font-weight: 700; }
+box.infinity-row { background: #211b2b; border: 1px solid #3d314e; border-radius: 12px; padding: 11px 14px; }
+box.infinity-row:hover { background: #292136; border-color: #65517d; }
+label.infinity-section { color: #bea7df; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+label.infinity-app-name { color: #f3eef8; font-weight: 700; }
+button.infinity-save { background: #745aa4; border: 1px solid #9478c4; color: white; border-radius: 10px; min-width: 124px; min-height: 42px; font-weight: 700; }
+button.infinity-save:hover { background: #8569b8; }
+button.infinity-save:disabled { background: #413451; color: #a99cb8; }
+button.infinity-close { background: #251d30; border: 1px solid #40334f; border-radius: 20px; color: #d6c9e6; min-width: 34px; min-height: 34px; }
+button.infinity-close:hover { background: #403250; color: white; }
+box.infinity-footer { border-top: 1px solid #392d49; }
+label.infinity-muted { color: #a99db8; }
 """
 
 
@@ -48,12 +63,15 @@ def label(text, style=None):
 
 
 class InfinityLauncher(Gtk.Application):
-    def __init__(self):
+    def __init__(self, first_run=False):
         super().__init__(application_id="org.infinityos.Launcher")
+        self.first_run = first_run
         self.window = None
         self.switches = {}
         self.notes = {}
         self.busy = False
+        self.closing = False
+        self.applied = False
 
     def do_activate(self):
         if self.window:
@@ -62,36 +80,45 @@ class InfinityLauncher(Gtk.Application):
 
         self.window = Gtk.ApplicationWindow(application=self, title="InfinityLauncher")
         self.window.set_decorated(False)
-        self.window.add_css_class("infinity-backdrop")
+        self.window.add_css_class("infinity-window")
         self.window.connect("close-request", self._close_requested)
-        self.window.fullscreen()
+        self.window.maximize()
 
         css = Gtk.CssProvider()
         css.load_from_data(CSS)
         Gtk.StyleContext.add_provider_for_display(
             self.window.get_display(), css, Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)
 
+        overlay = Gtk.Overlay()
+        self.shade = Gtk.Box()
+        self.shade.add_css_class("infinity-shade")
+        overlay.set_child(self.shade)
         backdrop = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         backdrop.set_halign(Gtk.Align.CENTER)
         backdrop.set_valign(Gtk.Align.CENTER)
         monitor = self.window.get_display().get_monitors().get_item(0)
         geometry = monitor.get_geometry()
-        backdrop.set_size_request(min(1100, geometry.width - 48), min(760, geometry.height - 48))
+        backdrop.set_size_request(min(1020, geometry.width - 48), min(640, geometry.height - 48))
         backdrop.add_css_class("infinity-card")
-        self.window.set_child(backdrop)
+        overlay.add_overlay(backdrop)
+        self.window.set_child(overlay)
+        self.card = backdrop
 
         heading = Gtk.Overlay()
         heading.set_margin_start(30)
         heading.set_margin_end(22)
-        heading.set_margin_top(22)
-        heading.set_margin_bottom(14)
+        heading.set_margin_top(24)
+        heading.set_margin_bottom(20)
         title_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
         title_box.set_hexpand(True)
         title_box.set_halign(Gtk.Align.CENTER)
-        title = label("InfinityLauncher", "title-1")
+        eyebrow = label("WELCOME TO INFINITY OS", "infinity-eyebrow")
+        eyebrow.set_xalign(0.5)
+        title_box.append(eyebrow)
+        title = label("InfinityLauncher", "infinity-title")
         title.set_xalign(0.5)
         title_box.append(title)
-        subtitle = label("Choose what belongs in your Infinity OS workspace.", "infinity-muted")
+        subtitle = label("Make it yours. Pick the apps you want, then add more anytime.", "infinity-subtitle")
         subtitle.set_xalign(0.5)
         title_box.append(subtitle)
         heading.set_child(title_box)
@@ -106,12 +133,15 @@ class InfinityLauncher(Gtk.Application):
 
         self.stack = Gtk.Stack()
         self.stack.set_vexpand(True)
-        navigation = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=9)
+        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.stack.set_transition_duration(180)
+        navigation = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
+        navigation.add_css_class("infinity-nav")
         navigation.set_margin_start(26)
         navigation.set_margin_end(26)
-        navigation.set_margin_bottom(16)
+        navigation.set_margin_bottom(20)
         first = None
-        for section, icon in SECTIONS:
+        for section, icon, description in SECTIONS:
             tab = Gtk.ToggleButton()
             tab.add_css_class("infinity-tab")
             tab.set_hexpand(True)
@@ -119,39 +149,45 @@ class InfinityLauncher(Gtk.Application):
                 tab.set_group(first)
             else:
                 first = tab
-            tab_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+            tab_content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=7)
             tab_content.set_halign(Gtk.Align.CENTER)
-            tab_content.append(Gtk.Image.new_from_icon_name(icon))
+            tab_icon = Gtk.Image.new_from_icon_name(icon)
+            tab_icon.set_pixel_size(17)
+            tab_content.append(tab_icon)
             tab_content.append(Gtk.Label(label=section))
             tab.set_child(tab_content)
             tab.connect("toggled", self._select_tab, section.lower())
             navigation.append(tab)
-            self.stack.add_named(self._page(section), section.lower())
+            self.stack.add_named(self._page(section, description), section.lower())
         first.set_active(True)
         backdrop.append(navigation)
         backdrop.append(self.stack)
 
         footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
+        footer.add_css_class("infinity-footer")
         footer.set_margin_start(28)
         footer.set_margin_end(28)
-        footer.set_margin_top(14)
-        footer.set_margin_bottom(20)
-        self.status = label("Select apps, then click APPLY to install them.", "infinity-muted")
+        footer.set_margin_top(10)
+        footer.set_margin_bottom(22)
+        self.status = label("Your changes install when you click Apply.", "infinity-muted")
         self.status.set_wrap(True)
         self.status.set_hexpand(True)
         footer.append(self.status)
-        self.save_button = Gtk.Button(label="APPLY")
+        self.save_button = Gtk.Button(label="Apply")
         self.save_button.add_css_class("infinity-save")
         self.save_button.connect("clicked", self._save)
         footer.append(self.save_button)
         backdrop.append(footer)
+        self.shade.set_opacity(0)
+        self.card.set_opacity(0)
         self.window.present()
+        self._animate(opening=True)
 
     def _select_tab(self, button, name):
         if button.get_active():
             self.stack.set_visible_child_name(name)
 
-    def _page(self, section):
+    def _page(self, section, description):
         scroller = Gtk.ScrolledWindow()
         scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroller.set_margin_start(28)
@@ -159,6 +195,11 @@ class InfinityLauncher(Gtk.Application):
         body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         body.set_margin_bottom(16)
         scroller.set_child(body)
+        page_heading = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        page_heading.set_margin_bottom(7)
+        page_heading.append(label(section, "infinity-page-title"))
+        page_heading.append(label(description, "infinity-muted"))
+        body.append(page_heading)
         previous_group = None
         for app in (item for item in APPS if item.category == section):
             if app.group != previous_group:
@@ -192,7 +233,7 @@ class InfinityLauncher(Gtk.Application):
             row.append(icon_cell)
             details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
             details.set_hexpand(True)
-            details.append(label(app.name, "heading"))
+            details.append(label(app.name, "infinity-app-name"))
             note = label(app.description, "infinity-muted")
             note.set_wrap(True)
             details.append(note)
@@ -259,20 +300,58 @@ class InfinityLauncher(Gtk.Application):
         return False
 
     def _complete(self):
-        MARKER.parent.mkdir(parents=True, exist_ok=True)
-        MARKER.touch()
-        self.status.set_text("Applied. Open InfinityLauncher from the applications menu anytime.")
-        self.save_button.set_sensitive(False)
+        self.applied = True
+        self._begin_close()
+
+    def _animate(self, opening):
+        if not Gtk.Settings.get_default().get_property("gtk-enable-animations"):
+            self.shade.set_opacity(1 if opening else 0)
+            self.card.set_opacity(1 if opening else 0)
+            if not opening:
+                self._finish_close()
+            return
+
+        started = monotonic()
+        duration = 0.28 if opening else 0.22
+
+        def frame(_widget, _clock):
+            progress = min((monotonic() - started) / duration, 1)
+            eased = 1 - (1 - progress) ** 3
+            visibility = eased if opening else 1 - eased
+            self.shade.set_opacity(visibility)
+            self.card.set_opacity(visibility)
+            self.card.set_margin_top(round(18 * (1 - visibility)))
+            if progress < 1:
+                return True
+            if not opening:
+                self._finish_close()
+            return False
+
+        self.window.add_tick_callback(frame)
+
+    def _begin_close(self):
+        if self.closing:
+            return
+        self.closing = True
+        self._animate(opening=False)
+
+    def _finish_close(self):
+        self.window.destroy()
+        self.window = None
+        if self.first_run or self.applied:
+            MARKER.parent.mkdir(parents=True, exist_ok=True)
+            MARKER.touch()
 
     def _close_requested(self, _window):
         if self.busy:
             self.status.set_text("Wait for installation to finish.")
             return True
-        return False
+        self._begin_close()
+        return True
 
 
 if __name__ == "__main__":
     first_run = "--first-run" in sys.argv
     if first_run and (MARKER.exists() or getpass.getuser() in ("gnome-initial-setup", "liveuser")):
         raise SystemExit(0)
-    raise SystemExit(InfinityLauncher().run([sys.argv[0]]))
+    raise SystemExit(InfinityLauncher(first_run=first_run).run([sys.argv[0]]))
