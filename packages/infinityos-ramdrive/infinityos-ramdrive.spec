@@ -30,15 +30,6 @@ cp -a usr etc %{buildroot}/
 /etc/xdg/autostart/infinityos-ramdrive.desktop
 /etc/xdg/autostart/infinityos-ramdrive-guard.desktop
 
-%post
-%systemd_post infinityos-ramdrive.service
-
-%preun
-%systemd_preun infinityos-ramdrive.service
-
-%postun
-%systemd_postun_with_restart infinityos-ramdrive.service
-
 %changelog
 * Wed Oct 14 2026 Infinity OS Contributors <noreply@gitlab.com> - 1.0.0-1
 - Package RAMDrive with a GNOME shutdown warning
