@@ -10,9 +10,19 @@ rpm --import "$repo/root/etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos"
 for arch in aarch64 x86_64; do
   dir="$public/rpm/44/$arch"
   mkdir -p "$dir"
-  cp "$rpms"/infinity-launcher-*.noarch.rpm "$dir/"
-  cp "$rpms"/infinityos-repos-*.noarch.rpm "$dir/"
-  cp "$rpms"/infinity-terminal-*.$arch.rpm "$dir/"
+  for required in infinity-launcher infinityos-repos infinity-terminal; do
+    compgen -G "$rpms/$required-*.noarch.rpm" >/dev/null || \
+      compgen -G "$rpms/$required-*.$arch.rpm" >/dev/null || {
+        echo "Missing $required RPM for $arch" >&2; exit 1;
+      }
+  done
+  for rpmfile in "$rpms"/*.rpm; do
+    [[ -f "$rpmfile" ]] || continue
+    rpmarch=$(rpm -qp --qf '%{ARCH}' "$rpmfile")
+    if [[ "$rpmarch" == noarch || "$rpmarch" == "$arch" ]]; then
+      cp "$rpmfile" "$dir/"
+    fi
+  done
   for rpmfile in "$dir"/*.rpm; do
     rpmsign --addsign --define "_gpg_name $fingerprint" "$rpmfile"
     rpm --checksig "$rpmfile" | grep -q 'digests signatures OK'
