@@ -1665,19 +1665,19 @@ headerbar button.minimize.titlebutton:backdrop:hover:not(.suggested-action):not(
 }
 
 headerbar button.minimize.titlebutton:not(.suggested-action):not(.destructive-action) {
-  background-color: #ffffff;
+  background-color: #c5c2c9;
 }
 
 headerbar button.minimize.titlebutton:active:not(.suggested-action):not(.destructive-action) {
-  background-color: rgba(201, 151, 3, 0.9675);
+  background-color: #aaa6b0;
 }
 
 headerbar button.maximize.titlebutton:not(.suggested-action):not(.destructive-action) {
-  background-color: #ffffff;
+  background-color: #c5c2c9;
 }
 
 headerbar button.maximize.titlebutton:active:not(.suggested-action):not(.destructive-action) {
-  background-color: rgba(45, 158, 84, 0.9675);
+  background-color: #aaa6b0;
 }
 
 headerbar button.close.titlebutton:not(.suggested-action):not(.destructive-action) {
