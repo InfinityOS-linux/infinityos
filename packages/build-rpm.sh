@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-package=${1:?Usage: packages/build-rpm.sh infinity-launcher|infinity-terminal}
+package=${1:?Usage: packages/build-rpm.sh infinity-launcher|infinity-terminal|infinityos-repos}
 case "$package" in
   infinity-launcher) version=1.0.0 ;;
   infinity-terminal) version=1.3.1 ;;
+  infinityos-repos) version=1.0.0 ;;
   *) echo "Unknown package: $package" >&2; exit 2 ;;
 esac
 
@@ -14,7 +15,17 @@ rm -rf "$work"
 mkdir -p "$work/source/$package-$version" "$work/rpmbuild/SOURCES" "$work/rpmbuild/RPMS"
 cp -a "$repo/packages/$package/root/." "$work/source/$package-$version/"
 
-if [[ "$package" == infinity-launcher ]]; then
+if [[ "$package" == infinityos-repos ]]; then
+  install -d "$work/source/$package-$version/etc/yum.repos.d" \
+    "$work/source/$package-$version/etc/pki/rpm-gpg" \
+    "$work/source/$package-$version/usr/share/licenses/infinityos-repos"
+  install -m 0644 "$repo/root/usr/share/infinityos/repos/infinityos.repo" \
+    "$work/source/$package-$version/etc/yum.repos.d/infinityos.repo"
+  install -m 0644 "$repo/root/etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos" \
+    "$work/source/$package-$version/etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos"
+  install -m 0644 "$repo/COPYING" \
+    "$work/source/$package-$version/usr/share/licenses/infinityos-repos/COPYING"
+elif [[ "$package" == infinity-launcher ]]; then
   install -d "$work/source/$package-$version/usr/bin" \
     "$work/source/$package-$version/usr/share/applications" \
     "$work/source/$package-$version/etc/xdg/autostart" \

@@ -11,6 +11,7 @@ for arch in aarch64 x86_64; do
   dir="$public/rpm/44/$arch"
   mkdir -p "$dir"
   cp "$rpms"/infinity-launcher-*.noarch.rpm "$dir/"
+  cp "$rpms"/infinityos-repos-*.noarch.rpm "$dir/"
   cp "$rpms"/infinity-terminal-*.$arch.rpm "$dir/"
   for rpmfile in "$dir"/*.rpm; do
     rpmsign --addsign --define "_gpg_name $fingerprint" "$rpmfile"

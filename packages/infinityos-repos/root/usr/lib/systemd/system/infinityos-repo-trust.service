@@ -1,0 +1,14 @@
+[Unit]
+Description=Initialize Infinity OS repository metadata trust
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=!/var/lib/infinityos/repo-trust-initialized
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/dnf -y --refresh makecache --repo infinityos
+ExecStartPost=/usr/bin/mkdir -p /var/lib/infinityos
+ExecStartPost=/usr/bin/touch /var/lib/infinityos/repo-trust-initialized
+
+[Install]
+WantedBy=multi-user.target

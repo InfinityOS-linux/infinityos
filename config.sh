@@ -60,7 +60,6 @@ EOF
 	ln -sfn /usr/share/infinityos/gtk4-adaptive.css /etc/skel/.config/gtk-4.0/gtk.css
 	install -D -m 0644 /usr/share/infinityos/gnome-defaults /etc/dconf/db/local.d/00-infinityos
 	install -D -m 0644 /usr/share/infinityos/blur-defaults /etc/dconf/db/local.d/01-infinity-blur
-	install -D -m 0644 /usr/share/infinityos/repos/infinityos.repo /etc/yum.repos.d/infinityos.repo
 	install -D -m 0644 /usr/share/infinityos/repos/docker-ce.repo /etc/yum.repos.d/docker-ce.repo
 	install -D -m 0644 /usr/share/infinityos/repos/rounded-blur.repo /etc/yum.repos.d/rounded-blur.repo
 	install -D -m 0644 /usr/share/infinityos/mimeapps.list /etc/xdg/mimeapps.list
@@ -71,7 +70,7 @@ existing_user_only=language;keyboard
 skip=software;privacy
 EOF
 	fedora-third-party enable
-		systemctl enable systemd-resolved.service tlp.service tlp-pd.service switcheroo-control.service infinityos-ramdrive.service infinityos-corefonts.service infinityos-corefonts.timer
+	systemctl enable systemd-resolved.service tlp.service tlp-pd.service switcheroo-control.service infinityos-ramdrive.service infinityos-corefonts.service infinityos-corefonts.timer infinityos-repo-trust.service
 	printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
 	dconf update
 	useradd -D -s /usr/bin/zsh

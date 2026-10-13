@@ -2,6 +2,13 @@ stages:
   - build
   - publish
 
+workflow:
+  auto_cancel:
+    on_new_commit: interruptible
+
+default:
+  interruptible: true
+
 .docker-build:
   stage: build
   image: docker:29-cli
@@ -25,6 +32,11 @@ build-launcher:
   script:
     - INFINITY_PACKAGE_RELEASE="$CI_PIPELINE_IID" packages/build-rpm.sh infinity-launcher
 
+build-repos:
+  extends: .docker-build
+  script:
+    - INFINITY_PACKAGE_RELEASE="$CI_PIPELINE_IID" packages/build-rpm.sh infinityos-repos
+
 build-terminal-x86_64:
   extends: .docker-build
   script:
@@ -43,6 +55,8 @@ pages:
   needs:
     - job: build-launcher
       artifacts: true
+    - job: build-repos
+      artifacts: true
     - job: build-terminal-x86_64
       artifacts: true
     - job: build-terminal-aarch64
@@ -57,6 +71,7 @@ pages:
     - rm -rf "$GNUPGHOME"
   pages:
     publish: public
+  resource_group: infinityos-pages
   artifacts:
     paths:
       - public
