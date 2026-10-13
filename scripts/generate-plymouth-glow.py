@@ -17,14 +17,14 @@ rendered = subprocess.run(
 ).stdout
 source = Image.open(BytesIO(rendered)).convert("RGBA")
 symbol = source.crop(source.getbbox())
-symbol = symbol.resize((230, round(symbol.height * 230 / symbol.width)), Image.Resampling.LANCZOS)
-size = (440, 280)
+symbol = symbol.resize((115, round(symbol.height * 115 / symbol.width)), Image.Resampling.LANCZOS)
+size = (220, 140)
 x = (size[0] - symbol.width) // 2
 y = (size[1] - symbol.height) // 2
 mask = Image.new("L", size)
 mask.paste(symbol.getchannel("A"), (x, y))
-wide = mask.filter(ImageFilter.GaussianBlur(30))
-tight = mask.filter(ImageFilter.GaussianBlur(11))
+wide = mask.filter(ImageFilter.GaussianBlur(15))
+tight = mask.filter(ImageFilter.GaussianBlur(5.5))
 halo = Image.blend(wide, tight, 0.27)
 
 for frame in range(48):

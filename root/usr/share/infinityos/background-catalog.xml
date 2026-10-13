@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">
+<wallpapers>
+  <wallpaper deleted="false">
+    <name>Default Background</name>
+    <filename>/usr/share/backgrounds/infinityos/infinityos-light.png</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/infinityos-dark.png</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#e9e3f3</pcolor>
+    <scolor>#1b1429</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>01 Infinity OS — Flow</name>
+    <filename>/usr/share/backgrounds/infinityos/infinityos-flow-light.png</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/infinityos-flow-dark.png</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#f6f0f7</pcolor>
+    <scolor>#130e20</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>GNOME Original</name>
+    <filename>/usr/share/backgrounds/gnome/adwaita-l.jxl</filename>
+    <filename-dark>/usr/share/backgrounds/gnome/adwaita-d.jxl</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#3071AE</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
+</wallpapers>
