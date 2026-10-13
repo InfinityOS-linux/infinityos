@@ -180,7 +180,6 @@ export var desktopIconItem = class desktopIconItem extends SignalManager.SignalM
         this.container.append(this._accessibleBox);
 
         this._icon.add_css_class('icon-item');
-        this._icon.add_css_class('file-icon-surface');
         this.container.add_css_class('file-item');
 
         this._containerRectangle = new Gdk.Rectangle();
