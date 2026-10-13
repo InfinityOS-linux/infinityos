@@ -134,7 +134,7 @@ class InfinityLauncher(Gtk.Application):
         self.stack = Gtk.Stack()
         self.stack.set_vexpand(True)
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
-        self.stack.set_transition_duration(180)
+        self.stack.set_transition_duration(100)
         navigation = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
         navigation.add_css_class("infinity-nav")
         navigation.set_margin_start(26)
@@ -312,7 +312,7 @@ class InfinityLauncher(Gtk.Application):
             return
 
         started = monotonic()
-        duration = 0.28 if opening else 0.22
+        duration = 0.17 if opening else 0.14
 
         def frame(_widget, _clock):
             progress = min((monotonic() - started) / duration, 1)
@@ -320,7 +320,7 @@ class InfinityLauncher(Gtk.Application):
             visibility = eased if opening else 1 - eased
             self.shade.set_opacity(visibility)
             self.card.set_opacity(visibility)
-            self.card.set_margin_top(round(18 * (1 - visibility)))
+            self.card.set_margin_top(round(12 * (1 - visibility)))
             if progress < 1:
                 return True
             if not opening:

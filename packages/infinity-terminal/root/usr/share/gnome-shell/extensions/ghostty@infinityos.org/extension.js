@@ -208,11 +208,11 @@ export default class InfinityTerminal extends Extension {
         window.unminimize();
         this._place(window);
         window.activate(global.get_current_time());
-        this._sourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 40, () => {
+        this._sourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 25, () => {
             this._sourceId = 0;
             const actor = window.get_compositor_private();
             if (actor) {
-                actor.ease({translation_y: 0, duration: 220,
+                actor.ease({translation_y: 0, duration: 150,
                     mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
             }
             return GLib.SOURCE_REMOVE;
@@ -228,7 +228,7 @@ export default class InfinityTerminal extends Extension {
         actor.remove_all_transitions();
         actor.ease({
             translation_y: -window.get_frame_rect().height,
-            duration: 180,
+            duration: 120,
             mode: Clutter.AnimationMode.EASE_IN_CUBIC,
             onComplete: () => {
                 Main.wm.skipNextEffect(actor);
