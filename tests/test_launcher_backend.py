@@ -58,6 +58,21 @@ class LauncherBackendTests(unittest.TestCase):
             self.assertEqual(package.name, "photocraft-1-linux-aarch64.rpm")
             self.assertEqual(package.read_bytes(), b"rpm")
 
+    def test_openlogi_arm_release_asset(self):
+        app = next(app for app in backend.APPS if app.name == "OpenLogi")
+        release = {"assets": [{"name": "openlogi-v1-linux-arm64.rpm", "size": 3,
+                               "browser_download_url": "https://github.com/AprilNEA/OpenLogi/releases/download/v1/openlogi-v1-linux-arm64.rpm"}]}
+        responses = (io.BytesIO(json.dumps(release).encode()), io.BytesIO(b"rpm"))
+        with tempfile.TemporaryDirectory() as directory, patch.object(backend.urllib.request, "urlopen", side_effect=responses):
+            package = backend._latest_rpm(app, "aarch64", directory)
+            self.assertEqual(package.name, "openlogi-v1-linux-arm64.rpm")
+
+    def test_temporary_dns_failure_is_actionable(self):
+        result = type("Result", (), {"returncode": 1, "stdout": "npm ERR! EAI_AGAIN registry.npmjs.org"})()
+        with patch.object(backend.subprocess, "run", return_value=result):
+            with self.assertRaisesRegex(RuntimeError, "press APPLY to retry"):
+                backend._run(["npm", "install"])
+
 
 if __name__ == "__main__":
     unittest.main()

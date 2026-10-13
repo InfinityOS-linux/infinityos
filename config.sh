@@ -84,6 +84,10 @@ EOF
 		printf 'hostonly="no"\n' > /etc/dracut.conf.d/99-infinityos-generic.conf
 		systemctl enable infinityos-snapper-setup.service snapper-timeline.timer snapper-cleanup.timer
 	fi
+	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Live"* ]]; then
+		# Live media mounts its root dynamically; disk-image UUIDs must not reach the ISO.
+		: > /etc/fstab
+	fi
 fi
 
 #======================================

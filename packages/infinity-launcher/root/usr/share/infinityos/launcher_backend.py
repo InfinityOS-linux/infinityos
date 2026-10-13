@@ -39,6 +39,7 @@ APPS = (
     App("System", "Evolution", "flatpak", "org.gnome.Evolution", "GNOME email, calendar and contacts.", group="Email clients", icon="mail-unread-symbolic"),
     App("System", "BlueMail", "flatpak", "net.blix.BlueMail", "Email client with a unified inbox.", True, group="Email clients", icon="mail-unread-symbolic"),
     App("System", "Mailspring", "flatpak", "com.getmailspring.Mailspring", "Email client with a modern inbox.", group="Email clients", icon="mail-unread-symbolic"),
+    App("System", "OpenLogi", "github-rpm", "AprilNEA/OpenLogi", "Configure Logitech mouse buttons, DPI and SmartShift locally.", website="https://github.com/AprilNEA/OpenLogi", group="Device tools", icon="input-mouse-symbolic"),
     App("Gaming", "Steam", "flatpak", "com.valvesoftware.Steam", "Steam games and store.", True, group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Heroic Games Launcher", "flatpak", "com.heroicgameslauncher.hgl", "Epic, GOG and Amazon games.", True, group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Lutris", "flatpak", "net.lutris.Lutris", "Games from multiple stores.", True, group="Game launchers", icon="applications-games-symbolic"),
@@ -97,6 +98,8 @@ def _run(command):
     result = subprocess.run(command, text=True, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, check=False)
     if result.returncode:
+        if "EAI_AGAIN" in result.stdout:
+            raise RuntimeError("Could not resolve the package server. Check your internet connection, then press APPLY to retry.")
         raise RuntimeError(result.stdout.strip()[-1000:] or f"Command failed with exit code {result.returncode}.")
 
 
@@ -105,7 +108,8 @@ def _latest_rpm(app, arch, directory):
                                      headers={"User-Agent": "InfinityLauncher"})
     with urllib.request.urlopen(request, timeout=30) as response:
         release = json.load(response)
-    suffixes = (f"-linux-{arch}.rpm", f".{arch}.rpm")
+    release_arch = {"aarch64": "arm64", "x86_64": "amd64"}.get(arch, arch)
+    suffixes = (f"-linux-{arch}.rpm", f".{arch}.rpm", f"-linux-{release_arch}.rpm")
     assets = [asset for asset in release.get("assets", ()) if asset["name"].endswith(suffixes)]
     if len(assets) != 1:
         raise RuntimeError(f"No unique {arch} RPM in the latest {app.name} release.")
@@ -118,7 +122,7 @@ def _latest_rpm(app, arch, directory):
         shutil.copyfileobj(response, output)
     if destination.stat().st_size != asset["size"]:
         raise RuntimeError("Release download size did not match GitHub metadata.")
-    checksums = next((item for item in release["assets"] if item["name"] == "SHA256SUMS.txt"), None)
+    checksums = next((item for item in release["assets"] if item["name"] in ("SHA256SUMS.txt", "SHA256SUMS")), None)
     if checksums:
         with urllib.request.urlopen(checksums["browser_download_url"], timeout=30) as response:
             lines = response.read().decode().splitlines()
