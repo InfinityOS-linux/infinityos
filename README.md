@@ -9,7 +9,7 @@
 | Area | Configuration |
 | --- | --- |
 | Base | Fedora 44 packages, DNF, Fedora Updates, RPM Fusion Free and Nonfree |
-| Desktop | GNOME with Orchis Purple Dark Compact, Kora icons, Bibata cursor, Infinity OS artwork, and a dark lock screen |
+| Desktop | GNOME with Orchis Purple Dark Compact by default and an optional Light mode, Kora icons, Bibata cursor, Infinity OS artwork, and a dark lock screen |
 | Storage | Writable Btrfs root, systemd-boot, Snapper timeline and cleanup |
 | Applications | Firefox, Flatpak with Flathub, InfinityLauncher, InfinityTerminal |
 | Development | Zsh with Oh My Zsh and Powerline; GNOME Builder |

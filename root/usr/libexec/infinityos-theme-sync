@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -eu
+
+apply_theme() {
+    if [[ $(gsettings get org.gnome.desktop.interface color-scheme) == "'prefer-dark'" ]]; then
+        theme=Orchis-Purple-Dark-Compact
+    else
+        theme=Orchis-Purple-Light-Compact
+    fi
+
+    mkdir -p "$HOME/.config/gtk-4.0"
+    for file in assets gtk.css gtk-dark.css; do
+        link="$HOME/.config/gtk-4.0/$file"
+        if [[ ! -e "$link" && ! -L "$link" ]] ||
+           [[ -L "$link" && $(readlink "$link") == /usr/share/themes/Orchis-Purple-*/gtk-4.0/* ]]; then
+            ln -sfn "/usr/share/themes/$theme/gtk-4.0/$file" "$link"
+        fi
+    done
+
+    gsettings set org.gnome.desktop.interface gtk-theme "$theme"
+    gsettings set org.gnome.shell.extensions.user-theme name "$theme"
+}
+
+apply_theme
+gsettings monitor org.gnome.desktop.interface color-scheme | while IFS= read -r _; do
+    apply_theme
+done

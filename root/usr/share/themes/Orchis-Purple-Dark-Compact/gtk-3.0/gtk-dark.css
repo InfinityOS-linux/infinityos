@@ -1652,7 +1652,7 @@ headerbar button.minimize.titlebutton:active:not(.suggested-action):not(.destruc
 }
 
 headerbar button.minimize.titlebutton:hover:not(.suggested-action):not(.destructive-action), headerbar button.minimize.titlebutton:active:not(.suggested-action):not(.destructive-action), headerbar button.maximize.titlebutton:hover:not(.suggested-action):not(.destructive-action), headerbar button.maximize.titlebutton:active:not(.suggested-action):not(.destructive-action), headerbar button.close.titlebutton:hover:not(.suggested-action):not(.destructive-action), headerbar button.close.titlebutton:active:not(.suggested-action):not(.destructive-action) {
-  color: white;
+  color: #242029;
 }
 
 headerbar button.minimize.titlebutton:backdrop:not(.suggested-action):not(.destructive-action), headerbar button.maximize.titlebutton:backdrop:not(.suggested-action):not(.destructive-action), headerbar button.close.titlebutton:backdrop:not(.suggested-action):not(.destructive-action) {
@@ -1665,19 +1665,19 @@ headerbar button.minimize.titlebutton:backdrop:hover:not(.suggested-action):not(
 }
 
 headerbar button.minimize.titlebutton:not(.suggested-action):not(.destructive-action) {
-  background-color: #fdbe04;
+  background-color: #ffffff;
 }
 
 headerbar button.minimize.titlebutton:active:not(.suggested-action):not(.destructive-action) {
-  background-color: #fece43;
+  background-color: #e5e5e5;
 }
 
 headerbar button.maximize.titlebutton:not(.suggested-action):not(.destructive-action) {
-  background-color: #38c76a;
+  background-color: #ffffff;
 }
 
 headerbar button.maximize.titlebutton:active:not(.suggested-action):not(.destructive-action) {
-  background-color: #6ad58f;
+  background-color: #e5e5e5;
 }
 
 headerbar button.close.titlebutton:not(.suggested-action):not(.destructive-action) {
@@ -8732,13 +8732,13 @@ read if you used those and something break with a version upgrade you're on your
 @define-color wm_border #090909;
 @define-color wm_bg #211d29;
 @define-color wm_unfocused_bg #2d2638;
-@define-color wm_button_icon white;
+@define-color wm_button_icon #242029;
 @define-color wm_button_close_hover_bg #fd5f51;
 @define-color wm_button_close_active_bg #fc2714;
-@define-color wm_button_max_hover_bg #38c76a;
-@define-color wm_button_max_active_bg #2b9751;
-@define-color wm_button_min_hover_bg #fdbe04;
-@define-color wm_button_min_active_bg #c29102;
+@define-color wm_button_max_hover_bg #ffffff;
+@define-color wm_button_max_active_bg #e5e5e5;
+@define-color wm_button_min_hover_bg #ffffff;
+@define-color wm_button_min_active_bg #e5e5e5;
 /*
 FIXME this is really an API */
 @define-color content_view_bg #211d29;

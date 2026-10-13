@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Infinity OS Theme Sync
+Exec=/usr/libexec/infinityos-theme-sync
+OnlyShowIn=GNOME;
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

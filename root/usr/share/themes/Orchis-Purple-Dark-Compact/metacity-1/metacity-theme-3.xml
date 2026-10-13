@@ -18,7 +18,7 @@
 <constant name="C_border_unfocused" value="gtk:custom(wm_border,blend/#000000/gtk:bg[NORMAL]/0.65)"/>
 <constant name="C_title_focused" value="gtk:custom(wm_title,gtk:fg[NORMAL])"/>
 <constant name="C_title_unfocused" value="gtk:custom(wm_unfocused_title,gtk:fg[INSENSITIVE])"/>
-<constant name="C_button_icon" value="gtk:custom(wm_button_icon,gtk:base[NORMAL])" />
+<constant name="C_button_icon" value="gtk:custom(wm_button_icon,gtk:fg[NORMAL])" />
 <constant name="C_button_close_hover_bg" value="gtk:custom(wm_button_close_hover_bg,gtk:fg[INSENSITIVE])"/>
 <constant name="C_button_close_active_bg" value="gtk:custom(wm_button_close_active_bg,gtk:fg[INSENSITIVE])"/>
 <constant name="C_button_max_hover_bg" value="gtk:custom(wm_button_max_hover_bg,gtk:fg[INSENSITIVE])"/>

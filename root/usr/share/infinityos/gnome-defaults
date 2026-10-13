@@ -45,3 +45,6 @@ show-history=''
 sync-clipboard-to-primary=''
 sync-primary-to-clipboard=''
 upload=''
+
+[org/gnome/settings-daemon/plugins/housekeeping]
+donation-reminder-enabled=false

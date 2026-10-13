@@ -2057,7 +2057,7 @@ headerbar windowcontrols button.minimize:not(.suggested-action):not(.destructive
 }
 
 headerbar windowcontrols button.minimize:hover:not(.suggested-action):not(.destructive-action), headerbar windowcontrols button.minimize:active:not(.suggested-action):not(.destructive-action), headerbar windowcontrols button.maximize:hover:not(.suggested-action):not(.destructive-action), headerbar windowcontrols button.maximize:active:not(.suggested-action):not(.destructive-action), headerbar windowcontrols button.close:hover:not(.suggested-action):not(.destructive-action), headerbar windowcontrols button.close:active:not(.suggested-action):not(.destructive-action) {
-  color: white;
+  color: #242029;
 }
 
 headerbar windowcontrols button.minimize:backdrop:not(.suggested-action):not(.destructive-action), headerbar windowcontrols button.maximize:backdrop:not(.suggested-action):not(.destructive-action), headerbar windowcontrols button.close:backdrop:not(.suggested-action):not(.destructive-action) {
@@ -2073,19 +2073,19 @@ headerbar windowcontrols button.minimize:backdrop:hover:not(.suggested-action):n
 }
 
 headerbar windowcontrols button.minimize:not(.suggested-action):not(.destructive-action) > image {
-  background-color: #fdbe04;
+  background-color: #ffffff;
 }
 
 headerbar windowcontrols button.minimize:active:not(.suggested-action):not(.destructive-action) > image {
-  background-color: #be8f03;
+  background-color: #e5e5e5;
 }
 
 headerbar windowcontrols button.maximize:not(.suggested-action):not(.destructive-action) > image {
-  background-color: #38c76a;
+  background-color: #ffffff;
 }
 
 headerbar windowcontrols button.maximize:active:not(.suggested-action):not(.destructive-action) > image {
-  background-color: #2a9550;
+  background-color: #e5e5e5;
 }
 
 headerbar windowcontrols button.close:not(.suggested-action):not(.destructive-action) > image {
@@ -8711,13 +8711,13 @@ read if you used those and something break with a version upgrade you're on your
 @define-color wm_border #090909;
 @define-color wm_bg #211d29;
 @define-color wm_unfocused_bg #2d2638;
-@define-color wm_button_icon white;
+@define-color wm_button_icon #242029;
 @define-color wm_button_close_hover_bg #fd5f51;
 @define-color wm_button_close_active_bg #fc2714;
-@define-color wm_button_max_hover_bg #38c76a;
-@define-color wm_button_max_active_bg #2b9751;
-@define-color wm_button_min_hover_bg #fdbe04;
-@define-color wm_button_min_active_bg #c29102;
+@define-color wm_button_max_hover_bg #ffffff;
+@define-color wm_button_max_active_bg #e5e5e5;
+@define-color wm_button_min_hover_bg #ffffff;
+@define-color wm_button_min_active_bg #e5e5e5;
 /*
 FIXME this is really an API */
 @define-color content_view_bg #211d29;
