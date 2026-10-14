@@ -1,0 +1,17 @@
+.infinity-terminal-close {
+    background-color: rgba(33, 26, 45, 0.9);
+    border: 1px solid rgba(219, 199, 255, 0.45);
+    border-radius: 8px;
+    color: #eeeaf6;
+    padding: 7px;
+}
+
+.infinity-terminal-close:hover,
+.infinity-terminal-close:focus {
+    background-color: #645394;
+    border-color: #dbc7ff;
+}
+
+.infinity-terminal-close:active {
+    background-color: #846caf;
+}
