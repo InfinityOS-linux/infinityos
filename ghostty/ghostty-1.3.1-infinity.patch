@@ -1,12 +1,9 @@
 diff --git a/src/apprt/gtk/class/application.zig b/src/apprt/gtk/class/application.zig
 --- a/src/apprt/gtk/class/application.zig
 +++ b/src/apprt/gtk/class/application.zig
-@@ -42,6 +42,16 @@
- const GlobalShortcuts = @import("global_shortcuts.zig").GlobalShortcuts;
- 
- const log = std.log.scoped(.gtk_ghostty_application);
+@@ -44,0 +45,10 @@
 +
-+fn infinityCliInstalled(name: []const u8) bool {
++pub fn infinityCliInstalled(name: []const u8) bool {
 +    const home = std.posix.getenv("HOME") orelse return false;
 +    var path_buf: [std.fs.max_path_bytes]u8 = undefined;
 +    const local = std.fmt.bufPrint(&path_buf, "{s}/.local/bin/{s}", .{ home, name }) catch return false;
@@ -15,13 +12,25 @@ diff --git a/src/apprt/gtk/class/application.zig b/src/apprt/gtk/class/applicati
 +    if (std.fs.accessAbsolute(system, .{})) |_| return true else |_| {}
 +    return false;
 +}
- 
- /// Function used to funnel GLib/GObject/GTK log messages into Zig's logging
- /// system rather than just getting dumped directly to stderr.
-@@ -2274,12 +2284,34 @@
-             .{},
-         );
- 
+@@ -1401,0 +1412 @@
++            .init("refresh-cli-tabs", actionRefreshCliTabs, null),
+@@ -1664,0 +1676,15 @@
++    }
++
++    /// Add newly installed CLI tabs without closing existing terminal sessions.
++    pub fn actionRefreshCliTabs(
++        _: *gio.SimpleAction,
++        _: ?*glib.Variant,
++        self: *Self,
++    ) callconv(.c) void {
++        var node: ?*glib.List = @as(?*glib.List, self.as(gtk.Application).getWindows());
++        while (node) |entry| : (node = entry.f_next) {
++            const data = entry.f_data orelse continue;
++            const gtk_window: *gtk.Window = @ptrCast(@alignCast(data));
++            const window = gobject.ext.cast(Window, gtk_window) orelse continue;
++            window.ensureInfinityCliTabs();
++        }
+@@ -2277,6 +2303,28 @@
 -        // Create a new tab with window context (first tab in new window)
 -        win.newTabForWindow(parent, .{
 -            .command = overrides.command,
@@ -29,7 +38,7 @@ diff --git a/src/apprt/gtk/class/application.zig b/src/apprt/gtk/class/applicati
 -            .title = overrides.title,
 -        });
 +        // Infinity's persistent CLI tabs use Ghostty's renderer and tab view.
-+        if (std.mem.eql(u8, self.getConfig().get().class orelse "", "com.infinityos.GhosTTY")) {
++        if (std.mem.eql(u8, std.mem.span(self.as(gio.Application).getApplicationId() orelse ""), "com.infinityos.GhosTTY")) {
 +            var first = true;
 +            if (infinityCliInstalled("codex")) {
 +                win.newTabForWindow(parent, .{
@@ -56,64 +65,34 @@ diff --git a/src/apprt/gtk/class/application.zig b/src/apprt/gtk/class/applicati
 +                .title = overrides.title,
 +            });
 +        }
- 
-         // Estimate the initial window size before presenting so the window
-         // manager can position it correctly.
 diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 --- a/src/apprt/gtk/class/window.zig
 +++ b/src/apprt/gtk/class/window.zig
-@@ -255,6 +255,8 @@
-         /// Tab page that the context menu was opened for.
-         /// setup by `setup-menu`.
-         context_menu_page: ?*adw.TabPage = null,
+@@ -24,0 +25 @@
++const infinityCliInstalled = @import("application.zig").infinityCliInstalled;
+@@ -257,0 +259,2 @@
 +        codex_page: ?*adw.TabPage = null,
 +        claude_page: ?*adw.TabPage = null,
- 
-         // Template bindings
-         tab_overview: *adw.TabOverview,
-@@ -357,6 +359,8 @@
-             .init("about", actionAbout, null),
-             .init("close", actionClose, null),
-             .init("close-tab", actionCloseTab, s_variant_type),
+@@ -359,0 +363,2 @@
 +            .init("close-context-tab", actionCloseContextTab, null),
 +            .init("yolo-mode", actionYoloMode, null),
-             .init("new-tab", actionNewTab, null),
-             .init("new-window", actionNewWindow, null),
-             .init("prompt-surface-title", actionPromptSurfaceTitle, null),
-@@ -398,6 +402,7 @@
-             command: ?configpkg.Command = null,
-             working_directory: ?[:0]const u8 = null,
-             title: ?[:0]const u8 = null,
+@@ -400,0 +406 @@
 +            pinned: bool = false,
- 
-             pub const none: @This() = .{};
-         },
-@@ -409,6 +414,7 @@
-                 .command = overrides.command,
-                 .working_directory = overrides.working_directory,
-                 .title = overrides.title,
+@@ -411,0 +418 @@
 +                .pinned = overrides.pinned,
-             },
-         );
-     }
-@@ -421,6 +427,7 @@
-             command: ?configpkg.Command = null,
-             working_directory: ?[:0]const u8 = null,
-             title: ?[:0]const u8 = null,
+@@ -423,0 +431 @@
 +            pinned: bool = false,
- 
-             pub const none: @This() = .{};
-         },
-@@ -464,8 +471,29 @@
-         };
- 
-         // Add the page and select it
+@@ -467 +475,8 @@
 -        const page = tab_view.insert(tab.as(gtk.Widget), position);
++        const pin_position = if (overrides.title) |title|
++            if (std.mem.eql(u8, title, "Codex CLI")) 0 else if (std.mem.eql(u8, title, "Claude CLI")) @min(1, tab_view.getNPinnedPages()) else tab_view.getNPinnedPages()
++        else
++            tab_view.getNPinnedPages();
 +        const page = if (overrides.pinned and self.isInfinity())
-+            tab_view.insertPinned(tab.as(gtk.Widget), tab_view.getNPinnedPages())
++            tab_view.insertPinned(tab.as(gtk.Widget), pin_position)
 +        else
 +            tab_view.insert(tab.as(gtk.Widget), position);
-         tab_view.setSelectedPage(page);
+@@ -468,0 +484,18 @@
 +
 +        if (self.isInfinity()) {
 +            if (overrides.title) |title| {
@@ -132,55 +111,44 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +                if (std.mem.endsWith(u8, title, "YOLO")) page.setNeedsAttention(1);
 +            }
 +        }
- 
-         // Create some property bindings
-         _ = tab.as(gobject.Object).bindProperty(
-@@ -582,6 +610,7 @@
- 
-         // Get the page position that contains the tab.
-         const page = tab_view.getPage(tab.as(gtk.Widget));
+@@ -584,0 +618 @@
 +        if (self.isInfinity() and page.getPinned() != 0) return false;
-         const pos = tab_view.getPagePosition(page);
- 
-         // Move it
-@@ -612,6 +641,11 @@
-     pub fn toggleVisibility(self: *Self) void {
-         const widget = self.as(gtk.Widget);
-         widget.setVisible(@intFromBool(widget.isVisible() == 0));
+@@ -614,0 +649,24 @@
 +    }
 +
 +    fn isInfinity(self: *Self) bool {
-+        const config = self.private().config orelse return false;
-+        return std.mem.eql(u8, config.get().class orelse "", "com.infinityos.GhosTTY");
-     }
- 
-     /// Updates various appearance properties. This should always be safe
-@@ -1364,6 +1398,10 @@
-         _: *gtk.Window,
-         self: *Self,
-     ) callconv(.c) c_int {
++        _ = self;
++        return std.mem.eql(u8, std.mem.span(Application.default().as(gio.Application).getApplicationId() orelse ""), "com.infinityos.GhosTTY");
++    }
++
++    pub fn ensureInfinityCliTabs(self: *Self) void {
++        if (!self.isInfinity()) return;
++        const priv = self.private();
++        if (priv.codex_page == null and infinityCliInstalled("codex")) {
++            self.newTabForWindow(null, .{
++                .command = .{ .shell = "zsh -ic 'codex; exec zsh'" },
++                .title = "Codex CLI",
++                .pinned = true,
++            });
++        }
++        if (priv.claude_page == null and infinityCliInstalled("claude")) {
++            self.newTabForWindow(null, .{
++                .command = .{ .shell = "zsh -ic 'claude; exec zsh'" },
++                .title = "Claude CLI",
++                .pinned = true,
++            });
++        }
+@@ -1366,0 +1425,4 @@
 +        if (self.isInfinity()) {
 +            self.as(gtk.Window).minimize();
 +            return @intFromBool(true);
 +        }
-         if (self.getNeedsConfirmQuit()) {
-             // Show a confirmation dialog
-             const dialog: *CloseConfirmationDialog = .new(.window);
-@@ -1425,6 +1463,10 @@
-         self: *Self,
-     ) callconv(.c) c_int {
-         const priv = self.private();
+@@ -1427,0 +1490,4 @@
 +        if (self.isInfinity() and page.getPinned() != 0) {
 +            priv.tab_view.closePageFinish(page, @intFromBool(false));
 +            return @intFromBool(true);
 +        }
-         const child = page.getChild();
-         const tab = gobject.ext.cast(Tab, child) orelse
-             return @intFromBool(false);
-@@ -1602,7 +1644,13 @@
-         page: ?*adw.TabPage,
-         self: *Self,
-     ) callconv(.c) void {
+@@ -1605 +1671,7 @@
 -        self.private().context_menu_page = page;
 +        const priv = self.private();
 +        priv.context_menu_page = page;
@@ -189,13 +157,7 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +            action_map.lookupAction("yolo-mode") orelse return) orelse return;
 +        action.setEnabled(@intFromBool(page != null and
 +            (page == priv.codex_page or page == priv.claude_page)));
-     }
- 
-     fn surfaceClipboardWrite(
-@@ -1857,6 +1905,36 @@
-         const child = page.getChild();
-         const tab = gobject.ext.cast(Tab, child) orelse return;
-         tab.promptTabTitle();
+@@ -1859,0 +1932,30 @@
 +    }
 +
 +    fn actionCloseContextTab(
@@ -226,48 +188,18 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +                .title = "Claude YOLO",
 +            });
 +        }
-     }
- 
-     fn actionPromptSurfaceTitle(
 diff --git a/src/apprt/gtk/ui/1.5/window.blp b/src/apprt/gtk/ui/1.5/window.blp
 --- a/src/apprt/gtk/ui/1.5/window.blp
 +++ b/src/apprt/gtk/ui/1.5/window.blp
-@@ -72,6 +72,7 @@
-           }
- 
-           Gtk.MenuButton {
+@@ -74,0 +75 @@
 +            visible: false;
-             notify::active => $notify_menu_active();
-             icon-name: "open-menu-symbolic";
-             menu-model: main_menu;
-@@ -94,6 +95,7 @@
-           visible: bind $titlebar_style_is_tabs(template.titlebar-style) as <bool>;
- 
-           Gtk.WindowControls {
+@@ -96,0 +98 @@
 +            visible: false;
-             side: start;
-           }
- 
-@@ -130,6 +132,7 @@
-           }
- 
-           Gtk.MenuButton {
+@@ -132,0 +135 @@
 +            visible: false;
-             styles [
-               "flat",
-             ]
-@@ -142,6 +145,7 @@
-           }
- 
-           Gtk.WindowControls {
+@@ -144,0 +148 @@
 +            visible: false;
-             side: end;
-           }
-         }
-@@ -317,6 +321,16 @@
- 
- menu tab_context_menu {
-   item {
+@@ -319,0 +324,10 @@
 +    label: _("Start YOLO mode in a red tab");
 +    action: "win.yolo-mode";
 +  }
@@ -278,6 +210,3 @@ diff --git a/src/apprt/gtk/ui/1.5/window.blp b/src/apprt/gtk/ui/1.5/window.blp
 +  }
 +
 +  item {
-     label: _("Change Tab Title…");
-     action: "win.prompt-context-tab-title";
-   }

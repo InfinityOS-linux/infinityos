@@ -164,5 +164,10 @@ def install(app, home=None):
             "Icon=web-browser\nCategories=Network;\n",
             encoding="utf-8",
         )
+        if shutil.which("gapplication"):
+            subprocess.run(
+                ["gapplication", "action", "com.infinityos.GhosTTY", "refresh-cli-tabs"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+            )
     else:
         raise ValueError(f"No installation source for {app.name}.")
