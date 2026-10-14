@@ -1,0 +1,18 @@
+[Unit]
+Description=Infinity OS backup console
+Requires=infinityos-backups-setup.service
+After=infinityos-backups-setup.service local-fs.target
+RequiresMountsFor=/boot/efi /.snapshots
+Conflicts=getty@tty1.service
+
+[Service]
+Type=exec
+ExecStart=/usr/libexec/infinityos-backups-menu
+StandardInput=tty-force
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+Restart=on-failure
+RestartSec=5

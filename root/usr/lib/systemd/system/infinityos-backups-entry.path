@@ -1,0 +1,9 @@
+[Unit]
+Description=Refresh Backups when systemd-boot entries change
+
+[Path]
+PathChanged=/boot/efi/loader/entries
+Unit=infinityos-backups-entry.service
+
+[Install]
+WantedBy=multi-user.target

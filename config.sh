@@ -95,7 +95,7 @@ EOF
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Disk"* ]]; then
 		# The build host's storage controller differs from the target VM or PC.
 		printf 'hostonly="no"\n' > /etc/dracut.conf.d/99-infinityos-generic.conf
-		systemctl enable infinityos-snapper-setup.service snapper-timeline.timer snapper-cleanup.timer
+		systemctl enable infinityos-snapper-setup.service infinityos-backups-setup.service infinityos-backups-entry.service infinityos-backups-entry.path snapper-timeline.timer snapper-cleanup.timer
 	fi
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Live"* ]]; then
 		# Live media mounts its root dynamically; disk-image UUIDs must not reach the ISO.

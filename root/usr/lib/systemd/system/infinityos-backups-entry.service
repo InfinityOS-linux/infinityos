@@ -1,0 +1,11 @@
+[Unit]
+Description=Keep the systemd-boot Backups entry current
+After=local-fs.target infinityos-backups-setup.service
+RequiresMountsFor=/boot/efi
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/infinityos-backups-entry
+
+[Install]
+WantedBy=multi-user.target

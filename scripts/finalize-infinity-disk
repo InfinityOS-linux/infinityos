@@ -44,3 +44,27 @@ for entry in "$efi_mountpoint"/loader/entries/*.conf; do
 	grep -Fxq "initrd os/$initramfs" "$entry"
 	cmp "$mountpoint/boot/$initramfs" "$efi_mountpoint/os/$initramfs"
 done
+
+# The disk must expose Backups even before its first normal boot. The first
+# boot then migrates Snapper storage and switches to the Btrfs default root.
+for entry in "$efi_mountpoint"/loader/entries/*.conf; do
+	[[ -f $entry ]] || continue
+	grep -Eq '^title[[:space:]]+Infinity OS' "$entry" || continue
+	linux=$(awk '$1 == "linux" { print $2; exit }' "$entry")
+	initrd=$(awk '$1 == "initrd" { print $2; exit }' "$entry")
+	options=$(sed -n 's/^options[[:space:]]*//p' "$entry" | head -n 1)
+	[[ $linux == os/vmlinuz-* && -n $initrd && -n $options ]] || continue
+	read -r -a args <<< "$options"
+	filtered=()
+	for arg in "${args[@]}"; do
+		[[ $arg == rhgb || $arg == quiet ]] || filtered+=("$arg")
+	done
+	options=${filtered[*]}
+	cat > "$efi_mountpoint/loader/entries/infinityos-backups.conf" <<EOF
+title Backups
+linux $linux
+initrd $initrd
+options $options systemd.unit=infinityos-backups.target plymouth.enable=0
+EOF
+	break
+done

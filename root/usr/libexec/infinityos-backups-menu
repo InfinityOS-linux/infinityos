@@ -1,0 +1,66 @@
+#!/bin/bash
+set -euo pipefail
+
+[[ -e /var/lib/infinityos/backups-ready ]] || { echo 'Backups are not initialized'; sleep 10; exit 1; }
+
+restore_snapshot() (
+	set -e
+	local number=$1 source target device top uuid root_id kernel
+	[[ $number =~ ^[1-9][0-9]*$ ]] || { echo 'Invalid snapshot number'; return 1; }
+	source="/.snapshots/$number/snapshot"
+	[[ -d $source ]] || { echo 'Snapshot does not exist'; return 1; }
+	[[ $(btrfs property get -ts "$source" ro) == 'ro=true' ]] || { echo 'Snapshot is not read-only'; return 1; }
+	device=$(findmnt -n -o SOURCE /)
+	device=${device%%\[*}
+	uuid=$(blkid -s UUID -o value "$device")
+	top=$(mktemp -d)
+	trap 'if mountpoint -q "$top"; then umount "$top"; fi; rmdir "$top" 2>/dev/null || true' EXIT
+	mount -o subvolid=5 "$device" "$top"
+	target="$top/infinityos-roots/restore-$(date +%Y%m%d-%H%M%S)-$number"
+	if [[ -e $target ]]; then echo 'Restore destination already exists'; return 1; fi
+	# Keep a recovery point for the exact state before switching the boot root.
+	snapper -c root create -d "Before restoring snapshot $number"
+	btrfs subvolume snapshot "$source" "$target"
+	mkdir -p "$target/.snapshots"
+	/usr/libexec/infinityos-backups-fstab "$target/etc/fstab" "$uuid"
+	cp -a /etc/kernel/cmdline "$target/etc/kernel/cmdline"
+	kernel=$(uname -r)
+	if [[ ! -d $target/usr/lib/modules/$kernel ]]; then
+		mkdir -p "$target/usr/lib/modules"
+		cp -a "/usr/lib/modules/$kernel" "$target/usr/lib/modules/"
+	fi
+	# A snapshot predating this feature must still boot with its backup tools.
+	install -d "$target/usr/libexec" "$target/usr/lib/systemd/system"
+	cp -a /usr/libexec/infinityos-backups-* "$target/usr/libexec/"
+	cp -a /usr/lib/systemd/system/infinityos-backups* "$target/usr/lib/systemd/system/"
+	systemctl --root="$target" enable infinityos-backups-setup.service infinityos-backups-entry.service infinityos-backups-entry.path
+	root_id=$(btrfs inspect-internal rootid "$target")
+	btrfs subvolume set-default "$root_id" "$top"
+	sync
+	echo "Snapshot $number selected for the next boot. The previous root remains available on Btrfs."
+	read -r -p 'Press Enter to reboot... ' _
+	systemctl reboot
+)
+
+while true; do
+	clear
+	echo 'Infinity OS — Backups (Btrfs root snapshots)'
+	echo 'Home and /var are separate volumes and are not restored.'
+	echo
+	snapper -c root list
+	echo
+	echo '[c] Create snapshot  [d] Delete snapshot  [r] Restore snapshot  [b] Reboot'
+	read -r -p '> ' action || action=b
+	case $action in
+		c) read -r -p 'Description: ' description
+		   snapper -c root create -d "${description:-Manual backup}" || true ;;
+		d) read -r -p 'Snapshot number to delete: ' number
+		   if [[ $number =~ ^[1-9][0-9]*$ ]]; then snapper -c root delete "$number" || true; else echo 'Invalid number'; fi ;;
+		r) read -r -p 'Snapshot number to restore: ' number
+		   read -r -p "Restore snapshot $number and reboot? Type RESTORE: " confirmation
+		   if [[ $confirmation == RESTORE ]]; then restore_snapshot "$number"; fi ;;
+		b) systemctl reboot ;;
+		*) echo 'Unknown command' ;;
+	esac
+	read -r -p 'Press Enter to continue... ' _ || true
+done

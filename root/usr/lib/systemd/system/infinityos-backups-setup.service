@@ -1,0 +1,13 @@
+[Unit]
+Description=Prepare persistent Infinity OS Btrfs backups
+Requires=infinityos-snapper-setup.service
+After=infinityos-snapper-setup.service local-fs.target
+RequiresMountsFor=/boot/efi
+ConditionPathExists=!/var/lib/infinityos/backups-ready
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/infinityos-backups-setup
+
+[Install]
+WantedBy=multi-user.target

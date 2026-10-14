@@ -1,0 +1,5 @@
+[Unit]
+Description=Infinity OS Btrfs backup manager
+Requires=infinityos-backups-console.service
+After=infinityos-backups-console.service
+AllowIsolate=yes

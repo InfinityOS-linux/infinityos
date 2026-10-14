@@ -64,6 +64,8 @@ sudo ./kiwi-build --kiwi-file=InfinityOS.kiwi --image-type=oem \
 
 The wrapper runs [`scripts/finalize-infinity-disk`](scripts/finalize-infinity-disk) after an OEM build. That step fixes permissions on the Btrfs root subvolume so desktop services can start. The resulting RAW disk has a 2 GB EFI partition and Btrfs `root`, `home`, and `var` subvolumes. Apple Silicon Parallels runs the `aarch64` disk; building `x86_64` requires an x86_64 Fedora host or CI runner.
 
+The systemd-boot **Backups** entry opens a text console for listing, creating, deleting, and restoring Snapper snapshots of `/`. Snapshots are stored in the separate `infinityos-snapshots` Btrfs subvolume, so they remain available after a restore. The first boot sets this up and switches normal boot entries to the Btrfs default root; subsequent kernel entry changes refresh Backups automatically. A restore creates a safety snapshot of the current root, selects a writable copy of the chosen snapshot as the next default root, and reboots. `/home` and `/var` are separate subvolumes and are not rolled back. The previous root stays on disk under `infinityos-roots` for manual recovery.
+
 ## Project layout
 
 - [`InfinityOS.kiwi`](InfinityOS.kiwi), [`repositories/`](repositories), and [`teams/`](teams) define image profiles and package sources.
