@@ -20,6 +20,8 @@ class ThemeSyncTests(unittest.TestCase):
             gtk.mkdir(parents=True)
             custom_css = gtk / "gtk.css"
             custom_css.write_text("/* keep me */")
+            (gtk / "assets").symlink_to("/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/assets")
+            (gtk / "gtk-dark.css").symlink_to("/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/gtk-dark.css")
             gsettings = bin_dir / "gsettings"
             gsettings.write_text(
                 '#!/bin/sh\n'
@@ -39,8 +41,8 @@ class ThemeSyncTests(unittest.TestCase):
             self.assertIn("gtk-theme Orchis-Purple-Light-Compact", changes)
             self.assertIn("name Orchis-Purple-Light-Compact", changes)
             self.assertEqual(custom_css.read_text(), "/* keep me */")
-            self.assertEqual((gtk / "assets").readlink(), Path("/usr/share/themes/Orchis-Purple-Light-Compact/gtk-4.0/assets"))
-            self.assertEqual((gtk / "gtk-dark.css").readlink(), Path("/usr/share/themes/Orchis-Purple-Light-Compact/gtk-4.0/gtk-dark.css"))
+            self.assertFalse((gtk / "assets").is_symlink())
+            self.assertFalse((gtk / "gtk-dark.css").is_symlink())
 
 
 if __name__ == "__main__":
