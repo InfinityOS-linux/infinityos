@@ -39,6 +39,8 @@ class ManageWindow {
         this._waylandClient = waylandClient;
         this._X11Emulator = X11Emulator;
         this._window = window;
+        this._windowActor = window.get_compositor_private();
+        this._firstDesktopPlacement = true;
         this._signalIDs = [];
         this.windowUnmanaged = false;
         this._keepAtTop = false;
@@ -55,9 +57,25 @@ class ManageWindow {
         if (this._moveIntoPlaceID)
             GLib.source_remove(this._moveIntoPlaceID);
 
+        // Place the mapped desktop surface before its first frame is painted.
+        // Keep the retry below because GTK may adjust the frame after mapping.
+        if (this._fixed && (this._x !== null) && (this._y !== null))
+            this._window.move_frame(true, this._x, this._y);
+
         this._moveIntoPlaceID = GLib.timeout_add(GLib.PRIORITY_LOW, 250, () => {
-            if (this._fixed && (this._x !== null) && (this._y !== null))
+            if (this._fixed && (this._x !== null) && (this._y !== null)) {
                 this._window.move_frame(true, this._x, this._y);
+                if (this._firstDesktopPlacement) {
+                    this._firstDesktopPlacement = false;
+                    // The GTK desktop window initially maps at the screen centre.
+                    // Show its icons only after Mutter has moved it into place.
+                    GLib.idle_add(GLib.PRIORITY_LOW, () => {
+                        if (this._windowActor)
+                            this._windowActor.opacity = 255;
+                        return GLib.SOURCE_REMOVE;
+                    });
+                }
+            }
 
             this._moveIntoPlaceID = 0;
             return GLib.SOURCE_REMOVE;
@@ -80,6 +98,7 @@ class ManageWindow {
             this._window.unmake_above();
 
         this._window = null;
+        this._windowActor = null;
         this._waylandClient = null;
     }
 
@@ -126,6 +145,8 @@ class ManageWindow {
                     const desktopData = this._X11Emulator.getMonitorData(desktopIndex - 1);
                     this._x = desktopData.x + desktopData.windowMarginLeft;
                     this._y = desktopData.y + desktopData.windowMarginTop;
+                    if (this._firstDesktopPlacement && this._windowActor)
+                        this._windowActor.opacity = 0;
                 } catch (e) {
                     console.log(`Exception ${e.message}.\n${e.stack}`);
                 }
