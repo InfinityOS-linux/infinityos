@@ -38,14 +38,18 @@ class UpdaterTests(unittest.TestCase):
             checker.save_state(state, path)
             self.assertEqual(checker.read_state(path), state)
 
-    def test_rpm_check_does_not_read_system_dnf_state(self):
+    def test_rpm_check_avoids_system_state_and_accepts_configured_repo_key(self):
         calls = []
 
         def run(args):
             calls.append(args)
-            if args[0] == 'dnf' and not any(arg.startswith('--setopt=system_state_dir=') for arg in args):
-                return type('Result', (), {'returncode': 1, 'stdout': '',
-                                           'stderr': 'Could not open packages.toml'})()
+            if args[0] == 'dnf':
+                if not any(arg.startswith('--setopt=system_state_dir=') for arg in args):
+                    return type('Result', (), {'returncode': 1, 'stdout': '',
+                                               'stderr': 'Could not open packages.toml'})()
+                if '--assumeyes' not in args:
+                    return type('Result', (), {'returncode': 1, 'stdout': '',
+                                               'stderr': 'Signing key not found'})()
             return type('Result', (), {'returncode': 0, 'stdout': '', 'stderr': ''})()
 
         with patch.object(checker, '_run', side_effect=run):
@@ -53,6 +57,7 @@ class UpdaterTests(unittest.TestCase):
 
         self.assertEqual(state['errors'], [])
         self.assertTrue(any(arg.startswith('--setopt=system_state_dir=') for arg in calls[0]))
+        self.assertIn('--assumeyes', calls[0])
 
     def test_installation_only_runs_for_sources_with_updates(self):
         commands = updater.install_commands([{'kind': 'RPM'}, {'kind': 'Flatpak user'}])

@@ -11,7 +11,7 @@ Requires:       gtk4
 Requires:       dnf5
 Requires:       flatpak
 Requires:       polkit
-Obsoletes:      gnome-software
+Obsoletes:      gnome-software < 51
 
 %description
 Checks Fedora, Infinity OS, and Flatpak updates daily and provides an
