@@ -54,6 +54,7 @@
 		<package name="nodejs-npm"/>
 		<ignore name="fedora-flathub-remote"/>
 		<package name="gamemode"/>
+		<package name="zram-generator"/>
 		<package name="tlp"/>
 		<package name="tlp-pd"/>
 		<package name="switcheroo-control"/>

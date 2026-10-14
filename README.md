@@ -16,6 +16,12 @@
 | Gaming | GameMode, MangoHud, Gamescope, gamepad support; Steam and Lutris on `x86_64` |
 | Hardware | Fedora Intel and AMD graphics support; NVIDIA packages on `x86_64` |
 
+## Performance defaults
+
+Infinity OS uses compressed zram swap sized to half of RAM, capped at 16 GiB, with zstd compression. This follows Bazzite's desktop configuration and works with the writable Fedora image and normal DNF updates. The image also raises inotify limits for large game libraries and development projects and enables TCP path-MTU probing when a connection encounters a black hole. Nobara-inspired udev rules select `none` for NVMe, `mq-deadline` for SATA SSDs and eMMC, and `bfq` for rotating SATA disks. These rules apply only to whole disks; unsupported device types keep the kernel's choice.
+
+GameMode, MangoHud, Gamescope, TLP, and the existing bounded `vm.max_map_count` setting remain in place. No OSTree or immutable root is used.
+
 **InfinityLauncher** opens on first login. It groups optional software under AI, System, Gaming, Creative, Office, and Programming. You choose applications and press **Apply** before installation starts. The choices include Steam, Heroic, Lutris, Prism Launcher, creative tools, VS Code, Docker CE, Codex, and Claude. Its source and RPM specification live in [`packages/infinity-launcher`](packages/infinity-launcher).
 
 Its footer can schedule one more launch at the next login. The interface follows the session language (Polish and English are bundled). RAMDrive warns through GNOME's shutdown confirmation when it contains files; canceling keeps the session and files, while continuing the shutdown clears the folder. A crash or hard reset leaves its contents intact.
