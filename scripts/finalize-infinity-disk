@@ -3,11 +3,14 @@ set -euo pipefail
 
 image=${1:?Pass the Infinity OS RAW disk image}
 mountpoint=$(mktemp -d)
+efi_mountpoint=$(mktemp -d)
 loopdev=
 cleanup() {
+	if mountpoint -q "$efi_mountpoint"; then umount "$efi_mountpoint"; fi
 	if mountpoint -q "$mountpoint"; then umount "$mountpoint"; fi
 	if [[ -n $loopdev ]]; then losetup -d "$loopdev"; fi
 	rmdir "$mountpoint"
+	rmdir "$efi_mountpoint"
 }
 trap cleanup EXIT
 
@@ -22,3 +25,22 @@ mount -o subvol=root "$partition" "$mountpoint"
 # KIWI creates the Btrfs root subvolume with 0700, which blocks non-root services.
 chmod 0755 "$mountpoint"
 [[ $(stat -c %a "$mountpoint") == 755 ]]
+
+# A reused prepared root may contain rescue images for an older kernel. KIWI
+# can otherwise pair that rescue initramfs with the newest kernel on the ESP.
+mount "${loopdev}p1" "$efi_mountpoint"
+for entry in "$efi_mountpoint"/loader/entries/*.conf; do
+	[[ -f $entry ]] || continue
+	linux=$(awk '$1 == "linux" { print $2; exit }' "$entry")
+	[[ $linux == os/vmlinuz-* ]] || continue
+	version=${linux#os/vmlinuz-}
+	initramfs="initramfs-${version}.img"
+	[[ -s "$mountpoint/boot/$initramfs" ]] || {
+		echo "Missing initramfs for kernel $version" >&2
+		exit 1
+	}
+	install -m 0644 "$mountpoint/boot/$initramfs" "$efi_mountpoint/os/$initramfs"
+	sed -i "s|^initrd .*|initrd os/$initramfs|" "$entry"
+	grep -Fxq "initrd os/$initramfs" "$entry"
+	cmp "$mountpoint/boot/$initramfs" "$efi_mountpoint/os/$initramfs"
+done
