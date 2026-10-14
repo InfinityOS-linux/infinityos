@@ -15,6 +15,7 @@ use-custom-logo=true
 custom-logo-path='/usr/share/icons/hicolor/scalable/apps/infinityos-panel-mark.svg'
 logo-icon-size=26
 menu-button-terminal='infinity-terminal'
+menu-button-software-center='flatpak run io.github.kolunmi.Bazaar'
 hide-qs-power-options=false
 enable-panel-proximity=false
 

@@ -146,7 +146,7 @@
     </key>
 
     <key type="s" name="menu-button-software-center">
-      <default>"gnome-software"</default>
+      <default>"flatpak run io.github.kolunmi.Bazaar"</default>
       <summary>Software Manager Application Command</summary>
     </key>
 
