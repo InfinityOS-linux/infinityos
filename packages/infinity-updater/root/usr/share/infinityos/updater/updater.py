@@ -149,14 +149,26 @@ def main():
             self.render()
 
             def work():
-                state = check_updates()
-                save_state(state)
-                GLib.idle_add(self.finish_refresh, state)
+                try:
+                    state = check_updates()
+                    save_state(state)
+                except Exception as error:
+                    GLib.idle_add(self.finish_error, str(error))
+                else:
+                    GLib.idle_add(self.finish_refresh, state)
 
             threading.Thread(target=work, daemon=True).start()
 
         def finish_refresh(self, state):
             self.state = state
+            self.busy = False
+            self.render()
+            self.release()
+            return GLib.SOURCE_REMOVE
+
+        def finish_error(self, message):
+            self.state = read_state()
+            self.state['errors'] = [message] + self.state.get('errors', [])
             self.busy = False
             self.render()
             self.release()
@@ -181,10 +193,14 @@ def main():
                         continue
                     if result.returncode:
                         errors.append(label + ': ' + (result.stderr.strip() or 'Update failed'))
-                state = check_updates()
-                state['errors'] = errors + state['errors']
-                save_state(state)
-                GLib.idle_add(self.finish_refresh, state)
+                try:
+                    state = check_updates()
+                    state['errors'] = errors + state['errors']
+                    save_state(state)
+                except Exception as error:
+                    GLib.idle_add(self.finish_error, str(error))
+                else:
+                    GLib.idle_add(self.finish_refresh, state)
 
             threading.Thread(target=work, daemon=True).start()
 
