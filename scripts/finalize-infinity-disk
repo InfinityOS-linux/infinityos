@@ -47,6 +47,7 @@ done
 
 # The disk must expose Backups even before its first normal boot. The first
 # boot then migrates Snapper storage and switches to the Btrfs default root.
+backup_created=false
 for entry in "$efi_mountpoint"/loader/entries/*.conf; do
 	[[ -f $entry ]] || continue
 	grep -Eq '^title[[:space:]]+Infinity OS' "$entry" || continue
@@ -54,6 +55,7 @@ for entry in "$efi_mountpoint"/loader/entries/*.conf; do
 	initrd=$(awk '$1 == "initrd" { print $2; exit }' "$entry")
 	options=$(sed -n 's/^options[[:space:]]*//p' "$entry" | head -n 1)
 	[[ $linux == os/vmlinuz-* && -n $initrd && -n $options ]] || continue
+	[[ -s $efi_mountpoint/${linux#/} && -s $efi_mountpoint/${initrd#/} ]] || continue
 	read -r -a args <<< "$options"
 	filtered=()
 	for arg in "${args[@]}"; do
@@ -66,5 +68,10 @@ linux $linux
 initrd $initrd
 options $options systemd.unit=infinityos-backups.target plymouth.enable=0
 EOF
+	backup_created=true
 	break
 done
+[[ $backup_created == true ]] || {
+	echo 'Could not create the systemd-boot Backups entry' >&2
+	exit 1
+}
