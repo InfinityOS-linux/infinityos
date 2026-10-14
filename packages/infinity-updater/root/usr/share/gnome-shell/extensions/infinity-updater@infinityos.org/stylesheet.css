@@ -1,0 +1,10 @@
+.infinity-updater-badge {
+    background-color: #a586e9;
+    border-radius: 999px;
+    color: #17131f;
+    font-size: 10px;
+    font-weight: bold;
+    min-width: 14px;
+    padding: 1px 4px;
+    text-align: center;
+}

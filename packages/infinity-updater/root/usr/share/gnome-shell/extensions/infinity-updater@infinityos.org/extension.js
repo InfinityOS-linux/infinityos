@@ -1,3 +1,5 @@
+import Atk from 'gi://Atk';
+import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
@@ -12,18 +14,39 @@ export default class InfinityUpdater extends Extension {
         this._stateFile = GLib.build_filenamev([this._directory, 'updates.json']);
         GLib.mkdir_with_parents(this._directory, 0o700);
 
-        this._indicator = new PanelMenu.Button(0.0, 'Infinity OS Updates');
+        this._indicator = new PanelMenu.Button(0.0, 'Infinity OS Updates', true);
+        this._indicator.accessible_role = Atk.Role.PUSH_BUTTON;
+        const content = new St.BoxLayout({style_class: 'panel-status-menu-box'});
         this._icon = new St.Icon({
-            icon_name: 'infinity-update-available-symbolic',
-            style_class: 'system-status-icon',
+            icon_name: 'org.infinityos.Updater',
+            icon_size: 20,
         });
-        this._indicator.add_child(this._icon);
-        this._indicator.menu.addAction('Open Infinity OS Updates', () => {
+        content.add_child(this._icon);
+        this._badge = new St.Label({
+            style_class: 'infinity-updater-badge',
+            y_align: Clutter.ActorAlign.CENTER,
+            visible: false,
+        });
+        content.add_child(this._badge);
+        this._indicator.add_child(content);
+        const open = () => {
             try {
                 Gio.Subprocess.new(['/usr/bin/infinity-updater'], Gio.SubprocessFlags.NONE);
             } catch (error) {
                 console.warn(`Could not open Infinity OS Updates: ${error}`);
             }
+        };
+        const click = new Clutter.ClickGesture();
+        click.set_recognize_on_press(true);
+        click.connect('recognize', open);
+        this._indicator.add_action(click);
+        this._indicator.connect('key-press-event', (_actor, event) => {
+            const key = event.get_key_symbol();
+            if (key === Clutter.KEY_Return || key === Clutter.KEY_space) {
+                open();
+                return Clutter.EVENT_STOP;
+            }
+            return Clutter.EVENT_PROPAGATE;
         });
         Main.panel.addToStatusArea('infinity-updater', this._indicator);
 
@@ -53,17 +76,20 @@ export default class InfinityUpdater extends Extension {
             const [ok, contents] = GLib.file_get_contents(this._stateFile);
             if (ok) {
                 const state = JSON.parse(new TextDecoder().decode(contents));
-                count = state.updates.length;
-                hasErrors = state.errors.length > 0;
+                count = Array.isArray(state.updates) ? state.updates.length : 0;
+                hasErrors = Array.isArray(state.errors) && state.errors.length > 0;
             }
         } catch (_error) {
             // No completed update check yet.
         }
-        this._indicator.visible = count > 0 || hasErrors;
+        this._badge.text = count > 99 ? '99+' : String(count);
+        this._badge.visible = count > 0;
         this._icon.icon_name = hasErrors && count === 0
-            ? 'dialog-warning-symbolic' : 'infinity-update-available-symbolic';
+            ? 'dialog-warning-symbolic' : 'org.infinityos.Updater';
         this._indicator.accessible_name = hasErrors && count === 0
-            ? 'Infinity OS update check failed' : `${count} Infinity OS updates available`;
+            ? 'Infinity OS update check failed'
+            : count > 0 ? `${count} Infinity OS updates available`
+                : 'Infinity OS Updates, no updates available';
     }
 
     disable() {
@@ -74,6 +100,7 @@ export default class InfinityUpdater extends Extension {
         this._indicator.destroy();
         this._indicator = null;
         this._icon = null;
+        this._badge = null;
         this._monitor = null;
     }
 }
