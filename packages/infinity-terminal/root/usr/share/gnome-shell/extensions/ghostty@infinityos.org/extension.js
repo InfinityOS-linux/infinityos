@@ -34,12 +34,29 @@ export default class InfinityTerminal extends Extension {
         click.connect('recognize', () => this._toggle());
         this._indicator.add_action(click);
         Main.panel.addToStatusArea('ghostty', this._indicator);
+        this._controls = new St.BoxLayout({
+            style_class: 'infinity-terminal-controls',
+            visible: false,
+        });
+        this._pinButton = new St.Button({
+            style_class: 'infinity-terminal-control infinity-terminal-pin',
+            accessible_name: 'Pin InfinityTerminal open',
+            toggle_mode: true,
+            can_focus: true,
+            reactive: true,
+            child: new St.Icon({icon_name: 'view-pin-symbolic', icon_size: 16}),
+        });
+        this._pinButton.set_size(32, 32);
+        this._pinButton.connect('notify::checked', () => {
+            this._pinButton.accessible_name = this._pinButton.checked
+                ? 'Unpin InfinityTerminal' : 'Pin InfinityTerminal open';
+        });
+        this._controls.add_child(this._pinButton);
         this._closeButton = new St.Button({
-            style_class: 'infinity-terminal-close',
+            style_class: 'infinity-terminal-control',
             accessible_name: 'Hide InfinityTerminal',
             can_focus: true,
             reactive: true,
-            visible: false,
             child: new St.Icon({icon_name: 'window-close-symbolic', icon_size: 16}),
         });
         this._closeButton.set_size(32, 32);
@@ -48,7 +65,8 @@ export default class InfinityTerminal extends Extension {
             if (window && !window.minimized)
                 this._hide(window);
         });
-        Main.layoutManager.addChrome(this._closeButton);
+        this._controls.add_child(this._closeButton);
+        Main.layoutManager.addChrome(this._controls);
         const getRunning = Shell.AppSystem.prototype.get_running;
         this._getRunning = getRunning;
         this._filteredRunning = function () {
@@ -70,7 +88,7 @@ export default class InfinityTerminal extends Extension {
             Meta.KeyBindingFlags.NONE, Shell.ActionMode.ALL, () => this._toggle());
         this._outsideClickId = global.stage.connect('captured-event', (_stage, event) => {
             const source = event.get_source();
-            if (event.type() !== Clutter.EventType.BUTTON_PRESS ||
+            if (this._pinButton.checked || event.type() !== Clutter.EventType.BUTTON_PRESS ||
                 (source && this._indicator.contains(source)))
                 return Clutter.EVENT_PROPAGATE;
 
@@ -137,10 +155,12 @@ export default class InfinityTerminal extends Extension {
         }
         if (this._sourceId)
             GLib.Source.remove(this._sourceId);
-        this._closeButton.remove_all_transitions();
-        Main.layoutManager.removeChrome(this._closeButton);
-        this._closeButton.destroy();
+        this._controls.remove_all_transitions();
+        Main.layoutManager.removeChrome(this._controls);
+        this._controls.destroy();
         this._indicator.destroy();
+        this._controls = null;
+        this._pinButton = null;
         this._closeButton = null;
         this._indicator = null;
         this._icon = null;
@@ -180,22 +200,22 @@ export default class InfinityTerminal extends Extension {
         }
         this._window = window;
         this._geometryIds = [
-            window.connect('position-changed', () => this._positionCloseButton(window)),
-            window.connect('size-changed', () => this._positionCloseButton(window)),
+            window.connect('position-changed', () => this._positionControls(window)),
+            window.connect('size-changed', () => this._positionControls(window)),
         ];
-        this._positionCloseButton(window);
-        this._closeButton.visible = !window.minimized && !fresh;
+        this._positionControls(window);
+        this._controls.visible = !window.minimized && !fresh;
         this._icon.opacity = window.minimized ? 112 : 255;
         this._minimizedId = window.connect('notify::minimized', () => {
             this._icon.opacity = window.minimized ? 112 : 255;
-            this._closeButton.visible = !window.minimized;
-            this._closeButton.reactive = !window.minimized;
+            this._controls.visible = !window.minimized;
+            this._controls.reactive = !window.minimized;
             Main.overview._overview.controls._workspacesDisplay._updateWorkspacesViews();
         });
         this._unmanagedId = window.connect('unmanaged', () => {
             this._window = null;
             this._icon.opacity = 112;
-            this._closeButton.hide();
+            this._controls.hide();
             this._geometryIds = [];
             this._unmanagedId = 0;
             this._minimizedId = 0;
@@ -224,12 +244,12 @@ export default class InfinityTerminal extends Extension {
         window.move_resize_frame(true, monitor.x, y,
             monitor.width, Math.round(monitor.height / 2));
         window.move_frame(true, monitor.x, y);
-        this._positionCloseButton(window);
+        this._positionControls(window);
     }
 
-    _positionCloseButton(window) {
+    _positionControls(window) {
         const rect = window.get_frame_rect();
-        this._closeButton.set_position(rect.x + rect.width - 44, rect.y + 8);
+        this._controls.set_position(rect.x + rect.width - 84, rect.y + 8);
     }
 
     _toggle() {
@@ -246,12 +266,12 @@ export default class InfinityTerminal extends Extension {
 
     _reveal(window) {
         const actor = window.get_compositor_private();
-        this._positionCloseButton(window);
-        this._closeButton.remove_all_transitions();
-        this._closeButton.opacity = 255;
-        this._closeButton.translation_y = actor ? -window.get_frame_rect().height : 0;
-        this._closeButton.show();
-        this._closeButton.reactive = true;
+        this._positionControls(window);
+        this._controls.remove_all_transitions();
+        this._controls.opacity = 255;
+        this._controls.translation_y = actor ? -window.get_frame_rect().height : 0;
+        this._controls.show();
+        this._controls.reactive = true;
         if (actor) {
             actor.remove_all_transitions();
             actor.translation_y = -window.get_frame_rect().height;
@@ -266,7 +286,7 @@ export default class InfinityTerminal extends Extension {
             if (actor) {
                 actor.ease({translation_y: 0, duration: 150,
                     mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
-                this._closeButton.ease({translation_y: 0, duration: 150,
+                this._controls.ease({translation_y: 0, duration: 150,
                     mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
             }
             return GLib.SOURCE_REMOVE;
@@ -276,21 +296,21 @@ export default class InfinityTerminal extends Extension {
     _hide(window) {
         const actor = window.get_compositor_private();
         if (!actor) {
-            this._closeButton.hide();
+            this._controls.hide();
             window.minimize();
             return;
         }
-        this._closeButton.reactive = false;
-        this._closeButton.remove_all_transitions();
-        this._closeButton.ease({
+        this._controls.reactive = false;
+        this._controls.remove_all_transitions();
+        this._controls.ease({
             translation_y: -window.get_frame_rect().height,
             opacity: 0,
             duration: 120,
             mode: Clutter.AnimationMode.EASE_IN_CUBIC,
             onComplete: () => {
-                this._closeButton.hide();
-                this._closeButton.translation_y = 0;
-                this._closeButton.opacity = 255;
+                this._controls.hide();
+                this._controls.translation_y = 0;
+                this._controls.opacity = 255;
             },
         });
         actor.remove_all_transitions();

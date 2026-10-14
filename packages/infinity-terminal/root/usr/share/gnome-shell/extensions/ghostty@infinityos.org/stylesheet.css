@@ -1,4 +1,8 @@
-.infinity-terminal-close {
+.infinity-terminal-controls {
+    spacing: 8px;
+}
+
+.infinity-terminal-control {
     background-color: rgba(33, 26, 45, 0.9);
     border: 1px solid rgba(219, 199, 255, 0.45);
     border-radius: 8px;
@@ -6,12 +10,13 @@
     padding: 7px;
 }
 
-.infinity-terminal-close:hover,
-.infinity-terminal-close:focus {
+.infinity-terminal-control:hover,
+.infinity-terminal-control:focus,
+.infinity-terminal-pin:checked {
     background-color: #645394;
     border-color: #dbc7ff;
 }
 
-.infinity-terminal-close:active {
+.infinity-terminal-control:active {
     background-color: #846caf;
 }
