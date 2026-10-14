@@ -49,6 +49,8 @@
 		<package name="gnome-shell-extension-user-theme"/>
 		<package name="gtk-murrine-engine"/>
 		<ignore name="gnome-software"/>
+		<ignore name="yelp"/>
+		<ignore name="mediawriter"/>
 		<package name="flatpak"/>
 		<package name="python3-gobject"/>
 		<package name="nodejs-npm"/>
