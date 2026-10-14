@@ -48,7 +48,7 @@
 		<package name="gtk4-layer-shell"/>
 		<package name="gnome-shell-extension-user-theme"/>
 		<package name="gtk-murrine-engine"/>
-		<ignore name="gnome-software"/>
+		<ignore name="gnome-software*"/>
 		<package name="flatpak"/>
 		<package name="python3-gobject"/>
 		<package name="nodejs-npm"/>
