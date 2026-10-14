@@ -1,0 +1,7 @@
+[Unit]
+Description=Prepare protected RAMDrive storage for Infinity OS users
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/infinityos-ramdrive-prepare

@@ -1,16 +1,23 @@
 #!/usr/bin/python3
-"""Set up the desktop scratch folder or clear it during an orderly shutdown."""
+"""Set up protected RAMDrive storage and its removable desktop shortcut."""
 
+import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
 ICON = "file:///usr/share/icons/hicolor/scalable/places/infinityos-ramdrive.svg"
+STORE_ROOT = Path("/home/.infinityos-ramdrives")
 
 
 def ramdrive():
+    return STORE_ROOT / str(os.getuid())
+
+
+def desktop_shortcut():
     desktop = subprocess.run(["xdg-user-dir", "DESKTOP"], check=True, capture_output=True,
                              text=True).stdout.strip()
     if not Path(desktop).is_absolute():
@@ -20,23 +27,53 @@ def ramdrive():
 
 def setup():
     folder = ramdrive()
-    if folder.is_symlink():
-        raise ValueError("RAMDrive must be a real folder")
-    folder.mkdir(parents=True, exist_ok=True)
+    # A newly created account can log in just before the system path unit runs.
+    for _ in range(20):
+        if folder.is_dir():
+            break
+        time.sleep(0.25)
+    if folder.is_symlink() or not folder.is_dir() or folder.stat().st_uid != os.getuid():
+        raise ValueError("Protected RAMDrive storage is unavailable")
+
+    shortcut = desktop_shortcut()
+    shortcut.parent.mkdir(parents=True, exist_ok=True)
+    marker = Path.home() / ".config/infinityos/ramdrive-desktop-created"
+    if shortcut.is_symlink():
+        if shortcut.resolve() != folder.resolve():
+            raise ValueError("Desktop RAMDrive points to another folder")
+    elif shortcut.is_dir() and not marker.exists():
+        # Preserve data from older images, including nested files and symlinks.
+        for item in shortcut.iterdir():
+            destination = folder / item.name
+            suffix = 1
+            while destination.exists() or destination.is_symlink():
+                destination = folder / f"{item.name} (from Desktop {suffix})"
+                suffix += 1
+            shutil.move(str(item), str(destination))
+        shortcut.rmdir()
+        shortcut.symlink_to(folder, target_is_directory=True)
+    elif not shortcut.exists() and not shortcut.is_symlink() and not marker.exists():
+        shortcut.symlink_to(folder, target_is_directory=True)
+    if shortcut.is_symlink():
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch(exist_ok=True)
+
     bookmarks = Path.home() / ".config/gtk-3.0/bookmarks"
     bookmarks.parent.mkdir(parents=True, exist_ok=True)
     old = bookmarks.read_text() if bookmarks.exists() else ""
     uri = folder.as_uri()
-    if not any(line.split(" ", 1)[0] == uri for line in old.splitlines()):
-        with bookmarks.open("a") as output:
-            output.write(("" if not old or old.endswith("\n") else "\n") + f"{uri} RAMDrive\n")
+    desktop_uri = shortcut.as_uri()
+    lines = [line for line in old.splitlines() if line.split(" ", 1)[0] != desktop_uri]
+    if not any(line.split(" ", 1)[0] == uri for line in lines):
+        lines.append(f"{uri} RAMDrive")
+    bookmarks.write_text("\n".join(lines) + "\n")
     subprocess.run(["gio", "set", "-t", "string", str(folder), "metadata::custom-icon", ICON],
                    check=False)
 
 
 def clear():
     folder = ramdrive()
-    if folder.is_symlink() or not folder.is_dir():
+    if folder.is_symlink() or not folder.is_dir() or folder.stat().st_uid != os.getuid():
         return
     for item in folder.iterdir():
         if item.is_dir() and not item.is_symlink():

@@ -32,7 +32,7 @@ On `x86_64` live installations, Anaconda runs [`infinityos-install-nvidia`](root
 
 GNOME starts with desktop icons, AppIndicator support, dynamic Blur My Shell, the Window Is Ready notification remover, and WACK Sonoma Lockscreen in Cupertino mode. WACK Shell adds the panel menu with a white Infinity logo. The signed `gnome-rounded-blur` helper fixes dynamic blur corners; its COPR repository is restricted to that package. Titlebars show minimize and maximize buttons. **Alt+Tab** switches windows. Firefox keeps **Ctrl+T** for a new tab. Location Services start enabled, and automatic problem reporting starts disabled.
 
-**RAMDrive** is a desktop scratch folder with a memory-chip icon and a bookmark in Files. Its contents are deleted during an orderly shutdown or reboot. The folder uses disk storage so files remain recoverable after a crash or forced reset; it is not a `tmpfs` RAM disk.
+**RAMDrive** keeps its files in a protected folder and offers a removable shortcut on the Desktop plus a bookmark in Files. Deleting the Desktop shortcut leaves the files and Files bookmark intact; the shortcut stays removed on later logins. Existing Desktop RAMDrive files move to protected storage on the first login after upgrading. The storage folder itself cannot be removed by a regular user. Its contents are deleted during an orderly shutdown or reboot. The folder uses disk storage so files remain recoverable after a crash or forced reset; it is not a `tmpfs` RAM disk.
 
 ## Packages and updates
 
