@@ -56,6 +56,8 @@ EOF
 	glib-compile-schemas /usr/share/gnome-shell/extensions/wack-shell@rinzler69-wastaken.github.com/schemas
 	install -d /etc/skel/Desktop /etc/environment.d
 	printf 'XCURSOR_THEME=Bibata-Modern-Ice\n' > /etc/environment.d/90-infinityos-cursor.conf
+	# Image overlays can make Oh My Zsh directories group-writable, which disables completions.
+	chmod -R go-w /usr/share/oh-my-zsh
 	install -m 0644 /usr/share/infinityos/zshrc /etc/skel/.zshrc
 	install -d /etc/skel/.config/gtk-4.0
 	ln -sfn /usr/share/infinityos/gtk4-adaptive.css /etc/skel/.config/gtk-4.0/gtk.css
