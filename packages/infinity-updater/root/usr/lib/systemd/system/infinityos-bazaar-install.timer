@@ -1,0 +1,10 @@
+[Unit]
+Description=Install Bazaar after network becomes available
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=1h
+Unit=infinityos-bazaar-install.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,6 @@
+{
+  "uuid": "infinity-updater@infinityos.org",
+  "name": "Infinity OS Updates",
+  "description": "Shows available system updates in the GNOME panel",
+  "shell-version": ["50"]
+}

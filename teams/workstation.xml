@@ -29,6 +29,7 @@
 		<package name="infinityos-ramdrive"/>
 		<package name="infinity-terminal"/>
 		<package name="infinity-launcher"/>
+		<package name="infinity-updater"/>
 		<package name="generic-logos"/>
 		<package name="generic-release-notes"/>
 		<package name="plymouth-theme-spinner"/>
@@ -47,7 +48,7 @@
 		<package name="gtk4-layer-shell"/>
 		<package name="gnome-shell-extension-user-theme"/>
 		<package name="gtk-murrine-engine"/>
-		<package name="gnome-software"/>
+		<ignore name="gnome-software"/>
 		<package name="flatpak"/>
 		<package name="python3-gobject"/>
 		<package name="nodejs-npm"/>

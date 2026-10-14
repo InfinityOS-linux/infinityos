@@ -1,0 +1,11 @@
+[Unit]
+Description=Check Infinity OS updates daily
+
+[Timer]
+OnStartupSec=2min
+OnCalendar=daily
+Persistent=true
+Unit=infinity-updater.service
+
+[Install]
+WantedBy=timers.target

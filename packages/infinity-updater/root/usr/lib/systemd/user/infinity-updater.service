@@ -1,0 +1,9 @@
+[Unit]
+Description=Check Infinity OS RPM and Flatpak updates
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/infinity-updater --check
+TimeoutStartSec=15min

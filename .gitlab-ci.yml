@@ -32,6 +32,11 @@ build-launcher:
   script:
     - INFINITY_PACKAGE_RELEASE="$CI_PIPELINE_IID" packages/build-rpm.sh infinity-launcher
 
+build-updater:
+  extends: .docker-build
+  script:
+    - INFINITY_PACKAGE_RELEASE="$CI_PIPELINE_IID" packages/build-rpm.sh infinity-updater
+
 build-repos:
   extends: .docker-build
   script:
@@ -64,6 +69,8 @@ pages:
   image: fedora:44
   needs:
     - job: build-launcher
+      artifacts: true
+    - job: build-updater
       artifacts: true
     - job: build-repos
       artifacts: true
