@@ -104,6 +104,12 @@ export default class InfinityTerminal extends Extension {
 
             return Clutter.EVENT_PROPAGATE;
         });
+        this._focusId = global.display.connect('notify::focus-window', () => {
+            const window = this._findWindow();
+            if (!this._pinButton.checked && window && !window.minimized &&
+                global.display.focus_window !== window)
+                this._hide(window);
+        });
         this._windowCreatedId = global.display.connect('window-created', (_display, window) => {
             const clear = () => {
                 for (const id of this._pendingWindows.get(window) ?? [])
@@ -139,6 +145,7 @@ export default class InfinityTerminal extends Extension {
             Shell.AppSystem.prototype.get_running = this._getRunning;
         Main.wm.removeKeybinding('toggle-shortcut');
         global.stage.disconnect(this._outsideClickId);
+        global.display.disconnect(this._focusId);
         global.display.disconnect(this._windowCreatedId);
         for (const [window, ids] of this._pendingWindows) {
             for (const id of ids)
