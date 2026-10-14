@@ -21,8 +21,12 @@ def _run(args):
 def check_updates():
     updates = []
     errors = []
-    result = _run(['dnf', '--quiet', '--refresh', 'repoquery', '--upgrades',
-                   '--qf', '%{name}|%{evr}|%{repoid}\n'])
+    # The user only needs the RPM database for this read-only query. Fresh
+    # images can have root-only DNF system state files that repoquery cannot open.
+    with tempfile.TemporaryDirectory(prefix='infinityos-dnf-state-') as state_dir:
+        result = _run(['dnf', '--quiet', '--assumeyes', '--refresh',
+                       f'--setopt=system_state_dir={state_dir}', 'repoquery', '--upgrades',
+                       '--qf', '%{name}|%{evr}|%{repoid}\n'])
     if result.returncode == 0:
         for line in result.stdout.splitlines():
             fields = line.split('|', 2)
