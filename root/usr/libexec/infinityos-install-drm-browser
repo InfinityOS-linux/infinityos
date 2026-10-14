@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euo pipefail
+
+if [[ "$(uname -m)" != "aarch64" ]]; then
+    exit 0
+fi
+
+if flatpak info --system com.google.Chrome >/dev/null 2>&1; then
+    exit 0
+fi
+
+flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+flatpak install --system --noninteractive --assumeyes flathub com.google.Chrome

@@ -1,0 +1,10 @@
+[Unit]
+Description=Install DRM-capable browser on ARM64 when network is ready
+
+[Timer]
+OnBootSec=1min
+OnUnitInactiveSec=1h
+Unit=infinityos-drm-browser.service
+
+[Install]
+WantedBy=timers.target

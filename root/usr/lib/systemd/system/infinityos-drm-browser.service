@@ -1,0 +1,9 @@
+[Unit]
+Description=Install Chrome with native ARM64 Widevine support
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/infinityos-install-drm-browser
+TimeoutStartSec=30min

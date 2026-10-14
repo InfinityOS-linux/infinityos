@@ -11,7 +11,7 @@
 | Base | Fedora 44 packages, DNF, Fedora Updates, RPM Fusion Free and Nonfree |
 | Desktop | GNOME with Orchis Purple Dark Compact by default and an optional Light mode, Kora icons, Bibata cursor, Infinity OS artwork, and a dark lock screen |
 | Storage | Writable Btrfs root, systemd-boot, Snapper timeline and cleanup |
-| Applications | Firefox, Flatpak with Flathub, InfinityLauncher, InfinityTerminal |
+| Applications | Firefox, Flatpak with Flathub, InfinityLauncher, InfinityTerminal; Chrome DRM fallback on ARM64 |
 | Development | Zsh with Oh My Zsh and Powerline; GNOME Builder |
 | Gaming | GameMode, MangoHud, Gamescope, gamepad support; Steam and Lutris on `x86_64` |
 | Hardware | Fedora Intel and AMD graphics support; NVIDIA packages on `x86_64` |
@@ -29,6 +29,8 @@ GNOME starts with desktop icons, AppIndicator support, dynamic Blur My Shell, th
 ## Packages and updates
 
 Fedora and Fedora Updates provide the base system. RPM Fusion provides multimedia codecs and nonfree hardware packages. The desktop includes FFmpeg, GNOME Files archive integration, UnRAR, 7-Zip, TLP, and purple folder icons. Microsoft Core Fonts are downloaded and checksum-verified on the installed machine after network access is available; font files are not distributed in the image. Infinity OS builds `infinity-launcher` and `infinity-terminal` as signed RPMs and publishes them through its own DNF repository. See [`packages/README.md`](packages/README.md) for the build, signing, and release flow. Docker CE uses Docker's official Fedora repository when selected in InfinityLauncher.
+
+Firefox enables Encrypted Media Extensions through an unlocked system policy and obtains supported Widevine modules from Mozilla/Google on compatible platforms. On ARM64, where Firefox's Linux Widevine distribution is still pending, a first-boot timer installs Google's native ARM64 Chrome from Flathub as a DRM-capable fallback. Firefox remains the default browser. Chrome and its Widevine component update through their normal upstream/Flatpak mechanisms; Infinity OS does not redistribute CDM binaries. PlayReady and FairPlay are not provided as general-purpose Linux desktop browser modules. Streaming services can impose their own browser, resolution, or hardware requirements.
 
 The image build requires the Infinity OS RPM repository to be published and reachable. The GitLab pipeline publishes it after a successful build on `main`. Applications installed directly from third-party GitHub releases do not receive updates from the Infinity OS repository.
 

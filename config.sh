@@ -70,6 +70,11 @@ skip=software;privacy
 EOF
 	fedora-third-party enable
 	systemctl enable systemd-resolved.service tlp.service tlp-pd.service switcheroo-control.service infinityos-ramdrive.service infinityos-corefonts.service infinityos-corefonts.timer infinityos-repo-trust.service
+	if [[ "$(uname -m)" == "aarch64" ]]; then
+		# Firefox's Linux ARM64 Widevine delivery is not enabled upstream yet.
+		# Install Google's native ARM64 Chrome as a DRM-capable fallback after boot.
+		systemctl enable infinityos-drm-browser.timer
+	fi
 	printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
 	dconf update
 	useradd -D -s /usr/bin/zsh
