@@ -1,0 +1,21 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+# A root-owned parent lets users edit contents but prevents removing RAMDrive.
+base=/home/.infinityos-ramdrives
+[[ ! -L $base ]] || exit 1
+install -d -o root -g root -m 0755 "$base"
+if command -v restorecon >/dev/null; then
+    restorecon "$base"
+fi
+
+while IFS=: read -r user _ uid gid _ home _; do
+    if [[ $uid =~ ^[0-9]+$ && $gid =~ ^[0-9]+$ ]] &&
+       ((uid >= 1000 && uid < 65534)) && [[ $home == /home/* ]]; then
+        [[ ! -L $base/$uid ]] || continue
+        install -d -o "$uid" -g "$gid" -m 0700 "$base/$uid"
+        if command -v restorecon >/dev/null; then
+            restorecon "$base/$uid"
+        fi
+    fi
+done < <(getent passwd)

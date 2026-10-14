@@ -33,36 +33,95 @@ class RAMDriveTests(unittest.TestCase):
                            env={**environment, "SYSTEM_STATE": "stopping"})
             self.assertTrue(log.exists())
 
-    def test_setup_preserves_files_and_clear_removes_only_contents(self):
+    def test_setup_migrates_files_and_desktop_shortcut_can_stay_removed(self):
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
             desktop = home / "Desktop"
             desktop.mkdir()
+            protected = home / ".protected" / str(os.getuid())
+            protected.mkdir(parents=True)
+            folder = desktop / "RAMDrive"
+            folder.mkdir()
             outside = home / "keep.txt"
             outside.write_text("keep")
+            (folder / "nested").mkdir()
+            (folder / "nested/file.txt").write_text("recover after crash")
+            (folder / "outside-link").symlink_to(outside)
             bookmark = home / ".config/gtk-3.0/bookmarks"
             bookmark.parent.mkdir(parents=True)
-            bookmark.write_text("file:///existing Existing")
+            bookmark.write_text(f"file:///existing Existing\n{folder.as_uri()} RAMDrive\n")
 
             def fake_run(command, **_kwargs):
                 class Result:
                     stdout = str(desktop) + "\n"
                 return Result()
 
-            with patch.object(ramdrive.Path, "home", return_value=home), patch.object(ramdrive.subprocess, "run", side_effect=fake_run):
+            with patch.object(ramdrive.Path, "home", return_value=home), \
+                 patch.object(ramdrive, "STORE_ROOT", protected.parent), \
+                 patch.object(ramdrive.subprocess, "run", side_effect=fake_run):
                 ramdrive.setup()
-                folder = desktop / "RAMDrive"
-                (folder / "nested").mkdir()
-                (folder / "nested/file.txt").write_text("recover after crash")
-                (folder / "outside-link").symlink_to(outside)
+                self.assertTrue(folder.is_symlink())
+                self.assertEqual(folder.resolve(), protected.resolve())
+                self.assertEqual((protected / "nested/file.txt").read_text(), "recover after crash")
+                self.assertTrue((protected / "outside-link").is_symlink())
+                self.assertNotIn(folder.as_uri(), bookmark.read_text())
                 ramdrive.setup()
-                self.assertEqual((folder / "nested/file.txt").read_text(), "recover after crash")
-                self.assertEqual(bookmark.read_text().splitlines().count(f"{folder.as_uri()} RAMDrive"), 1)
+                self.assertEqual(bookmark.read_text().splitlines().count(f"{protected.as_uri()} RAMDrive"), 1)
+                folder.unlink()
+                ramdrive.setup()
+                self.assertFalse(folder.exists())
+                self.assertEqual((protected / "nested/file.txt").read_text(), "recover after crash")
                 ramdrive.clear()
 
-            self.assertTrue(folder.is_dir())
-            self.assertEqual(list(folder.iterdir()), [])
+            self.assertTrue(protected.is_dir())
+            self.assertEqual(list(protected.iterdir()), [])
             self.assertEqual(outside.read_text(), "keep")
+
+    def test_first_login_creates_shortcut_without_touching_storage(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            desktop = home / "Desktop"
+            protected = home / ".protected" / str(os.getuid())
+            protected.mkdir(parents=True)
+            (protected / "keep.txt").write_text("keep")
+
+            def fake_run(_command, **_kwargs):
+                class Result:
+                    stdout = str(desktop) + "\n"
+                return Result()
+
+            with patch.object(ramdrive.Path, "home", return_value=home), \
+                 patch.object(ramdrive, "STORE_ROOT", protected.parent), \
+                 patch.object(ramdrive.subprocess, "run", side_effect=fake_run):
+                ramdrive.setup()
+
+            self.assertTrue((desktop / "RAMDrive").is_symlink())
+            self.assertEqual((protected / "keep.txt").read_text(), "keep")
+
+    def test_setup_keeps_existing_data_when_names_collide(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            desktop = home / "Desktop"
+            desktop.mkdir()
+            protected = home / ".protected" / str(os.getuid())
+            protected.mkdir(parents=True)
+            (protected / "save.txt").write_text("already protected")
+            old = desktop / "RAMDrive"
+            old.mkdir()
+            (old / "save.txt").write_text("on desktop")
+
+            def fake_run(_command, **_kwargs):
+                class Result:
+                    stdout = str(desktop) + "\n"
+                return Result()
+
+            with patch.object(ramdrive.Path, "home", return_value=home), \
+                 patch.object(ramdrive, "STORE_ROOT", protected.parent), \
+                 patch.object(ramdrive.subprocess, "run", side_effect=fake_run):
+                ramdrive.setup()
+
+            self.assertEqual((protected / "save.txt").read_text(), "already protected")
+            self.assertEqual((protected / "save.txt (from Desktop 1)").read_text(), "on desktop")
 
 
 if __name__ == "__main__":

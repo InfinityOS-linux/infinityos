@@ -1,0 +1,9 @@
+[Unit]
+Description=Prepare RAMDrive when a new user home is created
+
+[Path]
+PathChanged=/home
+Unit=infinityos-ramdrive-prepare.service
+
+[Install]
+WantedBy=multi-user.target

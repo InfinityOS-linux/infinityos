@@ -8,7 +8,7 @@ case "$package" in
   infinity-updater) version=1.0.0 ;;
   infinityos-repos) version=1.0.0 ;;
   infinityos-wallpapers) version=1.0.0 ;;
-  infinityos-ramdrive) version=1.0.0 ;;
+  infinityos-ramdrive) version=1.1.0 ;;
   *) echo "Unknown package: $package" >&2; exit 2 ;;
 esac
 
@@ -52,8 +52,11 @@ elif [[ "$package" == infinityos-ramdrive ]]; then
   install -m 0755 "$repo/root/usr/libexec/infinityos-ramdrive" \
     "$repo/root/usr/libexec/infinityos-ramdrive-shutdown" \
     "$repo/root/usr/libexec/infinityos-ramdrive-guard" \
+    "$repo/root/usr/libexec/infinityos-ramdrive-prepare" \
     "$work/source/$package-$version/usr/libexec/"
   install -m 0644 "$repo/root/usr/lib/systemd/system/infinityos-ramdrive.service" \
+    "$repo/root/usr/lib/systemd/system/infinityos-ramdrive-prepare.service" \
+    "$repo/root/usr/lib/systemd/system/infinityos-ramdrive-prepare.path" \
     "$work/source/$package-$version/usr/lib/systemd/system/"
   install -m 0644 "$repo/root/etc/xdg/autostart/infinityos-ramdrive.desktop" \
     "$repo/root/etc/xdg/autostart/infinityos-ramdrive-guard.desktop" \
