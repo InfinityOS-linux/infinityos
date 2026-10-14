@@ -14,7 +14,7 @@
 | Applications | Firefox, Flatpak with Flathub, InfinityLauncher, InfinityTerminal; Chrome DRM fallback on ARM64 |
 | Development | Zsh with Oh My Zsh and Powerline; GNOME Builder |
 | Gaming | GameMode, MangoHud, Gamescope, gamepad support; Steam and Lutris on `x86_64` |
-| Hardware | Fedora Intel and AMD graphics support; NVIDIA packages on `x86_64` |
+| Hardware | Fedora Intel and AMD graphics support; NVIDIA driver branch selected from the GPU's PCI ID during `x86_64` live installation |
 
 ## Performance defaults
 
@@ -22,11 +22,13 @@ Infinity OS uses compressed zram swap sized to half of RAM, capped at 16 GiB, wi
 
 GameMode, MangoHud, Gamescope, TLP, and the existing bounded `vm.max_map_count` setting remain in place. No OSTree or immutable root is used.
 
-**InfinityLauncher** opens on first login. It groups optional software under AI, System, Gaming, Creative, Office, and Programming. You choose applications and press **Apply** before installation starts. The choices include Steam, Heroic, Lutris, Prism Launcher, creative tools, VS Code, Docker CE, Codex, and Claude. Its source and RPM specification live in [`packages/infinity-launcher`](packages/infinity-launcher).
+**InfinityLauncher** opens on first login. It groups optional software under AI, System, Gaming, Creative, Office, and Programming. You choose applications and press **Apply** before installation starts. The choices include Steam, Heroic, Lutris, Prism Launcher, creative tools, VS Code, Docker CE, Codex, Claude, and three local coding models. Selecting a local model installs Ollama and OpenCode, downloads the model, and configures the terminal agent. A progress strip appears while apps install. Its source and RPM specification live in [`packages/infinity-launcher`](packages/infinity-launcher).
 
 Its footer can schedule one more launch at the next login. The interface follows the session language (Polish and English are bundled). RAMDrive warns through GNOME's shutdown confirmation when it contains files; canceling keeps the session and files, while continuing the shutdown clears the folder. A crash or hard reset leaves its contents intact.
 
-**InfinityTerminal** uses a patched Ghostty renderer. Press **Super+T** or use its GNOME panel icon to show and hide it. The first shell tab stays pinned; Codex and Claude gain pinned tabs when their CLI tools are installed. Their context menus offer a separate red YOLO mode tab. The terminal source and package live in [`packages/infinity-terminal`](packages/infinity-terminal), with the renderer patch in [`ghostty`](ghostty).
+**InfinityTerminal** uses a patched Ghostty renderer. Press **Super+T** or use its GNOME panel icon to show and hide it. The first shell tab stays pinned; Codex and Claude gain pinned tabs when their CLI tools are installed. A selected local model adds a leftmost Infinity AI tab; its context menu opens a separate edit-enabled agent tab. The terminal source and package live in [`packages/infinity-terminal`](packages/infinity-terminal), with the renderer patch in [`ghostty`](ghostty).
+
+On `x86_64` live installations, Anaconda runs [`infinityos-install-nvidia`](root/usr/libexec/infinityos-install-nvidia) against the target machine's PCI ID. It keeps the current RPM Fusion branch for supported new GPUs, switches to the 580xx, 470xx, or 390xx branch for listed legacy GPUs, and removes the preloaded driver when no NVIDIA GPU is present. A failed legacy download is retried after boot when networking is available. NVIDIA's unsigned kernel modules still require Secure Boot to be disabled or their signing key to be enrolled.
 
 GNOME starts with desktop icons, AppIndicator support, dynamic Blur My Shell, the Window Is Ready notification remover, and WACK Sonoma Lockscreen in Cupertino mode. WACK Shell adds the panel menu with a white Infinity logo. The signed `gnome-rounded-blur` helper fixes dynamic blur corners; its COPR repository is restricted to that package. Titlebars show minimize and maximize buttons. **Alt+Tab** switches windows. Firefox keeps **Ctrl+T** for a new tab. Location Services start enabled, and automatic problem reporting starts disabled.
 

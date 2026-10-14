@@ -30,6 +30,7 @@ POLISH = {
     "Communication": "Komunikacja", "Other": "Inne", "Image": "Obraz",
     "Video": "Wideo", "Design": "Projektowanie", "More tools": "Więcej narzędzi",
     "Development tools": "Narzędzia programistyczne", "Assistants": "Asystenci",
+    "Local models": "Modele lokalne", "Active local model": "Aktywny model lokalny",
     "Office suite": "Pakiet biurowy", "Documents": "Dokumenty",
     "Google's web browser with account sync.": "Przeglądarka Google z synchronizacją konta.",
     "Open-source Chromium web browser.": "Przeglądarka Chromium z otwartym kodem.",
@@ -79,6 +80,12 @@ POLISH = {
         "CLI i skrót do Claude w przeglądarce. Dodaje przypiętą kartę terminala.",
     "CLI and Codex web shortcut. Adds a pinned terminal tab.":
         "CLI i skrót do Codexa w przeglądarce. Dodaje przypiętą kartę terminala.",
+    "For 16 GB RAM. Needs about 10 GB free disk; local coding agent.":
+        "Dla 16 GB RAM. Wymaga ok. 10 GB wolnego miejsca; lokalny agent programistyczny.",
+    "For 24–32 GB RAM. Needs about 11 GB free disk; local coding agent.":
+        "Dla 24–32 GB RAM. Wymaga ok. 11 GB wolnego miejsca; lokalny agent programistyczny.",
+    "For 64 GB RAM. Needs about 30 GB free disk; local coding agent.":
+        "Dla 64 GB RAM. Wymaga ok. 30 GB wolnego miejsca; lokalny agent programistyczny.",
     "Documents, presentations and spreadsheets.": "Dokumenty, prezentacje i arkusze kalkulacyjne.",
     "Adobe-style PDF editor clone.": "Klon edytora PDF Adobe.",
     "Adobe-style document editor clone.": "Klon edytora dokumentów Adobe.",

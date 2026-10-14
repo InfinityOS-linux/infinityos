@@ -106,6 +106,18 @@ EOF
 		: > /etc/fstab
 		# PatternFly's dark token set is selected on the document root.
 		sed -i 's/<html lang="en">/<html lang="en" class="pf-v6-theme-dark">/' /usr/share/cockpit/anaconda-webui/index.html
+		if [[ "$(uname -m)" == "x86_64" ]]; then
+			# Detect the target PC while Anaconda still has access to its PCI devices.
+			# A failed network download is retried after installation at boot.
+			cat > /usr/share/anaconda/post-scripts/90-infinityos-nvidia.ks <<'NVIDIA_POST_EOF'
+%post --nochroot --log=/mnt/sysroot/var/log/infinityos-nvidia-install.log
+if ! /usr/libexec/infinityos-install-nvidia /mnt/sysroot; then
+    mkdir -p /mnt/sysroot/etc/systemd/system/multi-user.target.wants
+    ln -sfn /usr/lib/systemd/system/infinityos-nvidia-retry.service /mnt/sysroot/etc/systemd/system/multi-user.target.wants/infinityos-nvidia-retry.service
+fi
+%end
+NVIDIA_POST_EOF
+		fi
 	fi
 fi
 

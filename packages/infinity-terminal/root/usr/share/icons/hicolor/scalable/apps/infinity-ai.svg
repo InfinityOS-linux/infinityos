@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="purple" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#8b6cbd"/>
+      <stop offset="1" stop-color="#463568"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="44" height="44" rx="11" fill="url(#purple)"/>
+  <path d="M83 256C83 174 188 153 255 256c67 103 174 82 174 0s-107-103-174 0C188 359 83 338 83 256Z" transform="translate(5 -7) scale(.075)" fill="none" stroke="#fff" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="24" y="40" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="17" font-weight="800" letter-spacing="-1">AI</text>
+</svg>

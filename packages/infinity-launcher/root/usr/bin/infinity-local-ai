@@ -1,0 +1,73 @@
+#!/usr/bin/python3
+"""Run the selected Infinity OS local model in the OpenCode terminal agent."""
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+
+MODELS = {
+    "infinity-qwen-9b": "Qwen3.5 9B Q5",
+    "infinity-gemma-12b": "Gemma 4 12B Q4",
+    "infinity-qwen-35b": "Qwen3.5 35B A3B Q5",
+}
+
+
+def main():
+    if len(sys.argv) > 2 or (len(sys.argv) == 2 and sys.argv[1] not in ("--edit", "--check")):
+        raise SystemExit("Usage: infinity-local-ai [--edit|--check]")
+    editing = sys.argv[1:] == ["--edit"]
+    checking = sys.argv[1:] == ["--check"]
+    config_file = Path.home() / ".config/infinityos/local-ai-model"
+    model = config_file.read_text(encoding="utf-8").strip() if config_file.exists() else ""
+    if model not in MODELS:
+        raise SystemExit("Choose and install a local model in InfinityLauncher first.")
+
+    opencode = shutil.which("opencode") or str(Path.home() / ".local/bin/opencode")
+    ollama = "/usr/local/bin/ollama" if Path("/usr/local/bin/ollama").exists() else shutil.which("ollama")
+    if not Path(opencode).exists() or not ollama:
+        raise SystemExit("OpenCode or Ollama is missing. Reinstall the model from InfinityLauncher.")
+    if subprocess.run([ollama, "show", model], stdout=subprocess.DEVNULL,
+                      stderr=subprocess.DEVNULL, check=False).returncode:
+        raise SystemExit("The selected local model is unavailable. Open InfinityLauncher to reinstall it.")
+
+    config = {
+        "model": f"ollama/{model}",
+        "provider": {
+            "ollama": {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": "Infinity AI (local)",
+                "options": {"baseURL": "http://127.0.0.1:11434/v1"},
+                "models": {
+                    model: {
+                        "name": MODELS[model],
+                        "limit": {"context": 65536, "output": 8192},
+                    },
+                },
+            },
+        },
+        "permission": {
+            "edit": "allow" if editing else "ask",
+            "external_directory": "allow" if editing else "ask",
+            "bash": "ask",
+        },
+    }
+    environment = os.environ.copy()
+    environment["OPENCODE_CONFIG_CONTENT"] = json.dumps(config)
+    environment["OPENCODE_DISABLE_AUTOUPDATE"] = "1"
+    if checking:
+        result = subprocess.run([opencode, "models", "ollama"], env=environment,
+                                text=True, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, check=False)
+        if result.returncode or model not in result.stdout:
+            raise SystemExit(result.stdout.strip() or "OpenCode could not load the local model.")
+        print(f"Infinity AI is ready: {MODELS[model]}")
+        return
+    os.execve(opencode, [opencode, "--model", f"ollama/{model}"], environment)
+
+
+if __name__ == "__main__":
+    main()

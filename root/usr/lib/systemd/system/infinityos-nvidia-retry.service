@@ -1,0 +1,12 @@
+[Unit]
+Description=Finish Infinity OS NVIDIA driver setup
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=!/var/lib/infinityos/nvidia-driver-ready
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/infinityos-install-nvidia /
+
+[Install]
+WantedBy=multi-user.target

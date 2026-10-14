@@ -1,0 +1,96 @@
+#!/usr/bin/python3
+"""Choose an RPM Fusion NVIDIA branch for the installed Infinity OS system."""
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+
+CATALOG = Path("/usr/share/infinityos/nvidia-legacy-gpus.json")
+CURRENT = ("akmod-nvidia", "xorg-x11-drv-nvidia")
+MARKER = Path("var/lib/infinityos/nvidia-driver-ready")
+
+
+def detected_cards(sysfs=Path("/sys/bus/pci/devices")):
+    cards = []
+    for slot in sysfs.iterdir():
+        try:
+            if (slot / "vendor").read_text().strip().lower() != "0x10de":
+                continue
+            if not (slot / "class").read_text().strip().lower().startswith("0x03"):
+                continue
+            device = (slot / "device").read_text().strip().upper().removeprefix("0X")
+            boot = (slot / "boot_vga").read_text().strip() == "1" if (slot / "boot_vga").exists() else False
+            cards.append((device.zfill(4), boot))
+        except (OSError, ValueError):
+            continue
+    return sorted(cards, key=lambda card: not card[1])
+
+
+def driver_branch(cards, catalog):
+    if not cards:
+        return "none"
+    device = cards[0][0]
+    for branch, identifiers in catalog["branches"].items():
+        if device in identifiers:
+            return branch
+    if device in catalog["current"] or int(device, 16) >= 0x1E00:
+        return "current"
+    return "unsupported"
+
+
+def installed(sysroot, package):
+    return subprocess.run(["rpm", "--root", str(sysroot), "-q", package],
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                          check=False).returncode == 0
+
+
+def dnf(sysroot, *arguments):
+    command = ["dnf", "--installroot", str(sysroot), "--releasever", "44",
+               "-y"]
+    if arguments[0] == "remove":
+        command.append("--disablerepo=*")
+    command.extend(arguments)
+    print("Running:", " ".join(command), flush=True)
+    return subprocess.run(command, check=False).returncode == 0
+
+
+def configure(sysroot, sysfs=Path("/sys/bus/pci/devices"), catalog_path=CATALOG):
+    sysroot = Path(sysroot)
+    cards = detected_cards(sysfs)
+    catalog = json.loads(Path(catalog_path).read_text(encoding="utf-8"))
+    branch = driver_branch(cards, catalog)
+    print(f"NVIDIA cards: {cards}; selected driver: {branch}", flush=True)
+
+    marker = sysroot / MARKER
+    if marker.exists() and marker.read_text(encoding="utf-8").strip() == branch:
+        return True
+
+    if branch in ("none", "unsupported"):
+        installed_current = [package for package in CURRENT if installed(sysroot, package)]
+        if installed_current and not dnf(sysroot, "remove", *installed_current):
+            return False
+        if branch == "unsupported":
+            print("No compatible proprietary RPM Fusion driver for this NVIDIA PCI ID; Nouveau remains available.", flush=True)
+    else:
+        packages = CURRENT if branch == "current" else (
+            f"akmod-nvidia-{branch}xx", f"xorg-x11-drv-nvidia-{branch}xx")
+        if not all(installed(sysroot, package) for package in packages):
+            if not dnf(sysroot, "install", "--allowerasing", *packages):
+                # The preloaded current driver blacklists Nouveau on legacy
+                # hardware. Remove it until the correct branch can be fetched.
+                if branch != "current":
+                    installed_current = [package for package in CURRENT if installed(sysroot, package)]
+                    if installed_current:
+                        dnf(sysroot, "remove", *installed_current)
+                return False
+
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text(branch + "\n", encoding="utf-8")
+    return True
+
+
+if __name__ == "__main__":
+    target = Path(sys.argv[1]) if len(sys.argv) == 2 else Path("/")
+    raise SystemExit(0 if configure(target) else 1)

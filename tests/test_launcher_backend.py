@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 
@@ -32,7 +33,7 @@ class LauncherBackendTests(unittest.TestCase):
     def test_cli_shortcut_is_created_after_successful_install(self):
         codex = next(app for app in backend.APPS if "Codex CLI" in app.name)
         with tempfile.TemporaryDirectory() as directory:
-            with patch.object(backend.shutil, "which", return_value="/usr/bin/npm"), patch.object(backend, "_run") as run:
+            with patch.object(backend.shutil, "which", side_effect=lambda name: "/usr/bin/npm" if name == "npm" else None), patch.object(backend, "_run") as run:
                 backend.install(codex, directory)
             self.assertEqual(run.call_args_list[0].args[0][-1], "@openai/codex")
             shortcut = Path(directory) / ".local/share/applications/infinityos-codex.desktop"
@@ -72,6 +73,70 @@ class LauncherBackendTests(unittest.TestCase):
         with patch.object(backend.subprocess, "run", return_value=result):
             with self.assertRaisesRegex(RuntimeError, "press APPLY to retry"):
                 backend._run(["npm", "install"])
+
+    def test_terminal_control_codes_are_removed_from_install_error(self):
+        result = SimpleNamespace(returncode=1, stdout="Download failed\x1b[?25h\x07")
+        with patch.object(backend.subprocess, "run", return_value=result):
+            with self.assertRaisesRegex(RuntimeError, "^Download failed$"):
+                backend._run(["flatpak", "install"])
+
+    def test_local_model_install_configures_runtime_and_activates_after_check(self):
+        app = next(app for app in backend.APPS if app.source == "infinity-qwen-9b")
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            binary = home / ".local/bin/opencode"
+            binary.parent.mkdir(parents=True)
+            binary.touch()
+
+            def which(command):
+                return "/usr/local/bin/ollama" if command == "ollama" else None
+
+            with patch.object(backend.shutil, "which", side_effect=which), \
+                 patch.object(backend.shutil, "disk_usage", return_value=SimpleNamespace(free=50_000_000_000)), \
+                 patch.object(backend.subprocess, "run", return_value=SimpleNamespace(returncode=1)), \
+                 patch.object(backend.urllib.request, "urlopen", return_value=io.BytesIO(b"#!/bin/sh\n")), \
+                 patch.object(backend, "_run") as run:
+                backend.install(app, home)
+            commands = [call.args[0] for call in run.call_args_list]
+            self.assertTrue(any(command[:2] == ["pkexec", "sh"] for command in commands))
+            self.assertIn(["pkexec", "systemctl", "enable", "--now", "ollama.service"], commands)
+            self.assertIn(["/usr/local/bin/ollama", "pull", backend.LOCAL_MODELS[app.source].remote], commands)
+            self.assertTrue(any(command[:3] == ["/usr/local/bin/ollama", "create", app.source]
+                                for command in commands))
+            self.assertIn(["/usr/bin/infinity-local-ai", "--check"], commands)
+            self.assertEqual(backend.active_local_model(home), app.source)
+
+    def test_local_model_insufficient_disk_does_not_install_tools(self):
+        app = next(app for app in backend.APPS if app.source == "infinity-qwen-9b")
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(backend.shutil, "which", return_value=None), \
+             patch.object(backend.shutil, "disk_usage", return_value=SimpleNamespace(free=1_000_000_000)), \
+             patch.object(backend, "_run") as run:
+            with self.assertRaisesRegex(RuntimeError, "10 GB"):
+                backend.install(app, directory)
+            run.assert_not_called()
+
+    def test_local_model_failed_ready_check_restores_previous_choice(self):
+        app = next(app for app in backend.APPS if app.source == "infinity-qwen-9b")
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            config = home / ".config/infinityos/local-ai-model"
+            config.parent.mkdir(parents=True)
+            config.write_text("infinity-gemma-12b\n")
+            binary = home / ".local/bin/opencode"
+            binary.parent.mkdir(parents=True)
+            binary.touch()
+
+            def run(command):
+                if command == ["/usr/bin/infinity-local-ai", "--check"]:
+                    raise RuntimeError("agent unavailable")
+
+            with patch.object(backend.shutil, "which", side_effect=lambda name: "/usr/local/bin/ollama" if name == "ollama" else None), \
+                 patch.object(backend.subprocess, "run", return_value=SimpleNamespace(returncode=0)), \
+                 patch.object(backend, "_run", side_effect=run):
+                with self.assertRaisesRegex(RuntimeError, "agent unavailable"):
+                    backend.install(app, home)
+            self.assertEqual(config.read_text(), "infinity-gemma-12b\n")
 
 
 if __name__ == "__main__":

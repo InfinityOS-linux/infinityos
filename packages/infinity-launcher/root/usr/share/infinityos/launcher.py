@@ -13,7 +13,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, GLib, Gtk
 
-from launcher_backend import APPS, available, install, installed
+from launcher_backend import APPS, active_local_model, available, install, installed
 from launcher_i18n import tr
 
 
@@ -53,6 +53,8 @@ button.infinity-close { background: #251d30; border: 1px solid #40334f; border-r
 button.infinity-close:hover { background: #403250; color: white; }
 box.infinity-footer { border-top: 1px solid #392d49; padding-top: 16px; }
 label.infinity-muted { color: #a99db8; }
+progressbar.infinity-install-progress trough { min-height: 5px; background: #2d233b; border-radius: 0 0 22px 22px; }
+progressbar.infinity-install-progress progress { min-height: 5px; background: #ad82e9; border-radius: 0 0 22px 22px; }
 """
 
 
@@ -74,6 +76,7 @@ class InfinityLauncher(Gtk.Application):
         self.busy = False
         self.closing = False
         self.applied = False
+        self.progress_source = 0
 
     def do_activate(self):
         if self.window:
@@ -183,6 +186,15 @@ class InfinityLauncher(Gtk.Application):
         self.save_button.connect("clicked", self._save)
         footer.append(self.save_button)
         backdrop.append(footer)
+        self.progress = Gtk.ProgressBar()
+        self.progress.add_css_class("infinity-install-progress")
+        self.progress.set_pulse_step(0.04)
+        # Keep the activity strip inside the card's rounded bottom corners.
+        self.progress.set_margin_start(18)
+        self.progress.set_margin_end(18)
+        self.progress.set_margin_bottom(2)
+        self.progress.set_visible(False)
+        backdrop.append(self.progress)
         self.shade.set_opacity(0)
         self.card.set_opacity(0)
         self.window.present()
@@ -206,6 +218,8 @@ class InfinityLauncher(Gtk.Application):
         page_heading.append(label(tr(description), "infinity-muted"))
         body.append(page_heading)
         previous_group = None
+        local_model_group = None
+        selected_model = active_local_model()
         for app in (item for item in APPS if item.category == section):
             if app.group != previous_group:
                 if previous_group:
@@ -247,13 +261,21 @@ class InfinityLauncher(Gtk.Application):
                 link.set_halign(Gtk.Align.START)
                 details.append(link)
             row.append(details)
-            switch = Gtk.Switch()
+            if app.kind == "local-model":
+                switch = Gtk.CheckButton()
+                if local_model_group:
+                    switch.set_group(local_model_group)
+                else:
+                    local_model_group = switch
+            else:
+                switch = Gtk.Switch()
             switch.set_valign(Gtk.Align.CENTER)
             supported = available(app)
             already = supported and installed(app)
-            switch.set_active(already)
-            switch.set_sensitive(supported and not already)
-            if already:
+            switch.set_active(already if app.kind != "local-model" else
+                              already and app.source == selected_model)
+            switch.set_sensitive(supported and (app.kind == "local-model" or not already))
+            if already and app.kind != "local-model":
                 note.set_text(tr("Installed"))
             elif not supported:
                 note.set_text(tr("Available on x86_64"))
@@ -265,15 +287,23 @@ class InfinityLauncher(Gtk.Application):
 
     def _save(self, _button):
         selected = [app for app, switch in self.switches.items()
-                    if switch.get_sensitive() and switch.get_active()]
+                    if switch.get_sensitive() and switch.get_active() and
+                    (app.kind != "local-model" or
+                     app.source != active_local_model() or not installed(app))]
         if not selected:
             self._complete()
             return
         self.busy = True
         self.save_button.set_sensitive(False)
+        self.progress.set_visible(True)
+        self.progress_source = GLib.timeout_add(80, self._pulse_progress)
         for switch in self.switches.values():
             switch.set_sensitive(False)
         threading.Thread(target=self._install, args=(selected,), daemon=True).start()
+
+    def _pulse_progress(self):
+        self.progress.pulse()
+        return True
 
     def _install(self, selected):
         errors = []
@@ -289,17 +319,25 @@ class InfinityLauncher(Gtk.Application):
         GLib.idle_add(self._finished, errors)
 
     def _installed(self, app):
-        self.notes[app].set_text(tr("Installed"))
+        self.notes[app].set_text(tr("Active local model") if app.kind == "local-model"
+                                 else tr("Installed"))
         self.switches[app].set_active(True)
         return False
 
     def _finished(self, errors):
         self.busy = False
+        if self.progress_source:
+            GLib.source_remove(self.progress_source)
+            self.progress_source = 0
+        self.progress.set_visible(False)
         if errors:
             self.status.set_text(tr("Could not install:\n") + "\n".join(errors))
+            active_model = active_local_model()
             for app, switch in self.switches.items():
-                if self.notes[app].get_text() != tr("Installed") and available(app):
+                if (app.kind == "local-model" or self.notes[app].get_text() != tr("Installed")) and available(app):
                     switch.set_sensitive(True)
+                if app.kind == "local-model":
+                    switch.set_active(app.source == active_model)
             self.save_button.set_sensitive(True)
         else:
             self._complete()

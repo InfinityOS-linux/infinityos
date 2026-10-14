@@ -1,7 +1,7 @@
 diff --git a/src/apprt/gtk/class/application.zig b/src/apprt/gtk/class/application.zig
 --- a/src/apprt/gtk/class/application.zig
 +++ b/src/apprt/gtk/class/application.zig
-@@ -44,0 +45,10 @@
+@@ -44,0 +45,19 @@
 +
 +pub fn infinityCliInstalled(name: []const u8) bool {
 +    const home = std.posix.getenv("HOME") orelse return false;
@@ -12,9 +12,18 @@ diff --git a/src/apprt/gtk/class/application.zig b/src/apprt/gtk/class/applicati
 +    if (std.fs.accessAbsolute(system, .{})) |_| return true else |_| {}
 +    return false;
 +}
-@@ -1401,0 +1412 @@
++
++pub fn infinityLocalAiAvailable() bool {
++    if (!infinityCliInstalled("infinity-local-ai")) return false;
++    const home = std.posix.getenv("HOME") orelse return false;
++    var path_buf: [std.fs.max_path_bytes]u8 = undefined;
++    const path = std.fmt.bufPrint(&path_buf, "{s}/.config/infinityos/local-ai-model", .{home}) catch return false;
++    if (std.fs.accessAbsolute(path, .{})) |_| return true else |_| {}
++    return false;
++}
+@@ -1401,0 +1421 @@
 +            .init("refresh-cli-tabs", actionRefreshCliTabs, null),
-@@ -1664,0 +1676,15 @@
+@@ -1664,0 +1685,15 @@
 +    }
 +
 +    /// Add newly installed CLI tabs without closing existing terminal sessions.
@@ -30,7 +39,7 @@ diff --git a/src/apprt/gtk/class/application.zig b/src/apprt/gtk/class/applicati
 +            const window = gobject.ext.cast(Window, gtk_window) orelse continue;
 +            window.ensureInfinityCliTabs();
 +        }
-@@ -2277,6 +2303,28 @@
+@@ -2277,6 +2312,36 @@
 -        // Create a new tab with window context (first tab in new window)
 -        win.newTabForWindow(parent, .{
 -            .command = overrides.command,
@@ -40,6 +49,14 @@ diff --git a/src/apprt/gtk/class/application.zig b/src/apprt/gtk/class/applicati
 +        // Infinity's persistent CLI tabs use Ghostty's renderer and tab view.
 +        if (std.mem.eql(u8, std.mem.span(self.as(gio.Application).getApplicationId() orelse ""), "com.infinityos.GhosTTY")) {
 +            var first = true;
++            if (infinityLocalAiAvailable()) {
++                win.newTabForWindow(parent, .{
++                    .command = .{ .shell = "zsh -ic 'infinity-local-ai; exec zsh'" },
++                    .title = "Infinity AI",
++                    .pinned = true,
++                });
++                first = false;
++            }
 +            if (infinityCliInstalled("codex")) {
 +                win.newTabForWindow(parent, .{
 +                    .command = .{ .shell = "zsh -ic 'codex; exec zsh'" },
@@ -68,35 +85,41 @@ diff --git a/src/apprt/gtk/class/application.zig b/src/apprt/gtk/class/applicati
 diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 --- a/src/apprt/gtk/class/window.zig
 +++ b/src/apprt/gtk/class/window.zig
-@@ -24,0 +25 @@
+@@ -24,0 +25,2 @@
 +const infinityCliInstalled = @import("application.zig").infinityCliInstalled;
-@@ -257,0 +259,2 @@
++const infinityLocalAiAvailable = @import("application.zig").infinityLocalAiAvailable;
+@@ -257,0 +260,3 @@
++        local_ai_page: ?*adw.TabPage = null,
 +        codex_page: ?*adw.TabPage = null,
 +        claude_page: ?*adw.TabPage = null,
-@@ -359,0 +363,2 @@
+@@ -359,0 +365,3 @@
 +            .init("close-context-tab", actionCloseContextTab, null),
 +            .init("yolo-mode", actionYoloMode, null),
-@@ -400,0 +406 @@
++            .init("local-ai-edit", actionLocalAiEdit, null),
+@@ -400,0 +409 @@
 +            pinned: bool = false,
-@@ -411,0 +418 @@
+@@ -411,0 +421 @@
 +                .pinned = overrides.pinned,
-@@ -423,0 +431 @@
+@@ -423,0 +434 @@
 +            pinned: bool = false,
-@@ -467 +475,8 @@
+@@ -467 +478,8 @@
 -        const page = tab_view.insert(tab.as(gtk.Widget), position);
 +        const pin_position = if (overrides.title) |title|
-+            if (std.mem.eql(u8, title, "Codex CLI")) 0 else if (std.mem.eql(u8, title, "Claude CLI")) @min(1, tab_view.getNPinnedPages()) else tab_view.getNPinnedPages()
++            if (std.mem.eql(u8, title, "Infinity AI")) 0 else if (std.mem.eql(u8, title, "Codex CLI")) @min(1, tab_view.getNPinnedPages()) else if (std.mem.eql(u8, title, "Claude CLI")) @min(2, tab_view.getNPinnedPages()) else tab_view.getNPinnedPages()
 +        else
 +            tab_view.getNPinnedPages();
 +        const page = if (overrides.pinned and self.isInfinity())
 +            tab_view.insertPinned(tab.as(gtk.Widget), pin_position)
 +        else
 +            tab_view.insert(tab.as(gtk.Widget), position);
-@@ -468,0 +484,18 @@
+@@ -468,0 +487,21 @@
 +
 +        if (self.isInfinity()) {
 +            if (overrides.title) |title| {
-+                const icon_name: ?[:0]const u8 = if (std.mem.eql(u8, title, "Codex CLI")) icon: {
++                const icon_name: ?[:0]const u8 = if (std.mem.eql(u8, title, "Infinity AI")) icon: {
++                    priv.local_ai_page = page;
++                    break :icon "infinity-ai";
++                } else if (std.mem.eql(u8, title, "Infinity AI EDIT")) "infinity-ai" else if (std.mem.eql(u8, title, "Codex CLI")) icon: {
 +                    priv.codex_page = page;
 +                    break :icon "infinity-codex";
 +                } else if (std.mem.eql(u8, title, "Claude CLI")) icon: {
@@ -108,12 +131,12 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +                    defer icon.unref();
 +                    page.setIcon(icon.as(gio.Icon));
 +                }
-+                if (std.mem.endsWith(u8, title, "YOLO")) page.setNeedsAttention(1);
++                if (std.mem.endsWith(u8, title, "YOLO") or std.mem.endsWith(u8, title, "EDIT")) page.setNeedsAttention(1);
 +            }
 +        }
-@@ -584,0 +618 @@
+@@ -584,0 +624 @@
 +        if (self.isInfinity() and page.getPinned() != 0) return false;
-@@ -614,0 +649,24 @@
+@@ -614,0 +655,31 @@
 +    }
 +
 +    fn isInfinity(self: *Self) bool {
@@ -124,6 +147,13 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +    pub fn ensureInfinityCliTabs(self: *Self) void {
 +        if (!self.isInfinity()) return;
 +        const priv = self.private();
++        if (priv.local_ai_page == null and infinityLocalAiAvailable()) {
++            self.newTabForWindow(null, .{
++                .command = .{ .shell = "zsh -ic 'infinity-local-ai; exec zsh'" },
++                .title = "Infinity AI",
++                .pinned = true,
++            });
++        }
 +        if (priv.codex_page == null and infinityCliInstalled("codex")) {
 +            self.newTabForWindow(null, .{
 +                .command = .{ .shell = "zsh -ic 'codex; exec zsh'" },
@@ -138,17 +168,17 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +                .pinned = true,
 +            });
 +        }
-@@ -1366,0 +1425,4 @@
+@@ -1366,0 +1438,4 @@
 +        if (self.isInfinity()) {
 +            self.as(gtk.Window).minimize();
 +            return @intFromBool(true);
 +        }
-@@ -1427,0 +1490,4 @@
+@@ -1427,0 +1503,4 @@
 +        if (self.isInfinity() and page.getPinned() != 0) {
 +            priv.tab_view.closePageFinish(page, @intFromBool(false));
 +            return @intFromBool(true);
 +        }
-@@ -1605 +1671,7 @@
+@@ -1605 +1684,10 @@
 -        self.private().context_menu_page = page;
 +        const priv = self.private();
 +        priv.context_menu_page = page;
@@ -157,7 +187,10 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +            action_map.lookupAction("yolo-mode") orelse return) orelse return;
 +        action.setEnabled(@intFromBool(page != null and
 +            (page == priv.codex_page or page == priv.claude_page)));
-@@ -1859,0 +1932,30 @@
++        const local_action = gobject.ext.cast(gio.SimpleAction,
++            action_map.lookupAction("local-ai-edit") orelse return) orelse return;
++        local_action.setEnabled(@intFromBool(page != null and page == priv.local_ai_page));
+@@ -1859,0 +1948,42 @@
 +    }
 +
 +    fn actionCloseContextTab(
@@ -188,6 +221,18 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +                .title = "Claude YOLO",
 +            });
 +        }
++    }
++
++    fn actionLocalAiEdit(
++        _: *gio.SimpleAction,
++        _: ?*glib.Variant,
++        self: *Self,
++    ) callconv(.c) void {
++        if (self.private().context_menu_page != self.private().local_ai_page) return;
++        self.newTabForWindow(null, .{
++            .command = .{ .shell = "zsh -ic 'infinity-local-ai --edit; exec zsh'" },
++            .title = "Infinity AI EDIT",
++        });
 diff --git a/src/apprt/gtk/ui/1.5/window.blp b/src/apprt/gtk/ui/1.5/window.blp
 --- a/src/apprt/gtk/ui/1.5/window.blp
 +++ b/src/apprt/gtk/ui/1.5/window.blp
@@ -199,7 +244,12 @@ diff --git a/src/apprt/gtk/ui/1.5/window.blp b/src/apprt/gtk/ui/1.5/window.blp
 +            visible: false;
 @@ -144,0 +148 @@
 +            visible: false;
-@@ -319,0 +324,10 @@
+@@ -319,0 +324,15 @@
++    label: _("Enable disk editing in a new tab");
++    action: "win.local-ai-edit";
++  }
++
++  item {
 +    label: _("Start YOLO mode in a red tab");
 +    action: "win.yolo-mode";
 +  }

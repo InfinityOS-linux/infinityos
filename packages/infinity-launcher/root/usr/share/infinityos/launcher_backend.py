@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -21,6 +22,18 @@ class App(NamedTuple):
     website: str = ""
     group: str = ""
     icon: str = "application-x-executable-symbolic"
+
+
+class LocalModel(NamedTuple):
+    remote: str
+    disk_gb: int
+
+
+LOCAL_MODELS = {
+    "infinity-qwen-9b": LocalModel("hf.co/unsloth/Qwen3.5-9B-GGUF:UD-Q5_K_XL", 10),
+    "infinity-gemma-12b": LocalModel("hf.co/unsloth/gemma-4-12b-it-GGUF:UD-Q4_K_XL", 11),
+    "infinity-qwen-35b": LocalModel("hf.co/unsloth/Qwen3.5-35B-A3B-GGUF:UD-Q5_K_XL", 30),
+}
 
 
 APPS = (
@@ -68,6 +81,9 @@ APPS = (
     App("Programming", "Docker CE", "dnf", "docker-ce", "Docker's official Fedora packages. Use sudo unless you configure user access.", group="Development tools", icon="docker"),
     App("AI", "Anthropic Claude + Claude Code CLI", "npm", "@anthropic-ai/claude-code", "CLI and Claude web shortcut. Adds a pinned terminal tab.", website="https://claude.ai/", group="Assistants", icon="infinity-claude"),
     App("AI", "OpenAI Codex + Codex CLI", "npm", "@openai/codex", "CLI and Codex web shortcut. Adds a pinned terminal tab.", website="https://chatgpt.com/codex", group="Assistants", icon="infinity-codex"),
+    App("AI", "Qwen3.5 9B Q5 · 16 GB RAM", "local-model", "infinity-qwen-9b", "For 16 GB RAM. Needs about 10 GB free disk; local coding agent.", group="Local models", icon="infinity-ai"),
+    App("AI", "Gemma 4 12B Q4 · 32 GB RAM", "local-model", "infinity-gemma-12b", "For 24–32 GB RAM. Needs about 11 GB free disk; local coding agent.", group="Local models", icon="infinity-ai"),
+    App("AI", "Qwen3.5 35B A3B Q5 · 64 GB RAM", "local-model", "infinity-qwen-35b", "For 64 GB RAM. Needs about 30 GB free disk; local coding agent.", group="Local models", icon="infinity-ai"),
     App("Office", "LibreOffice", "flatpak", "org.libreoffice.LibreOffice", "Documents, presentations and spreadsheets.", group="Office suite", icon="applications-office-symbolic"),
     App("Office", "PDFCraft", "github-rpm", "storytold/pdfcraft", "Adobe-style PDF editor clone.", website="https://github.com/storytold/pdfcraft", group="Documents", icon="ai.storyteller.pdfcraft"),
     App("Office", "WordCraft", "github-rpm", "storytold/wordcraft", "Adobe-style document editor clone.", website="https://github.com/storytold/wordcraft", group="Documents", icon="ai.storyteller.wordcraft"),
@@ -79,8 +95,24 @@ def available(app, arch=None):
     return not app.x86_only or (arch or os.uname().machine) == "x86_64"
 
 
+def active_local_model(home=None):
+    path = Path(home or Path.home()) / ".config/infinityos/local-ai-model"
+    return path.read_text(encoding="utf-8").strip() if path.exists() else None
+
+
+def ollama_binary():
+    upstream = Path("/usr/local/bin/ollama")
+    return str(upstream) if upstream.exists() else shutil.which("ollama")
+
+
 def installed(app, home=None):
     home = Path(home or Path.home())
+    if app.kind == "local-model":
+        ollama = ollama_binary()
+        opencode = shutil.which("opencode") or (home / ".local/bin/opencode")
+        return bool(ollama and Path(opencode).exists() and subprocess.run(
+            [ollama, "show", app.source], stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, check=False).returncode == 0)
     if app.kind == "flatpak":
         return any(
             subprocess.run(["flatpak", "info", scope, app.source], stdout=subprocess.DEVNULL,
@@ -99,9 +131,11 @@ def _run(command):
     result = subprocess.run(command, text=True, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, check=False)
     if result.returncode:
-        if "EAI_AGAIN" in result.stdout:
+        output = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", result.stdout)
+        output = "".join(char for char in output if char.isprintable() or char in "\n\t")
+        if "EAI_AGAIN" in output:
             raise RuntimeError("Could not resolve the package server. Check your internet connection, then press APPLY to retry.")
-        raise RuntimeError(result.stdout.strip()[-1000:] or f"Command failed with exit code {result.returncode}.")
+        raise RuntimeError(output.strip()[-1000:] or f"Command failed with exit code {result.returncode}.")
 
 
 def _latest_rpm(app, arch, directory):
@@ -137,7 +171,9 @@ def _latest_rpm(app, arch, directory):
 def install(app, home=None):
     """Install one selected app. Calling this is the only installation trigger."""
     home = Path(home or Path.home())
-    if app.kind == "flatpak":
+    if app.kind == "local-model":
+        _install_local_model(app, home)
+    elif app.kind == "flatpak":
         _run(["flatpak", "remote-add", "--user", "--if-not-exists", "flathub",
               "https://dl.flathub.org/repo/flathub.flatpakrepo"])
         _run(["flatpak", "install", "--user", "--noninteractive", "--assumeyes", "flathub", app.source])
@@ -171,3 +207,59 @@ def install(app, home=None):
             )
     else:
         raise ValueError(f"No installation source for {app.name}.")
+
+
+def _install_local_model(app, home):
+    model = LOCAL_MODELS[app.source]
+
+    ollama = ollama_binary()
+    needs_model = not ollama or subprocess.run([ollama, "show", app.source],
+                                               stdout=subprocess.DEVNULL,
+                                               stderr=subprocess.DEVNULL, check=False).returncode != 0
+    # Fail before installing runtimes when the selected weights cannot fit.
+    if needs_model:
+        if shutil.disk_usage(home).free < model.disk_gb * 1_000_000_000:
+            raise RuntimeError(f"At least {model.disk_gb} GB of free disk space is required.")
+        # Fedora's Ollama can predate newly released GGUF architectures. The
+        # upstream installer provides the runtime that understands these models.
+        with tempfile.TemporaryDirectory(prefix="infinity-ollama-") as directory:
+            script = Path(directory) / "install.sh"
+            with urllib.request.urlopen("https://ollama.com/install.sh", timeout=30) as response:
+                script.write_bytes(response.read())
+            _run(["pkexec", "sh", str(script)])
+        ollama = ollama_binary()
+        if not ollama:
+            raise RuntimeError("Ollama installation did not provide an executable.")
+
+    if not (shutil.which("opencode") or (home / ".local/bin/opencode").exists()):
+        if not shutil.which("npm"):
+            _run(["pkexec", "dnf", "-y", "install", "nodejs-npm"])
+        _run(["npm", "install", "--global", "--prefix", str(home / ".local"),
+              "opencode-ai@1.19.0"])
+
+    _run(["pkexec", "systemctl", "enable", "--now", "ollama.service"])
+    if needs_model:
+        _run([ollama, "pull", model.remote])
+        with tempfile.TemporaryDirectory(prefix="infinity-model-") as directory:
+            modelfile = Path(directory) / "Modelfile"
+            modelfile.write_text(f"FROM {model.remote}\nPARAMETER num_ctx 65536\n", encoding="utf-8")
+            _run([ollama, "create", app.source, "-f", str(modelfile)])
+
+    config = home / ".config/infinityos/local-ai-model"
+    config.parent.mkdir(parents=True, exist_ok=True)
+    previous = config.read_bytes() if config.exists() else None
+    temporary = config.with_suffix(".tmp")
+    temporary.write_text(app.source + "\n", encoding="utf-8")
+    temporary.replace(config)
+    try:
+        _run(["/usr/bin/infinity-local-ai", "--check"])
+    except Exception:
+        if previous is None:
+            config.unlink(missing_ok=True)
+        else:
+            config.write_bytes(previous)
+        raise
+    if shutil.which("gapplication"):
+        subprocess.run(["gapplication", "action", "com.infinityos.GhosTTY",
+                        "refresh-cli-tabs"], stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL, check=False)
