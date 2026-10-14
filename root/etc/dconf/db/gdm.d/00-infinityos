@@ -1,2 +1,8 @@
 [org/gnome/login-screen]
 logo='/usr/share/plymouth/themes/infinityos/login-logo.png'
+
+[org/gnome/desktop/background]
+picture-options='none'
+color-shading-type='solid'
+primary-color='#000000'
+secondary-color='#000000'
