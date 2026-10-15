@@ -237,7 +237,7 @@ class InfinityLauncher(Gtk.Application):
                               if path.exists()), None)
             if icon_file:
                 pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(icon_file), 36, 36, True)
-                icon = Gtk.Picture.new_for_pixbuf(pixbuf)
+                icon = Gtk.Image.new_from_pixbuf(pixbuf)
             else:
                 if not Gtk.IconTheme.get_for_display(self.window.get_display()).has_icon(icon_name):
                     icon_name = app.icon
