@@ -3,6 +3,7 @@ set -euo pipefail
 
 description=${1:?Pass the prepared KIWI description directory}
 repo=$(cd "$(dirname "$0")/.." && pwd)
+revision=$("$repo/scripts/infinityos-source-revision" "$repo")
 work=${INFINITY_GHOSTTY_WORK_DIR:-"$repo/../build/ghostty"}
 mkdir -p "$work/source" "$work/install"
 archive="$work/ghostty-1.3.1.tar.gz"
@@ -43,4 +44,6 @@ cp -a "$work/install/usr/share/ghostty" "$target/share/ghostty"
 if [[ -d "$work/install/usr/share/terminfo" ]]; then
 	cp -a "$work/install/usr/share/terminfo" "$target/share/terminfo"
 fi
+install -d "$work/install/usr/share/infinityos"
+printf '%s\n' "$revision" > "$work/install/usr/share/infinityos/ghostty-build-revision"
 printf 'Staged InfinityTerminal from Ghostty 1.3.1 for %s\n' "$(docker run --rm ${platform_args[@]+"${platform_args[@]}"} "$builder" uname -m)"

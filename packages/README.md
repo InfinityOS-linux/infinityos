@@ -19,7 +19,13 @@ packages/build-rpm.sh infinityos-ramdrive
 INFINITY_GHOSTTY_INSTALL_DIR=/path/to/prebuilt/ghostty/install packages/build-rpm.sh infinity-terminal
 ```
 
-Without `INFINITY_GHOSTTY_INSTALL_DIR`, the terminal script builds Ghostty from its pinned upstream source. Set `INFINITY_TARGET_PLATFORM=linux/arm64` or `linux/amd64` to target the other architecture. The RPMs are written to `.build/rpm-output/`. Building these packages does not build an OS image.
+Without `INFINITY_GHOSTTY_INSTALL_DIR`, the terminal script builds Ghostty from
+its pinned upstream source. A prebuilt Ghostty directory must contain
+`usr/share/infinityos/ghostty-build-revision` from `ghostty/build-and-stage.sh`
+for the same commit, so an old renderer cannot be stamped as new. Set
+`INFINITY_TARGET_PLATFORM=linux/arm64` or `linux/amd64` to target the other
+architecture. The RPMs are written to `.build/rpm-output/`. Building these
+packages does not build an OS image.
 
 To publish another Infinity OS application, add its RPM spec and source, add CI jobs for each supported architecture, and include those jobs in the `pages` job's `needs`. The publisher automatically places all `noarch` RPMs in both repositories and architecture-specific RPMs in the matching repository. The launcher, updater, terminal, wallpapers, RAMDrive, and repository configuration RPMs remain required so a partial pipeline cannot replace the published repository. Wallpaper sources and the GNOME catalog live in `root/usr/share/backgrounds/infinityos/` and `root/usr/share/infinityos/background-catalog.xml`.
 

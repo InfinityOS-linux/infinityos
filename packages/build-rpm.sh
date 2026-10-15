@@ -86,6 +86,10 @@ else
     [[ -x "$INFINITY_GHOSTTY_INSTALL_DIR/usr/bin/ghostty" ]] || {
       echo 'INFINITY_GHOSTTY_INSTALL_DIR has no Ghostty binary' >&2; exit 2;
     }
+    [[ -f "$INFINITY_GHOSTTY_INSTALL_DIR/usr/share/infinityos/ghostty-build-revision" ]] && \
+      [[ $(<"$INFINITY_GHOSTTY_INSTALL_DIR/usr/share/infinityos/ghostty-build-revision") == "$revision" ]] || {
+        echo 'Prebuilt Ghostty does not match this Infinity OS source revision' >&2; exit 2;
+      }
     install -d "$work/source/$package-$version/usr/libexec/infinityos" \
       "$work/source/$package-$version/usr/share"
     install -m 0755 "$INFINITY_GHOSTTY_INSTALL_DIR/usr/bin/ghostty" \
