@@ -236,8 +236,7 @@ class InfinityLauncher(Gtk.Application):
             icon_file = next((path for path in (ICON_DIR / f"{icon_name}.png", ICON_DIR / f"{icon_name}.svg")
                               if path.exists()), None)
             if icon_file:
-                size = 30 if app.source.startswith("storytold/") else 36
-                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(icon_file), size, size, True)
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(icon_file), 36, 36, True)
                 icon = Gtk.Picture.new_for_pixbuf(pixbuf)
             else:
                 if not Gtk.IconTheme.get_for_display(self.window.get_display()).has_icon(icon_name):

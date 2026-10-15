@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import pwd
 import re
 import shutil
 import subprocess
@@ -22,6 +23,7 @@ class App(NamedTuple):
     website: str = ""
     group: str = ""
     icon: str = "application-x-executable-symbolic"
+    package: str = ""
 
 
 class LocalModel(NamedTuple):
@@ -54,6 +56,7 @@ APPS = (
     App("System", "BlueMail", "flatpak", "net.blix.BlueMail", "Email client with a unified inbox.", True, group="Email clients", icon="mail-unread-symbolic"),
     App("System", "Mailspring", "flatpak", "com.getmailspring.Mailspring", "Email client with a modern inbox.", group="Email clients", icon="mail-unread-symbolic"),
     App("System", "OpenLogi", "github-rpm", "AprilNEA/OpenLogi", "Configure Logitech mouse buttons, DPI and SmartShift locally.", website="https://github.com/AprilNEA/OpenLogi", group="Device tools", icon="openlogi"),
+    App("System", "OpenRazer", "dnf", "openrazer-meta", "Drivers and daemon for Razer devices; restart after installation.", website="https://github.com/openrazer/openrazer", group="Device tools", icon="input-gaming-symbolic"),
     App("Gaming", "Steam", "flatpak", "com.valvesoftware.Steam", "Steam games and store.", True, group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Heroic Games Launcher", "flatpak", "com.heroicgameslauncher.hgl", "Epic, GOG and Amazon games.", True, group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Lutris", "flatpak", "net.lutris.Lutris", "Games from multiple stores.", True, group="Game launchers", icon="applications-games-symbolic"),
@@ -78,12 +81,13 @@ APPS = (
     App("Creative", "OBS Studio", "flatpak", "com.obsproject.Studio", "Record and stream your screen.", True, group="More tools", icon="applications-multimedia-symbolic"),
     App("Creative", "Audacity", "flatpak", "org.audacityteam.Audacity", "Record and edit audio.", group="More tools", icon="applications-multimedia-symbolic"),
     App("Programming", "Visual Studio Code", "flatpak", "com.visualstudio.code", "Microsoft's code editor.", group="Development tools", icon="applications-development-symbolic"),
-    App("Programming", "Docker CE", "dnf", "docker-ce", "Docker's official Fedora packages. Use sudo unless you configure user access.", group="Development tools", icon="docker"),
+    App("Programming", "Docker CE", "dnf", "docker-ce", "Docker's official packages. Use sudo unless you configure user access.", group="Development tools", icon="docker"),
     App("AI", "Anthropic Claude + Claude Code CLI", "npm", "@anthropic-ai/claude-code", "CLI and Claude web shortcut. Adds a pinned terminal tab.", website="https://claude.ai/", group="Assistants", icon="infinity-claude"),
     App("AI", "OpenAI Codex + Codex CLI", "npm", "@openai/codex", "CLI and Codex web shortcut. Adds a pinned terminal tab.", website="https://chatgpt.com/codex", group="Assistants", icon="infinity-codex"),
     App("AI", "Qwen3.5 9B Q5 · 16 GB RAM", "local-model", "infinity-qwen-9b", "For 16 GB RAM. Needs about 10 GB free disk; local coding agent.", group="Local models", icon="infinity-ai"),
     App("AI", "Gemma 4 12B Q4 · 32 GB RAM", "local-model", "infinity-gemma-12b", "For 24–32 GB RAM. Needs about 11 GB free disk; local coding agent.", group="Local models", icon="infinity-ai"),
     App("AI", "Qwen3.5 35B A3B Q5 · 64 GB RAM", "local-model", "infinity-qwen-35b", "For 64 GB RAM. Needs about 30 GB free disk; local coding agent.", group="Local models", icon="infinity-ai"),
+    App("Office", "EuroOffice", "github-rpm", "Euro-Office/DesktopEditors", "Documents, spreadsheets, presentations and PDFs.", website="https://github.com/Euro-Office/DesktopEditors", group="Office suite", icon="applications-office-symbolic", package="euro-office-euro-office"),
     App("Office", "LibreOffice", "flatpak", "org.libreoffice.LibreOffice", "Documents, presentations and spreadsheets.", group="Office suite", icon="applications-office-symbolic"),
     App("Office", "PDFCraft", "github-rpm", "storytold/pdfcraft", "Adobe-style PDF editor clone.", website="https://github.com/storytold/pdfcraft", group="Documents", icon="ai.storyteller.pdfcraft"),
     App("Office", "WordCraft", "github-rpm", "storytold/wordcraft", "Adobe-style document editor clone.", website="https://github.com/storytold/wordcraft", group="Documents", icon="ai.storyteller.wordcraft"),
@@ -122,7 +126,8 @@ def installed(app, home=None):
     if app.kind == "npm":
         command = "claude" if "anthropic" in app.source else "codex"
         return (home / ".local/bin" / command).exists() or shutil.which(command) is not None
-    package = app.source.rsplit("/", 1)[-1].lower() if app.kind == "github-rpm" else app.source
+    package = app.package or (app.source.rsplit("/", 1)[-1].lower()
+                              if app.kind == "github-rpm" else app.source)
     return subprocess.run(["rpm", "-q", package], stdout=subprocess.DEVNULL,
                           stderr=subprocess.DEVNULL, check=False).returncode == 0
 
@@ -182,10 +187,18 @@ def install(app, home=None):
             package = _latest_rpm(app, os.uname().machine, directory)
             _run(["pkexec", "dnf", "-y", "install", str(package)])
     elif app.kind == "dnf":
-        if app.source == "docker-ce" and not Path("/etc/yum.repos.d/docker-ce.repo").exists():
-            _run(["pkexec", "dnf", "config-manager", "addrepo", "--from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo"])
-        _run(["pkexec", "dnf", "--enablerepo=docker-ce-stable", "-y", "install", "docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin", "docker-compose-plugin"])
-        _run(["pkexec", "systemctl", "enable", "--now", "docker.service"])
+        if app.source == "docker-ce":
+            if not Path("/etc/yum.repos.d/docker-ce.repo").exists():
+                _run(["pkexec", "dnf", "config-manager", "addrepo", "--from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo"])
+            _run(["pkexec", "dnf", "--enablerepo=docker-ce-stable", "-y", "install", "docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin", "docker-compose-plugin"])
+            _run(["pkexec", "systemctl", "enable", "--now", "docker.service"])
+        elif app.source == "openrazer-meta":
+            _run(["pkexec", "dnf", "config-manager", "addrepo", "--from-repofile=https://openrazer.github.io/hardware:razer.repo"])
+            _run(["pkexec", "dnf", "-y", "install", "kernel-devel", "openrazer-meta"])
+            _run(["pkexec", "groupadd", "-f", "plugdev"])
+            _run(["pkexec", "gpasswd", "-a", pwd.getpwuid(os.getuid()).pw_name, "plugdev"])
+        else:
+            raise ValueError(f"No DNF installation source for {app.name}.")
     elif app.kind == "npm":
         if not shutil.which("npm"):
             _run(["pkexec", "dnf", "-y", "install", "nodejs-npm"])

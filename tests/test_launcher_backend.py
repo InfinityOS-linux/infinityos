@@ -68,6 +68,29 @@ class LauncherBackendTests(unittest.TestCase):
             package = backend._latest_rpm(app, "aarch64", directory)
             self.assertEqual(package.name, "openlogi-v1-linux-arm64.rpm")
 
+    def test_eurooffice_release_and_installed_package_name(self):
+        app = next(app for app in backend.APPS if app.name == "EuroOffice")
+        release = {"assets": [{"name": "euro-office-euro-office-9.3.5-2.aarch64.rpm", "size": 3,
+                               "browser_download_url": "https://github.com/Euro-Office/DesktopEditors/releases/download/v9.3.5-2/euro-office-euro-office-9.3.5-2.aarch64.rpm"}]}
+        responses = (io.BytesIO(json.dumps(release).encode()), io.BytesIO(b"rpm"))
+        with tempfile.TemporaryDirectory() as directory, patch.object(backend.urllib.request, "urlopen", side_effect=responses):
+            package = backend._latest_rpm(app, "aarch64", directory)
+        self.assertEqual(package.name, "euro-office-euro-office-9.3.5-2.aarch64.rpm")
+        with patch.object(backend.subprocess, "run", return_value=SimpleNamespace(returncode=0)) as run:
+            self.assertTrue(backend.installed(app))
+        self.assertEqual(run.call_args.args[0], ["rpm", "-q", "euro-office-euro-office"])
+
+    def test_openrazer_uses_its_repo_and_driver_packages(self):
+        app = next(app for app in backend.APPS if app.name == "OpenRazer")
+        with patch.object(backend, "_run") as run:
+            backend.install(app)
+        self.assertEqual([call.args[0] for call in run.call_args_list], [
+            ["pkexec", "dnf", "config-manager", "addrepo", "--from-repofile=https://openrazer.github.io/hardware:razer.repo"],
+            ["pkexec", "dnf", "-y", "install", "kernel-devel", "openrazer-meta"],
+            ["pkexec", "groupadd", "-f", "plugdev"],
+            ["pkexec", "gpasswd", "-a", backend.pwd.getpwuid(backend.os.getuid()).pw_name, "plugdev"],
+        ])
+
     def test_temporary_dns_failure_is_actionable(self):
         result = type("Result", (), {"returncode": 1, "stdout": "npm ERR! EAI_AGAIN registry.npmjs.org"})()
         with patch.object(backend.subprocess, "run", return_value=result):

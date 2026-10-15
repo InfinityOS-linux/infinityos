@@ -50,6 +50,8 @@ POLISH = {
     "Email client with a modern inbox.": "Klient poczty z nowoczesną skrzynką odbiorczą.",
     "Configure Logitech mouse buttons, DPI and SmartShift locally.":
         "Konfiguruj przyciski myszy Logitech, DPI i SmartShift lokalnie.",
+    "Drivers and daemon for Razer devices; log out and back in after installation.":
+        "Sterowniki i usługa dla urządzeń Razer; po instalacji wyloguj się i zaloguj ponownie.",
     "Steam games and store.": "Gry i sklep Steam.",
     "Epic, GOG and Amazon games.": "Gry z Epic, GOG i Amazon.",
     "Games from multiple stores.": "Gry z różnych sklepów.",
@@ -74,8 +76,8 @@ POLISH = {
     "Record and stream your screen.": "Nagrywaj i transmituj ekran.",
     "Record and edit audio.": "Nagrywaj i edytuj dźwięk.",
     "Microsoft's code editor.": "Edytor kodu Microsoftu.",
-    "Docker's official Fedora packages. Use sudo unless you configure user access.":
-        "Oficjalne pakiety Dockera dla Fedory. Użyj sudo lub skonfiguruj dostęp użytkownika.",
+    "Docker's official packages. Use sudo unless you configure user access.":
+        "Oficjalne pakiety Dockera. Użyj sudo lub skonfiguruj dostęp użytkownika.",
     "CLI and Claude web shortcut. Adds a pinned terminal tab.":
         "CLI i skrót do Claude w przeglądarce. Dodaje przypiętą kartę terminala.",
     "CLI and Codex web shortcut. Adds a pinned terminal tab.":
@@ -87,6 +89,8 @@ POLISH = {
     "For 64 GB RAM. Needs about 30 GB free disk; local coding agent.":
         "Dla 64 GB RAM. Wymaga ok. 30 GB wolnego miejsca; lokalny agent programistyczny.",
     "Documents, presentations and spreadsheets.": "Dokumenty, prezentacje i arkusze kalkulacyjne.",
+    "Documents, spreadsheets, presentations and PDFs.":
+        "Dokumenty, arkusze kalkulacyjne, prezentacje i pliki PDF.",
     "Adobe-style PDF editor clone.": "Klon edytora PDF Adobe.",
     "Adobe-style document editor clone.": "Klon edytora dokumentów Adobe.",
     "Adobe-style presentation editor clone.": "Klon edytora prezentacji Adobe.",
