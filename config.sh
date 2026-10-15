@@ -106,6 +106,9 @@ EOF
 	fi
 	printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
 	dconf update
+	# KIWI runs with a restrictive umask; the initial-setup account must read
+	# this compiled database to get the Infinity OS wallpaper and dark theme.
+	chmod 0644 /etc/dconf/db/infinityos-initial-setup
 	useradd -D -s /usr/bin/zsh
 	if id liveuser &>/dev/null; then
 		usermod -s /usr/bin/zsh liveuser
