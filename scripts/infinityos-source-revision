@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo=${1:-"$(cd "$(dirname "$0")/.." && pwd)"}
+repo=$(cd "$repo" && pwd)
+repo=$(git -c "safe.directory=$repo" -C "$repo" rev-parse --show-toplevel)
+if [[ -n $(git -c "safe.directory=$repo" -C "$repo" status --porcelain --untracked-files=normal) ]]; then
+    echo 'Infinity OS release source has uncommitted changes; commit them before building RPMs or images.' >&2
+    exit 1
+fi
+git -c "safe.directory=$repo" -C "$repo" rev-parse HEAD

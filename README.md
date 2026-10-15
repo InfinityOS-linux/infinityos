@@ -50,6 +50,13 @@ Use a Fedora 44 host with the target CPU architecture and Btrfs ACL support. Ins
 sudo dnf install kiwi kiwi-systemdeps distribution-gpg-keys
 ```
 
+Commit all image and application changes first. Publish all six Infinity OS RPMs
+from that same commit before starting an image build. The wrapper records the
+commit in the image, uses a fresh archive of that commit as its KIWI description,
+and stops if any installed Infinity OS RPM comes from another commit. It also
+rejects uncommitted changes. Previously prepared KIWI roots are not release
+inputs; `kiwi-ng system create` on an old root can reproduce old applications.
+
 Build a Live ISO from the repository root:
 
 ```sh
@@ -57,7 +64,11 @@ sudo ./kiwi-build --kiwi-file=InfinityOS.kiwi --image-type=iso \
   --image-profile=Infinity-GNOME-Live --output-dir=/var/tmp/infinityos-iso
 ```
 
-The wrapper checks the media checksum and every file in the embedded EROFS filesystem before accepting an Infinity OS ISO. For an ISO built directly with `kiwi-ng`, run `sudo scripts/verify-infinity-iso IMAGE.iso` before using or distributing it.
+The wrapper checks the media checksum, embedded EROFS filesystem, source
+revision, six RPM revisions, and essential desktop files before accepting an
+Infinity OS ISO. Run `sudo scripts/verify-infinity-iso IMAGE.iso` again after
+copying an image to another machine. An ISO from an old prepared root fails
+this check.
 
 Build a writable disk image:
 
@@ -66,7 +77,12 @@ sudo ./kiwi-build --kiwi-file=InfinityOS.kiwi --image-type=oem \
   --image-profile=Infinity-GNOME-Disk --output-dir=/var/tmp/infinityos-disk
 ```
 
-The wrapper runs [`scripts/finalize-infinity-disk`](scripts/finalize-infinity-disk) after an OEM build. That step fixes permissions on the Btrfs root subvolume so desktop services can start. The resulting RAW disk has a 2 GB EFI partition and Btrfs `root`, `home`, and `var` subvolumes. Apple Silicon Parallels runs the `aarch64` disk; building `x86_64` requires an x86_64 Fedora host or CI runner.
+The wrapper runs [`scripts/finalize-infinity-disk`](scripts/finalize-infinity-disk)
+after an OEM build. That step checks the embedded revision and applications,
+then fixes permissions on the Btrfs root subvolume so desktop services can
+start. The resulting RAW disk has a 2 GB EFI partition and Btrfs `root`,
+`home`, and `var` subvolumes. Apple Silicon Parallels runs the `aarch64` disk;
+building `x86_64` requires an x86_64 Fedora host or CI runner.
 
 ## Project layout
 

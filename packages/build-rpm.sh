@@ -13,12 +13,15 @@ case "$package" in
 esac
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
+revision=$("$repo/scripts/infinityos-source-revision" "$repo")
 work=${INFINITY_PACKAGE_WORK_DIR:-"$repo/.build/rpm/$package"}
 rm -rf "$work"
 mkdir -p "$work/source/$package-$version" "$work/rpmbuild/SOURCES" "$work/rpmbuild/RPMS"
 if [[ -d "$repo/packages/$package/root" ]]; then
   cp -a "$repo/packages/$package/root/." "$work/source/$package-$version/"
 fi
+install -d "$work/source/$package-$version/usr/share/infinityos/build-revisions"
+printf '%s\n' "$revision" > "$work/source/$package-$version/usr/share/infinityos/build-revisions/$package"
 
 if [[ "$package" == infinity-updater ]]; then
   install -d "$work/source/$package-$version/usr/share/licenses/infinity-updater"

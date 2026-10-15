@@ -2,6 +2,8 @@
 set -euo pipefail
 
 image=${1:?Pass the Infinity OS RAW disk image}
+script_dir=$(cd "$(dirname "$0")" && pwd)
+revision=${2:-$("$script_dir/infinityos-source-revision")}
 mountpoint=$(mktemp -d)
 efi_mountpoint=$(mktemp -d)
 loopdev=
@@ -22,6 +24,7 @@ partition="${loopdev}p2"
 	exit 1
 }
 mount -o subvol=root "$partition" "$mountpoint"
+"$script_dir/../root/usr/libexec/infinityos-verify-build-root" "$mountpoint" "$revision"
 # KIWI creates the Btrfs root subvolume with 0700, which blocks non-root services.
 chmod 0755 "$mountpoint"
 [[ $(stat -c %a "$mountpoint") == 755 ]]
@@ -44,3 +47,4 @@ for entry in "$efi_mountpoint"/loader/entries/*.conf; do
 	grep -Fxq "initrd os/$initramfs" "$entry"
 	cmp "$mountpoint/boot/$initramfs" "$efi_mountpoint/os/$initramfs"
 done
+echo "Verified Infinity OS disk from source revision $revision"

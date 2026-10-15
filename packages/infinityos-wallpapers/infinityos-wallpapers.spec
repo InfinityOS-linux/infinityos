@@ -20,6 +20,7 @@ cp -a usr %{buildroot}/
 
 %files
 %license /usr/share/licenses/infinityos-wallpapers/COPYING
+/usr/share/infinityos/build-revisions/infinityos-wallpapers
 /usr/share/backgrounds/infinityos/
 /usr/share/gnome-background-properties/00-infinityos.xml
 

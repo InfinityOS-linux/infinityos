@@ -15,6 +15,10 @@ echo "Configure image: [$kiwi_iname]-[$kiwi_profiles]..."
 
 # Apply Infinity OS defaults only to its GNOME image profiles.
 if [[ "$kiwi_profiles" == *"Infinity-GNOME"* ]]; then
+	# Reject an old RPM repository or a reused prepared root before making an image.
+	# The supported kiwi-build wrapper stages a clean commit and its revision.
+	build_revision=$(cat /usr/share/infinityos/build-revision)
+	/usr/libexec/infinityos-verify-build-root / "$build_revision"
 	rm -f /etc/os-release
 	cat > /etc/os-release << 'EOF'
 NAME="Infinity OS"

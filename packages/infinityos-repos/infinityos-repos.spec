@@ -27,6 +27,7 @@ fi
 
 %files
 %license /usr/share/licenses/infinityos-repos/COPYING
+/usr/share/infinityos/build-revisions/infinityos-repos
 %config(noreplace) /etc/yum.repos.d/infinityos.repo
 /etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos
 /usr/lib/systemd/system/infinityos-repo-trust.service

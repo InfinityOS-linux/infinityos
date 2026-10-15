@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root=${1:?Usage: infinityos-verify-build-root ROOT REVISION}
+revision=${2:?Usage: infinityos-verify-build-root ROOT REVISION}
+[[ "$revision" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid source revision: $revision" >&2; exit 1; }
+
+check_revision() {
+    local label=$1 file=$2 actual
+    [[ -f "$root/$file" ]] || { echo "Missing $label build revision: $file" >&2; exit 1; }
+    actual=$(<"$root/$file")
+    [[ "$actual" == "$revision" ]] || {
+        echo "Stale $label build revision: expected $revision, found $actual" >&2
+        exit 1
+    }
+}
+
+check_revision image usr/share/infinityos/build-revision
+for package in infinity-launcher infinity-terminal infinity-updater infinityos-repos infinityos-wallpapers infinityos-ramdrive; do
+    check_revision "$package" "usr/share/infinityos/build-revisions/$package"
+done
+
+for file in \
+    usr/bin/infinity-launcher \
+    usr/bin/infinity-terminal \
+    usr/bin/infinity-updater \
+    usr/share/backgrounds/infinityos/infinityos-dark.png \
+    usr/share/gnome-shell/extensions/ghostty@infinityos.org/extension.js \
+    usr/share/gnome-shell/extensions/infinity-updater@infinityos.org/extension.js; do
+    [[ -e "$root/$file" ]] || { echo "Missing Infinity OS image file: $file" >&2; exit 1; }
+done

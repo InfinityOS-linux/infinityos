@@ -2,6 +2,12 @@
 
 `infinity-launcher`, `infinity-updater`, `infinityos-repos`, `infinityos-wallpapers`, and `infinityos-ramdrive` are `noarch` RPMs. `infinity-terminal` includes the patched Ghostty binary and is built separately for `aarch64` and `x86_64`. The existing GNOME extension UUID, terminal application ID, desktop file ID, and launcher first-run marker remain stable so an RPM can adopt files from older images without losing shortcuts or first-run state. The visible names and launch commands are **InfinityLauncher** and **InfinityTerminal**.
 
+Each RPM contains the source commit in `/usr/share/infinityos/build-revisions/`.
+Commit changes before packaging and publish all six RPMs from the same commit.
+The image build refuses an RPM from a different commit, including an older
+published package with the same version number. Build a new image from the
+repository's `kiwi-build` wrapper, which uses a fresh source archive.
+
 Edit the app files under `packages/infinity-launcher/root/`, `packages/infinity-terminal/root/`, or `packages/infinity-updater/root/`. Terminal engine changes belong in `ghostty/ghostty-1.3.1-infinity.patch`. `packages/build-rpm.sh` builds one package locally with Docker. For example:
 
 ```sh

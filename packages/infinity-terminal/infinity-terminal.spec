@@ -28,6 +28,7 @@ glib-compile-schemas /usr/share/gnome-shell/extensions/ghostty@infinityos.org/sc
 %files
 %license /usr/share/licenses/infinity-terminal/GHOSTTY-LICENSE
 %license /usr/share/licenses/infinity-terminal/KORA-LICENSE
+/usr/share/infinityos/build-revisions/infinity-terminal
 /usr/bin/infinity-terminal
 /usr/bin/ghostty
 /usr/libexec/infinityos/ghostty

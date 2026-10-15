@@ -31,6 +31,7 @@ systemctl --global enable infinity-updater.timer >/dev/null 2>&1 || :
 
 %files
 %license /usr/share/licenses/infinity-updater/COPYING
+/usr/share/infinityos/build-revisions/infinity-updater
 /usr/bin/infinity-updater
 /usr/share/infinityos/updater/
 /usr/share/applications/org.infinityos.Updater.desktop

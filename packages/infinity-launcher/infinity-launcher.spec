@@ -22,6 +22,7 @@ cp -a usr etc %{buildroot}/
 
 %files
 %license /usr/share/licenses/infinity-launcher/COPYING
+/usr/share/infinityos/build-revisions/infinity-launcher
 /usr/bin/infinity-launcher
 /usr/bin/infinity-local-ai
 /usr/share/infinityos/launcher.py

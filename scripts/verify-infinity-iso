@@ -2,15 +2,22 @@
 set -euo pipefail
 
 iso=${1:?Usage: verify-infinity-iso IMAGE.iso}
+script_dir=$(cd "$(dirname "$0")" && pwd)
+revision=${2:-$("$script_dir/infinityos-source-revision")}
 [[ -f "$iso" ]] || { echo "ISO not found: $iso" >&2; exit 1; }
 
 checkisomd5 "$iso"
 
 mountpoint=$(mktemp -d)
+rootpoint=$(mktemp -d)
 cleanup() {
+    if mountpoint -q "$rootpoint"; then
+        umount "$rootpoint"
+    fi
     if mountpoint -q "$mountpoint"; then
         umount "$mountpoint"
     fi
+    rmdir "$rootpoint"
     rmdir "$mountpoint"
 }
 trap cleanup EXIT
@@ -21,3 +28,6 @@ mount -o loop,ro "$iso" "$mountpoint"
     exit 1
 }
 fsck.erofs --extract "$mountpoint/LiveOS/squashfs.img"
+mount -t erofs -o loop,ro "$mountpoint/LiveOS/squashfs.img" "$rootpoint"
+"$script_dir/../root/usr/libexec/infinityos-verify-build-root" "$rootpoint" "$revision"
+echo "Verified Infinity OS ISO from source revision $revision"

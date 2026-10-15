@@ -31,6 +31,7 @@ fi
 
 %files
 %license /usr/share/licenses/infinityos-ramdrive/COPYING
+/usr/share/infinityos/build-revisions/infinityos-ramdrive
 /usr/libexec/infinityos-ramdrive
 /usr/libexec/infinityos-ramdrive-shutdown
 %attr(0755,root,root) /usr/libexec/infinityos-ramdrive-guard
