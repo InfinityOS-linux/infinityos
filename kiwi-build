@@ -84,6 +84,13 @@ if [ "$kiwi_status" = 0 ] && [ "$image_type" = oem ] && [ "$image_profile" = Inf
 	done
 fi
 
+if [ "$kiwi_status" = 0 ] && [ "$image_type" = iso ] && [ "$image_profile" = Infinity-GNOME-Live ]; then
+	for image in "${output_dir}-build"/*.iso; do
+		[ -f "$image" ] || { echo "Infinity OS ISO was not produced" >&2; exit 1; }
+		"${kiwibuild_scriptdir}/scripts/verify-infinity-iso" "$image"
+	done
+fi
+
 if [ "${kiwi_status}" = "0" ] && [ -n "$image_release" ]; then
 	kiwi-ng ${debug} result bundle --bundle-format="${kiwi_bundle_format}" --target-dir "${output_dir}-build" --bundle-dir "${output_dir}" --id="${image_release}"
 fi

@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+iso=${1:?Usage: verify-infinity-iso IMAGE.iso}
+[[ -f "$iso" ]] || { echo "ISO not found: $iso" >&2; exit 1; }
+
+checkisomd5 "$iso"
+
+mountpoint=$(mktemp -d)
+cleanup() {
+    if mountpoint -q "$mountpoint"; then
+        umount "$mountpoint"
+    fi
+    rmdir "$mountpoint"
+}
+trap cleanup EXIT
+
+mount -o loop,ro "$iso" "$mountpoint"
+[[ -f "$mountpoint/LiveOS/squashfs.img" ]] || {
+    echo "Live filesystem missing from ISO: $iso" >&2
+    exit 1
+}
+fsck.erofs --extract "$mountpoint/LiveOS/squashfs.img"

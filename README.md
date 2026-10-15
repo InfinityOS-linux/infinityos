@@ -57,6 +57,8 @@ sudo ./kiwi-build --kiwi-file=InfinityOS.kiwi --image-type=iso \
   --image-profile=Infinity-GNOME-Live --output-dir=/var/tmp/infinityos-iso
 ```
 
+The wrapper checks the media checksum and every file in the embedded EROFS filesystem before accepting an Infinity OS ISO. For an ISO built directly with `kiwi-ng`, run `sudo scripts/verify-infinity-iso IMAGE.iso` before using or distributing it.
+
 Build a writable disk image:
 
 ```sh
