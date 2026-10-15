@@ -3,6 +3,10 @@
 | Component | Source | Version | License |
 | --- | --- | --- | --- |
 | Oh My Zsh | https://github.com/ohmyzsh/ohmyzsh | `48feb570f7b7d80cc7554629ba428c520ea8a3d5`; runtime core and the three configured plugins | MIT, included at `root/usr/share/oh-my-zsh/LICENSE.txt` |
+| Powerlevel10k and gitstatus | https://github.com/romkatv/powerlevel10k | `v1.20.0`; the architecture-specific gitstatus daemon is fetched and checksum-checked during the image build | MIT, included at `root/usr/share/oh-my-zsh/custom/themes/powerlevel10k/LICENSE` |
+| IBM Plex Sans | https://github.com/IBM/plex/releases/tag/%40ibm/plex-sans%401.1.0 | `1.1.0`; 16 TTF faces from the upstream release | OFL-1.1, included at `root/usr/share/licenses/infinityos-plex-sans/LICENSE.txt` |
+| Iosevka Term | https://github.com/be5invis/Iosevka/releases/tag/v34.9.0 | `34.9.0`; four TTF faces extracted from `PkgTTF-IosevkaTerm-34.9.0.zip` (SHA-256 `1c0b8ac68ca210cc253c1833619d37ed2227d96fbdda0a36231375828b7bd6fb`) at image build | OFL-1.1, included at `root/usr/share/licenses/infinityos-iosevka/LICENSE.md` |
+| Proview | https://github.com/emanuelelongo/proview/releases/tag/v1.4 | `v1.4`; upstream AppImage installed for ARM64 or x86_64 with SHA-256 verification | AGPL-3.0, included at `root/usr/share/licenses/infinityos-proview/LICENSE.txt` |
 | Window Is Ready - Notification Remover | https://extensions.gnome.org/extension/1007/window-is-ready-notification-remover/ | 28, SHA-256 `abe4be91ad0a7086899ff4d92e463149c26b56e20291e75aa8e4443b57926cd6` of the upstream ZIP | Apache-2.0, included beside the extension |
 | Orchis Theme | https://github.com/vinceliuice/Orchis-theme | `a4c48a425e63808345e824495964bd9c2f462e04`, built as `Orchis-Purple-Dark-Compact` and `Orchis-Purple-Light-Compact` with `compact` and `macos` tweaks | GPL-3.0, included at `root/usr/share/themes/Orchis-Purple-Dark-Compact/COPYING` |
 | GNOME Control Center UI templates | https://gitlab.gnome.org/GNOME/gnome-control-center | 50.4, adjusted to hide Accent Color and Support GNOME at `root/usr/share/infinityos/settings-overlays/` | GPL-2.0-or-later |
@@ -25,6 +29,6 @@ Kora's pinned source archive is `root/usr/share/infinityos/kora-v2.0.6.tar.gz` (
 
 DING is unpacked from its pinned GNOME Extensions ZIP into `root/usr/share/gnome-shell/extensions/ding@rastersoft.com`; its GSettings schema is compiled during image setup. Bibata Modern Ice is extracted from `root/usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz` into the installed icon themes. Both are enabled only for Infinity OS profiles.
 
-Blur My Shell, Powerline, Firefox, drivers, and codecs are installed as signed packages from Fedora or RPM Fusion at image build time. Their versions follow those repositories' updates.
+Blur My Shell, Powerline Symbols fonts, Firefox, drivers, and codecs are installed as signed packages from Fedora or RPM Fusion at image build time. Their versions follow those repositories' updates.
 
 The bundled Flathub remote descriptor (`root/etc/flatpak/remotes.d/flathub.flatpakrepo`) and signing key come from https://flathub.org/repo/flathub.flatpakrepo (retrieved 2026-10-12; SHA-256 `3371dd250e61d9e1633630073fefda153cd4426f72f4afa0c3373ae2e8fea03a`). No Flathub applications are bundled.

@@ -72,7 +72,7 @@ def main():
             title = Gtk.Label(label='Infinity OS Updates', xalign=0)
             title.add_css_class('hero-title')
             hero.append(title)
-            subtitle = Gtk.Label(label='Fedora · Infinity OS · Flathub', xalign=0)
+            subtitle = Gtk.Label(label='Infinity OS · Flathub', xalign=0)
             subtitle.add_css_class('hero-subtitle')
             hero.append(subtitle)
             layout.append(hero)

@@ -57,6 +57,9 @@ gtk-theme='Orchis-Purple-Dark-Compact'
 icon-theme='kora'
 cursor-theme='Bibata-Modern-Ice'
 color-scheme='prefer-dark'
+font-name='IBM Plex Sans 11'
+document-font-name='IBM Plex Sans 11'
+monospace-font-name='Iosevka Term 11'
 
 [org/gnome/GPaste]
 launch-ui=''

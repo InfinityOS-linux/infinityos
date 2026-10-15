@@ -1,0 +1,36 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+checksum=1c0b8ac68ca210cc253c1833619d37ed2227d96fbdda0a36231375828b7bd6fb
+destination=/usr/share/fonts/Iosevka-Term
+install -d -m 0755 "$destination"
+if [[ -f "$destination/.source-sha256" ]] &&
+    [[ "$(cat "$destination/.source-sha256")" == "$checksum" ]] &&
+    [[ -s "$destination/IosevkaTerm-Regular.ttf" ]] &&
+    [[ -s "$destination/IosevkaTerm-Bold.ttf" ]] &&
+    [[ -s "$destination/IosevkaTerm-Italic.ttf" ]] &&
+    [[ -s "$destination/IosevkaTerm-BoldItalic.ttf" ]]; then
+    exit 0
+fi
+
+archive=$(mktemp)
+trap 'rm -f "$archive"' EXIT
+curl --fail --location --retry 3 --output "$archive" \
+    https://github.com/be5invis/Iosevka/releases/download/v34.9.0/PkgTTF-IosevkaTerm-34.9.0.zip
+printf '%s  %s\n' "$checksum" "$archive" | sha256sum --check --status
+python3 - "$archive" <<'PY'
+from pathlib import Path
+from sys import argv
+from zipfile import ZipFile
+
+destination = Path('/usr/share/fonts/Iosevka-Term')
+destination.mkdir(parents=True, exist_ok=True)
+with ZipFile(argv[1]) as source:
+    for weight in ('Regular', 'Bold', 'Italic', 'BoldItalic'):
+        name = f'IosevkaTerm-{weight}.ttf'
+        font = destination / name
+        font.write_bytes(source.read(name))
+        font.chmod(0o644)
+PY
+printf '%s\n' "$checksum" > "$destination/.source-sha256"
+chmod 0644 "$destination/.source-sha256"

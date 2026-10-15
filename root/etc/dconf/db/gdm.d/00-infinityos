@@ -1,2 +1,6 @@
 [org/gnome/login-screen]
 logo='/usr/share/plymouth/themes/infinityos/login-logo.png'
+
+[org/gnome/desktop/interface]
+font-name='IBM Plex Sans 11'
+document-font-name='IBM Plex Sans 11'

@@ -1,0 +1,3 @@
+#!/usr/bin/sh
+export APPIMAGE_EXTRACT_AND_RUN=1
+exec /opt/proview/Proview.AppImage "$@"

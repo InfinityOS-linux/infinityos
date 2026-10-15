@@ -1,11 +1,8 @@
 export PATH="$HOME/.local/bin:$PATH"
 export ZSH=/usr/share/oh-my-zsh
 zstyle ':omz:update' mode disabled
-ZSH_THEME=""
+ZSH_THEME="powerlevel10k/powerlevel10k"
+POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true
 plugins=(git sudo colored-man-pages)
 source "$ZSH/oh-my-zsh.sh"
-
-if [[ -f /usr/share/powerline/zsh/powerline.zsh ]]; then
-	command -v powerline-daemon >/dev/null && powerline-daemon -q
-	source /usr/share/powerline/zsh/powerline.zsh
-fi
+source /usr/share/infinityos/p10k.zsh

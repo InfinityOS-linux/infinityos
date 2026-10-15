@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Infinity OS Updates
-Comment=Review Fedora, Infinity OS and Flatpak updates
+Comment=Review system and Flatpak updates
 Exec=infinity-updater
 Icon=org.infinityos.Updater
 Categories=System;Settings;

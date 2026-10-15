@@ -1,0 +1,28 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+case "$(uname -m)" in
+    aarch64)
+        asset=Proview-v1.4-linux-arm64.AppImage
+        checksum=6e53033875d7aa7a505c189813f5372c43f8e889f588e8907b85a4bc800e6cce
+        ;;
+    x86_64)
+        asset=Proview-v1.4-linux-amd64.AppImage
+        checksum=028eae8e528b4f54583e06ba962355c09b032d6dd84f275e1d6cf5a3b57bd03a
+        ;;
+    *)
+        echo "Unsupported Proview architecture: $(uname -m)" >&2
+        exit 1
+        ;;
+esac
+
+install -d -m 0755 /opt/proview
+if [[ -f /opt/proview/Proview.AppImage ]] &&
+    printf '%s  %s\n' "$checksum" /opt/proview/Proview.AppImage | sha256sum --check --status; then
+    chmod 0755 /opt/proview/Proview.AppImage
+    exit 0
+fi
+curl --fail --location --retry 3 --output /opt/proview/Proview.AppImage \
+    "https://github.com/emanuelelongo/proview/releases/download/v1.4/$asset"
+printf '%s  %s\n' "$checksum" /opt/proview/Proview.AppImage | sha256sum --check --status
+chmod 0755 /opt/proview/Proview.AppImage

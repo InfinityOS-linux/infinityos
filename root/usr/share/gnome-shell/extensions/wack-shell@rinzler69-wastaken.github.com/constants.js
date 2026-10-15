@@ -1,7 +1,7 @@
 export const SymbolicDistroIcons = [
     { PATH: 'start-here-symbolic' },                 // Default (index 0)
     { PATH: '/Resources/apple-icon-symbolic.svg' }, // Apple (Wackintosh) (index 1)
-    { PATH: '/Resources/fedora-logo-symbolic.svg' }, // Fedora (index 2)
+    { PATH: '/usr/share/icons/hicolor/scalable/apps/infinityos-panel-mark.svg' }, // Infinity OS (index 2)
     { PATH: '/Resources/debian-logo-symbolic.svg' }, // Debian (index 3)
     { PATH: '/Resources/manjaro-logo-symbolic.svg' },// Manjaro (index 4)
     { PATH: '/Resources/pop-os-logo-symbolic.svg' }, // Pop!_OS (index 5)
@@ -38,7 +38,7 @@ export const SymbolicDistroIcons = [
 export const ColouredDistroIcons = [
     { PATH: 'start-here-symbolic' },                 // Default (index 0)
     { PATH: '/Resources/apple-icon-symbolic.svg' }, // Apple (Wackintosh) (index 1)
-    { PATH: '/Resources/fedora-logo.svg' },          // Fedora (index 2)
+    { PATH: '/usr/share/icons/hicolor/scalable/apps/infinityos-logo.svg' }, // Infinity OS (index 2)
     { PATH: '/Resources/debian-logo.svg' },          // Debian (index 3)
     { PATH: '/Resources/manjaro-logo.svg' },         // Manjaro (index 4)
     { PATH: '/Resources/pop-os-logo.svg' },          // Pop!_OS (index 5)
@@ -113,7 +113,7 @@ export function getLuminance(r, g, b) {
 export const DISTRO_LOGOS = [
     "Default",
     "Apple (Wackintosh)",
-    "Fedora",
+    "Infinity OS",
     "Debian",
     "Manjaro",
     "Pop!_OS",

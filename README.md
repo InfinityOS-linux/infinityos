@@ -9,10 +9,10 @@
 | Area | Configuration |
 | --- | --- |
 | Base | Fedora 44 packages, DNF, Fedora Updates, RPM Fusion Free and Nonfree |
-| Desktop | GNOME with Orchis Purple Dark Compact by default and an optional Light mode, Kora icons, Bibata cursor, Infinity OS artwork, and a dark lock screen |
+| Desktop | GNOME with Orchis Purple Dark Compact by default and an optional Light mode, Kora icons, Bibata cursor, Infinity OS artwork, IBM Plex Sans, and a dark lock screen |
 | Storage | Writable Btrfs root, systemd-boot, Snapper timeline and cleanup |
 | Applications | Firefox, Flatpak with Flathub, InfinityLauncher, InfinityTerminal; Chrome DRM fallback on ARM64 |
-| Development | Zsh with Oh My Zsh and Powerline; GNOME Builder |
+| Development | Zsh with Oh My Zsh and a compact purple Powerlevel10k prompt, Iosevka Term in InfinityTerminal; GNOME Builder |
 | Gaming | GameMode, MangoHud, Gamescope, gamepad support; Steam and Lutris on `x86_64` |
 | Hardware | Fedora Intel and AMD graphics support; NVIDIA driver branch selected from the GPU's PCI ID during `x86_64` live installation |
 
@@ -22,11 +22,11 @@ Infinity OS uses compressed zram swap sized to half of RAM, capped at 16 GiB, wi
 
 GameMode, MangoHud, Gamescope, TLP, and the existing bounded `vm.max_map_count` setting remain in place. No OSTree or immutable root is used.
 
-**InfinityLauncher** opens on first login. It groups optional software under AI, System, Gaming, Creative, Office, and Programming. You choose applications and press **Apply** before installation starts. The choices include Steam, Heroic, Lutris, Prism Launcher, creative tools, VS Code, Docker CE, Codex, Claude, and three local coding models. Selecting a local model installs Ollama and OpenCode, downloads the model, and configures the terminal agent. A progress strip appears while apps install. Its source and RPM specification live in [`packages/infinity-launcher`](packages/infinity-launcher).
+**InfinityLauncher** opens on first login. It groups optional software under AI, System, Gaming, Creative, Office, and Programming. You choose applications and press **Apply** before installation starts. The choices include Steam, Heroic, Lutris, Prism Launcher, creative tools, EuroOffice, OpenRazer, VS Code, Docker CE, Codex, Claude, and three local coding models. Selecting a local model installs Ollama and OpenCode, downloads the model, and configures the terminal agent. A progress strip appears while apps install. Its source and RPM specification live in [`packages/infinity-launcher`](packages/infinity-launcher).
 
 Its footer can schedule one more launch at the next login. The interface follows the session language (Polish and English are bundled). RAMDrive warns through GNOME's shutdown confirmation when it contains files; canceling keeps the session and files, while continuing the shutdown clears the folder. A crash or hard reset leaves its contents intact.
 
-**InfinityTerminal** uses a patched Ghostty renderer. Press **Super+T** or use its GNOME panel icon to show and hide it. The first shell tab stays pinned; Codex and Claude gain pinned tabs when their CLI tools are installed. A selected local model adds a leftmost Infinity AI tab; its context menu opens a separate edit-enabled agent tab. The terminal source and package live in [`packages/infinity-terminal`](packages/infinity-terminal), with the renderer patch in [`ghostty`](ghostty).
+**InfinityTerminal** uses a patched Ghostty renderer and defaults to Iosevka Term. Press **Super+T** or use its GNOME panel icon to show and hide it. The first shell tab stays pinned; Codex and Claude gain pinned tabs when their CLI tools are installed. A selected local model adds a leftmost Infinity AI tab; its context menu opens a separate edit-enabled agent tab. The terminal source and package live in [`packages/infinity-terminal`](packages/infinity-terminal), with the renderer patch in [`ghostty`](ghostty).
 
 On `x86_64` live installations, Anaconda runs [`infinityos-install-nvidia`](root/usr/libexec/infinityos-install-nvidia) against the target machine's PCI ID. It keeps the current RPM Fusion branch for supported new GPUs, switches to the 580xx, 470xx, or 390xx branch for listed legacy GPUs, and removes the preloaded driver when no NVIDIA GPU is present. A failed legacy download is retried after boot when networking is available. NVIDIA's unsigned kernel modules still require Secure Boot to be disabled or their signing key to be enrolled.
 
@@ -36,7 +36,7 @@ GNOME starts with desktop icons, AppIndicator support, dynamic Blur My Shell, th
 
 ## Packages and updates
 
-Fedora and Fedora Updates provide the base system. RPM Fusion provides multimedia codecs and nonfree hardware packages. The desktop includes Bazaar as its Flatpak app store and InfinityUpdater for daily RPM and Flatpak update checks. It also includes FFmpeg, GNOME Files archive integration, UnRAR, 7-Zip, TLP, and purple folder icons. Microsoft Core Fonts are downloaded and checksum-verified on the installed machine after network access is available; font files are not distributed in the image. Infinity OS builds `infinity-launcher` and `infinity-terminal` as signed RPMs and publishes them through its own DNF repository. See [`packages/README.md`](packages/README.md) for the build, signing, and release flow. Docker CE uses Docker's official Fedora repository when selected in InfinityLauncher.
+Fedora and Fedora Updates provide the base system. RPM Fusion provides multimedia codecs and nonfree hardware packages. The desktop includes Bazaar as its Flatpak app store, Proview as the default PDF and image viewer, and InfinityUpdater for daily RPM and Flatpak update checks. It also includes FFmpeg, GNOME Files archive integration, UnRAR, 7-Zip, TLP, and purple folder icons. IBM Plex Sans is the default from the installer and login screen through the desktop. Microsoft Core Fonts are downloaded and checksum-verified on the installed machine after network access is available; their font files are not distributed in the image. Infinity OS builds `infinity-launcher` and `infinity-terminal` as signed RPMs and publishes them through its own DNF repository. See [`packages/README.md`](packages/README.md) for the build, signing, and release flow. Docker CE uses Docker's official Fedora repository when selected in InfinityLauncher.
 
 Firefox enables Encrypted Media Extensions through an unlocked system policy and obtains supported Widevine modules from Mozilla/Google on compatible platforms. On ARM64, where Firefox's Linux Widevine distribution is still pending, a first-boot timer installs Google's native ARM64 Chrome from Flathub as a DRM-capable fallback. Firefox remains the default browser. Chrome and its Widevine component update through their normal upstream/Flatpak mechanisms; Infinity OS does not redistribute CDM binaries. PlayReady and FairPlay are not provided as general-purpose Linux desktop browser modules. Streaming services can impose their own browser, resolution, or hardware requirements.
 

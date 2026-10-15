@@ -1,4 +1,12 @@
 [Default Applications]
+application/pdf=org.infinityos.Proview.desktop
+image/png=org.infinityos.Proview.desktop
+image/jpeg=org.infinityos.Proview.desktop
+image/webp=org.infinityos.Proview.desktop
+image/gif=org.infinityos.Proview.desktop
+image/bmp=org.infinityos.Proview.desktop
+image/tiff=org.infinityos.Proview.desktop
+image/svg+xml=org.infinityos.Proview.desktop
 text/html=firefox.desktop
 x-scheme-handler/http=firefox.desktop
 x-scheme-handler/https=firefox.desktop

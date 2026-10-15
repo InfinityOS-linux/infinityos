@@ -33,6 +33,9 @@ EOF
 	printf 'Infinity OS 44\n' > /etc/issue
 	printf 'Infinity OS 44\n' > /etc/issue.net
 	chmod 0644 /etc/os-release /etc/issue /etc/issue.net
+	if rpm -q mediawriter >/dev/null 2>&1; then
+		dnf -y remove mediawriter
+	fi
 	if command -v plymouth-set-default-theme >/dev/null; then
 		for image in bullet capslock entry keyboard keymap-render lock; do
 			cp -f "/usr/share/plymouth/themes/spinner/$image.png" /usr/share/plymouth/themes/infinityos/
@@ -62,7 +65,12 @@ EOF
 	printf 'XCURSOR_THEME=Bibata-Modern-Ice\n' > /etc/environment.d/90-infinityos-cursor.conf
 	# Image overlays can make Oh My Zsh directories group-writable, which disables completions.
 	chmod -R go-w /usr/share/oh-my-zsh
+	/usr/libexec/infinityos-install-iosevka
+	GITSTATUS_CACHE_DIR=/usr/share/oh-my-zsh/custom/themes/powerlevel10k/gitstatus/usrbin \
+		/usr/share/oh-my-zsh/custom/themes/powerlevel10k/gitstatus/install
+	chmod 0755 /usr/share/oh-my-zsh/custom/themes/powerlevel10k/gitstatus/usrbin
 	install -m 0644 /usr/share/infinityos/zshrc /etc/skel/.zshrc
+	fc-cache -f
 	install -d /etc/skel/.config/gtk-4.0
 	ln -sfn /usr/share/infinityos/gtk4-adaptive.css /etc/skel/.config/gtk-4.0/gtk.css
 	install -D -m 0644 /usr/share/infinityos/gnome-defaults /etc/dconf/db/local.d/00-infinityos
@@ -70,6 +78,7 @@ EOF
 	install -D -m 0644 /usr/share/infinityos/repos/docker-ce.repo /etc/yum.repos.d/docker-ce.repo
 	install -D -m 0644 /usr/share/infinityos/repos/rounded-blur.repo /etc/yum.repos.d/rounded-blur.repo
 	install -D -m 0644 /usr/share/infinityos/mimeapps.list /etc/xdg/mimeapps.list
+	/usr/libexec/infinityos-install-proview
 	# systemd applies vendor presets on the first boot of an image with an
 	# uninitialized machine-id. Preserve the services enabled below.
 	cat > /usr/lib/systemd/system-preset/00-infinityos.preset << 'EOF'
@@ -108,7 +117,7 @@ EOF
 	dconf update
 	# KIWI runs with a restrictive umask; the initial-setup account must read
 	# this compiled database to get the Infinity OS wallpaper and dark theme.
-	chmod 0644 /etc/dconf/db/infinityos-initial-setup
+	chmod 0644 /etc/dconf/db/infinityos-initial-setup /etc/dconf/db/gdm /etc/dconf/db/local
 	useradd -D -s /usr/bin/zsh
 	if id liveuser &>/dev/null; then
 		usermod -s /usr/bin/zsh liveuser
@@ -129,10 +138,25 @@ enable snapper-cleanup.timer
 EOF
 	fi
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Live"* ]]; then
+		welcome=/usr/share/anaconda/gnome/fedora-welcome
+		welcome_desktop=/usr/share/anaconda/gnome/org.fedoraproject.welcome-screen.desktop
+		test -f "$welcome" && test -f "$welcome_desktop"
+		if ! grep -q "iconName: 'infinityos-logo'" "$welcome"; then
+			grep -q "iconName: 'fedora-logo-icon'" "$welcome"
+			sed -i "s/iconName: 'fedora-logo-icon'/iconName: 'infinityos-logo'/" "$welcome"
+		fi
+		sed -i -e 's/^Name=Welcome to Fedora$/Name=Welcome to Infinity OS/' \
+			-e 's/^Icon=fedora-logo-icon$/Icon=infinityos-logo/' \
+			-e '/^Name\[/d' "$welcome_desktop"
 		# Live media mounts its root dynamically; disk-image UUIDs must not reach the ISO.
 		: > /etc/fstab
 		# PatternFly's dark token set is selected on the document root.
 		sed -i 's/<html lang="en">/<html lang="en" class="pf-v6-theme-dark">/' /usr/share/cockpit/anaconda-webui/index.html
+		grep -q '</head>' /usr/share/cockpit/anaconda-webui/index.html
+		if ! grep -q 'infinityos-font.css' /usr/share/cockpit/anaconda-webui/index.html; then
+			sed -i 's@</head>@<link rel="stylesheet" href="infinityos-font.css"></head>@' \
+				/usr/share/cockpit/anaconda-webui/index.html
+		fi
 		if [[ "$(uname -m)" == "x86_64" ]]; then
 			# Detect the target PC while Anaconda still has access to its PCI devices.
 			# A failed network download is retried after installation at boot.
