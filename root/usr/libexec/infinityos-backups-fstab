@@ -1,0 +1,21 @@
+#!/bin/bash
+set -euo pipefail
+
+fstab=${1:?Pass the target fstab}
+uuid=${2:?Pass the Btrfs UUID}
+tmp=$(mktemp "${fstab}.XXXXXX")
+trap 'rm -f "$tmp"' EXIT
+
+awk '
+  $2 == "/" && $3 == "btrfs" {
+    count = split($4, options, ",")
+    result = ""
+    for (i = 1; i <= count; i++)
+      if (options[i] != "subvol=root" && options[i] !~ /^subvolid=/)
+        result = result (result == "" ? "" : ",") options[i]
+    $4 = result
+  }
+  $2 != "/.snapshots" { print }
+' "$fstab" > "$tmp"
+printf 'UUID=%s /.snapshots btrfs defaults,compress=zstd:1,subvol=infinityos-snapshots 0 0\n' "$uuid" >> "$tmp"
+cat "$tmp" > "$fstab"

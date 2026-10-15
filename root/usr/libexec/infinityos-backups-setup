@@ -1,0 +1,54 @@
+#!/bin/bash
+set -euo pipefail
+
+[[ $(findmnt -n -o FSTYPE /) == btrfs ]] || exit 0
+[[ -e /etc/snapper/configs/root ]] || { echo 'Snapper root configuration is missing' >&2; exit 1; }
+device=$(findmnt -n -o SOURCE /)
+device=${device%%\[*}
+uuid=$(blkid -s UUID -o value "$device")
+top=$(mktemp -d)
+cleanup() { mountpoint -q "$top" && umount "$top"; rmdir "$top"; }
+trap cleanup EXIT
+mount -o subvolid=5 "$device" "$top"
+
+if [[ ! -e $top/infinityos-snapshots ]]; then
+	[[ -d $top/root/.snapshots ]] || { echo 'Missing Snapper snapshots subvolume' >&2; exit 1; }
+	mv "$top/root/.snapshots" "$top/infinityos-snapshots"
+	mkdir "$top/root/.snapshots"
+fi
+mkdir -p /.snapshots "$top/infinityos-roots"
+/usr/libexec/infinityos-backups-fstab /etc/fstab "$uuid"
+if ! mountpoint -q /.snapshots; then mount /.snapshots; fi
+snapper -c root list >/dev/null
+
+# The default-subvolume switch is atomic. Both regular and Backups boot entries
+# can then follow it without renaming a mounted root subvolume.
+root_id=$(btrfs inspect-internal rootid /)
+btrfs subvolume set-default "$root_id" "$top"
+if [[ -s /etc/kernel/cmdline ]]; then
+	cmdline=$(cat /etc/kernel/cmdline)
+else
+	cmdline=
+	for entry in /boot/efi/loader/entries/*.conf; do
+		[[ -f $entry ]] || continue
+		grep -Eq '^title[[:space:]]+Infinity OS' "$entry" || continue
+		cmdline=$(sed -n 's/^options[[:space:]]*//p' "$entry" | head -n 1)
+		break
+	done
+fi
+read -r -a args <<< "$cmdline"
+filtered=()
+for arg in "${args[@]}"; do
+	[[ $arg == rootflags=subvol=root ]] || filtered+=("$arg")
+done
+[[ ${#filtered[@]} -gt 0 ]] || { echo 'Missing kernel command line' >&2; exit 1; }
+printf '%s\n' "${filtered[*]}" > /etc/kernel/cmdline
+
+for entry in /boot/efi/loader/entries/*.conf; do
+	[[ -f $entry ]] || continue
+	grep -Eq '^title[[:space:]]+Infinity OS' "$entry" || continue
+	sed -i -E 's/(^| )rootflags=subvol=root( |$)/\1\2/g' "$entry"
+done
+install -d /var/lib/infinityos
+touch /var/lib/infinityos/backups-ready
+/usr/libexec/infinityos-backups-entry

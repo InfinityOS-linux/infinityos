@@ -134,9 +134,12 @@ EOF
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Disk"* ]]; then
 		# The build host's storage controller differs from the target VM or PC.
 		printf 'hostonly="no"\n' > /etc/dracut.conf.d/99-infinityos-generic.conf
-		systemctl enable infinityos-snapper-setup.service snapper-timeline.timer snapper-cleanup.timer
+		systemctl enable infinityos-snapper-setup.service infinityos-backups-setup.service infinityos-backups-entry.service infinityos-backups-entry.path snapper-timeline.timer snapper-cleanup.timer
 		cat >> /usr/lib/systemd/system-preset/00-infinityos.preset << 'EOF'
 enable infinityos-snapper-setup.service
+enable infinityos-backups-setup.service
+enable infinityos-backups-entry.service
+enable infinityos-backups-entry.path
 enable snapper-timeline.timer
 enable snapper-cleanup.timer
 EOF
