@@ -54,6 +54,10 @@ EOF
 	glib-compile-schemas /usr/share/gnome-shell/extensions/ding@rastersoft.com/schemas
 	glib-compile-schemas /usr/share/gnome-shell/extensions/wack-lockscreen-clock@rinzler69-wastaken.github.com/schemas
 	glib-compile-schemas /usr/share/gnome-shell/extensions/wack-shell@rinzler69-wastaken.github.com/schemas
+	chmod 0644 \
+		/usr/share/gnome-shell/extensions/ding@rastersoft.com/schemas/gschemas.compiled \
+		/usr/share/gnome-shell/extensions/wack-lockscreen-clock@rinzler69-wastaken.github.com/schemas/gschemas.compiled \
+		/usr/share/gnome-shell/extensions/wack-shell@rinzler69-wastaken.github.com/schemas/gschemas.compiled
 	install -d /etc/skel/Desktop /etc/environment.d
 	printf 'XCURSOR_THEME=Bibata-Modern-Ice\n' > /etc/environment.d/90-infinityos-cursor.conf
 	# Image overlays can make Oh My Zsh directories group-writable, which disables completions.
@@ -66,6 +70,20 @@ EOF
 	install -D -m 0644 /usr/share/infinityos/repos/docker-ce.repo /etc/yum.repos.d/docker-ce.repo
 	install -D -m 0644 /usr/share/infinityos/repos/rounded-blur.repo /etc/yum.repos.d/rounded-blur.repo
 	install -D -m 0644 /usr/share/infinityos/mimeapps.list /etc/xdg/mimeapps.list
+	# systemd applies vendor presets on the first boot of an image with an
+	# uninitialized machine-id. Preserve the services enabled below.
+	cat > /usr/lib/systemd/system-preset/00-infinityos.preset << 'EOF'
+enable systemd-resolved.service
+enable tlp.service
+enable tlp-pd.service
+enable infinityos-ramdrive.service
+enable infinityos-ramdrive-prepare.path
+enable infinityos-ramdrive-prepare.service
+enable infinityos-corefonts.service
+enable infinityos-corefonts.timer
+enable infinityos-repo-trust.service
+enable infinityos-bazaar-install.timer
+EOF
 	install -d /etc/gnome-initial-setup
 	cat > /etc/gnome-initial-setup/vendor.conf << 'EOF'
 [pages]
@@ -79,11 +97,12 @@ EOF
 	install -D -m 0644 /usr/share/infinityos/performance/75-infinityos-network.conf /etc/sysctl.d/75-infinityos-network.conf
 	install -D -m 0644 /usr/share/infinityos/performance/80-infinityos-inotify.conf /etc/sysctl.d/80-infinityos-inotify.conf
 	install -D -m 0644 /usr/share/infinityos/performance/60-infinityos-ioschedulers.rules /etc/udev/rules.d/60-infinityos-ioschedulers.rules
-	systemctl enable systemd-resolved.service tlp.service tlp-pd.service switcheroo-control.service infinityos-ramdrive.service infinityos-ramdrive-prepare.path infinityos-corefonts.service infinityos-corefonts.timer infinityos-repo-trust.service
+	systemctl enable systemd-resolved.service tlp.service tlp-pd.service switcheroo-control.service infinityos-ramdrive.service infinityos-ramdrive-prepare.path infinityos-ramdrive-prepare.service infinityos-corefonts.service infinityos-corefonts.timer infinityos-repo-trust.service
 	if [[ "$(uname -m)" == "aarch64" ]]; then
 		# Firefox's Linux ARM64 Widevine delivery is not enabled upstream yet.
 		# Install Google's native ARM64 Chrome as a DRM-capable fallback after boot.
 		systemctl enable infinityos-drm-browser.timer
+		printf 'enable infinityos-drm-browser.timer\n' >> /usr/lib/systemd/system-preset/00-infinityos.preset
 	fi
 	printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
 	dconf update
@@ -100,6 +119,11 @@ EOF
 		# The build host's storage controller differs from the target VM or PC.
 		printf 'hostonly="no"\n' > /etc/dracut.conf.d/99-infinityos-generic.conf
 		systemctl enable infinityos-snapper-setup.service snapper-timeline.timer snapper-cleanup.timer
+		cat >> /usr/lib/systemd/system-preset/00-infinityos.preset << 'EOF'
+enable infinityos-snapper-setup.service
+enable snapper-timeline.timer
+enable snapper-cleanup.timer
+EOF
 	fi
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Live"* ]]; then
 		# Live media mounts its root dynamically; disk-image UUIDs must not reach the ISO.
@@ -185,6 +209,13 @@ fi
 
 if [[ "$kiwi_profiles" == *"Live"* ]]; then
 	## Configure livesys session
+	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Live"* ]]; then
+		systemctl enable livesys.service livesys-late.service
+		cat >> /usr/lib/systemd/system-preset/00-infinityos.preset << 'EOF'
+enable livesys.service
+enable livesys-late.service
+EOF
+	fi
 	if [[ "$kiwi_profiles" == *"GNOME"* ]]; then
 		echo 'livesys_session="gnome"' > /etc/sysconfig/livesys
 	fi

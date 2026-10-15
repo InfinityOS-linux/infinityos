@@ -1,7 +1,11 @@
 [Unit]
 Description=Prepare protected RAMDrive storage for Infinity OS users
-After=local-fs.target
+After=local-fs.target livesys.service
+Before=display-manager.service
 
 [Service]
 Type=oneshot
 ExecStart=/usr/libexec/infinityos-ramdrive-prepare
+
+[Install]
+WantedBy=multi-user.target

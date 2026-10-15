@@ -33,7 +33,7 @@ fi
 %license /usr/share/licenses/infinityos-ramdrive/COPYING
 /usr/libexec/infinityos-ramdrive
 /usr/libexec/infinityos-ramdrive-shutdown
-/usr/libexec/infinityos-ramdrive-guard
+%attr(0755,root,root) /usr/libexec/infinityos-ramdrive-guard
 /usr/libexec/infinityos-ramdrive-prepare
 /usr/lib/systemd/system/infinityos-ramdrive.service
 /usr/lib/systemd/system/infinityos-ramdrive-prepare.service
