@@ -83,10 +83,21 @@ if [ "$image_type" = "iso" ]; then
 	kiwibuild_extra_args="${kiwibuild_extra_args:+${kiwibuild_extra_args}} ${kiwibuild_iso_extra_args}"
 fi
 
+kiwibuild_prepared_root=
+if [[ "$image_profile" == Infinity-GNOME-Live && "$image_type" == iso && -z "$kiwi_isolated" ]]; then
+	# A reused root can contain partial RPM transactions or old Infinity apps.
+	# Prepare only a new directory and let KIWI install the image packages.
+	if [[ -e "${output_dir}-build" ]]; then
+		echo "Refusing an existing Infinity OS build directory: ${output_dir}-build" >&2
+		exit 1
+	fi
+	"${kiwibuild_scriptdir}/scripts/prepare-infinity-bootstrap" "${output_dir}-build/build/image-root"
+	kiwibuild_prepared_root=--allow-existing-root
+fi
 
 set +e
 if [ -z "$kiwi_isolated" ]; then
-	kiwi-ng ${debug} --type="${image_type}" --profile="${image_profile}" --kiwi-file="${kiwi_file}" --color-output system build --description "${kiwi_description_dir}" --target-dir "${output_dir}-build" ${kiwibuild_extra_args:+${kiwibuild_extra_args}}
+	kiwi-ng ${debug} --type="${image_type}" --profile="${image_profile}" --kiwi-file="${kiwi_file}" --color-output system build --description "${kiwi_description_dir}" --target-dir "${output_dir}-build" ${kiwibuild_prepared_root:+$kiwibuild_prepared_root} ${kiwibuild_extra_args:+${kiwibuild_extra_args}}
 else
 	kiwi-ng ${debug} --type="${image_type}" --profile="${image_profile}" --kiwi-file="${kiwi_file}" --color-output system boxbuild --box universal -- --description "${kiwi_description_dir}" --target-dir "${output_dir}-build" ${kiwibuild_extra_args:+${kiwibuild_extra_args}}
 fi

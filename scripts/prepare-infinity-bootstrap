@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root=$(realpath -m "${1:?Pass the new KIWI image-root path}")
+[[ ! -e $root ]] || {
+	echo "Refusing to reuse an existing build root: $root" >&2
+	exit 1
+}
+[[ $(rpm --eval '%{fedora}') == 44 ]] || {
+	echo 'Build Infinity OS 44 on a Fedora 44 host.' >&2
+	exit 1
+}
+
+# DNF in KIWI's empty installroot can run Fedora 44 RPM %sysusers hooks before
+# systemd-sysusers is available. Install the exact bootstrap group first with
+# the host DNF configuration, then let KIWI continue from this fresh root.
+install -d "$root/usr/bin" "$root/usr/sbin" "$root/usr/lib" "$root/usr/lib64"
+ln -s usr/bin "$root/bin"
+ln -s usr/sbin "$root/sbin"
+ln -s usr/lib "$root/lib"
+ln -s usr/lib64 "$root/lib64"
+
+dnf5 -y --use-host-config --disablerepo='*' --enablerepo=fedora --enablerepo=updates \
+	--installroot "$root" --releasever=44 \
+	--setopt=group_package_types=default,mandatory,conditional \
+	install dnf5 filesystem generic-release grubby systemd-sysusers gawk @anaconda-tools
+
+systemd-sysusers --root="$root"
+rpm --root "$root" -q filesystem generic-release systemd-sysusers >/dev/null
+for package in fedora-release fedora-release-workstation fedora-logos fedora-release-notes; do
+	if rpm --root "$root" -q "$package" >/dev/null 2>&1; then
+		echo "Fedora identity package found in bootstrap root: $package" >&2
+		exit 1
+	fi
+done
