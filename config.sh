@@ -138,6 +138,17 @@ enable snapper-cleanup.timer
 EOF
 	fi
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Live"* ]]; then
+		# Anaconda selects its profile from os-release. With ID=infinityos it
+		# otherwise falls back to EFI/default, where the packaged shim is absent.
+		test -f /etc/anaconda/profile.d/infinityos.conf
+		chmod 0644 /etc/anaconda/profile.d/infinityos.conf
+		cat > /.buildstamp << 'EOF'
+[Main]
+Product=Infinity OS
+Version=44
+IsFinal=False
+EOF
+		chmod 0644 /.buildstamp
 		welcome=/usr/share/anaconda/gnome/fedora-welcome
 		welcome_desktop=/usr/share/anaconda/gnome/org.fedoraproject.welcome-screen.desktop
 		test -f "$welcome" && test -f "$welcome_desktop"
