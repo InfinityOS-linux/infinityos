@@ -59,6 +59,7 @@
 		<package name="zram-generator"/>
 		<package name="tlp"/>
 		<package name="tlp-pd"/>
+		<ignore name="power-profiles-daemon"/>
 		<package name="switcheroo-control"/>
 		<package name="mangohud"/>
 		<package name="gamescope"/>
