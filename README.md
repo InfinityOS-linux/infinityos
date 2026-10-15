@@ -83,7 +83,9 @@ Infinity OS ISO. Run `sudo scripts/verify-infinity-iso IMAGE.iso` again after
 copying an image to another machine. An ISO from an old prepared root fails
 this check. On Fedora 44 the wrapper also prepares a fresh bootstrap root with
 Fedora DNF before KIWI installs the rest of the live image, so RPM `sysusers`
-hooks have their interpreter available. An existing output directory is refused.
+hooks have their interpreter available. It also stages the Fedora, RPM Fusion,
+Infinity OS, and COPR signing keys before KIWI validates package repositories.
+An existing output directory is refused.
 
 Build a writable disk image:
 

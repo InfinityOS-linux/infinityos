@@ -2,6 +2,7 @@
 set -euo pipefail
 
 root=$(realpath -m "${1:?Pass the new KIWI image-root path}")
+source_dir=$(cd "$(dirname "$0")/.." && pwd)
 [[ ! -e $root ]] || {
 	echo "Refusing to reuse an existing build root: $root" >&2
 	exit 1
@@ -23,10 +24,21 @@ ln -s usr/lib64 "$root/lib64"
 dnf5 -y --use-host-config --disablerepo='*' --enablerepo=fedora --enablerepo=updates \
 	--installroot "$root" --releasever=44 \
 	--setopt=group_package_types=default,mandatory,conditional \
-	install dnf5 filesystem generic-release grubby systemd-sysusers gawk @anaconda-tools
+	install dnf5 filesystem generic-release grubby systemd-sysusers gawk distribution-gpg-keys @anaconda-tools
 
 systemd-sysusers --root="$root"
-rpm --root "$root" -q filesystem generic-release systemd-sysusers >/dev/null
+rpm --root "$root" -q filesystem generic-release systemd-sysusers distribution-gpg-keys >/dev/null
+for key in RPM-GPG-KEY-infinityos RPM-GPG-KEY-ublue-os-packages; do
+	install -Dm0644 "$source_dir/root/etc/pki/rpm-gpg/$key" "$root/etc/pki/rpm-gpg/$key"
+done
+for key in \
+	"$root/etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos" \
+	"$root/etc/pki/rpm-gpg/RPM-GPG-KEY-ublue-os-packages" \
+	"$root/usr/share/distribution-gpg-keys/fedora/RPM-GPG-KEY-fedora-44-primary" \
+	"$root/usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-free-fedora-44" \
+	"$root/usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-nonfree-fedora-44"; do
+	[[ -f $key ]] || { echo "Missing build signing key: $key" >&2; exit 1; }
+done
 for package in fedora-release fedora-release-workstation fedora-logos fedora-release-notes; do
 	if rpm --root "$root" -q "$package" >/dev/null 2>&1; then
 		echo "Fedora identity package found in bootstrap root: $package" >&2
