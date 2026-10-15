@@ -1,9 +1,0 @@
-summary: Build GCP base image
-discover:
-    how: fmf
-environment:
-    image_type: oem
-    image_profile: Cloud-Base-GCE
-    kiwi_file: InfinityOS.kiwi
-execute:
-    how: tmt

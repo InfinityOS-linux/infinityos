@@ -1,9 +1,0 @@
-summary: Build Tiny disk image
-discover:
-    how: fmf
-environment:
-    image_type: oem
-    image_profile: Tiny-Disk
-    kiwi_file: InfinityOS.kiwi
-execute:
-    how: tmt

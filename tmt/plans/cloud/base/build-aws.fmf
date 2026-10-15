@@ -1,9 +1,0 @@
-summary: Build AWS EC2 base image
-discover:
-    how: fmf
-environment:
-    image_type: oem
-    image_profile: Cloud-Base-AmazonEC2
-    kiwi_file: InfinityOS.kiwi
-execute:
-    how: tmt

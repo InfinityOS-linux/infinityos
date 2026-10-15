@@ -1,9 +1,0 @@
-summary: Build UEFI UKI base image
-discover:
-    how: fmf
-environment:
-    image_type: oem
-    image_profile: Cloud-Base-UEFI-UKI
-    kiwi_file: InfinityOS.kiwi
-execute:
-    how: tmt

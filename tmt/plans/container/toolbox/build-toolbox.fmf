@@ -1,9 +1,0 @@
-summary: Build Toolbox container image
-discover:
-    how: fmf
-environment:
-    image_type: oci
-    image_profile: Container-Toolbox
-    kiwi_file: InfinityOS.kiwi
-execute:
-    how: tmt

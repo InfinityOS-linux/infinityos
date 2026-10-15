@@ -1,8 +1,21 @@
 # Infinity OS
 
-**A Fedora 44 remix with a writable GNOME desktop.** Infinity OS keeps Fedora's DNF package model and builds a distinct desktop around a dark purple identity, a drop-down terminal, and an application chooser for first login. This repository contains the KIWI image definition, desktop defaults, application sources, RPM packaging, and release pipeline.
+<img src="assets/infinityos-logo.svg" width="112" alt="Infinity OS logo">
 
-> **Project status:** active development. The ARM disk image is used in Parallels for desktop testing. Build and installation checks are required before publishing each new image. The same image definition supports `x86_64`, which needs an x86_64 build host or runner.
+**A Fedora 44 Remix built for a polished, personal desktop.** Infinity OS pairs a writable GNOME system with a distinctive purple design, a fast drop-down terminal, a first-run application chooser, and integrated updates. It uses Fedora's familiar DNF package model, so the desktop remains easy to customize and maintain.
+
+This repository is the source for the Infinity OS KIWI images, desktop configuration, InfinityLauncher, InfinityTerminal, InfinityUpdater, RPM packages, and build pipeline.
+
+> **Development status:** the current ARM image is being repaired and has not passed a complete boot and installation test. There is no verified public image release yet. An `x86_64` image requires a separate `x86_64` build host or runner and has not been produced from the current revision.
+
+**Infinity OS is an independent Fedora Remix. It is not provided, supported, or endorsed by the Fedora Project or Red Hat.** Official Fedora Linux is available at [fedoraproject.org](https://fedoraproject.org/).
+
+## Start here
+
+- [Build an image](#build-an-image) from a committed source revision.
+- [Package and RPM repository guide](packages/README.md) for application builds and signing.
+- [Third-party components](THIRD_PARTY.md) and [redistribution review](docs/REDISTRIBUTION.md) for sources, font licenses, codecs, and driver obligations.
+- [Contributing](CONTRIBUTING.md) and [security reporting](SECURITY.md).
 
 ## What ships
 
@@ -96,4 +109,4 @@ The systemd-boot **Backups** entry opens a text console for listing, creating, d
 
 ## Sources and licensing
 
-Infinity OS follows Fedora's [KIWI descriptions](https://forge.fedoraproject.org/releng/kiwi-descriptions) on the `f44` branch and retains their GPL-3.0-or-later license in [`COPYING`](COPYING). Fedora's `generic-release` and `generic-logos` packages replace Fedora's trademarked identity packages. See [`THIRD_PARTY.md`](THIRD_PARTY.md) for bundled component sources and licenses. Review the [Fedora Remix guidelines](https://fedoraproject.org/wiki/Remix) and local rules for codecs, RPM Fusion packages, and NVIDIA software before redistributing an image.
+Infinity OS is based on Fedora's [KIWI descriptions](https://forge.fedoraproject.org/releng/kiwi-descriptions) from the `f44` branch. Project-authored and Fedora-derived build code follows GPL-3.0-or-later in [`LICENSE`](LICENSE); bundled software, fonts, icons, and artwork retain their own licenses. See [`THIRD_PARTY.md`](THIRD_PARTY.md) for component attribution. The image definition requests `generic-release`, `generic-logos`, and `generic-release-notes` in place of Fedora's identity packages; the finished image still needs a package-manifest check before publication. The [redistribution review](docs/REDISTRIBUTION.md) records the Fedora Remix, RPM Fusion, codec, NVIDIA, font, and Proview conditions relevant to a release from Poland.

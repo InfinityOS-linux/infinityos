@@ -1,9 +1,0 @@
-summary: Build Generic guest image
-discover:
-    how: fmf
-environment:
-    image_type: oem
-    image_profile: Server-Guest-Generic
-    kiwi_file: InfinityOS.kiwi
-execute:
-    how: tmt
