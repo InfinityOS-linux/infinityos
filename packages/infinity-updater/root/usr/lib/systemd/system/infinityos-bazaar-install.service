@@ -1,5 +1,6 @@
 [Unit]
 Description=Install Bazaar app store from Flathub
+ConditionKernelCommandLine=!rd.live.image
 Wants=network-online.target
 After=network-online.target
 
