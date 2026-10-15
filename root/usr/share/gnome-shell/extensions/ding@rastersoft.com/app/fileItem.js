@@ -581,19 +581,29 @@ export var FileItem = class extends desktopIconItem.desktopIconItem {
         const dropTarget = new Gtk.DropTargetAsync();
         const validFormats = Gdk.ContentFormats.new(Enums.MIME_TYPES);
         dropTarget.set_actions(Gdk.DragAction.MOVE | Gdk.DragAction.COPY | Gdk.DragAction.ASK);
+        const setDropAction = drop => {
+            const actions = drop.get_actions() & (Gdk.DragAction.MOVE | Gdk.DragAction.COPY);
+            const preferred = drop.get_drag() && (actions & Gdk.DragAction.MOVE) ? Gdk.DragAction.MOVE :
+                (actions & Gdk.DragAction.COPY ? Gdk.DragAction.COPY :
+                    (actions & Gdk.DragAction.MOVE ? Gdk.DragAction.MOVE : 0));
+            drop.status(actions, preferred);
+            if (preferred)
+                dropDestination.set_cursor_from_name(preferred === Gdk.DragAction.MOVE ? 'dnd-move' : 'dnd-copy');
+            return preferred;
+        };
 
         this.connectSignal(dropTarget, 'drag-enter', (widget, drop) => {
-            drop.status(Gdk.DragAction.COPY | Gdk.DragAction.MOVE | Gdk.DragAction.LINK,
-                Gdk.DragAction.MOVE);
-            return Gdk.DragAction.MOVE;
+            return setDropAction(drop);
         });
 
         this.connectSignal(dropTarget, 'drag-motion', (widget, drop, x, y) => {
+            const preferred = setDropAction(drop);
             this.highLightDropTarget(x, y);
-            return Gdk.DragAction.MOVE;
+            return preferred;
         });
 
         this.connectSignal(dropTarget, 'drag-leave', () => {
+            dropDestination.set_cursor(null);
             this.unHighLightDropTarget();
         });
 

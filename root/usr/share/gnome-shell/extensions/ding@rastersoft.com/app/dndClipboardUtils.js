@@ -204,12 +204,17 @@ export function loadDragData({fileList, specialFilesSelected}) {
  * @param {Gdk.Drop} drop
  */
 export async function manageIconDrop(fileItem, drop) {
-    let gdkDropAction = drop.get_actions();
-    if (!Gdk.DragAction.is_unique(gdkDropAction)) {
-        if (((gdkDropAction & Gdk.DragAction.COPY) !== 0) && ((gdkDropAction & Gdk.DragAction.MOVE) !== 0))
-            gdkDropAction = Gdk.DragAction.ASK;
+    const allowedActions = drop.get_actions() & (Gdk.DragAction.MOVE | Gdk.DragAction.COPY);
+    const selectedAction = drop.get_drag()?.get_selected_action();
+    const gdkDropAction = (selectedAction === Gdk.DragAction.MOVE || selectedAction === Gdk.DragAction.COPY) &&
+        (allowedActions & selectedAction) ? selectedAction :
+        (drop.get_drag() && (allowedActions & Gdk.DragAction.MOVE) ? Gdk.DragAction.MOVE :
+            (allowedActions & Gdk.DragAction.COPY ? Gdk.DragAction.COPY :
+                (allowedActions & Gdk.DragAction.MOVE ? Gdk.DragAction.MOVE : 0)));
+    if (!gdkDropAction) {
+        drop.finish(0);
+        return null;
     }
-    const gdkReturnAction = Gdk.DragAction.COPY;
 
     try {
         const [dropData, mimetype] = await drop.read_async_promise(Enums.MIME_TYPES, GLib.PRIORITY_DEFAULT, null);
@@ -240,7 +245,7 @@ export async function manageIconDrop(fileItem, drop) {
             console.log(`Unknown mime type for DnD: ${mimetype}`);
             break;
         }
-        drop.finish(gdkReturnAction);
+        drop.finish(gdkDropAction);
         return {
             'action': gdkDropAction,
             mimetype,
