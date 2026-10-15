@@ -1,5 +1,5 @@
 [copr:copr.fedorainfracloud.org:ublue-os:packages]
-name=GNOME Rounded Blur for Fedora $releasever - $basearch
+name=GNOME Rounded Blur for Infinity OS $releasever - $basearch
 baseurl=https://download.copr.fedorainfracloud.org/results/ublue-os/packages/fedora-$releasever-$basearch/
 enabled=1
 includepkgs=gnome-rounded-blur
