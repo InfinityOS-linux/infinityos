@@ -124,6 +124,10 @@ EOF
 	fi
 	printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
 	dconf update
+	# GPaste requests global shortcut access even when every shortcut is blank.
+	# Keep its apps available, but start the daemon only when a user opens them.
+	printf 'disable org.gnome.GPaste.service\n' > /usr/lib/systemd/user-preset/00-infinityos.preset
+	systemctl --global disable org.gnome.GPaste.service
 	# KIWI runs with a restrictive umask; the initial-setup account must read
 	# this compiled database to get the Infinity OS wallpaper and dark theme.
 	chmod 0644 /etc/dconf/db/infinityos-initial-setup /etc/dconf/db/gdm /etc/dconf/db/local

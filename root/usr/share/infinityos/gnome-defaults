@@ -1,5 +1,5 @@
 [org/gnome/shell]
-enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'GPaste@gnome-shell-extensions.gnome.org', 'ghostty@infinityos.org', 'infinity-updater@infinityos.org', 'wack-lockscreen-clock@rinzler69-wastaken.github.com', 'wack-shell@rinzler69-wastaken.github.com']
+enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'ghostty@infinityos.org', 'infinity-updater@infinityos.org', 'wack-lockscreen-clock@rinzler69-wastaken.github.com', 'wack-shell@rinzler69-wastaken.github.com']
 favorite-apps=['org.mozilla.firefox.desktop', 'infinity-launcher.desktop', 'org.infinityos.Updater.desktop', 'com.infinityos.GhosTTY.desktop', 'org.gnome.Calendar.desktop']
 
 [org/gnome/software]
