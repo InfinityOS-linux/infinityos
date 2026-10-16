@@ -56,6 +56,9 @@ EOF
 	tar -xOf /usr/share/infinityos/kora-v2.0.6.tar.gz kora-2.0.6/LICENSE > /usr/share/licenses/kora/LICENSE
 	rm /usr/share/infinityos/kora-v2.0.6.tar.gz
 	gtk-update-icon-cache -f -q /usr/share/icons/kora
+	# The welcome screen resolves this icon through GTK's hicolor cache.
+	# The source overlay installs it after Fedora generated the original cache.
+	gtk-update-icon-cache -f -q /usr/share/icons/hicolor
 	tar -xf /usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz -C /usr/share/icons
 	rm /usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz
 	glib-compile-schemas /usr/share/gnome-shell/extensions/ding@rastersoft.com/schemas
