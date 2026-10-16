@@ -2,23 +2,13 @@
 
 set default="1"
 
-if [ "$$grub_platform" == "efi" ]; then
-	function load_video {
-		insmod efi_gop
-		insmod efi_uga
-		insmod video_bochs
-		insmod video_cirrus
-		insmod all_video
-	}
+if [ "$$grub_platform" = "efi" ]; then
 	set basicgfx="nomodeset"
 else
-	function load_video {
-		insmod all_video
-	}
 	set basicgfx="nomodeset vga=791"
 fi
 
-load_video
+insmod all_video
 set gfxpayload=keep
 insmod gzio
 insmod part_gpt
