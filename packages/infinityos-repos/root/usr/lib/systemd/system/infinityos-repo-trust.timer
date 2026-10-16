@@ -1,0 +1,10 @@
+[Unit]
+Description=Retry Infinity OS repository trust setup after boot
+
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=30min
+Unit=infinityos-repo-trust.service
+
+[Install]
+WantedBy=timers.target

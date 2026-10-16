@@ -21,8 +21,9 @@ signature trust for unattended system updates.
 cp -a etc usr %{buildroot}/
 
 %post
-if [ "$1" -eq 1 ] && [ -d /run/systemd/system ]; then
-    systemctl enable infinityos-repo-trust.service >/dev/null 2>&1 || :
+if [ -d /run/systemd/system ]; then
+    systemctl disable infinityos-repo-trust.service >/dev/null 2>&1 || :
+    systemctl enable infinityos-repo-trust.timer >/dev/null 2>&1 || :
 fi
 
 %files
@@ -31,6 +32,7 @@ fi
 %config(noreplace) /etc/yum.repos.d/infinityos.repo
 /etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos
 /usr/lib/systemd/system/infinityos-repo-trust.service
+/usr/lib/systemd/system/infinityos-repo-trust.timer
 
 %changelog
 * Wed Oct 14 2026 Infinity OS Contributors <noreply@gitlab.com> - 1.0.0-1

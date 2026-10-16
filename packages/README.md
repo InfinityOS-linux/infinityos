@@ -31,7 +31,7 @@ To publish another Infinity OS application, add its RPM spec and source, add CI 
 
 Push changes to protected `main` to run the GitLab pipeline. It builds the launcher, updater, wallpapers, repository configuration package and both terminal architectures, signs the RPMs and `repomd.xml` with the protected `RPM_SIGNING_KEY_B64` CI variable, and publishes each architecture to [Infinity OS Pages](https://infinityos-ca177d.gitlab.io/rpm/44/). The CI pipeline IID is the RPM release number, so a successful new build produces an upgrade. The public key fingerprint is `0CEB C668 0F0E F50B D376 CBB0 3471 5734 8035 14AC`. The public key is bundled with the image in `root/etc/pki/rpm-gpg/`.
 
-Infinity OS installs `infinityos-repos`, which owns the DNF configuration and public key. A one-time service imports trust for signed repository metadata at first boot; it retries on the next boot if the network is unavailable. InfinityUpdater checks RPM and Flatpak updates daily and offers installation from its GNOME panel icon. Bazaar replaces GNOME Software and is installed system-wide from Flathub when networking is available. Existing installations can add the same repo file and key from this source tree, then run:
+Infinity OS installs `infinityos-repos`, which owns the DNF configuration and public key. A timer initializes trust for signed repository metadata after boot and retries while the network is unavailable. InfinityUpdater checks RPM and Flatpak updates daily and offers installation from its GNOME panel icon. Bazaar replaces GNOME Software and is installed system-wide from Flathub when networking is available. Existing installations can add the same repo file and key from this source tree, then run:
 
 ```sh
 sudo dnf -y --refresh makecache --repo infinityos

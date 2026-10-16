@@ -9,3 +9,12 @@ document-font-name='IBM Plex Sans 11'
 picture-uri='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'
 picture-uri-dark='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'
 picture-options='zoom'
+
+[org/gnome/GPaste]
+launch-ui=''
+make-password=''
+pop=''
+show-history=''
+sync-clipboard-to-primary=''
+sync-primary-to-clipboard=''
+upload=''

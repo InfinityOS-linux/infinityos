@@ -92,9 +92,10 @@ enable tlp-pd.service
 enable infinityos-ramdrive.service
 enable infinityos-ramdrive-prepare.path
 enable infinityos-ramdrive-prepare.service
-enable infinityos-corefonts.service
 enable infinityos-corefonts.timer
-enable infinityos-repo-trust.service
+enable infinityos-repo-trust.timer
+disable infinityos-corefonts.service
+disable infinityos-repo-trust.service
 enable infinityos-bazaar-install.timer
 EOF
 	install -d /etc/gnome-initial-setup
@@ -110,7 +111,8 @@ EOF
 	install -D -m 0644 /usr/share/infinityos/performance/75-infinityos-network.conf /etc/sysctl.d/75-infinityos-network.conf
 	install -D -m 0644 /usr/share/infinityos/performance/80-infinityos-inotify.conf /etc/sysctl.d/80-infinityos-inotify.conf
 	install -D -m 0644 /usr/share/infinityos/performance/60-infinityos-ioschedulers.rules /etc/udev/rules.d/60-infinityos-ioschedulers.rules
-	systemctl enable systemd-resolved.service tlp.service tlp-pd.service switcheroo-control.service infinityos-ramdrive.service infinityos-ramdrive-prepare.path infinityos-ramdrive-prepare.service infinityos-corefonts.service infinityos-corefonts.timer infinityos-repo-trust.service
+	systemctl disable infinityos-corefonts.service infinityos-repo-trust.service
+	systemctl enable systemd-resolved.service tlp.service tlp-pd.service switcheroo-control.service infinityos-ramdrive.service infinityos-ramdrive-prepare.path infinityos-ramdrive-prepare.service infinityos-corefonts.timer infinityos-repo-trust.timer
 	if [[ "$(uname -m)" == "aarch64" ]]; then
 		# Firefox's Linux ARM64 Widevine delivery is not enabled upstream yet.
 		# Install Google's native ARM64 Chrome as a DRM-capable fallback after boot.
