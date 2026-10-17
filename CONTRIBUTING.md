@@ -2,6 +2,8 @@
 
 Infinity OS welcomes focused fixes, documentation, translations, and improvements to its desktop applications. Open an issue before starting a large change so the approach can be discussed.
 
+Have a question or an early idea? Join the [InfinityOS Discord community](https://discord.gg/QA8N3XKsH8). Keep actionable bug reports and proposed code changes in GitLab issues and merge requests so they remain easy to track.
+
 1. Fork the project and create a branch for one change.
 2. Keep image configuration, RPM packaging, and documentation in sync. A change to an application that ships as an RPM needs a matching package build before an image can be verified.
 3. Run relevant focused tests from `tests/` and check shell syntax for changed scripts. If the change affects boot, installation, or hardware support, describe the hardware or VM used for verification.

@@ -13,6 +13,7 @@ This repository is the source for the Infinity OS KIWI images, desktop configura
 ## Start here
 
 - [Download Infinity OS 44.0](https://infinityos.eu/).
+- [Join the InfinityOS Discord community](https://discord.gg/QA8N3XKsH8) for help, ideas, and release discussion.
 - [Build an image](#build-an-image) from a committed source revision.
 - [Package and RPM repository guide](packages/README.md) for application builds and signing.
 - [Third-party components](THIRD_PARTY.md) and [redistribution review](docs/REDISTRIBUTION.md) for sources, font licenses, codecs, and driver obligations.
