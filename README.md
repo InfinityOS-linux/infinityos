@@ -6,12 +6,13 @@
 
 This repository is the source for the Infinity OS KIWI images, desktop configuration, InfinityLauncher, InfinityTerminal, InfinityUpdater, RPM packages, and build pipeline.
 
-> **Development status:** the current ARM image is being repaired and has not passed a complete boot and installation test. There is no verified public image release yet. An `x86_64` image requires a separate `x86_64` build host or runner and has not been produced from the current revision.
+**Infinity OS 44.0 is out.** The first release includes `x86_64` and `aarch64` ISO images. Visit [infinityos.eu](https://infinityos.eu/) or get the images from the [download folder](https://mega.nz/folder/vx50XZrT#wjqKyqmFacFjPK8I4vNcxw).
 
 **Infinity OS is an independent Fedora Remix. It is not provided, supported, or endorsed by the Fedora Project or Red Hat.** Official Fedora Linux is available at [fedoraproject.org](https://fedoraproject.org/).
 
 ## Start here
 
+- [Download Infinity OS 44.0](https://infinityos.eu/).
 - [Build an image](#build-an-image) from a committed source revision.
 - [Package and RPM repository guide](packages/README.md) for application builds and signing.
 - [Third-party components](THIRD_PARTY.md) and [redistribution review](docs/REDISTRIBUTION.md) for sources, font licenses, codecs, and driver obligations.
@@ -113,4 +114,4 @@ The systemd-boot **Backups** entry opens a text console for listing, creating, d
 
 ## Sources and licensing
 
-Infinity OS is based on Fedora's [KIWI descriptions](https://forge.fedoraproject.org/releng/kiwi-descriptions) from the `f44` branch. Project-authored and Fedora-derived build code follows GPL-3.0-or-later in [`LICENSE`](LICENSE); bundled software, fonts, icons, and artwork retain their own licenses. See [`THIRD_PARTY.md`](THIRD_PARTY.md) for component attribution. The image definition requests `generic-release`, `generic-logos`, and `generic-release-notes` in place of Fedora's identity packages; the finished image still needs a package-manifest check before publication. The [redistribution review](docs/REDISTRIBUTION.md) records the Fedora Remix, RPM Fusion, codec, NVIDIA, font, and Proview conditions relevant to a release from Poland.
+Infinity OS is based on Fedora's [KIWI descriptions](https://forge.fedoraproject.org/releng/kiwi-descriptions) from the `f44` branch. Project-authored and Fedora-derived build code follows GPL-3.0-or-later in [`LICENSE`](LICENSE); bundled software, fonts, icons, and artwork retain their own licenses. See [`THIRD_PARTY.md`](THIRD_PARTY.md) for component attribution. The image definition requests `generic-release`, `generic-logos`, and `generic-release-notes` in place of Fedora's identity packages. Review the finished image's package manifest for each new release. The [redistribution review](docs/REDISTRIBUTION.md) records the Fedora Remix, RPM Fusion, codec, NVIDIA, font, and Proview conditions relevant to a release from Poland.
