@@ -15,6 +15,7 @@
 
 .icon-item {
     padding: 4px;
+    transition: opacity 160ms ease-out;
 }
 
 .file-item {
@@ -23,6 +24,16 @@
     border-style: solid;
     border-width: 3px;
     border-color: rgba(0, 0, 0, 0);
+    transition: background-color 180ms ease-out, border-color 180ms ease-out;
+}
+
+.file-item.file-item-opening {
+    background-color: rgba(140, 104, 235, 0.18);
+    border-color: rgba(205, 185, 255, 0.65);
+}
+
+.file-item-opening .icon-item {
+    opacity: 0.72;
 }
 
 .file-item-hover {

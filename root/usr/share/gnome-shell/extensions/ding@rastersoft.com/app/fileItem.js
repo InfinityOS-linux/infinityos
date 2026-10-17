@@ -716,6 +716,7 @@ export var FileItem = class extends desktopIconItem.desktopIconItem {
         if (!fileList)
             fileList = [];
 
+        this._showOpenFeedback();
         this._doOpenContext(this._getDefaultLaunchContext(timestamp), fileList);
     }
 

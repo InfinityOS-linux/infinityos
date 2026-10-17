@@ -57,6 +57,7 @@ export var desktopIconItem = class desktopIconItem extends SignalManager.SignalM
         this._dropCoordinates = null;
         this._destroyed = false;
         this._relativeX = 0.5;
+        this._openFeedbackTimeoutId = 0;
     }
 
     /** *********************
@@ -74,6 +75,10 @@ export var desktopIconItem = class desktopIconItem extends SignalManager.SignalM
 
     _destroy() {
         this._destroyed = true;
+        if (this._openFeedbackTimeoutId) {
+            GLib.source_remove(this._openFeedbackTimeoutId);
+            this._openFeedbackTimeoutId = 0;
+        }
         /* Regular file data */
         if (this._queryFileInfoCancellable) {
             this._queryFileInfoCancellable.cancel();
@@ -330,6 +335,21 @@ export var desktopIconItem = class desktopIconItem extends SignalManager.SignalM
 
     _doButtonOneReleased(controller) {
         controller.set_state(Gtk.EventSequenceState.CLAIMED);
+    }
+
+    _showOpenFeedback() {
+        if (!this.container || this._destroyed)
+            return;
+
+        if (this._openFeedbackTimeoutId)
+            GLib.source_remove(this._openFeedbackTimeoutId);
+
+        this.container.add_css_class('file-item-opening');
+        this._openFeedbackTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 180, () => {
+            this.container?.remove_css_class('file-item-opening');
+            this._openFeedbackTimeoutId = 0;
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     /** *********************
