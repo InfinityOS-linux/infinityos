@@ -69,16 +69,15 @@ class NvidiaInstallerTests(unittest.TestCase):
                              ("remove", "akmod-nvidia", "xorg-x11-drv-nvidia"))
             self.assertFalse((root / installer.MARKER).exists())
 
-    def test_non_nvidia_machine_drops_driver_from_installed_system(self):
+    def test_non_nvidia_machine_does_not_install_driver(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             sysfs = root / "sys"
             sysfs.mkdir()
-            with patch.object(installer, "installed", return_value=True), \
+            with patch.object(installer, "installed", return_value=False), \
                  patch.object(installer, "dnf", return_value=True) as dnf:
                 self.assertTrue(installer.configure(root, sysfs, CATALOG))
-            self.assertEqual(dnf.call_args.args[1:],
-                             ("remove", "akmod-nvidia", "xorg-x11-drv-nvidia"))
+            dnf.assert_not_called()
             self.assertEqual((root / installer.MARKER).read_text(), "none\n")
 
 

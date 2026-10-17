@@ -93,7 +93,5 @@
 		<package name="7zip"/>
 		<package name="cabextract"/>
 		<package name="curl"/>
-		<package name="akmod-nvidia" arch="x86_64"/>
-		<package name="xorg-x11-drv-nvidia" arch="x86_64"/>
 	</packages>
 </image>
