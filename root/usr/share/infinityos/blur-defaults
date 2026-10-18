@@ -28,7 +28,7 @@ blur=true
 pipeline='pipeline_default'
 
 [org/gnome/shell/extensions/blur-my-shell/applications]
-blur=true
+blur=false
 enable-all=true
 static-blur=false
 pipeline='pipeline_default_rounded'
