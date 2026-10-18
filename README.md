@@ -2,17 +2,17 @@
 
 <img src="assets/infinityos-logo.svg" width="112" alt="Infinity OS logo">
 
-**A Fedora 44 Remix built for a polished, personal desktop.** Infinity OS pairs a writable GNOME system with a distinctive purple design, a fast drop-down terminal, a first-run application chooser, and integrated updates. It uses Fedora's familiar DNF package model, so the desktop remains easy to customize and maintain.
+**InfinityOS_01 is an independent Fedora Remix built for a polished, personal desktop.** Infinity OS pairs a writable GNOME system with a distinctive purple design, a fast drop-down terminal, a first-run application chooser, and integrated updates. It uses Fedora's familiar DNF package model, so the desktop remains easy to customize and maintain.
 
 This repository is the source for the Infinity OS KIWI images, desktop configuration, InfinityLauncher, InfinityTerminal, InfinityUpdater, RPM packages, and build pipeline.
 
-**Infinity OS 44.0 is out.** The first release includes `x86_64` and `aarch64` ISO images. Visit [infinityos.eu](https://infinityos.eu/) or get the images from the [download folder](https://mega.nz/folder/vx50XZrT#wjqKyqmFacFjPK8I4vNcxw).
+**InfinityOS_01 is out.** The first release includes `x86_64` and `aarch64` ISO images. Visit [infinityos.eu](https://infinityos.eu/) or get the images from the [download folder](https://mega.nz/folder/vx50XZrT#wjqKyqmFacFjPK8I4vNcxw).
 
 **Infinity OS is an independent Fedora Remix. It is not provided, supported, or endorsed by the Fedora Project or Red Hat.** Official Fedora Linux is available at [fedoraproject.org](https://fedoraproject.org/).
 
 ## Start here
 
-- [Download Infinity OS 44.0](https://infinityos.eu/).
+- [Download InfinityOS_01](https://infinityos.eu/).
 - [Join the InfinityOS Discord community](https://discord.gg/QA8N3XKsH8) for help, ideas, and release discussion.
 - [Build an image](#build-an-image) from a committed source revision.
 - [Package and RPM repository guide](packages/README.md) for application builds and signing.
