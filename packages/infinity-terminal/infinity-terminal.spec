@@ -20,7 +20,7 @@ GNOME Shell controller and a persistent user service.
 %build
 
 %install
-cp -a usr %{buildroot}/
+cp -a usr etc %{buildroot}/
 
 %posttrans
 glib-compile-schemas /usr/share/gnome-shell/extensions/ghostty@infinityos.org/schemas || :
