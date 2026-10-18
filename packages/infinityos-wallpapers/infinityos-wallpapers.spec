@@ -3,7 +3,7 @@ Version:        1.0.0
 Release:        %{?infinity_release}%{!?infinity_release:1}%{?dist}
 Summary:        Infinity OS desktop wallpapers
 License:        GPL-3.0-or-later
-URL:            https://gitlab.com/godorowski/infinityos
+URL:            https://github.com/InfinityOS-linux/infinityos
 Source0:        infinityos-wallpapers-%{version}.tar.gz
 BuildArch:      noarch
 

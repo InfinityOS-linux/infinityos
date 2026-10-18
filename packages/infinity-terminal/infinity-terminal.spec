@@ -5,7 +5,7 @@ Version:        1.3.1
 Release:        %{?infinity_release}%{!?infinity_release:1}%{?dist}
 Summary:        Infinity OS drop-down terminal based on Ghostty
 License:        MIT AND GPL-3.0-or-later
-URL:            https://gitlab.com/godorowski/infinityos
+URL:            https://github.com/InfinityOS-linux/infinityos
 Source0:        infinity-terminal-%{version}.tar.gz
 ExclusiveArch:  aarch64 x86_64
 Requires:       gnome-shell

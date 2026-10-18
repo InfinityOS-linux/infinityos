@@ -3,7 +3,7 @@ Version:        1.1.0
 Release:        %{?infinity_release}%{!?infinity_release:1}%{?dist}
 Summary:        Infinity OS RAMDrive setup and shutdown protection
 License:        GPL-3.0-or-later
-URL:            https://gitlab.com/godorowski/infinityos
+URL:            https://github.com/InfinityOS-linux/infinityos
 Source0:        infinityos-ramdrive-%{version}.tar.gz
 BuildArch:      noarch
 Requires:       python3-gobject

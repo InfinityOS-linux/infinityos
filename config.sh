@@ -31,8 +31,8 @@ VARIANT="GNOME Workstation"
 VARIANT_ID=workstation
 LOGO=infinityos-logo
 ANSI_COLOR="0;38;2;100;83;148"
-HOME_URL="https://gitlab.com/godorowski/infinityos"
-DOCUMENTATION_URL="https://gitlab.com/godorowski/infinityos/-/blob/main/README.md"
+HOME_URL="https://github.com/InfinityOS-linux/infinityos"
+DOCUMENTATION_URL="https://github.com/InfinityOS-linux/infinityos/blob/main/README.md"
 EOF
 	printf 'Infinity OS 44\n' > /etc/issue
 	printf 'Infinity OS 44\n' > /etc/issue.net

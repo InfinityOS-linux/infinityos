@@ -1,6 +1,6 @@
 [infinityos]
 name=Infinity OS 44 - $basearch
-baseurl=https://infinityos-ca177d.gitlab.io/rpm/44/$basearch/
+baseurl=https://infinityos-linux.github.io/infinityos/rpm/44/$basearch/
 enabled=1
 gpgcheck=1
 repo_gpgcheck=1

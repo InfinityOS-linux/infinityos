@@ -2,7 +2,7 @@
 set -euo pipefail
 
 rpms=${1:?Pass the directory containing built RPMs}
-public=${2:?Pass the GitLab Pages public directory}
+public=${2:?Pass the static repository output directory}
 repo=$(cd "$(dirname "$0")/.." && pwd)
 fingerprint=0CEBC6680F0EF50BD376CBB034715734803514AC
 rpm --import "$repo/root/etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos"

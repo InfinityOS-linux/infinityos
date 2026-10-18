@@ -3,7 +3,7 @@
 <image schemaversion="7.4" name="InfinityOS" displayname="Infinity OS 44">
 	<description type="system">
 		<author>Infinity OS Contributors</author>
-		<contact>https://gitlab.com/godorowski/infinityos</contact>
+		<contact>https://github.com/InfinityOS-linux/infinityos</contact>
 		<specification>Infinity OS based on Fedora Linux</specification>
 	</description>
 	<preferences>
