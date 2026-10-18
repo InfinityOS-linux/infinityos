@@ -6,7 +6,9 @@ font-name='IBM Plex Sans 11'
 document-font-name='IBM Plex Sans 11'
 
 [org/gnome/desktop/background]
-picture-options='none'
+picture-uri='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'
+picture-uri-dark='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'
+picture-options='zoom'
 color-shading-type='solid'
 primary-color='#000000'
 secondary-color='#000000'
