@@ -16,6 +16,7 @@ PACKAGES = (
     "infinityos-repos",
     "infinityos-wallpapers",
     "infinityos-ramdrive",
+    "infinityos-shell-extensions",
 )
 
 
@@ -53,8 +54,16 @@ class ImageProvenanceTests(unittest.TestCase):
             markers = build / "build-revisions"
             markers.mkdir(parents=True)
             (build / "build-revision").write_text(revision + "\n")
+            (build / "required-rpms").write_text("\n".join(PACKAGES) + "\n")
             for package in PACKAGES:
                 (markers / package).write_text(revision + "\n")
+            gdm_defaults = root / "etc/dconf/db/gdm.d/00-infinityos"
+            gdm_defaults.parent.mkdir(parents=True)
+            gdm_defaults.write_text(
+                "picture-uri='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'\n"
+                "picture-uri-dark='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'\n"
+                "picture-options='zoom'\n"
+            )
             expected_files = (
                 "usr/bin/infinity-launcher",
                 "usr/bin/infinity-terminal",
