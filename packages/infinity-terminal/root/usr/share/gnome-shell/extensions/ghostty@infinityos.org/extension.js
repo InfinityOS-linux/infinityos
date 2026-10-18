@@ -13,18 +13,14 @@ import * as Workspace from 'resource:///org/gnome/shell/ui/workspace.js';
 
 const APP_ID = 'com.infinityos.GhosTTY';
 const KEYBINDING = 'infinity-terminal-toggle';
-const CONTROL_SIZE = 28;
-const CONTROL_SPACING = 4;
-const CONTROL_INSET = 8;
-
 export default class InfinityTerminal extends Extension {
     enable() {
         this._settings = this.getSettings();
+        this._settings.set_boolean('pinned', false);
         this._window = null;
         this._pendingShow = false;
         this._sourceId = 0;
         this._pendingWindows = new Map();
-        this._geometryIds = [];
         this._indicator = new PanelMenu.Button(0.0, 'Show or hide InfinityTerminal', true);
         this._indicator.accessible_role = Atk.Role.PUSH_BUTTON;
         this._icon = new St.Icon({
@@ -38,39 +34,11 @@ export default class InfinityTerminal extends Extension {
         click.connect('recognize', () => this._toggle());
         this._indicator.add_action(click);
         Main.panel.addToStatusArea('ghostty', this._indicator);
-        this._controls = new St.BoxLayout({
-            style_class: 'infinity-terminal-controls',
-            visible: false,
-        });
-        this._pinButton = new St.Button({
-            style_class: 'infinity-terminal-control infinity-terminal-pin',
-            accessible_name: 'Pin InfinityTerminal open',
-            toggle_mode: true,
-            can_focus: true,
-            reactive: true,
-            child: new St.Icon({icon_name: 'view-pin-symbolic', icon_size: 16}),
-        });
-        this._pinButton.set_size(CONTROL_SIZE, CONTROL_SIZE);
-        this._pinButton.connect('notify::checked', () => {
-            this._pinButton.accessible_name = this._pinButton.checked
-                ? 'Unpin InfinityTerminal' : 'Pin InfinityTerminal open';
-        });
-        this._controls.add_child(this._pinButton);
-        this._closeButton = new St.Button({
-            style_class: 'infinity-terminal-control',
-            accessible_name: 'Hide InfinityTerminal',
-            can_focus: true,
-            reactive: true,
-            child: new St.Icon({icon_name: 'window-close-symbolic', icon_size: 16}),
-        });
-        this._closeButton.set_size(CONTROL_SIZE, CONTROL_SIZE);
-        this._closeButton.connect('clicked', () => {
+        this._hideRequestId = this._settings.connect('changed::hide-request', () => {
             const window = this._findWindow();
             if (window && !window.minimized)
                 this._hide(window);
         });
-        this._controls.add_child(this._closeButton);
-        Main.layoutManager.addChrome(this._controls);
         const getRunning = Shell.AppSystem.prototype.get_running;
         this._getRunning = getRunning;
         this._filteredRunning = function () {
@@ -92,7 +60,7 @@ export default class InfinityTerminal extends Extension {
             Meta.KeyBindingFlags.NONE, Shell.ActionMode.ALL, () => this._toggle());
         this._outsideClickId = global.stage.connect('captured-event', (_stage, event) => {
             const source = event.get_source();
-            if (this._pinButton.checked || event.type() !== Clutter.EventType.BUTTON_PRESS ||
+            if (this._settings.get_boolean('pinned') || event.type() !== Clutter.EventType.BUTTON_PRESS ||
                 (source && this._indicator.contains(source)))
                 return Clutter.EVENT_PROPAGATE;
 
@@ -110,7 +78,7 @@ export default class InfinityTerminal extends Extension {
         });
         this._focusId = global.display.connect('notify::focus-window', () => {
             const window = this._findWindow();
-            if (!this._pinButton.checked && window && !window.minimized &&
+            if (!this._settings.get_boolean('pinned') && window && !window.minimized &&
                 global.display.focus_window !== window)
                 this._hide(window);
         });
@@ -148,6 +116,7 @@ export default class InfinityTerminal extends Extension {
         if (Shell.AppSystem.prototype.get_running === this._filteredRunning)
             Shell.AppSystem.prototype.get_running = this._getRunning;
         Main.wm.removeKeybinding(KEYBINDING);
+        this._settings.disconnect(this._hideRequestId);
         global.stage.disconnect(this._outsideClickId);
         global.display.disconnect(this._focusId);
         global.display.disconnect(this._windowCreatedId);
@@ -161,21 +130,13 @@ export default class InfinityTerminal extends Extension {
         if (this._minimizedId && this._window)
             this._window.disconnect(this._minimizedId);
         if (this._window) {
-            for (const id of this._geometryIds)
-                this._window.disconnect(id);
             const actor = this._window.get_compositor_private();
             if (actor)
                 actor.opacity = 255;
         }
         if (this._sourceId)
             GLib.Source.remove(this._sourceId);
-        this._controls.remove_all_transitions();
-        Main.layoutManager.removeChrome(this._controls);
-        this._controls.destroy();
         this._indicator.destroy();
-        this._controls = null;
-        this._pinButton = null;
-        this._closeButton = null;
         this._indicator = null;
         this._icon = null;
         this._window = null;
@@ -208,10 +169,6 @@ export default class InfinityTerminal extends Extension {
             this._window.disconnect(this._unmanagedId);
         if (this._minimizedId && this._window)
             this._window.disconnect(this._minimizedId);
-        if (this._window) {
-            for (const id of this._geometryIds)
-                this._window.disconnect(id);
-        }
         this._window = window;
         if (fresh && !this._pendingShow) {
             const actor = window.get_compositor_private();
@@ -221,24 +178,14 @@ export default class InfinityTerminal extends Extension {
             }
             window.minimize();
         }
-        this._geometryIds = [
-            window.connect('position-changed', () => this._positionControls(window)),
-            window.connect('size-changed', () => this._positionControls(window)),
-        ];
-        this._positionControls(window);
-        this._controls.visible = !window.minimized && !fresh;
         this._icon.opacity = window.minimized ? 112 : 255;
         this._minimizedId = window.connect('notify::minimized', () => {
             this._icon.opacity = window.minimized ? 112 : 255;
-            this._controls.visible = !window.minimized;
-            this._controls.reactive = !window.minimized;
             Main.overview._overview.controls._workspacesDisplay._updateWorkspacesViews();
         });
         this._unmanagedId = window.connect('unmanaged', () => {
             this._window = null;
             this._icon.opacity = 112;
-            this._controls.hide();
-            this._geometryIds = [];
             this._unmanagedId = 0;
             this._minimizedId = 0;
         });
@@ -266,15 +213,6 @@ export default class InfinityTerminal extends Extension {
         window.move_resize_frame(true, monitor.x, y,
             monitor.width, Math.round(monitor.height / 2));
         window.move_frame(true, monitor.x, y);
-        this._positionControls(window);
-    }
-
-    _positionControls(window) {
-        const rect = window.get_frame_rect();
-        const width = CONTROL_SIZE * 2 + CONTROL_SPACING;
-        this._controls.set_position(
-            rect.x + rect.width - width - CONTROL_INSET,
-            rect.y + rect.height - CONTROL_SIZE - 6);
     }
 
     _toggle() {
@@ -293,12 +231,6 @@ export default class InfinityTerminal extends Extension {
         const actor = window.get_compositor_private();
         if (actor)
             actor.opacity = 255;
-        this._positionControls(window);
-        this._controls.remove_all_transitions();
-        this._controls.opacity = 255;
-        this._controls.translation_y = actor ? -window.get_frame_rect().height : 0;
-        this._controls.show();
-        this._controls.reactive = true;
         if (actor) {
             actor.remove_all_transitions();
             actor.translation_y = -window.get_frame_rect().height;
@@ -313,8 +245,6 @@ export default class InfinityTerminal extends Extension {
             if (actor) {
                 actor.ease({translation_y: 0, duration: 150,
                     mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
-                this._controls.ease({translation_y: 0, duration: 150,
-                    mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
             }
             return GLib.SOURCE_REMOVE;
         });
@@ -323,23 +253,9 @@ export default class InfinityTerminal extends Extension {
     _hide(window) {
         const actor = window.get_compositor_private();
         if (!actor) {
-            this._controls.hide();
             window.minimize();
             return;
         }
-        this._controls.reactive = false;
-        this._controls.remove_all_transitions();
-        this._controls.ease({
-            translation_y: -window.get_frame_rect().height,
-            opacity: 0,
-            duration: 120,
-            mode: Clutter.AnimationMode.EASE_IN_CUBIC,
-            onComplete: () => {
-                this._controls.hide();
-                this._controls.translation_y = 0;
-                this._controls.opacity = 255;
-            },
-        });
         actor.remove_all_transitions();
         actor.ease({
             translation_y: -window.get_frame_rect().height,

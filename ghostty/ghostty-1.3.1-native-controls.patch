@@ -1,0 +1,62 @@
+--- a/src/apprt/gtk/ui/1.5/window.blp
++++ b/src/apprt/gtk/ui/1.5/window.blp
+@@ -133,0 +134,24 @@
++          Gtk.ToggleButton {
++            styles [
++              "flat",
++            ]
++
++            icon-name: "view-pin-symbolic";
++            tooltip-text: _("Keep InfinityTerminal open");
++            toggled => $infinity_pin_toggled();
++            can-focus: false;
++            focus-on-click: false;
++          }
++
++          Gtk.Button {
++            styles [
++              "flat",
++            ]
++
++            icon-name: "window-close-symbolic";
++            tooltip-text: _("Hide InfinityTerminal");
++            clicked => $infinity_hide();
++            can-focus: false;
++            focus-on-click: false;
++          }
++
+--- a/src/apprt/gtk/class/window.zig
++++ b/src/apprt/gtk/class/window.zig
+@@ -1377,0 +1378,29 @@
++    // Send terminal controls to the Shell controller without changing tab focus.
++    fn setInfinityControl(key: []const u8, value: []const u8) void {
++        const argv = [_][]const u8{ "gsettings", "--schemadir", "/usr/share/gnome-shell/extensions/ghostty@infinityos.org/schemas", "set", "org.infinityos.GhosTTY", key, value };
++        var child = std.process.Child.init(&argv, std.heap.page_allocator);
++        child.stdin_behavior = .Ignore;
++        child.stdout_behavior = .Ignore;
++        child.stderr_behavior = .Ignore;
++        child.spawn() catch |err| {
++            log.warn("could not send InfinityTerminal control: {}", .{err});
++            return;
++        };
++        _ = child.wait() catch |err| {
++            log.warn("InfinityTerminal control failed: {}", .{err});
++            return;
++        };
++    }
++
++    fn btnInfinityPinToggled(button: *gtk.ToggleButton, self: *Self) callconv(.c) void {
++        if (!self.isInfinity()) return;
++        setInfinityControl("pinned", if (button.getActive() != 0) "true" else "false");
++    }
++
++    fn btnInfinityHide(_: *gtk.Button, self: *Self) callconv(.c) void {
++        if (!self.isInfinity()) return;
++        var buffer: [32]u8 = undefined;
++        const request = std.fmt.bufPrint(&buffer, "{d}", .{std.time.nanoTimestamp()}) catch return;
++        setInfinityControl("hide-request", request);
++    }
++
+@@ -2226,0 +2256,2 @@
++            class.bindTemplateCallback("infinity_pin_toggled", &btnInfinityPinToggled);
++            class.bindTemplateCallback("infinity_hide", &btnInfinityHide);
