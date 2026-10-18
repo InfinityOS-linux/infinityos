@@ -37,6 +37,7 @@ export var TemplatesScriptsManager = class extends SignalManager.SignalManager {
         // or if there is a loop due to a symlink to an already added folder.
         this._maxNumberOfSubfolders = 100;
         this._entries = [];
+        this.entriesRevision = 0;
         this._entriesEnumerateCancellable = null;
         this._readingEntries = false;
         this._entriesDir = baseFolder;
@@ -92,6 +93,7 @@ export var TemplatesScriptsManager = class extends SignalManager.SignalManager {
         } while ((entriesList === null) || this._entriesFolderChanged);
 
         this._entries = entriesList;
+        this.entriesRevision++;
         this._readingEntries = false;
     }
 

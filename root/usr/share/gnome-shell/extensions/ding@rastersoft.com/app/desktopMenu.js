@@ -41,6 +41,8 @@ export var DesktopMenu = class extends MenuHelper.MenuHelper {
 
         this._dbusManager = dbusManager;
         this._lastBgMenu = null;
+        this._bgMenus = new WeakMap();
+        this._bgMenuModels = new Map();
         this.templatesMonitor = new TemplatesScriptsManager.TemplatesScriptsManager(
             DesktopIconsUtil.getTemplatesDir(),
             TemplatesScriptsManager.TemplatesScriptsManagerFlags.HIDE_EXTENSIONS
@@ -144,25 +146,45 @@ export var DesktopMenu = class extends MenuHelper.MenuHelper {
 
     async showDesktopMenu(x, y, grid) {
         this._pasteAction.enabled = false;
-        if (this._lastBgMenu !== null) {
+        if (this._lastBgMenu !== null)
             this._lastBgMenu.menuPopover.popdown();
-            this._lastBgMenu.grid.remove(this._lastBgMenu.menuPopover);
-            this._lastBgMenu = null;
+
+        const undoredo = this._syncUndoRedo();
+        const menuKey = `${undoredo.undo}:${undoredo.redo}:${this.templatesMonitor.entriesRevision}`;
+        if (this._bgMenuRevision !== this.templatesMonitor.entriesRevision) {
+            this._bgMenuModels.clear();
+            this._bgMenuRevision = this.templatesMonitor.entriesRevision;
+        }
+        let menu = this._bgMenuModels.get(menuKey);
+        if (!menu) {
+            menu = this._createDesktopBackgroundMenu(undoredo);
+            this._bgMenuModels.set(menuKey, menu);
         }
 
-        const menu = this._createDesktopBackgroundMenu();
-        const menuPopover = Gtk.PopoverMenu.new_from_model_full(menu, Gtk.PopoverMenuFlags.NESTED);
-        menuPopover.add_css_class('desktopmenu');
+        let bgMenu = this._bgMenus.get(grid);
+        if (!bgMenu) {
+            const menuPopover = Gtk.PopoverMenu.new_from_model_full(menu, Gtk.PopoverMenuFlags.NESTED);
+            menuPopover.add_css_class('desktopmenu');
+            grid.put(menuPopover, x, y);
+            menuPopover.show();
+            bgMenu = {menuPopover, menuKey};
+            this._bgMenus.set(grid, bgMenu);
+        } else {
+            grid.move(bgMenu.menuPopover, x, y);
+            if (bgMenu.menuKey !== menuKey) {
+                bgMenu.menuPopover.set_menu_model(menu);
+                bgMenu.menuKey = menuKey;
+            }
+        }
+
         const rect = new Gdk.Rectangle();
         rect.x = x;
         rect.y = y;
         rect.width = 1;
         rect.height = 1;
-        menuPopover.set_pointing_to(rect);
-        grid.put(menuPopover, x, y);
-        menuPopover.show();
-        menuPopover.popup();
-        this._lastBgMenu = {menuPopover, grid};
+        bgMenu.menuPopover.set_pointing_to(rect);
+        bgMenu.menuPopover.popup();
+        this._lastBgMenu = bgMenu;
         this._pasteAction.enabled = await this._desktopManager.updateClipboard();
     }
 
@@ -197,7 +219,7 @@ export var DesktopMenu = class extends MenuHelper.MenuHelper {
         return arrangeSubMenu;
     }
 
-    _createDesktopBackgroundMenu() {
+    _createDesktopBackgroundMenu(undoredo) {
         const menuContainer = new Gio.Menu();
         let section = this._newSection(menuContainer);
         this._newMenuElement(_('New Folder'), 'new-folder', section);
@@ -209,7 +231,6 @@ export var DesktopMenu = class extends MenuHelper.MenuHelper {
 
         section = this._newSection(menuContainer);
         this._newMenuElement(_('Paste'), 'paste', section);
-        const undoredo = this._syncUndoRedo();
         if (undoredo.undo)
             this._newMenuElement(_('Undo'), 'undo', section);
 
