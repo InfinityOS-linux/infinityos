@@ -615,6 +615,10 @@ export var DesktopManager = class {
         this._desktopMenu.showDesktopMenu(x, y, grid);
     }
 
+    onPressMiddleButton() {
+        DBusUtils.extensionControl.activate_action('toggleOverview', null);
+    }
+
     showPopup() {
         this._popupCounter++;
     }

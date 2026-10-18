@@ -95,6 +95,18 @@ export var DesktopGrid = class extends SignalManager.SignalManager {
             this._desktopManager.onPressRightButton(controller, x, y, this._container);
         });
 
+        if (this._asDesktop) {
+            const buttonMiddleController = new Gtk.GestureClick();
+            buttonMiddleController.propagation_phase = Gtk.PropagationPhase.BUBBLE;
+            buttonMiddleController.button = 2;
+            this._container.add_controller(buttonMiddleController);
+            this.connectSignal(buttonMiddleController, 'pressed', (controller, nPress) => {
+                controller.set_state(Gtk.EventSequenceState.CLAIMED);
+                if (nPress === 1)
+                    this._desktopManager.onPressMiddleButton();
+            });
+        }
+
         const buttonMainController = new Gtk.GestureClick();
         buttonMainController.propagation_phase = Gtk.PropagationPhase.BUBBLE;
         buttonMainController.button = 1;

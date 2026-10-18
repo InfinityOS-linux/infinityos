@@ -86,6 +86,7 @@ export default class DING extends Extension {
         }
 
         this.data.desktopGeometry = undefined;
+        this.data.toggleOverview = undefined;
 
         // disconnect signals only if connected
         if (this.data.dbusConnectionGroupId) {
@@ -174,6 +175,11 @@ export default class DING extends Extension {
             this.data.disableTimer = new Gio.SimpleAction({
                 name: 'disableTimer',
             });
+            this.data.toggleOverview = new Gio.SimpleAction({name: 'toggleOverview'});
+            this.data.toggleOverview.connect('activate', () => {
+                if (Main.overview.shouldToggleByCornerOrButton())
+                    Main.overview.toggle();
+            });
             this.data.desktopGeometry = Gio.SimpleAction.new_stateful('desktopGeometry', new GLib.VariantType('av'), this.getDesktopGeometry());
             this.data.desktopGeometry.set_enabled(true);
             this.data.disableTimerId = this.data.disableTimer.connect('activate', () => {
@@ -182,6 +188,7 @@ export default class DING extends Extension {
             });
             this.data.actionGroup = new Gio.SimpleActionGroup();
             this.data.actionGroup.add_action(this.data.disableTimer);
+            this.data.actionGroup.add_action(this.data.toggleOverview);
             this.data.actionGroup.add_action(this.data.desktopGeometry);
 
             this.data.dbusConnectionGroupId = this.data.dbusConnection.export_action_group(

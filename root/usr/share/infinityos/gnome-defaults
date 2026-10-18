@@ -130,6 +130,7 @@ report-technical-problems=false
 
 [org/gnome/desktop/interface]
 accent-color='purple'
+gtk-enable-primary-paste=false
 gtk-theme='Orchis-Purple-Dark-Compact'
 icon-theme='kora'
 cursor-theme='Bibata-Modern-Ice'
