@@ -1,0 +1,116 @@
+name: Publish Infinity OS RPM repository
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: infinityos-rpm-pages
+  cancel-in-progress: false
+
+jobs:
+  build-noarch:
+    name: Build ${{ matrix.package }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - infinity-launcher
+          - infinity-updater
+          - infinityos-repos
+          - infinityos-wallpapers
+          - infinityos-ramdrive
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build RPM
+        run: |
+          release=$((10000000 + GITHUB_RUN_NUMBER))
+          INFINITY_PACKAGE_RELEASE="$release" packages/build-rpm.sh "${{ matrix.package }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rpm-${{ matrix.package }}
+          path: .build/rpm-output/*.rpm
+          if-no-files-found: error
+          retention-days: 1
+
+  build-terminal:
+    name: Build InfinityTerminal (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build RPM
+        run: |
+          release=$((10000000 + GITHUB_RUN_NUMBER))
+          INFINITY_TARGET_PLATFORM='${{ matrix.platform }}' \
+            INFINITY_PACKAGE_RELEASE="$release" packages/build-rpm.sh infinity-terminal
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rpm-infinity-terminal-${{ matrix.arch }}
+          path: .build/rpm-output/*.rpm
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Sign RPMs and prepare Pages
+    runs-on: ubuntu-24.04
+    needs: [build-noarch, build-terminal]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: rpm-*
+          merge-multiple: true
+          path: .build/rpm-output
+      - name: Sign and index both architectures
+        env:
+          RPM_SIGNING_KEY_B64: ${{ secrets.RPM_SIGNING_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "$RPM_SIGNING_KEY_B64"
+          signing_key="$RUNNER_TEMP/infinityos-signing.asc"
+          printf '%s' "$RPM_SIGNING_KEY_B64" | base64 -d > "$signing_key"
+          chmod 600 "$signing_key"
+          docker run --rm \
+            -v "$PWD:/work" \
+            -v "$signing_key:/signing.asc:ro" \
+            -w /work fedora:44 sh -ec '
+              dnf -qy install createrepo_c rpm-sign gnupg2
+              export GNUPGHOME="$(mktemp -d)"
+              chmod 700 "$GNUPGHOME"
+              gpg --batch --import /signing.asc
+              packages/publish-repo.sh .build/rpm-output public
+              rm -rf "$GNUPGHOME"
+            '
+          rm -f "$signing_key"
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: public
+
+  deploy:
+    name: Deploy RPM repository
+    runs-on: ubuntu-24.04
+    needs: publish
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
