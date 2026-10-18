@@ -56,8 +56,10 @@ jobs:
       - name: Build RPM
         run: |
           release=$((10000000 + GITHUB_RUN_NUMBER))
-          INFINITY_TARGET_PLATFORM='${{ matrix.platform }}' \
+          # Ghostty's Docker stage writes root-owned files into the checkout.
+          sudo env INFINITY_TARGET_PLATFORM='${{ matrix.platform }}' \
             INFINITY_PACKAGE_RELEASE="$release" packages/build-rpm.sh infinity-terminal
+          sudo chown -R "$(id -u):$(id -g)" .build/rpm-output
       - uses: actions/upload-artifact@v4
         with:
           name: rpm-infinity-terminal-${{ matrix.arch }}
