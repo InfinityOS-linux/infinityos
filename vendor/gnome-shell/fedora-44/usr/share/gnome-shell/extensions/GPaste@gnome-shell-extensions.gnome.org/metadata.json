@@ -1,0 +1,11 @@
+{
+    "shell-version": [ "50" ],
+    "session-modes": [ "user" ],
+    "uuid": "GPaste@gnome-shell-extensions.gnome.org",
+    "name": "GPaste",
+    "version": "50.6",
+    "description": "Clipboard management system",
+    "url": "https://github.com/Keruspe/GPaste",
+    "gettext-domain": "GPaste"
+}
+

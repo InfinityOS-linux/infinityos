@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-package=${1:?Usage: packages/build-rpm.sh infinity-launcher|infinity-terminal|infinity-updater|infinityos-repos|infinityos-wallpapers|infinityos-ramdrive}
+package=${1:?Usage: packages/build-rpm.sh infinity-launcher|infinity-terminal|infinity-updater|infinityos-repos|infinityos-wallpapers|infinityos-ramdrive|infinityos-shell-extensions}
 case "$package" in
   infinity-launcher) version=1.0.0 ;;
   infinity-terminal) version=1.3.1 ;;
@@ -9,6 +9,7 @@ case "$package" in
   infinityos-repos) version=1.0.0 ;;
   infinityos-wallpapers) version=1.0.0 ;;
   infinityos-ramdrive) version=1.1.0 ;;
+  infinityos-shell-extensions) version=1.0.0 ;;
   *) echo "Unknown package: $package" >&2; exit 2 ;;
 esac
 
@@ -66,6 +67,42 @@ elif [[ "$package" == infinityos-ramdrive ]]; then
     "$work/source/$package-$version/etc/xdg/autostart/"
   install -m 0644 "$repo/COPYING" \
     "$work/source/$package-$version/usr/share/licenses/infinityos-ramdrive/COPYING"
+elif [[ "$package" == infinityos-shell-extensions ]]; then
+  source_root="$work/source/$package-$version"
+  fedora_snapshot="$repo/vendor/gnome-shell/fedora-44/usr/share"
+  install -d "$source_root/usr/share/gnome-shell/extensions" \
+    "$source_root/usr/share/glib-2.0/schemas" \
+    "$source_root/usr/share/infinityos" \
+    "$source_root/usr/share/licenses/infinityos-shell-extensions" \
+    "$source_root/etc/dconf/db/local.d"
+  cp -a "$fedora_snapshot/gnome-shell/extensions/." \
+    "$source_root/usr/share/gnome-shell/extensions/"
+  cp -a "$repo/root/usr/share/gnome-shell/extensions/." \
+    "$source_root/usr/share/gnome-shell/extensions/"
+  cp -a "$fedora_snapshot/glib-2.0/schemas/." \
+    "$source_root/usr/share/glib-2.0/schemas/"
+  install -m 0644 "$repo/root/usr/share/infinityos/gnome-defaults" \
+    "$repo/root/usr/share/infinityos/blur-defaults" \
+    "$source_root/usr/share/infinityos/"
+  ln -s /usr/share/infinityos/gnome-defaults \
+    "$source_root/etc/dconf/db/local.d/00-infinityos"
+  ln -s /usr/share/infinityos/blur-defaults \
+    "$source_root/etc/dconf/db/local.d/01-infinity-blur"
+  licenses="$fedora_snapshot/licenses"
+  install -m 0644 "$licenses/gpaste-libs/COPYING" \
+    "$source_root/usr/share/licenses/infinityos-shell-extensions/GPaste-BSD-2-Clause"
+  install -m 0644 "$licenses/gnome-shell-extension-appindicator/LICENSE" \
+    "$source_root/usr/share/licenses/infinityos-shell-extensions/AppIndicator-GPL-2.0"
+  install -m 0644 "$licenses/gnome-shell-extension-blur-my-shell/LICENSE" \
+    "$source_root/usr/share/licenses/infinityos-shell-extensions/BlurMyShell-GPL-3.0"
+  install -m 0644 "$licenses/gnome-shell-extension-caffeine/COPYING" \
+    "$source_root/usr/share/licenses/infinityos-shell-extensions/Caffeine-GPL-2.0"
+  install -m 0644 "$licenses/gnome-shell-extension-common/COPYING" \
+    "$source_root/usr/share/licenses/infinityos-shell-extensions/UserTheme-GPL-2.0"
+  install -m 0644 "$licenses/gnome-shell-extension-vertical-workspaces/LICENSE" \
+    "$source_root/usr/share/licenses/infinityos-shell-extensions/VerticalWorkspaces-GPL-3.0"
+  install -m 0644 "$repo/COPYING" \
+    "$source_root/usr/share/licenses/infinityos-shell-extensions/InfinityOS-GPL-3.0"
 elif [[ "$package" == infinity-launcher ]]; then
   install -d "$work/source/$package-$version/usr/bin" \
     "$work/source/$package-$version/usr/share/applications" \

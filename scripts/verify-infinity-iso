@@ -72,21 +72,26 @@ done
     echo 'Downloads shortcut is not executable' >&2
     exit 1
 }
-grep -q "'tilingshell@ferrarodomenico.com'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
-grep -q "'dash2dock-animated@infinityos.org'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
-grep -q "'vertical-workspaces@G-dH.github.com'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
-grep -q "'caffeine@patapon.info'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
-grep -q "'GPaste@gnome-shell-extensions.gnome.org'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
-grep -qx 'app-display-module=true' "$rootpoint/etc/dconf/db/local.d/00-infinityos"
-grep -qx 'app-grid-performance=true' "$rootpoint/etc/dconf/db/local.d/00-infinityos"
-grep -qx 'startup-state=1' "$rootpoint/etc/dconf/db/local.d/00-infinityos"
-grep -qx 'downloads-icon=true' "$rootpoint/etc/dconf/db/local.d/00-infinityos"
-grep -qx 'enable-all=true' "$rootpoint/etc/dconf/db/local.d/01-infinity-blur"
-for package in gnome-shell-extension-caffeine gnome-shell-extension-gpaste gnome-shell-extension-vertical-workspaces; do
-    rpm --root "$rootpoint" -q "$package" >/dev/null || {
-        echo "Installed GNOME package missing from ISO: $package" >&2
+defaults="$rootpoint/usr/share/infinityos/gnome-defaults"
+grep -q "'tilingshell@ferrarodomenico.com'" "$defaults"
+grep -q "'dash2dock-animated@infinityos.org'" "$defaults"
+grep -q "'vertical-workspaces@G-dH.github.com'" "$defaults"
+grep -q "'caffeine@patapon.info'" "$defaults"
+grep -q "'GPaste@gnome-shell-extensions.gnome.org'" "$defaults"
+grep -qx 'app-display-module=true' "$defaults"
+grep -qx 'app-grid-performance=true' "$defaults"
+grep -qx 'startup-state=1' "$defaults"
+grep -qx 'downloads-icon=true' "$defaults"
+grep -qx 'enable-all=true' "$rootpoint/usr/share/infinityos/blur-defaults"
+rpm --root "$rootpoint" -q infinityos-shell-extensions >/dev/null || {
+    echo 'Infinity OS shell extension package missing from ISO' >&2
+    exit 1
+}
+for package in gnome-shell-extension-appindicator gnome-shell-extension-blur-my-shell gnome-shell-extension-caffeine gnome-shell-extension-gpaste gnome-shell-extension-user-theme gnome-shell-extension-vertical-workspaces; do
+    if rpm --root "$rootpoint" -q "$package" >/dev/null 2>&1; then
+        echo "Upstream GNOME extension package still installed in ISO: $package" >&2
         exit 1
-    }
+    fi
 done
 for package in gnome-software mpv infinity-terminal; do
     rpm --root "$rootpoint" -q "$package" >/dev/null || {
@@ -110,7 +115,7 @@ for package in gnome-builder ptyxis gnome-terminal gnome-console showtime totem;
     fi
 done
 grep -qx 'video/mp4=mpv.desktop' "$rootpoint/etc/xdg/mimeapps.list"
-grep -qx "exec='infinity-terminal'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
+grep -qx "exec='infinity-terminal'" "$defaults"
 for unit in infinityos-drm-browser.timer infinityos-bazaar-install.timer; do
     if [[ -e "$rootpoint/usr/lib/systemd/system/$unit" ||
           -e "$rootpoint/etc/systemd/system/timers.target.wants/$unit" ||

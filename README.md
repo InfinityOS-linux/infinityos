@@ -49,6 +49,8 @@ On `x86_64` live installations, Anaconda runs [`infinityos-install-nvidia`](root
 
 GNOME starts with desktop icons, AppIndicator support, dynamic Blur My Shell, the Window Is Ready notification remover, and WACK Sonoma Lockscreen in Cupertino mode. WACK Shell puts the Infinity logo on the panel's overview button. The signed `gnome-rounded-blur` helper fixes dynamic blur corners; its COPR repository is restricted to that package. Titlebars show minimize and maximize buttons. **Alt+Tab** switches windows. Firefox keeps **Ctrl+T** for a new tab. Location Services start enabled, and automatic problem reporting starts disabled.
 
+The desktop extensions and their default settings ship in the signed `infinityos-shell-extensions` RPM. Its source includes Infinity OS modifications and pinned Fedora 44 snapshots for GPaste, AppIndicator Support, Blur My Shell, Caffeine, User Themes, and V-Shell. Fedora package updates cannot replace those extension files independently; Infinity OS updates them together after compatibility checks. User overrides in dconf remain possible.
+
 **RAMDrive** keeps its files in a protected folder and offers a removable shortcut on the Desktop plus a bookmark in Files. Deleting the Desktop shortcut leaves the files and Files bookmark intact; the shortcut stays removed on later logins. Existing Desktop RAMDrive files move to protected storage on the first login after upgrading. The storage folder itself cannot be removed by a regular user. Its contents are deleted during an orderly shutdown or reboot. The folder uses disk storage so files remain recoverable after a crash or forced reset; it is not a `tmpfs` RAM disk.
 
 ## Packages and updates
@@ -67,7 +69,7 @@ Use a Fedora 44 host with the target CPU architecture and Btrfs ACL support. Ins
 sudo dnf install kiwi kiwi-systemdeps distribution-gpg-keys
 ```
 
-Commit all image and application changes first. Publish all six Infinity OS RPMs
+Commit all image and application changes first. Publish all seven Infinity OS RPMs
 from that same commit before starting an image build. The wrapper records the
 commit in the image, uses a fresh archive of that commit as its KIWI description,
 and stops if any installed Infinity OS RPM comes from another commit. It also
@@ -82,7 +84,7 @@ sudo ./kiwi-build --kiwi-file=InfinityOS.kiwi --image-type=iso \
 ```
 
 The wrapper checks the media checksum, embedded EROFS filesystem, source
-revision, six RPM revisions, and essential desktop files before accepting an
+revision, seven RPM revisions, and essential desktop files before accepting an
 Infinity OS ISO. Run `sudo scripts/verify-infinity-iso IMAGE.iso` again after
 copying an image to another machine. An ISO from an old prepared root fails
 this check. On Fedora 44 the wrapper also prepares a fresh bootstrap root with

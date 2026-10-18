@@ -84,8 +84,9 @@ EOF
 	fc-cache -f
 	install -d /etc/skel/.config/gtk-4.0
 	ln -sfn /usr/share/infinityos/gtk4-adaptive.css /etc/skel/.config/gtk-4.0/gtk.css
-	install -D -m 0644 /usr/share/infinityos/gnome-defaults /etc/dconf/db/local.d/00-infinityos
-	install -D -m 0644 /usr/share/infinityos/blur-defaults /etc/dconf/db/local.d/01-infinity-blur
+	install -d /etc/dconf/db/local.d
+	ln -sfn /usr/share/infinityos/gnome-defaults /etc/dconf/db/local.d/00-infinityos
+	ln -sfn /usr/share/infinityos/blur-defaults /etc/dconf/db/local.d/01-infinity-blur
 	install -D -m 0644 /usr/share/infinityos/repos/docker-ce.repo /etc/yum.repos.d/docker-ce.repo
 	install -D -m 0644 /usr/share/infinityos/repos/rounded-blur.repo /etc/yum.repos.d/rounded-blur.repo
 	install -D -m 0644 /usr/share/infinityos/mimeapps.list /etc/xdg/mimeapps.list

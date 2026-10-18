@@ -56,10 +56,8 @@
 		<package name="gnome-software"/>
 		<package name="mpv"/>
 		<package name="gnome-extensions-app"/>
-		<package name="gnome-shell-extension-appindicator"/>
-		<package name="gnome-shell-extension-gpaste"/>
+		<package name="infinityos-shell-extensions"/>
 		<package name="gtk4-layer-shell"/>
-		<package name="gnome-shell-extension-user-theme"/>
 		<package name="gtk-murrine-engine"/>
 		<ignore name="yelp"/>
 		<ignore name="mediawriter"/>
@@ -83,9 +81,6 @@
 		<package name="zsh"/>
 		<package name="powerline"/>
 		<package name="powerline-fonts"/>
-		<package name="gnome-shell-extension-blur-my-shell"/>
-		<package name="gnome-shell-extension-caffeine"/>
-		<package name="gnome-shell-extension-vertical-workspaces"/>
 		<package name="gnome-rounded-blur"/>
 		<package name="mesa-dri-drivers"/>
 		<package name="mesa-vulkan-drivers"/>

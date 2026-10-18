@@ -11,6 +11,7 @@ Requires:       gtk4
 Requires:       dnf5
 Requires:       flatpak
 Requires:       polkit
+Requires:       infinityos-shell-extensions >= 1.0.0
 
 %description
 Checks Fedora, Infinity OS, and Flatpak updates periodically and provides an

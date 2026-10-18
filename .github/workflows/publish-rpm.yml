@@ -25,6 +25,7 @@ jobs:
           - infinityos-repos
           - infinityos-wallpapers
           - infinityos-ramdrive
+          - infinityos-shell-extensions
     steps:
       - uses: actions/checkout@v4
       - name: Build RPM

@@ -10,9 +10,20 @@ from pathlib import Path
 root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent
 extensions = root / "root/usr/share/gnome-shell/extensions"
 defaults = root / "root/usr/share/infinityos/gnome-defaults"
-if not defaults.exists():
+source_tree = defaults.exists()
+if not source_tree:
     extensions = root / "usr/share/gnome-shell/extensions"
-    defaults = root / "etc/dconf/db/local.d/00-infinityos"
+    defaults = root / "usr/share/infinityos/gnome-defaults"
+
+fedora_snapshot = root / "vendor/gnome-shell/fedora-44/usr/share/gnome-shell/extensions"
+fedora_extensions = {
+    "GPaste@gnome-shell-extensions.gnome.org",
+    "appindicatorsupport@rgcjonas.gmail.com",
+    "blur-my-shell@aunetx",
+    "caffeine@patapon.info",
+    "user-theme@gnome-shell-extensions.gcampax.github.com",
+    "vertical-workspaces@G-dH.github.com",
+}
 
 lines = defaults.read_text().splitlines()
 enabled_line = next(line for line in lines if line.startswith("enabled-extensions="))
@@ -52,6 +63,12 @@ for directory in extensions.iterdir():
     if actual != directory.name:
         raise SystemExit(f"GNOME extension UUID mismatch: {directory.name} != {actual}")
 
+if source_tree:
+    for uuid in fedora_extensions:
+        metadata = fedora_snapshot / uuid / "metadata.json"
+        if not metadata.is_file() or json.loads(metadata.read_text()).get("uuid") != uuid:
+            raise SystemExit(f"Vendored Fedora extension missing or mismatched: {uuid}")
+
 dock = extensions / new_dock
 for name in ("extension.js", "dockItemMenu.js", "folderClick.js", "metadata.json"):
     if not (dock / name).is_file():
@@ -59,7 +76,14 @@ for name in ("extension.js", "dockItemMenu.js", "folderClick.js", "metadata.json
 if "./folderClick.js" not in (dock / "dockItemMenu.js").read_text():
     raise SystemExit("Empty-folder behavior is no longer connected to the dock")
 
-if defaults.name == "00-infinityos":
+if not source_tree:
+    links = {
+        "00-infinityos": "/usr/share/infinityos/gnome-defaults",
+        "01-infinity-blur": "/usr/share/infinityos/blur-defaults",
+    }
+    for name, target in links.items():
+        if (root / "etc/dconf/db/local.d" / name).readlink().as_posix() != target:
+            raise SystemExit(f"Infinity OS dconf default is not package-linked: {name}")
     for uuid in enabled:
         metadata = extensions / uuid / "metadata.json"
         if not metadata.is_file():
