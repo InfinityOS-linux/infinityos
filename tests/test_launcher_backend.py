@@ -15,6 +15,44 @@ SPEC.loader.exec_module(backend)
 
 
 class LauncherBackendTests(unittest.TestCase):
+    def test_gaming_launchers_follow_steam(self):
+        names = [app.name for app in backend.APPS if app.category == "Gaming"]
+        self.assertEqual(names[:3], ["Steam", "Epic Games Launcher", "Blizzard Battle.net"])
+        self.assertNotIn("GOG Galaxy", names)
+        epic = next(app for app in backend.APPS if app.name == "Epic Games Launcher")
+        self.assertEqual(epic.website, "https://launcher.epicgames.com/")
+        self.assertFalse(backend.available(epic, "aarch64"))
+
+    def test_epic_appimage_uses_official_download_and_creates_launcher(self):
+        epic = next(app for app in backend.APPS if app.name == "Epic Games Launcher")
+        response = io.BytesIO(b"\x7fELF\x02\x01\x01\x00AI\x02" + b"0" * 4096)
+        response.geturl = lambda: "https://content-download-egs.distro.on.epicgames.com/EpicGamesLauncher-x86_64.AppImage"
+        response.headers = {"Content-Length": str(len(response.getvalue()))}
+        with tempfile.TemporaryDirectory() as directory, patch.object(backend.urllib.request, "urlopen", return_value=response):
+            home = Path(directory)
+            self.assertFalse(backend.installed(epic, home))
+            backend.install(epic, home)
+            self.assertTrue(backend.installed(epic, home))
+            self.assertIn("EpicGamesLauncher.AppImage", (home / ".local/share/applications/epic-games-launcher.desktop").read_text())
+
+    def test_epic_incomplete_download_does_not_install(self):
+        epic = next(app for app in backend.APPS if app.name == "Epic Games Launcher")
+        response = io.BytesIO(b"\x7fELF\x02\x01\x01\x00AI\x02" + b"0" * 4096)
+        response.geturl = lambda: "https://content-download-egs.distro.on.epicgames.com/EpicGamesLauncher-x86_64.AppImage"
+        response.headers = {"Content-Length": str(len(response.getvalue()) + 1)}
+        with tempfile.TemporaryDirectory() as directory, patch.object(backend.urllib.request, "urlopen", return_value=response):
+            home = Path(directory)
+            with self.assertRaisesRegex(RuntimeError, "size did not match"):
+                backend.install(epic, home)
+            self.assertFalse(backend.installed(epic, home))
+
+    def test_battlenet_opens_system_lutris_installer(self):
+        battlenet = next(app for app in backend.APPS if app.name == "Blizzard Battle.net")
+        with patch.object(backend.shutil, "which", return_value="/usr/bin/lutris"), \
+             patch.object(backend.subprocess, "Popen") as popen:
+            backend.open_lutris_installer(battlenet)
+        self.assertEqual(popen.call_args.args[0], ["/usr/bin/lutris", "lutris:install/battlenet-standard"])
+
     def test_architecture_and_unavailable_sources(self):
         steam = next(app for app in backend.APPS if app.name == "Steam")
         photocraft = next(app for app in backend.APPS if app.name == "PhotoCraft")

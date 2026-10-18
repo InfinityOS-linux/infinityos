@@ -13,7 +13,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, GLib, Gtk
 
-from launcher_backend import APPS, active_local_model, available, install, installed
+from launcher_backend import APPS, active_local_model, available, install, installed, open_lutris_installer
 from launcher_i18n import tr
 
 
@@ -73,7 +73,9 @@ class InfinityLauncher(Gtk.Application):
         self.window = None
         self.switches = {}
         self.notes = {}
+        self.installer_buttons = []
         self.busy = False
+        self.opening_installers = 0
         self.closing = False
         self.applied = False
         self.progress_source = 0
@@ -259,7 +261,22 @@ class InfinityLauncher(Gtk.Application):
                 link = Gtk.LinkButton(uri=app.website, label=tr("View source and releases"))
                 link.set_halign(Gtk.Align.START)
                 details.append(link)
+            elif app.kind in ("lutris-installer", "epic-appimage"):
+                link = Gtk.LinkButton(uri=app.website, label=tr("Official website"))
+                link.set_halign(Gtk.Align.START)
+                details.append(link)
             row.append(details)
+            if app.kind == "lutris-installer":
+                button = Gtk.Button(label=tr("Open installer"))
+                button.set_valign(Gtk.Align.CENTER)
+                button.set_sensitive(available(app))
+                button.connect("clicked", self._open_lutris_installer, app, note)
+                self.installer_buttons.append((button, app))
+                if not available(app):
+                    note.set_text(tr("Available on x86_64"))
+                row.append(button)
+                body.append(row)
+                continue
             if app.kind == "local-model":
                 switch = Gtk.CheckButton()
                 if local_model_group:
@@ -284,6 +301,31 @@ class InfinityLauncher(Gtk.Application):
             body.append(row)
         return scroller
 
+    def _open_lutris_installer(self, button, app, note):
+        self.opening_installers += 1
+        self.save_button.set_sensitive(False)
+        button.set_sensitive(False)
+        note.set_text(tr("Opening installer in Lutris…"))
+
+        def open_installer():
+            try:
+                open_lutris_installer(app)
+            except Exception as exc:
+                message = f"{tr('Could not open installer:')} {exc}"
+            else:
+                message = tr("Finish installation in Lutris.")
+            GLib.idle_add(self._installer_opened, button, note, message)
+
+        threading.Thread(target=open_installer, daemon=True).start()
+
+    def _installer_opened(self, button, note, message):
+        note.set_text(message)
+        button.set_sensitive(True)
+        self.opening_installers -= 1
+        if not self.opening_installers and not self.busy:
+            self.save_button.set_sensitive(True)
+        return False
+
     def _save(self, _button):
         selected = [app for app, switch in self.switches.items()
                     if switch.get_sensitive() and switch.get_active() and
@@ -298,6 +340,8 @@ class InfinityLauncher(Gtk.Application):
         self.progress_source = GLib.timeout_add(80, self._pulse_progress)
         for switch in self.switches.values():
             switch.set_sensitive(False)
+        for button, _app in self.installer_buttons:
+            button.set_sensitive(False)
         threading.Thread(target=self._install, args=(selected,), daemon=True).start()
 
     def _pulse_progress(self):
@@ -337,6 +381,8 @@ class InfinityLauncher(Gtk.Application):
                     switch.set_sensitive(True)
                 if app.kind == "local-model":
                     switch.set_active(app.source == active_model)
+            for button, app in self.installer_buttons:
+                button.set_sensitive(available(app))
             self.save_button.set_sensitive(True)
         else:
             self._complete()
@@ -391,7 +437,7 @@ class InfinityLauncher(Gtk.Application):
             MARKER.touch()
 
     def _close_requested(self, _window):
-        if self.busy:
+        if self.busy or self.opening_installers:
             self.status.set_text(tr("Wait for installation to finish."))
             return True
         self._begin_close()

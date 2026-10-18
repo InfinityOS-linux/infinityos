@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import NamedTuple
@@ -58,6 +59,8 @@ APPS = (
     App("System", "OpenLogi", "github-rpm", "AprilNEA/OpenLogi", "Configure Logitech mouse buttons, DPI and SmartShift locally.", website="https://github.com/AprilNEA/OpenLogi", group="Device tools", icon="openlogi"),
     App("System", "OpenRazer", "dnf", "openrazer-meta", "Drivers and daemon for Razer devices; restart after installation.", website="https://github.com/openrazer/openrazer", group="Device tools", icon="input-gaming-symbolic"),
     App("Gaming", "Steam", "flatpak", "com.valvesoftware.Steam", "Steam games and store.", True, group="Game launchers", icon="applications-games-symbolic"),
+    App("Gaming", "Epic Games Launcher", "epic-appimage", "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncher-x86_64.AppImage", "Native Linux Preview from Epic Games.", True, website="https://launcher.epicgames.com/", group="Game launchers", icon="applications-games-symbolic"),
+    App("Gaming", "Blizzard Battle.net", "lutris-installer", "battlenet-standard", "Windows launcher; install through Lutris and Wine.", True, website="https://download.battle.net/", group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Heroic Games Launcher", "flatpak", "com.heroicgameslauncher.hgl", "Epic, GOG and Amazon games.", True, group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Lutris", "flatpak", "net.lutris.Lutris", "Games from multiple stores.", True, group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Faugus Launcher", "flatpak", "io.github.Faugus.faugus-launcher", "Windows games with Wine.", True, group="Game launchers", icon="applications-games-symbolic"),
@@ -111,6 +114,9 @@ def ollama_binary():
 
 def installed(app, home=None):
     home = Path(home or Path.home())
+    if app.kind == "epic-appimage":
+        return ((home / ".local/bin/EpicGamesLauncher.AppImage").is_file() and
+                (home / ".local/share/applications/epic-games-launcher.desktop").is_file())
     if app.kind == "local-model":
         ollama = ollama_binary()
         opencode = shutil.which("opencode") or (home / ".local/bin/opencode")
@@ -178,6 +184,8 @@ def install(app, home=None):
     home = Path(home or Path.home())
     if app.kind == "local-model":
         _install_local_model(app, home)
+    elif app.kind == "epic-appimage":
+        _install_epic_appimage(app, home)
     elif app.kind == "flatpak":
         _run(["flatpak", "remote-add", "--user", "--if-not-exists", "flathub",
               "https://dl.flathub.org/repo/flathub.flatpakrepo"])
@@ -220,6 +228,58 @@ def install(app, home=None):
             )
     else:
         raise ValueError(f"No installation source for {app.name}.")
+
+
+def open_lutris_installer(app):
+    """Install Lutris if needed, then open its interactive Windows installer."""
+    if app.kind != "lutris-installer":
+        raise ValueError(f"No Lutris installer for {app.name}.")
+    command = shutil.which("lutris")
+    if not command:
+        lutris = next(item for item in APPS if item.name == "Lutris")
+        if not installed(lutris):
+            install(lutris)
+        command = ["flatpak", "run", "net.lutris.Lutris"]
+    else:
+        command = [command]
+    subprocess.Popen(
+        [*command, f"lutris:install/{app.source}"],
+        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+
+
+def _install_epic_appimage(app, home):
+    binary = home / ".local/bin/EpicGamesLauncher.AppImage"
+    desktop = home / ".local/share/applications/epic-games-launcher.desktop"
+    binary.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=binary.parent, delete=False) as output:
+        temporary = Path(output.name)
+        try:
+            request = urllib.request.Request(app.source, headers={"User-Agent": "InfinityLauncher"})
+            with urllib.request.urlopen(request, timeout=60) as response:
+                url = urllib.parse.urlsplit(response.geturl())
+                if url.scheme != "https" or not (url.hostname or "").endswith(".epicgames.com"):
+                    raise RuntimeError("Unexpected Epic Games download URL.")
+                expected_size = response.headers.get("Content-Length")
+                shutil.copyfileobj(response, output)
+            with temporary.open("rb") as downloaded:
+                header = downloaded.read(11)
+                if temporary.stat().st_size < 4096 or header[:4] != b"\x7fELF" or header[8:] != b"AI\x02":
+                    raise RuntimeError("Epic Games download is not an AppImage.")
+            if expected_size and temporary.stat().st_size != int(expected_size):
+                raise RuntimeError("Epic Games download size did not match server metadata.")
+            temporary.chmod(0o755)
+            os.replace(temporary, binary)
+        finally:
+            temporary.unlink(missing_ok=True)
+    desktop.parent.mkdir(parents=True, exist_ok=True)
+    desktop.write_text(
+        "[Desktop Entry]\nType=Application\nName=Epic Games Launcher\n"
+        f'Exec=env APPIMAGE_EXTRACT_AND_RUN=1 "{binary}"\n'
+        "Icon=applications-games\nCategories=Game;\n",
+        encoding="utf-8",
+    )
 
 
 def _install_local_model(app, home):

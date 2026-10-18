@@ -20,6 +20,11 @@ POLISH = {
         "Wybrane aplikacje zainstalują się po kliknięciu Zastosuj.",
     "Run at next startup": "Uruchom przy następnym starcie",
     "View source and releases": "Kod źródłowy i wydania",
+    "Official website": "Oficjalna strona",
+    "Open installer": "Otwórz instalator",
+    "Opening installer in Lutris…": "Otwieranie instalatora w Lutris…",
+    "Finish installation in Lutris.": "Dokończ instalację w Lutris.",
+    "Could not open installer:": "Nie udało się otworzyć instalatora:",
     "Installed": "Zainstalowano", "Available on x86_64": "Dostępne na x86_64",
     "Could not install:\n": "Nie udało się zainstalować:\n",
     "Wait for installation to finish.": "Poczekaj na zakończenie instalacji.",
@@ -53,6 +58,9 @@ POLISH = {
     "Drivers and daemon for Razer devices; log out and back in after installation.":
         "Sterowniki i usługa dla urządzeń Razer; po instalacji wyloguj się i zaloguj ponownie.",
     "Steam games and store.": "Gry i sklep Steam.",
+    "Native Linux Preview from Epic Games.": "Natywna wersja Preview dla Linuksa od Epic Games.",
+    "Windows launcher; install through Lutris and Wine.":
+        "Launcher Windows; zainstaluj przez Lutris i Wine.",
     "Epic, GOG and Amazon games.": "Gry z Epic, GOG i Amazon.",
     "Games from multiple stores.": "Gry z różnych sklepów.",
     "Windows games with Wine.": "Gry z Windows przez Wine.",
