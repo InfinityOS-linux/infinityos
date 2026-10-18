@@ -94,6 +94,15 @@ for package in gnome-software mpv infinity-terminal; do
         exit 1
     }
 done
+for required in \
+    etc/profile.d/50-infinity-terminal-keybindings.sh \
+    usr/share/infinityos/ghostty/keybindings.zsh; do
+    [[ -f "$rootpoint/$required" ]] || {
+        echo "InfinityTerminal keyboard shortcuts missing from ISO: $required" >&2
+        exit 1
+    }
+done
+grep -Fq 'source /usr/share/infinityos/ghostty/keybindings.zsh' "$rootpoint/etc/skel/.zshrc"
 for package in gnome-builder ptyxis gnome-terminal gnome-console showtime totem; do
     if rpm --root "$rootpoint" -q "$package" >/dev/null 2>&1; then
         echo "Replaced default application still installed in ISO: $package" >&2

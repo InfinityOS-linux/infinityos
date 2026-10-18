@@ -6,3 +6,4 @@ POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true
 plugins=(git sudo colored-man-pages)
 source "$ZSH/oh-my-zsh.sh"
 source /usr/share/infinityos/p10k.zsh
+[[ -r /usr/share/infinityos/ghostty/keybindings.zsh ]] && source /usr/share/infinityos/ghostty/keybindings.zsh
