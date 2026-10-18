@@ -156,13 +156,29 @@ else
 fi
 
 COPYFILE_DISABLE=1 tar -czf "$work/rpmbuild/SOURCES/$package-$version.tar.gz" -C "$work/source" "$package-$version"
-docker run --rm ${INFINITY_TARGET_PLATFORM:+--platform "$INFINITY_TARGET_PLATFORM"} \
-  -v "$work/rpmbuild:/build/rpmbuild" \
-  -v "$repo/packages/$package/$package.spec:/build/$package.spec:ro" \
-  fedora:44 sh -ec 'dnf -y --disablerepo=updates install rpm-build && rpmbuild -bb \
-    --define "_topdir /build/rpmbuild" \
-    --define "infinity_release '${INFINITY_PACKAGE_RELEASE:-1}'" \
-    "/build/'"$package"'.spec"'
+if [[ "$package" == infinityos-shell-extensions ]]; then
+  # Build inside the container filesystem. Docker Desktop presents files on a
+  # macOS bind mount as executable, which makes RPM's shebang check reject
+  # upstream JavaScript modules that are data files rather than commands.
+  docker run --rm ${INFINITY_TARGET_PLATFORM:+--platform "$INFINITY_TARGET_PLATFORM"} \
+    -v "$work/rpmbuild/SOURCES:/source:ro" \
+    -v "$work/rpmbuild/RPMS:/output" \
+    -v "$repo/packages/$package/$package.spec:/build/$package.spec:ro" \
+    fedora:44 sh -ec 'dnf -y --disablerepo=updates install rpm-build && \
+      mkdir -p /build/rpmbuild/SOURCES && cp -a /source/. /build/rpmbuild/SOURCES/ && \
+      rpmbuild -bb --define "_topdir /build/rpmbuild" \
+        --define "infinity_release '${INFINITY_PACKAGE_RELEASE:-1}'" \
+        "/build/'"$package"'.spec" && \
+      cp -a /build/rpmbuild/RPMS/. /output/'
+else
+  docker run --rm ${INFINITY_TARGET_PLATFORM:+--platform "$INFINITY_TARGET_PLATFORM"} \
+    -v "$work/rpmbuild:/build/rpmbuild" \
+    -v "$repo/packages/$package/$package.spec:/build/$package.spec:ro" \
+    fedora:44 sh -ec 'dnf -y --disablerepo=updates install rpm-build && rpmbuild -bb \
+      --define "_topdir /build/rpmbuild" \
+      --define "infinity_release '${INFINITY_PACKAGE_RELEASE:-1}'" \
+      "/build/'"$package"'.spec"'
+fi
 
 mkdir -p "$repo/.build/rpm-output"
 find "$work/rpmbuild/RPMS" -name '*.rpm' -exec cp -f {} "$repo/.build/rpm-output/" \;
