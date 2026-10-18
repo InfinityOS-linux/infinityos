@@ -180,7 +180,7 @@ EOF
 [Main]
 Product=Infinity OS
 Version=44
-IsFinal=False
+IsFinal=True
 EOF
 		chmod 0644 /.buildstamp
 		welcome=/usr/share/anaconda/gnome/fedora-welcome

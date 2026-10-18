@@ -31,6 +31,10 @@ fsck.erofs --extract "$mountpoint/LiveOS/squashfs.img"
 mount -t erofs -o loop,ro "$mountpoint/LiveOS/squashfs.img" "$rootpoint"
 "$script_dir/../root/usr/libexec/infinityos-verify-build-root" "$rootpoint" "$revision"
 "$script_dir/verify-gnome-extension-contracts" "$rootpoint"
+grep -qx 'IsFinal=True' "$rootpoint/.buildstamp" || {
+    echo 'Installer still identifies Infinity OS as a test release' >&2
+    exit 1
+}
 for required in \
     usr/libexec/infinityos-liveinstall-boot-setup \
     usr/lib/systemd/system/infinityos-liveinstall-boot-setup.service \
