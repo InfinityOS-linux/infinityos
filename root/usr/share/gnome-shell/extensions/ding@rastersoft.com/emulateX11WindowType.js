@@ -57,29 +57,28 @@ class ManageWindow {
         if (this._moveIntoPlaceID)
             GLib.source_remove(this._moveIntoPlaceID);
 
-        // Place the mapped desktop surface before its first frame is painted.
-        // Keep the retry below because GTK may adjust the frame after mapping.
-        if (this._fixed && (this._x !== null) && (this._y !== null))
+        if (!this._fixed || this._x === null || this._y === null)
+            return;
+
+        const started = GLib.get_monotonic_time();
+        const place = () => {
             this._window.move_frame(true, this._x, this._y);
+            if (this._firstDesktopPlacement) {
+                const rect = this._window.get_frame_rect();
+                const positioned = Math.abs(rect.x - this._x) <= 2 &&
+                    Math.abs(rect.y - this._y) <= 2;
+                if (!positioned && GLib.get_monotonic_time() - started < 1000000)
+                    return GLib.SOURCE_CONTINUE;
 
-        this._moveIntoPlaceID = GLib.timeout_add(GLib.PRIORITY_LOW, 250, () => {
-            if (this._fixed && (this._x !== null) && (this._y !== null)) {
-                this._window.move_frame(true, this._x, this._y);
-                if (this._firstDesktopPlacement) {
-                    this._firstDesktopPlacement = false;
-                    // The GTK desktop window initially maps at the screen centre.
-                    // Show its icons only after Mutter has moved it into place.
-                    GLib.idle_add(GLib.PRIORITY_LOW, () => {
-                        if (this._windowActor)
-                            this._windowActor.opacity = 255;
-                        return GLib.SOURCE_REMOVE;
-                    });
-                }
+                this._firstDesktopPlacement = false;
+                if (this._windowActor)
+                    this._windowActor.opacity = 255;
             }
-
             this._moveIntoPlaceID = 0;
             return GLib.SOURCE_REMOVE;
-        });
+        };
+        if (place() === GLib.SOURCE_CONTINUE)
+            this._moveIntoPlaceID = GLib.timeout_add(GLib.PRIORITY_LOW, 50, place);
     }
 
     refreshWindowPosition() {

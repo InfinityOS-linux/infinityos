@@ -105,7 +105,7 @@ export var DesktopManager = class {
         this.desktopFsId = this._desktopDir.query_info('id::filesystem', Gio.FileQueryInfoFlags.NONE, null).get_attribute_string('id::filesystem');
         this._updateWritableByOthers();
         this._monitorDesktopDir = this._desktopDir.monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, null);
-        this._monitorDesktopDir.set_rate_limit(1000);
+        this._monitorDesktopDir.set_rate_limit(100);
         this._monitorDesktopDir.connect('changed', (obj, file, otherFile, eventType) => this._updateDesktopIfChanged(file, otherFile, eventType));
 
         this._fileItemMenu = new FileItemMenu.FileItemMenu(this, mainApp);
@@ -1196,7 +1196,7 @@ export var DesktopManager = class {
                         item._onDestroy();
                 }
             }
-            await DesktopIconsUtil.waitDelayMs(500);
+            await DesktopIconsUtil.waitDelayMs(100);
             if ((GLib.get_monotonic_time() - this._lastDesktopUpdateRequest) > 1000000)
                 this._forceDraw = true;
             else

@@ -163,6 +163,9 @@ export default class InfinityTerminal extends Extension {
         if (this._window) {
             for (const id of this._geometryIds)
                 this._window.disconnect(id);
+            const actor = this._window.get_compositor_private();
+            if (actor)
+                actor.opacity = 255;
         }
         if (this._sourceId)
             GLib.Source.remove(this._sourceId);
@@ -210,6 +213,14 @@ export default class InfinityTerminal extends Extension {
                 this._window.disconnect(id);
         }
         this._window = window;
+        if (fresh && !this._pendingShow) {
+            const actor = window.get_compositor_private();
+            if (actor) {
+                actor.opacity = 0;
+                Main.wm.skipNextEffect(actor);
+            }
+            window.minimize();
+        }
         this._geometryIds = [
             window.connect('position-changed', () => this._positionControls(window)),
             window.connect('size-changed', () => this._positionControls(window)),
@@ -280,6 +291,8 @@ export default class InfinityTerminal extends Extension {
 
     _reveal(window) {
         const actor = window.get_compositor_private();
+        if (actor)
+            actor.opacity = 255;
         this._positionControls(window);
         this._controls.remove_all_transitions();
         this._controls.opacity = 255;

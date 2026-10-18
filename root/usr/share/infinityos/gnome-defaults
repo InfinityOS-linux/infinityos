@@ -32,6 +32,7 @@ hide-qs-power-options=false
 enable-panel-proximity=false
 
 [org/gnome/shell/extensions/dash2dock-lite]
+hide-labels=true
 preferred-monitor=0
 dock-location=0
 autohide-dash=true

@@ -712,7 +712,8 @@ export let Animator = class {
           icon === hoveredIcon &&
           icon._label &&
           icon._label.text &&
-          icon._label.text.length
+          icon._label.text.length &&
+          !this.extension.hide_labels
         ) {
           let tSize = renderer.get_transformed_size();
           // let tPos = icon._icon.get_transformed_position();
