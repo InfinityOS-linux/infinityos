@@ -80,12 +80,20 @@ dash-module=false
 panel-module=false
 app-display-module=true
 app-favorites-module=false
+hot-corner-action=2
 show-search-entry=true
 startup-state=1
 overview-bg-blur-sigma=0
 app-grid-bg-blur-sigma=0
 smooth-overview-animation=true
 app-grid-performance=true
+ws-max-spacing=10
+ws-preview-scale=80
+ws-sw-popup-v-position=85
+ws-thumbnail-scale=7
+ws-thumbnail-scale-appgrid=11
+ws-thumbnails-position=5
+wst-position-adjust=0
 
 [org/gnome/shell/extensions/caffeine]
 show-indicator='only-active'
