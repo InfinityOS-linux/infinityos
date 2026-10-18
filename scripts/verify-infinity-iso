@@ -30,6 +30,7 @@ mount -o loop,ro "$iso" "$mountpoint"
 fsck.erofs --extract "$mountpoint/LiveOS/squashfs.img"
 mount -t erofs -o loop,ro "$mountpoint/LiveOS/squashfs.img" "$rootpoint"
 "$script_dir/../root/usr/libexec/infinityos-verify-build-root" "$rootpoint" "$revision"
+"$script_dir/verify-gnome-extension-contracts" "$rootpoint"
 for required in \
     usr/libexec/infinityos-liveinstall-boot-setup \
     usr/lib/systemd/system/infinityos-liveinstall-boot-setup.service \
@@ -52,8 +53,8 @@ for required in \
     usr/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/schemas/gschemas.compiled \
     usr/share/gnome-shell/extensions/caffeine@patapon.info/extension.js \
     usr/share/gnome-shell/extensions/GPaste@gnome-shell-extensions.gnome.org/extension.js \
-    usr/share/gnome-shell/extensions/dash2dock-lite@icedman.github.com/extension.js \
-    usr/share/gnome-shell/extensions/dash2dock-lite@icedman.github.com/schemas/gschemas.compiled \
+    usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/extension.js \
+    usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/schemas/gschemas.compiled \
     usr/share/gnome-shell/extensions/vertical-workspaces@G-dH.github.com/extension.js \
     etc/dconf/db/local; do
     [[ -f "$rootpoint/$required" ]] || {
@@ -72,7 +73,7 @@ done
     exit 1
 }
 grep -q "'tilingshell@ferrarodomenico.com'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
-grep -q "'dash2dock-lite@icedman.github.com'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
+grep -q "'dash2dock-animated@infinityos.org'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
 grep -q "'vertical-workspaces@G-dH.github.com'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
 grep -q "'caffeine@patapon.info'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
 grep -q "'GPaste@gnome-shell-extensions.gnome.org'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"

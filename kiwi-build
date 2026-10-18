@@ -71,7 +71,15 @@ if [[ "$image_profile" == Infinity-GNOME-* ]]; then
 	kiwibuild_stage=$(mktemp -d)
 	trap 'rm -rf "$kiwibuild_stage"' EXIT
 	git -c "safe.directory=$kiwibuild_repo" -C "$kiwibuild_repo" archive --format=tar "$kiwibuild_revision" | tar -xf - -C "$kiwibuild_stage"
+	"$kiwibuild_stage/scripts/verify-gnome-extension-contracts" "$kiwibuild_stage"
+	# Run behavior contracts from the same commit that KIWI will install.
+	command -v node >/dev/null || { echo 'Node.js is required for Infinity OS behavior contracts.' >&2; exit 1; }
+	node --test "$kiwibuild_stage"/tests/*.test.mjs
 	install -d "$kiwibuild_stage/root/usr/share/infinityos"
+	for spec in "$kiwibuild_stage"/packages/*/*.spec; do
+		[[ -f "$spec" ]] || continue
+		basename "$(dirname "$spec")"
+	done | sort -u > "$kiwibuild_stage/root/usr/share/infinityos/required-rpms"
 	printf '%s\n' "$kiwibuild_revision" > "$kiwibuild_stage/root/usr/share/infinityos/build-revision"
 	kiwi_description_dir="$kiwibuild_stage"
 	echo "Building Infinity OS from source revision $kiwibuild_revision"

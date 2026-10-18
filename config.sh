@@ -65,13 +65,13 @@ EOF
 	glib-compile-schemas /usr/share/gnome-shell/extensions/wack-lockscreen-clock@rinzler69-wastaken.github.com/schemas
 	glib-compile-schemas /usr/share/gnome-shell/extensions/wack-shell@rinzler69-wastaken.github.com/schemas
 	glib-compile-schemas /usr/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/schemas
-	glib-compile-schemas /usr/share/gnome-shell/extensions/dash2dock-lite@icedman.github.com/schemas
+	glib-compile-schemas /usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/schemas
 	chmod 0644 \
 		/usr/share/gnome-shell/extensions/ding@rastersoft.com/schemas/gschemas.compiled \
 		/usr/share/gnome-shell/extensions/wack-lockscreen-clock@rinzler69-wastaken.github.com/schemas/gschemas.compiled \
 		/usr/share/gnome-shell/extensions/wack-shell@rinzler69-wastaken.github.com/schemas/gschemas.compiled
 	chmod 0644 /usr/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/schemas/gschemas.compiled
-	chmod 0644 /usr/share/gnome-shell/extensions/dash2dock-lite@icedman.github.com/schemas/gschemas.compiled
+	chmod 0644 /usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/schemas/gschemas.compiled
 	install -d /etc/skel/Desktop /etc/environment.d
 	printf 'XCURSOR_THEME=Bibata-Modern-Ice\n' > /etc/environment.d/90-infinityos-cursor.conf
 	# Image overlays can make Oh My Zsh directories group-writable, which disables completions.

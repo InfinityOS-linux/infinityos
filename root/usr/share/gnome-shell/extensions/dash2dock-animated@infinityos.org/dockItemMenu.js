@@ -4,6 +4,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as BoxPointer from 'resource:///org/gnome/shell/ui/boxpointer.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { trySpawnCommandLine } from './utils.js';
+import { folderItemsOrOpen } from './folderClick.js';
 // import { trySpawnCommandLine } from 'resource:///org/gnome/shell/misc/util.js';
 
 import Gio from 'gi://Gio';
@@ -44,7 +45,7 @@ export const DockItemList = GObject.registerClass(
     static createItem(dock, f) {
       let file_explorer = dock.extension.file_explorer();
       let target = dock.createItem(f.path);
-      target._onClick = () => {
+      target._onClick = async () => {
         if (
           dock._position != DockPosition.BOTTOM &&
           dock._position != DockPosition.TOP
@@ -52,11 +53,27 @@ export const DockItemList = GObject.registerClass(
           target.activateNewWindow();
           return;
         }
-        if (!dock.extension.services[f.items]) {
-          f.prepare();
+        let files;
+        try {
+          files = await folderItemsOrOpen({
+            items: () => dock.extension.services[f.items],
+            prepare: f.prepare,
+            // The download monitor may still be waiting for its debounce timer.
+            refresh: f.icon === '_downloadsIcon'
+              ? () => dock.extension.services.checkDownloads()
+              : null,
+            open: () => {
+              const folder = f.folder.includes('://')
+                ? Gio.File.new_for_uri(f.folder)
+                : Gio.File.new_for_path(f.folder);
+              Gio.AppInfo.launch_default_for_uri(folder.get_uri(), null);
+            },
+          });
+        } catch (err) {
+          console.error(err);
+          return;
         }
-        let files = [...(dock.extension.services[f.items] || [])];
-        if (!files.length) return;
+        if (!files) return;
         if (files.length < dock.extension.services[f.itemsLength]) {
           files = [
             {

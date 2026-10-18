@@ -292,7 +292,7 @@ if (global.wackDockSnapshots) {
     _limitDashIconSize() {
         // The animated dock owns its icon sizing; resampling its actor blurs icons.
         if (new Gio.Settings({schema_id: 'org.gnome.shell'})
-            .get_strv('enabled-extensions').includes('dash2dock-lite@icedman.github.com'))
+            .get_strv('enabled-extensions').includes('dash2dock-animated@infinityos.org'))
             return;
         const dash = Main.overview?.dash;
         if (!dash || this._originalDashSetMaxSize)

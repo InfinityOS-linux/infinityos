@@ -9,6 +9,25 @@ Have a question or an early idea? Join the [InfinityOS Discord community](https:
 3. Run relevant focused tests from `tests/` and check shell syntax for changed scripts. If the change affects boot, installation, or hardware support, describe the hardware or VM used for verification.
 4. Open a pull request to `main` with the problem, solution, and test results. Include screenshots for visible desktop changes.
 
-The image wrapper accepts only a clean commit and checks that the six Infinity OS RPMs match that commit. The repository contains material from Fedora and other upstream projects; preserve their copyright, license, and attribution notices when changing or importing files. See [THIRD_PARTY.md](THIRD_PARTY.md) and [docs/REDISTRIBUTION.md](docs/REDISTRIBUTION.md).
+The image wrapper accepts only a clean commit and checks that all Infinity OS RPMs listed in its generated manifest match that commit. The repository contains material from Fedora and other upstream projects; preserve their copyright, license, and attribution notices when changing or importing files. See [THIRD_PARTY.md](THIRD_PARTY.md) and [docs/REDISTRIBUTION.md](docs/REDISTRIBUTION.md).
 
 Report security issues through the private route described in [SECURITY.md](SECURITY.md).
+
+# Preserving desktop behavior across updates
+
+Infinity OS changes to a bundled GNOME extension need an Infinity OS UUID when
+upstream updates could replace those changes. Keep the directory name,
+`metadata.json` UUID, enabled extension list, and all integration references in
+sync. Add a focused behavior test under `tests/*.test.mjs` for each user-visible
+change, and extend `scripts/verify-gnome-extension-contracts` when a required
+extension or setting is added. `kiwi-build` runs these checks from the exact
+source commit used for the image; `verify-infinity-iso` checks the installed
+extension layout after the image is built.
+
+Infinity OS RPM applications must keep their build-revision marker. The image
+builder derives its required RPM manifest from `packages/*/*.spec` and verifies
+that every package in the image matches the image's source commit. This
+prevents an image from silently mixing new desktop defaults with stale
+application packages. Upstream Fedora and Flatpak applications still follow
+their own update channels; test their integration when changing supported
+versions.

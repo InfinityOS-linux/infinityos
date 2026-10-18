@@ -16,9 +16,12 @@ check_revision() {
 }
 
 check_revision image usr/share/infinityos/build-revision
-for package in infinity-launcher infinity-terminal infinity-updater infinityos-repos infinityos-wallpapers infinityos-ramdrive; do
+required_rpms="$root/usr/share/infinityos/required-rpms"
+[[ -s "$required_rpms" ]] || { echo 'Missing required RPM manifest' >&2; exit 1; }
+while IFS= read -r package; do
+    [[ "$package" =~ ^[a-z0-9][a-z0-9-]*$ ]] || { echo "Invalid RPM name in manifest: $package" >&2; exit 1; }
     check_revision "$package" "usr/share/infinityos/build-revisions/$package"
-done
+done < "$required_rpms"
 
 for file in \
     usr/bin/infinity-launcher \

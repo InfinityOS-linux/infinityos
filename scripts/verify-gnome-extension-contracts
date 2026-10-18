@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+"""Reject mismatched bundled GNOME extensions before and after image builds."""
+
+import ast
+import json
+import sys
+from pathlib import Path
+
+
+root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent
+extensions = root / "root/usr/share/gnome-shell/extensions"
+defaults = root / "root/usr/share/infinityos/gnome-defaults"
+if not defaults.exists():
+    extensions = root / "usr/share/gnome-shell/extensions"
+    defaults = root / "etc/dconf/db/local.d/00-infinityos"
+
+lines = defaults.read_text().splitlines()
+enabled_line = next(line for line in lines if line.startswith("enabled-extensions="))
+enabled = ast.literal_eval(enabled_line.partition("=")[2])
+new_dock = "dash2dock-animated@infinityos.org"
+old_dock = "dash2dock-lite@icedman.github.com"
+if new_dock not in enabled or old_dock in enabled:
+    raise SystemExit("Infinity OS dock UUID is missing or the upstream UUID is still enabled")
+if (extensions / old_dock).exists():
+    raise SystemExit("The upstream dock UUID would conflict with the Infinity OS fork")
+
+for directory in extensions.iterdir():
+    if not directory.is_dir() or not (directory / "metadata.json").exists():
+        continue
+    actual = json.loads((directory / "metadata.json").read_text()).get("uuid")
+    if actual != directory.name:
+        raise SystemExit(f"GNOME extension UUID mismatch: {directory.name} != {actual}")
+
+dock = extensions / new_dock
+for name in ("extension.js", "dockItemMenu.js", "folderClick.js", "metadata.json"):
+    if not (dock / name).is_file():
+        raise SystemExit(f"Infinity OS dock file missing: {name}")
+if "./folderClick.js" not in (dock / "dockItemMenu.js").read_text():
+    raise SystemExit("Empty-folder behavior is no longer connected to the dock")
+
+if defaults.name == "00-infinityos":
+    for uuid in enabled:
+        metadata = extensions / uuid / "metadata.json"
+        if not metadata.is_file():
+            raise SystemExit(f"Enabled GNOME extension missing from image: {uuid}")
+
+print("Verified GNOME extension UUIDs and Infinity OS dock behavior")
