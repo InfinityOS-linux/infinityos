@@ -103,7 +103,6 @@ enable infinityos-corefonts.timer
 enable infinityos-repo-trust.timer
 disable infinityos-corefonts.service
 disable infinityos-repo-trust.service
-enable infinityos-bazaar-install.timer
 EOF
 	install -d /etc/gnome-initial-setup
 	cat > /etc/gnome-initial-setup/vendor.conf << 'EOF'
@@ -120,12 +119,6 @@ EOF
 	install -D -m 0644 /usr/share/infinityos/performance/60-infinityos-ioschedulers.rules /etc/udev/rules.d/60-infinityos-ioschedulers.rules
 	systemctl disable infinityos-corefonts.service infinityos-repo-trust.service
 	systemctl enable systemd-resolved.service tlp.service tlp-pd.service switcheroo-control.service infinityos-ramdrive.service infinityos-ramdrive-prepare.path infinityos-ramdrive-prepare.service infinityos-corefonts.timer infinityos-repo-trust.timer
-	if [[ "$(uname -m)" == "aarch64" ]]; then
-		# Firefox's Linux ARM64 Widevine delivery is not enabled upstream yet.
-		# Install Google's native ARM64 Chrome as a DRM-capable fallback after boot.
-		systemctl enable infinityos-drm-browser.timer
-		printf 'enable infinityos-drm-browser.timer\n' >> /usr/lib/systemd/system-preset/00-infinityos.preset
-	fi
 	printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
 	dconf update
 	# GPaste's Shell indicator activates its daemon over D-Bus after login.

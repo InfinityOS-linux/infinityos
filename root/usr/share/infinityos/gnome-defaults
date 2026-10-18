@@ -7,6 +7,10 @@ allow-updates=false
 download-updates=false
 download-updates-notify=false
 
+[org/gnome/desktop/default-applications/terminal]
+exec='infinity-terminal'
+exec-arg='-e'
+
 [org/gnome/desktop/app-folders/folders/System]
 apps=['org.gnome.baobab.desktop', 'org.gnome.DiskUtility.desktop', 'org.gnome.Logs.desktop', 'org.freedesktop.MalcontentControl.desktop', 'org.gnome.SystemMonitor.desktop', 'com.infinityos.GhosTTY.desktop']
 
@@ -27,7 +31,7 @@ show-logo-menu=false
 show-workspace-widget=true
 workspace-widget-type=2
 menu-button-terminal='infinity-terminal'
-menu-button-software-center='flatpak run io.github.kolunmi.Bazaar'
+menu-button-software-center='gnome-software'
 hide-qs-power-options=false
 enable-panel-proximity=false
 

@@ -88,6 +88,28 @@ for package in gnome-shell-extension-caffeine gnome-shell-extension-gpaste gnome
         exit 1
     }
 done
+for package in gnome-software mpv infinity-terminal; do
+    rpm --root "$rootpoint" -q "$package" >/dev/null || {
+        echo "Default application missing from ISO: $package" >&2
+        exit 1
+    }
+done
+for package in gnome-builder ptyxis gnome-terminal gnome-console showtime totem; do
+    if rpm --root "$rootpoint" -q "$package" >/dev/null 2>&1; then
+        echo "Replaced default application still installed in ISO: $package" >&2
+        exit 1
+    fi
+done
+grep -qx 'video/mp4=mpv.desktop' "$rootpoint/etc/xdg/mimeapps.list"
+grep -qx "exec='infinity-terminal'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
+for unit in infinityos-drm-browser.timer infinityos-bazaar-install.timer; do
+    if [[ -e "$rootpoint/usr/lib/systemd/system/$unit" ||
+          -e "$rootpoint/etc/systemd/system/timers.target.wants/$unit" ||
+          -L "$rootpoint/etc/systemd/system/timers.target.wants/$unit" ]]; then
+        echo "Unwanted first-boot app installer in ISO: $unit" >&2
+        exit 1
+    fi
+done
 for package in \
     gnome-classic-session \
     gnome-shell-extension-apps-menu \

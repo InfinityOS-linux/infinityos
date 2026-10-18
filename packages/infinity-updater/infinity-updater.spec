@@ -11,7 +11,6 @@ Requires:       gtk4
 Requires:       dnf5
 Requires:       flatpak
 Requires:       polkit
-Obsoletes:      gnome-software < 51
 
 %description
 Checks Fedora, Infinity OS, and Flatpak updates periodically and provides an
@@ -26,7 +25,8 @@ Infinity OS styled update window from the GNOME top panel.
 cp -a usr %{buildroot}/
 
 %post
-systemctl enable --now infinityos-bazaar-install.timer >/dev/null 2>&1 || :
+# Previous releases enabled a one-shot Bazaar installer. Stop it during RPM upgrades.
+systemctl disable --now infinityos-bazaar-install.timer >/dev/null 2>&1 || :
 systemctl --global enable infinity-updater.timer >/dev/null 2>&1 || :
 
 %files
@@ -40,10 +40,7 @@ systemctl --global enable infinity-updater.timer >/dev/null 2>&1 || :
 /usr/share/gnome-shell/extensions/infinity-updater@infinityos.org/
 /usr/lib/systemd/user/infinity-updater.service
 /usr/lib/systemd/user/infinity-updater.timer
-/usr/lib/systemd/system/infinityos-bazaar-install.service
-/usr/lib/systemd/system/infinityos-bazaar-install.timer
-/usr/libexec/infinityos-install-bazaar
 
 %changelog
 * Wed Oct 14 2026 Infinity OS Contributors <noreply@gitlab.com> - 1.0.0-1
-- Initial daily update indicator and Bazaar installer
+- Initial daily update indicator
