@@ -1,0 +1,14 @@
+[Unit]
+Description=Finish Infinity OS systemd-boot setup after installation
+After=local-fs.target
+ConditionPathIsMountPoint=/boot/efi
+ConditionPathExists=/etc/infinityos/liveinstall-boot-pending
+ConditionPathExists=!/etc/infinityos/liveinstall-systemd-boot
+ConditionPathExists=!/etc/infinityos/liveinstall-grub-fallback
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/infinityos-liveinstall-boot-setup
+
+[Install]
+WantedBy=multi-user.target

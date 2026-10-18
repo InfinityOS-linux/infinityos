@@ -1,9 +1,9 @@
 [Unit]
-Description=Check Infinity OS updates daily
+Description=Check Infinity OS updates periodically
 
 [Timer]
 OnStartupSec=2min
-OnCalendar=daily
+OnUnitActiveSec=6h
 Persistent=true
 Unit=infinity-updater.service
 

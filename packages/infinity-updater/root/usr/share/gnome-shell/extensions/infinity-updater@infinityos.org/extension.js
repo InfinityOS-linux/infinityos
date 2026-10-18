@@ -84,6 +84,7 @@ export default class InfinityUpdater extends Extension {
         }
         this._badge.text = count > 99 ? '99+' : String(count);
         this._badge.visible = count > 0;
+        this._indicator.visible = count > 0 || hasErrors;
         this._icon.icon_name = hasErrors && count === 0
             ? 'dialog-warning-symbolic' : 'org.infinityos.Updater';
         this._indicator.accessible_name = hasErrors && count === 0

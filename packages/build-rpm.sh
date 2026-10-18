@@ -69,8 +69,14 @@ elif [[ "$package" == infinityos-ramdrive ]]; then
 elif [[ "$package" == infinity-launcher ]]; then
   install -d "$work/source/$package-$version/usr/bin" \
     "$work/source/$package-$version/usr/share/applications" \
+    "$work/source/$package-$version/usr/share/icons/hicolor/128x128/apps" \
+    "$work/source/$package-$version/usr/share/icons/hicolor/scalable/apps" \
     "$work/source/$package-$version/etc/xdg/autostart" \
     "$work/source/$package-$version/usr/share/licenses/infinity-launcher"
+  install -m 0644 "$repo/packages/infinity-launcher/root/usr/share/infinityos/launcher-icons/"*.png \
+    "$work/source/$package-$version/usr/share/icons/hicolor/128x128/apps/"
+  install -m 0644 "$repo/packages/infinity-launcher/root/usr/share/infinityos/launcher-icons/"*.svg \
+    "$work/source/$package-$version/usr/share/icons/hicolor/scalable/apps/"
   install -m 0755 "$repo/packages/infinity-launcher/root/usr/bin/infinity-launcher" \
     "$work/source/$package-$version/usr/bin/infinity-launcher"
   install -m 0644 "$repo/packages/infinity-launcher/root/usr/share/infinityos/launcher.desktop" \

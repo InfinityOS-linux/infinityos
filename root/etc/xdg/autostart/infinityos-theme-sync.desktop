@@ -3,5 +3,6 @@ Type=Application
 Name=Infinity OS Theme Sync
 Exec=/usr/libexec/infinityos-theme-sync
 OnlyShowIn=GNOME;
+NotShowIn=GNOME-Greeter;
 NoDisplay=true
 X-GNOME-Autostart-enabled=true

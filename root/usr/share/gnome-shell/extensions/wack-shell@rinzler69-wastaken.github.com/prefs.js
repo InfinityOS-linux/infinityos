@@ -252,12 +252,14 @@ export default class WackShellPreferences extends ExtensionPreferences {
         const widgetLinkedBox = new Gtk.Box({ css_classes: ['linked'] });
         const btnDots = new Gtk.ToggleButton({ label: 'Dots' });
         const btnLabel = new Gtk.ToggleButton({ label: 'Label', group: btnDots });
+        const btnInfinity = new Gtk.ToggleButton({ label: 'Infinity', group: btnDots });
         widgetLinkedBox.append(btnDots);
         widgetLinkedBox.append(btnLabel);
+        widgetLinkedBox.append(btnInfinity);
 
         const widgetDropdown = new Gtk.DropDown({
             valign: Gtk.Align.CENTER,
-            model: Gtk.StringList.new(['Dots', 'Label'])
+            model: Gtk.StringList.new(['Dots', 'Label', 'Infinity'])
         });
 
         widgetTypeBox.append(widgetLinkedBox);
@@ -266,17 +268,19 @@ export default class WackShellPreferences extends ExtensionPreferences {
 
         const WIDGET_DESCRIPTIONS = [
             'Show vanilla GNOME dots for workspaces',
-            'Show the legacy "Activities" label'
+            'Show the legacy "Activities" label',
+            'Show the Infinity OS logo as the dash button'
         ];
 
         let selfChangeWidgetType = false;
         const syncWidgetTypeFromSettings = () => {
             if (selfChangeWidgetType) return;
             const val = settings.get_int('workspace-widget-type');
-            const index = clamp(val, 0, 1);
+            const index = clamp(val, 0, 2);
 
             if (index === 0) btnDots.active = true;
-            else btnLabel.active = true;
+            else if (index === 1) btnLabel.active = true;
+            else btnInfinity.active = true;
 
             widgetDropdown.selected = index;
             widgetTypeRow.subtitle = WIDGET_DESCRIPTIONS[index];
@@ -296,6 +300,7 @@ export default class WackShellPreferences extends ExtensionPreferences {
 
         btnDots.connect('toggled', () => { if (btnDots.active) updateWidgetTypeSetting(0); });
         btnLabel.connect('toggled', () => { if (btnLabel.active) updateWidgetTypeSetting(1); });
+        btnInfinity.connect('toggled', () => { if (btnInfinity.active) updateWidgetTypeSetting(2); });
 
         widgetDropdown.connect('notify::selected', () => {
             updateWidgetTypeSetting(widgetDropdown.selected);

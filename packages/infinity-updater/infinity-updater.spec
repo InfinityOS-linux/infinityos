@@ -14,7 +14,7 @@ Requires:       polkit
 Obsoletes:      gnome-software < 51
 
 %description
-Checks Fedora, Infinity OS, and Flatpak updates daily and provides an
+Checks Fedora, Infinity OS, and Flatpak updates periodically and provides an
 Infinity OS styled update window from the GNOME top panel.
 
 %prep

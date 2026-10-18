@@ -64,10 +64,14 @@ EOF
 	glib-compile-schemas /usr/share/gnome-shell/extensions/ding@rastersoft.com/schemas
 	glib-compile-schemas /usr/share/gnome-shell/extensions/wack-lockscreen-clock@rinzler69-wastaken.github.com/schemas
 	glib-compile-schemas /usr/share/gnome-shell/extensions/wack-shell@rinzler69-wastaken.github.com/schemas
+	glib-compile-schemas /usr/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/schemas
+	glib-compile-schemas /usr/share/gnome-shell/extensions/dash2dock-lite@icedman.github.com/schemas
 	chmod 0644 \
 		/usr/share/gnome-shell/extensions/ding@rastersoft.com/schemas/gschemas.compiled \
 		/usr/share/gnome-shell/extensions/wack-lockscreen-clock@rinzler69-wastaken.github.com/schemas/gschemas.compiled \
 		/usr/share/gnome-shell/extensions/wack-shell@rinzler69-wastaken.github.com/schemas/gschemas.compiled
+	chmod 0644 /usr/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/schemas/gschemas.compiled
+	chmod 0644 /usr/share/gnome-shell/extensions/dash2dock-lite@icedman.github.com/schemas/gschemas.compiled
 	install -d /etc/skel/Desktop /etc/environment.d
 	printf 'XCURSOR_THEME=Bibata-Modern-Ice\n' > /etc/environment.d/90-infinityos-cursor.conf
 	# Image overlays can make Oh My Zsh directories group-writable, which disables completions.
@@ -124,13 +128,21 @@ EOF
 	fi
 	printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
 	dconf update
-	# GPaste requests global shortcut access even when every shortcut is blank.
-	# Keep its apps available, but start the daemon only when a user opens them.
+	# GPaste's Shell indicator activates its daemon over D-Bus after login.
+	# Avoid starting it before the user session or for accounts without the indicator.
 	printf 'disable org.gnome.GPaste.service\n' > /usr/lib/systemd/user-preset/00-infinityos.preset
 	systemctl --global disable org.gnome.GPaste.service
 	# KIWI runs with a restrictive umask; the initial-setup account must read
 	# this compiled database to get the Infinity OS wallpaper and dark theme.
 	chmod 0644 /etc/dconf/db/infinityos-initial-setup /etc/dconf/db/gdm /etc/dconf/db/local
+	# Fedora 44's greeter entry starts the default user session on this image.
+	# That renders a desktop without the login form. Select the GNOME login
+	# session explicitly until the packaged desktop entry does so itself.
+	greeter=/usr/share/gdm/greeter/wayland-sessions/gnome-greeter.desktop
+	if [[ -f "$greeter" ]]; then
+		sed -i 's/^Exec=gnome-session$/Exec=gnome-session --session=gnome-login/' "$greeter"
+		grep -qx 'Exec=gnome-session --session=gnome-login' "$greeter"
+	fi
 	useradd -D -s /usr/bin/zsh
 	if id liveuser &>/dev/null; then
 		usermod -s /usr/bin/zsh liveuser
@@ -154,6 +166,18 @@ enable snapper-cleanup.timer
 EOF
 	fi
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Live"* ]]; then
+		if [[ "$(uname -m)" == x86_64 || "$(uname -m)" == aarch64 ]]; then
+			# Anaconda copies the live root to the target. Keep a pending marker
+			# until the post script finishes; the retry unit needs both this marker
+			# and a mounted target ESP before it can run.
+			install -d /etc/infinityos
+			touch /etc/infinityos/liveinstall-boot-pending
+			systemctl enable infinityos-liveinstall-boot-setup.service
+			rpm -q systemd-boot-unsigned snapper efibootmgr
+			cat >> /usr/lib/systemd/system-preset/00-infinityos.preset << 'EOF'
+enable infinityos-liveinstall-boot-setup.service
+EOF
+		fi
 		# Anaconda selects its profile from os-release. With ID=infinityos it
 		# otherwise falls back to EFI/default, where the packaged shim is absent.
 		test -f /etc/anaconda/profile.d/infinityos.conf
@@ -177,6 +201,20 @@ EOF
 			-e '/^Name\[/d' "$welcome_desktop"
 		# Live media mounts its root dynamically; disk-image UUIDs must not reach the ISO.
 		: > /etc/fstab
+		# Stage systemd-boot after Anaconda has created the target ESP and Btrfs
+		# root. GRUB stays installed as a recovery entry. A failed conversion
+		# never makes the installer fail at the end of installation.
+		if [[ "$(uname -m)" == x86_64 || "$(uname -m)" == aarch64 ]]; then
+			cat > /usr/share/anaconda/post-scripts/91-infinityos-boot.ks <<'BOOT_POST_EOF'
+%post --log=/var/log/infinityos-boot-install.log
+if ! /usr/libexec/infinityos-liveinstall-boot-setup; then
+    echo 'Infinity OS boot setup deferred to first boot' >&2
+    mkdir -p /etc/infinityos
+    touch /etc/infinityos/liveinstall-boot-pending
+fi
+%end
+BOOT_POST_EOF
+		fi
 		# PatternFly's dark token set is selected on the document root.
 		sed -i 's/<html lang="en">/<html lang="en" class="pf-v6-theme-dark">/' /usr/share/cockpit/anaconda-webui/index.html
 		grep -q '</head>' /usr/share/cockpit/anaconda-webui/index.html

@@ -38,6 +38,12 @@
 		<ignore name="fedora-logos"/>
 		<ignore name="fedora-release-notes"/>
 		<ignore name="gnome-tour"/>
+		<ignore name="gnome-classic-session"/>
+		<ignore name="gnome-shell-extension-apps-menu"/>
+		<ignore name="gnome-shell-extension-background-logo"/>
+		<ignore name="gnome-shell-extension-launch-new-instance"/>
+		<ignore name="gnome-shell-extension-places-menu"/>
+		<ignore name="gnome-shell-extension-window-list"/>
 		<ignore name="libreoffice*"/>
 		<ignore name="unoconv"/>
 		<package name="git"/>
@@ -72,6 +78,8 @@
 		<package name="powerline"/>
 		<package name="powerline-fonts"/>
 		<package name="gnome-shell-extension-blur-my-shell"/>
+		<package name="gnome-shell-extension-caffeine"/>
+		<package name="gnome-shell-extension-vertical-workspaces"/>
 		<package name="gnome-rounded-blur"/>
 		<package name="mesa-dri-drivers"/>
 		<package name="mesa-vulkan-drivers"/>

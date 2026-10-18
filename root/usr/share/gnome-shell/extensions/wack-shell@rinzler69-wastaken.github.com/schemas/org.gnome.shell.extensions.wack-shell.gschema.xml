@@ -24,7 +24,7 @@
     <key type="i" name="workspace-widget-type">
       <default>0</default>
       <summary>Workspace Widget Type</summary>
-      <description>Select what to display: 0 for Workspace Indicators (dots), 1 for Activities label.</description>
+      <description>Select what to display: 0 for Workspace Indicators (dots), 1 for Activities label, 2 for Infinity OS logo.</description>
     </key>
 
     <key type="b" name="show-workspace-number">

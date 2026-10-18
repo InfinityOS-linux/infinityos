@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Anaconda installs GRUB even when the live image was booted from UEFI. Keep
+# that working entry as a fallback while placing the installed kernel on ESP.
+[[ -d /sys/firmware/efi ]] || exit 0
+if [[ $(findmnt -n -o FSTYPE /) != btrfs ]]; then
+	echo 'Btrfs root is not in use; keeping the installed GRUB entry' >&2
+	install -d /etc/infinityos
+	touch /etc/infinityos/liveinstall-grub-fallback
+	rm -f /etc/infinityos/liveinstall-boot-pending
+	exit 0
+fi
+[[ $(findmnt -n -M /boot/efi -o FSTYPE) == vfat ]] || { echo 'EFI system partition required' >&2; exit 1; }
+
+secure_boot=/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c
+if [[ -f $secure_boot && $(od -An -tu1 -j 4 -N 1 "$secure_boot" | tr -d ' ') == 1 ]]; then
+	echo 'Secure Boot is enabled; keeping the signed GRUB entry' >&2
+	systemctl enable infinityos-snapper-setup.service snapper-timeline.timer snapper-cleanup.timer
+	install -d /etc/infinityos
+	touch /etc/infinityos/liveinstall-grub-fallback
+	rm -f /etc/infinityos/liveinstall-boot-pending
+	exit 0
+fi
+
+case $(uname -m) in
+	x86_64) efi_arch=x64 ;;
+	aarch64) efi_arch=aa64 ;;
+	*) echo 'Unsupported EFI architecture' >&2; exit 1 ;;
+esac
+[[ -s /usr/lib/systemd/boot/efi/systemd-boot${efi_arch}.efi ]]
+command -v snapper >/dev/null
+command -v efibootmgr >/dev/null
+
+source_entry=$(find /boot/loader/entries -maxdepth 1 -type f -name '*.conf' ! -name '*rescue*' | sort -V | tail -n 1)
+[[ -n $source_entry ]] || { echo 'No installed kernel entry' >&2; exit 1; }
+version=$(awk '$1 == "version" { print $2; exit }' "$source_entry")
+[[ $version =~ ^[A-Za-z0-9._+-]+$ ]] || { echo 'Invalid kernel version' >&2; exit 1; }
+kernel="/boot/vmlinuz-$version"
+initrd="/boot/initramfs-$version.img"
+[[ -s $kernel && -s $initrd ]] || { echo 'Kernel or initramfs is missing' >&2; exit 1; }
+if [[ -s /etc/kernel/cmdline ]]; then
+	options=$(</etc/kernel/cmdline)
+else
+	options=$(sed -n 's/^options[[:space:]]*//p' "$source_entry" | head -n 1)
+	[[ -n $options ]] || { echo 'Kernel options are missing' >&2; exit 1; }
+	install -d /etc/kernel
+	printf '%s\n' "$options" > /etc/kernel/cmdline
+fi
+
+esp=/boot/efi
+install -d "$esp/os" "$esp/loader/entries" /etc/infinityos
+install -m 0644 "$kernel" "$esp/os/.vmlinuz-$version.tmp"
+install -m 0644 "$initrd" "$esp/os/.initramfs-$version.img.tmp"
+mv -f "$esp/os/.vmlinuz-$version.tmp" "$esp/os/vmlinuz-$version"
+mv -f "$esp/os/.initramfs-$version.img.tmp" "$esp/os/initramfs-$version.img"
+entry_tmp=$(mktemp "$esp/loader/entries/.infinityos-$version.XXXXXX")
+printf 'title Infinity OS (%s)\nversion %s\nlinux os/vmlinuz-%s\ninitrd os/initramfs-%s.img\noptions %s\n' \
+	"$version" "$version" "$version" "$version" "$options" > "$entry_tmp"
+chmod 0644 "$entry_tmp"
+mv -f "$entry_tmp" "$esp/loader/entries/infinityos-$version.conf"
+printf 'default infinityos-*\ntimeout 5\n' > "$esp/loader/loader.conf"
+bootctl --esp-path="$esp" install --no-variables
+bootctl --esp-path="$esp" list --no-pager | grep -Fq "infinityos-$version.conf"
+
+boot_entry=$(efibootmgr | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\* Infinity OS systemd-boot.*/\1/p' | head -n 1)
+if [[ -z $boot_entry ]]; then
+	esp_device=$(findmnt -n -M "$esp" -o SOURCE)
+	disk=$(lsblk -n -o PKNAME "$esp_device" | head -n 1)
+	part=$(lsblk -n -o PARTN "$esp_device" | head -n 1)
+	[[ -n $disk && $part =~ ^[0-9]+$ ]] || { echo 'Cannot identify the EFI partition' >&2; exit 1; }
+	efibootmgr -c -d "/dev/$disk" -p "$part" -L 'Infinity OS systemd-boot' \
+		-l "\\EFI\\systemd\\systemd-boot${efi_arch}.efi"
+	boot_entry=$(efibootmgr | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\* Infinity OS systemd-boot.*/\1/p' | head -n 1)
+fi
+[[ -n $boot_entry ]]
+order=$(efibootmgr | sed -n 's/^BootOrder: //p')
+[[ -n $order ]]
+new_order=$boot_entry
+IFS=, read -r -a existing_entries <<< "$order"
+for existing in "${existing_entries[@]}"; do
+	[[ $existing == "$boot_entry" ]] || new_order+=",$existing"
+done
+efibootmgr -o "$new_order"
+
+# Enable snapshots in Anaconda's installed target, not in the read-only live
+# session that supplied the installer.
+systemctl enable infinityos-snapper-setup.service infinityos-backups-setup.service \
+	infinityos-backups-entry.service infinityos-backups-entry.path \
+	snapper-timeline.timer snapper-cleanup.timer
+
+touch /etc/infinityos/liveinstall-systemd-boot
+rm -f /etc/infinityos/liveinstall-boot-pending

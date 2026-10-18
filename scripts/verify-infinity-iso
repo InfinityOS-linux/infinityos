@@ -30,4 +30,78 @@ mount -o loop,ro "$iso" "$mountpoint"
 fsck.erofs --extract "$mountpoint/LiveOS/squashfs.img"
 mount -t erofs -o loop,ro "$mountpoint/LiveOS/squashfs.img" "$rootpoint"
 "$script_dir/../root/usr/libexec/infinityos-verify-build-root" "$rootpoint" "$revision"
+for required in \
+    usr/libexec/infinityos-liveinstall-boot-setup \
+    usr/lib/systemd/system/infinityos-liveinstall-boot-setup.service \
+    usr/lib/kernel/install.d/96-infinityos-esp.install \
+    usr/share/anaconda/post-scripts/91-infinityos-boot.ks; do
+    [[ -f "$rootpoint/$required" ]] || {
+        echo "Installed boot setup missing from ISO: $required" >&2
+        exit 1
+    }
+done
+[[ -f "$rootpoint/etc/infinityos/liveinstall-boot-pending" ]] || {
+    echo 'Installed boot retry marker missing from ISO' >&2
+    exit 1
+}
+for required in \
+    usr/libexec/infinityos-open-downloads \
+    usr/local/share/applications/org.gnome.GPaste.Ui.desktop \
+    usr/local/share/applications/org.gnome.GPaste.Preferences.desktop \
+    usr/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/extension.js \
+    usr/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/schemas/gschemas.compiled \
+    usr/share/gnome-shell/extensions/caffeine@patapon.info/extension.js \
+    usr/share/gnome-shell/extensions/GPaste@gnome-shell-extensions.gnome.org/extension.js \
+    usr/share/gnome-shell/extensions/dash2dock-lite@icedman.github.com/extension.js \
+    usr/share/gnome-shell/extensions/dash2dock-lite@icedman.github.com/schemas/gschemas.compiled \
+    usr/share/gnome-shell/extensions/vertical-workspaces@G-dH.github.com/extension.js \
+    etc/dconf/db/local; do
+    [[ -f "$rootpoint/$required" ]] || {
+        echo "Installed GNOME component missing from ISO: $required" >&2
+        exit 1
+    }
+done
+for desktop in org.gnome.GPaste.Ui.desktop org.gnome.GPaste.Preferences.desktop; do
+    grep -qx 'NoDisplay=true' "$rootpoint/usr/local/share/applications/$desktop" || {
+        echo "GPaste launcher is visible in the app grid: $desktop" >&2
+        exit 1
+    }
+done
+[[ -x "$rootpoint/usr/libexec/infinityos-open-downloads" ]] || {
+    echo 'Downloads shortcut is not executable' >&2
+    exit 1
+}
+grep -q "'tilingshell@ferrarodomenico.com'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
+grep -q "'dash2dock-lite@icedman.github.com'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
+grep -q "'vertical-workspaces@G-dH.github.com'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
+grep -q "'caffeine@patapon.info'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
+grep -q "'GPaste@gnome-shell-extensions.gnome.org'" "$rootpoint/etc/dconf/db/local.d/00-infinityos"
+grep -qx 'app-display-module=true' "$rootpoint/etc/dconf/db/local.d/00-infinityos"
+grep -qx 'app-grid-performance=true' "$rootpoint/etc/dconf/db/local.d/00-infinityos"
+grep -qx 'startup-state=1' "$rootpoint/etc/dconf/db/local.d/00-infinityos"
+grep -qx 'downloads-icon=true' "$rootpoint/etc/dconf/db/local.d/00-infinityos"
+grep -qx 'enable-all=true' "$rootpoint/etc/dconf/db/local.d/01-infinity-blur"
+for package in gnome-shell-extension-caffeine gnome-shell-extension-gpaste gnome-shell-extension-vertical-workspaces; do
+    rpm --root "$rootpoint" -q "$package" >/dev/null || {
+        echo "Installed GNOME package missing from ISO: $package" >&2
+        exit 1
+    }
+done
+for package in \
+    gnome-classic-session \
+    gnome-shell-extension-apps-menu \
+    gnome-shell-extension-background-logo \
+    gnome-shell-extension-launch-new-instance \
+    gnome-shell-extension-places-menu \
+    gnome-shell-extension-window-list; do
+    if rpm --root "$rootpoint" -q "$package" >/dev/null 2>&1; then
+        echo "Unwanted GNOME extension package in ISO: $package" >&2
+        exit 1
+    fi
+done
+grep -qx 'Exec=gnome-session --session=gnome-login' \
+    "$rootpoint/usr/share/gdm/greeter/wayland-sessions/gnome-greeter.desktop" || {
+    echo 'Infinity OS login session fix missing from ISO' >&2
+    exit 1
+}
 echo "Verified Infinity OS ISO from source revision $revision"

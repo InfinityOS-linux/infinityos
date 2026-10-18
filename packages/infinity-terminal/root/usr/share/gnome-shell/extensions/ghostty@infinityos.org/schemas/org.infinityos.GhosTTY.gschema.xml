@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
   <schema id="org.infinityos.GhosTTY" path="/org/infinityos/ghostty/">
-    <key name="toggle-shortcut" type="as">
+    <key name="infinity-terminal-toggle" type="as">
       <default>['&lt;Super&gt;t']</default>
       <summary>Show or hide InfinityTerminal</summary>
     </key>

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=GPaste Preferences
+Icon=edit-paste
+Exec=/usr/libexec/gpaste/gpaste-preferences
+DBusActivatable=true
+Terminal=false
+Categories=GTK;GNOME;Settings;X-GNOME-PersonalSettings;
+StartupNotify=true
+NoDisplay=true

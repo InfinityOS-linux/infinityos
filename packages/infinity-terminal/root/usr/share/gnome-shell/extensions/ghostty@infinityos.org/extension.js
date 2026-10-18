@@ -12,6 +12,10 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as Workspace from 'resource:///org/gnome/shell/ui/workspace.js';
 
 const APP_ID = 'com.infinityos.GhosTTY';
+const KEYBINDING = 'infinity-terminal-toggle';
+const CONTROL_SIZE = 28;
+const CONTROL_SPACING = 4;
+const CONTROL_INSET = 8;
 
 export default class InfinityTerminal extends Extension {
     enable() {
@@ -46,7 +50,7 @@ export default class InfinityTerminal extends Extension {
             reactive: true,
             child: new St.Icon({icon_name: 'view-pin-symbolic', icon_size: 16}),
         });
-        this._pinButton.set_size(32, 32);
+        this._pinButton.set_size(CONTROL_SIZE, CONTROL_SIZE);
         this._pinButton.connect('notify::checked', () => {
             this._pinButton.accessible_name = this._pinButton.checked
                 ? 'Unpin InfinityTerminal' : 'Pin InfinityTerminal open';
@@ -59,7 +63,7 @@ export default class InfinityTerminal extends Extension {
             reactive: true,
             child: new St.Icon({icon_name: 'window-close-symbolic', icon_size: 16}),
         });
-        this._closeButton.set_size(32, 32);
+        this._closeButton.set_size(CONTROL_SIZE, CONTROL_SIZE);
         this._closeButton.connect('clicked', () => {
             const window = this._findWindow();
             if (window && !window.minimized)
@@ -84,7 +88,7 @@ export default class InfinityTerminal extends Extension {
                     window.get_wm_class?.() === APP_ID));
         };
         Workspace.Workspace.prototype._isOverviewWindow = this._filteredOverviewWindow;
-        Main.wm.addKeybinding('toggle-shortcut', this._settings,
+        Main.wm.addKeybinding(KEYBINDING, this._settings,
             Meta.KeyBindingFlags.NONE, Shell.ActionMode.ALL, () => this._toggle());
         this._outsideClickId = global.stage.connect('captured-event', (_stage, event) => {
             const source = event.get_source();
@@ -143,7 +147,7 @@ export default class InfinityTerminal extends Extension {
             Workspace.Workspace.prototype._isOverviewWindow = this._isOverviewWindow;
         if (Shell.AppSystem.prototype.get_running === this._filteredRunning)
             Shell.AppSystem.prototype.get_running = this._getRunning;
-        Main.wm.removeKeybinding('toggle-shortcut');
+        Main.wm.removeKeybinding(KEYBINDING);
         global.stage.disconnect(this._outsideClickId);
         global.display.disconnect(this._focusId);
         global.display.disconnect(this._windowCreatedId);
@@ -256,7 +260,10 @@ export default class InfinityTerminal extends Extension {
 
     _positionControls(window) {
         const rect = window.get_frame_rect();
-        this._controls.set_position(rect.x + rect.width - 84, rect.y + 8);
+        const width = CONTROL_SIZE * 2 + CONTROL_SPACING;
+        this._controls.set_position(
+            rect.x + rect.width - width - CONTROL_INSET,
+            rect.y + rect.height - CONTROL_SIZE - 6);
     }
 
     _toggle() {

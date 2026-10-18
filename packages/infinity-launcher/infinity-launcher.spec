@@ -29,6 +29,8 @@ cp -a usr etc %{buildroot}/
 /usr/share/infinityos/launcher_i18n.py
 /usr/share/infinityos/launcher_backend.py
 /usr/share/infinityos/launcher-icons/
+/usr/share/icons/hicolor/128x128/apps/*.png
+/usr/share/icons/hicolor/scalable/apps/*.svg
 /usr/share/infinityos/launcher.desktop
 /usr/share/infinityos/launcher-appid.desktop
 /usr/share/infinityos/launcher-autostart.desktop

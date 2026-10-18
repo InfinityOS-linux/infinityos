@@ -3126,12 +3126,14 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 }
 
 #dash .dash-background {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-radius: 9999px;
-  padding-top: 12px;
-  padding-bottom: 12px;
-  padding-left: 10px;
-  padding-right: 10px;
+  background-color: rgba(23, 16, 36, 0.83) !important;
+  border: 1px solid rgba(181, 150, 225, 0.34);
+  border-radius: 24px;
+  box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.22);
+  padding-top: 6px;
+  padding-bottom: 6px;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 #dash .dash-item-container .placeholder {
@@ -3154,18 +3156,18 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
   border-radius: 0;
   padding: 0;
   margin: 0 2px;
-  padding-bottom: 12px;
+  padding-bottom: 6px;
 }
 
 #dash .dash-item-container .show-apps .overview-icon,
 #dash .dash-item-container .overview-tile .overview-icon,
 #dash .dash-item-container .grid-search-result .overview-icon {
-  border-radius: 9999px;
-  padding: 4px;
-  spacing: 4px;
+  border-radius: 11px;
+  padding: 3px;
+  spacing: 3px;
   text-align: center;
   transition-duration: 100ms;
-  background-color: transparent;
+  background-color: rgba(133, 103, 177, 0.20);
   color: white;
 }
 
@@ -3194,7 +3196,7 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 }
 
 #dash .dash-item-container .app-grid-running-dot {
-  offset-y: -12px;
+  offset-y: -6px;
 }
 
 #dash .dash-separator {
@@ -3206,7 +3208,7 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 
 #dash .dash-separator,
 #dash .dash-background {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .dash-label {

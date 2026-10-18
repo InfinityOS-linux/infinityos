@@ -1,7 +1,10 @@
 tabbar {
-  background-color: #211a2d;
+  background-color: #17151d;
   color: #eeeaf6;
   border-top: 1px solid #645394;
+  border-bottom: 1px solid #342d40;
+  /* Leave room for the Shell pin and hide buttons after Ghostty's end controls. */
+  padding-right: 68px;
 }
 
 tabbar tab:selected {

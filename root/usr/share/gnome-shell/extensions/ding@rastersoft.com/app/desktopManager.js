@@ -1277,6 +1277,19 @@ export var DesktopManager = class {
                                 print(`Failed with ${e} while adding volume ${newFolder}`);
                             }
                         }
+                        // On a fresh desktop, place Home, RAMDrive, then Trash.
+                        // Saved icon coordinates still take precedence when a user moves them.
+                        const ramDriveIndex = fileList.findIndex(item =>
+                            item._fileExtra === Enums.FileType.NONE &&
+                            item.fileName === 'RAMDrive' &&
+                            item.file.get_parent()?.equal(this._desktopDir));
+                        const trashIndex = fileList.findIndex(item =>
+                            item._fileExtra === Enums.FileType.USER_DIRECTORY_TRASH);
+                        if (ramDriveIndex >= 0 && trashIndex >= 0) {
+                            const [ramDrive] = fileList.splice(ramDriveIndex, 1);
+                            fileList.splice(fileList.findIndex(item =>
+                                item._fileExtra === Enums.FileType.USER_DIRECTORY_TRASH), 0, ramDrive);
+                        }
                         resolve(fileList);
                     } catch {
                         resolve(null);

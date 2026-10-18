@@ -4,4 +4,5 @@ Name=Infinity OS RAMDrive
 Comment=Create the removable desktop shortcut and Files bookmark
 Exec=/usr/libexec/infinityos-ramdrive setup
 OnlyShowIn=GNOME;
+NotShowIn=GNOME-Greeter;
 NoDisplay=true

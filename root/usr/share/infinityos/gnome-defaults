@@ -1,5 +1,5 @@
 [org/gnome/shell]
-enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'ghostty@infinityos.org', 'infinity-updater@infinityos.org', 'wack-lockscreen-clock@rinzler69-wastaken.github.com', 'wack-shell@rinzler69-wastaken.github.com']
+enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'ghostty@infinityos.org', 'infinity-updater@infinityos.org', 'wack-lockscreen-clock@rinzler69-wastaken.github.com', 'dash2dock-lite@icedman.github.com', 'tilingshell@ferrarodomenico.com', 'vertical-workspaces@G-dH.github.com', 'caffeine@patapon.info', 'GPaste@gnome-shell-extensions.gnome.org', 'wack-shell@rinzler69-wastaken.github.com']
 favorite-apps=['org.mozilla.firefox.desktop', 'infinity-launcher.desktop', 'org.infinityos.Updater.desktop', 'com.infinityos.GhosTTY.desktop', 'org.gnome.Calendar.desktop']
 
 [org/gnome/software]
@@ -11,7 +11,7 @@ download-updates-notify=false
 apps=['org.gnome.baobab.desktop', 'org.gnome.DiskUtility.desktop', 'org.gnome.Logs.desktop', 'org.freedesktop.MalcontentControl.desktop', 'org.gnome.SystemMonitor.desktop', 'com.infinityos.GhosTTY.desktop']
 
 [org/gnome/desktop/app-folders/folders/Utilities]
-apps=['org.gnome.Decibels.desktop', 'org.gnome.Connections.desktop', 'org.gnome.Papers.desktop', 'org.gnome.FileRoller.desktop', 'org.gnome.font-viewer.desktop', 'org.gnome.Loupe.desktop', 'org.gnome.GPaste.Ui.desktop', 'org.gnome.GPaste.Preferences.desktop']
+apps=['org.gnome.Decibels.desktop', 'org.gnome.Connections.desktop', 'org.gnome.Papers.desktop', 'org.gnome.FileRoller.desktop', 'org.gnome.font-viewer.desktop', 'org.gnome.Loupe.desktop']
 
 [org/gnome/shell/extensions/user-theme]
 name='Orchis-Purple-Dark-Compact'
@@ -21,12 +21,76 @@ lockscreen-mode='cupertino'
 
 [org/gnome/shell/extensions/wack-shell]
 use-custom-logo=true
-custom-logo-path='/usr/share/icons/hicolor/scalable/apps/infinityos-panel-mark.svg'
+custom-logo-path='/usr/share/icons/hicolor/scalable/apps/infinityos-panel-mark-v2.svg'
 logo-icon-size=26
+show-logo-menu=false
+show-workspace-widget=true
+workspace-widget-type=2
 menu-button-terminal='infinity-terminal'
 menu-button-software-center='flatpak run io.github.kolunmi.Bazaar'
 hide-qs-power-options=false
 enable-panel-proximity=false
+
+[org/gnome/shell/extensions/dash2dock-lite]
+preferred-monitor=0
+dock-location=0
+autohide-dash=true
+autohide-dodge=true
+autohide-speed=0.5
+pressure-sense=false
+dock-padding=0.5
+downloads-icon=true
+trash-icon=false
+mounted-icon=true
+shrink-icons=true
+icon-size=0.21428571428571427
+icon-spacing=0.5
+icon-resolution=2
+icon-shadow=true
+icon-border-radius=3.0
+icon-effect=0
+animate-icons=true
+animate-icons-unmute=true
+animation-magnify=0.02
+animation-spread=0.75
+animation-rise=0.25
+animation-bounce-height=0.75
+items-pullout-angle=0.5
+open-app-animation=false
+lamp-app-animation=false
+scroll-sensitivity=0.4
+debug-visual=false
+background-color=(0.129, 0.102, 0.176, 0.78)
+border-color=(0.61, 0.482, 0.82, 0.28)
+border-thickness=1
+border-radius=5.0
+edge-distance=0.6
+
+[org/gnome/shell/extensions/tilingshell]
+inner-gaps=uint32 12
+outer-gaps=uint32 8
+window-border-color='#9b7bd1'
+enable-blur-snap-assistant=true
+enable-blur-selected-tilepreview=true
+
+[org/gnome/shell/extensions/vertical-workspaces]
+dash-position=2
+dash-module=false
+panel-module=false
+app-display-module=true
+app-favorites-module=false
+show-search-entry=true
+startup-state=1
+overview-bg-blur-sigma=0
+app-grid-bg-blur-sigma=0
+smooth-overview-animation=true
+app-grid-performance=true
+
+[org/gnome/shell/extensions/caffeine]
+show-indicator='only-active'
+show-notifications=false
+enable-fullscreen=true
+restore-state=false
 
 [org/gnome/desktop/wm/preferences]
 button-layout='close,minimize,maximize:'

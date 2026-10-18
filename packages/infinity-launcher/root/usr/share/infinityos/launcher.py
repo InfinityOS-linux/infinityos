@@ -10,8 +10,7 @@ from pathlib import Path
 import gi
 
 gi.require_version("Gtk", "4.0")
-gi.require_version("GdkPixbuf", "2.0")
-from gi.repository import GdkPixbuf, GLib, Gtk
+from gi.repository import GLib, Gtk
 
 from launcher_backend import APPS, active_local_model, available, install, installed, open_lutris_installer
 from launcher_i18n import tr
@@ -19,7 +18,6 @@ from launcher_i18n import tr
 
 MARKER = Path.home() / ".config/infinityos/launcher-complete"
 NEXT_START = Path.home() / ".config/infinityos/launcher-next-start"
-ICON_DIR = Path(__file__).with_name("launcher-icons")
 SECTIONS = (
     ("AI", "utilities-terminal-symbolic", "Assistants and command-line tools"),
     ("System", "preferences-system-symbolic", "Everyday essentials"),
@@ -235,16 +233,10 @@ class InfinityLauncher(Gtk.Application):
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
             row.add_css_class("infinity-row")
             icon_name = app.source if app.kind == "flatpak" else app.icon
-            icon_file = next((path for path in (ICON_DIR / f"{icon_name}.png", ICON_DIR / f"{icon_name}.svg")
-                              if path.exists()), None)
-            if icon_file:
-                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(icon_file), 36, 36, True)
-                icon = Gtk.Image.new_from_pixbuf(pixbuf)
-            else:
-                if not Gtk.IconTheme.get_for_display(self.window.get_display()).has_icon(icon_name):
-                    icon_name = app.icon
-                icon = Gtk.Image.new_from_icon_name(icon_name)
-                icon.set_pixel_size(36)
+            if not Gtk.IconTheme.get_for_display(self.window.get_display()).has_icon(icon_name):
+                icon_name = app.icon
+            icon = Gtk.Image.new_from_icon_name(icon_name)
+            icon.set_pixel_size(36)
             icon_cell = Gtk.Box()
             icon_cell.set_size_request(36, 36)
             icon.set_halign(Gtk.Align.CENTER)

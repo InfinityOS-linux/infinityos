@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+downloads=$(xdg-user-dir DOWNLOAD)
+if [ -z "$downloads" ]; then
+    downloads="$HOME/Downloads"
+fi
+mkdir -p "$downloads"
+exec nautilus --new-window "$downloads"

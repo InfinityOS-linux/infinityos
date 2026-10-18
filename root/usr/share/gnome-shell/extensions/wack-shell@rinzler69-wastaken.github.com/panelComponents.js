@@ -550,7 +550,7 @@ export const WackLogoButton = GObject.registerClass(
                     }
                 }
             }
-            return super.vfunc_event(event);
+            return Clutter.EVENT_PROPAGATE;
         }
 
         _onScrollEvent(actor, event) {
@@ -1151,6 +1151,8 @@ export const WackWorkspaceButton = GObject.registerClass(
             this._settings.connectObject(
                 'changed::workspace-widget-type', () => this._updateWidget(),
                 'changed::show-workspace-number', () => this._updateLabel(),
+                'changed::custom-logo-path', () => this._updateInfinityIcon(),
+                'changed::logo-icon-size', () => this._updateInfinityIcon(),
                 this
             );
 
@@ -1172,20 +1174,49 @@ export const WackWorkspaceButton = GObject.registerClass(
 
             if (type === 0) { // Workspace Indicators (dots)
                 this._label.hide();
+                if (this._infinityIcon) {
+                    this._infinityIcon.destroy();
+                    this._infinityIcon = null;
+                }
                 if (!this._workspaceIndicators) {
                     this._workspaceIndicators = new WorkspaceIndicators();
                     this._workspaceBox.set_child(this._workspaceIndicators);
                 }
                 this._workspaceBox.show();
-            } else { // Activities Label
-                this._workspaceBox.hide();
+            } else {
                 if (this._workspaceIndicators) {
                     this._workspaceIndicators.destroy();
                     this._workspaceIndicators = null;
                 }
-                this._updateLabel();
-                this._label.show();
+                if (type === 2) { // Infinity logo, with the workspace button's overview action
+                    this._label.hide();
+                    if (!this._infinityIcon) {
+                        this._infinityIcon = new St.Icon({ style_class: 'menu-button' });
+                        this._workspaceBox.set_child(this._infinityIcon);
+                    }
+                    this._updateInfinityIcon();
+                    this._workspaceBox.show();
+                } else { // Activities Label
+                    if (this._infinityIcon) {
+                        this._infinityIcon.destroy();
+                        this._infinityIcon = null;
+                    }
+                    this._workspaceBox.hide();
+                    this._updateLabel();
+                    this._label.show();
+                }
             }
+        }
+
+        _updateInfinityIcon() {
+            if (!this._infinityIcon)
+                return;
+
+            const path = this._settings.get_string('custom-logo-path');
+            const iconPath = path && GLib.file_test(path, GLib.FileTest.IS_REGULAR)
+                ? path : '/usr/share/icons/hicolor/scalable/apps/infinityos-panel-mark-v2.svg';
+            this._infinityIcon.gicon = Gio.icon_new_for_string(iconPath);
+            this._infinityIcon.icon_size = this._settings.get_int('logo-icon-size');
         }
 
         _updateLabel() {
@@ -1207,7 +1238,7 @@ export const WackWorkspaceButton = GObject.registerClass(
                     return Clutter.EVENT_STOP;
                 }
             }
-            return super.vfunc_event(event);
+            return Clutter.EVENT_PROPAGATE;
         }
 
         _onScrollEvent(actor, event) {
@@ -1289,6 +1320,10 @@ export const WackWorkspaceButton = GObject.registerClass(
             if (this._workspaceIndicators) {
                 this._workspaceIndicators.destroy();
                 this._workspaceIndicators = null;
+            }
+            if (this._infinityIcon) {
+                this._infinityIcon.destroy();
+                this._infinityIcon = null;
             }
             super.destroy();
         }

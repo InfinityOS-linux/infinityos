@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ -e /etc/infinityos/liveinstall-systemd-boot ]] || exit 0
+version=${2:?Kernel version required}
+[[ $version =~ ^[A-Za-z0-9._+-]+$ ]] || exit 1
+esp=/boot/efi
+[[ $(findmnt -n -M "$esp" -o FSTYPE) == vfat ]] || exit 1
+
+case ${1:?Operation required} in
+	add)
+		kernel="/boot/vmlinuz-$version"
+		initrd="/boot/initramfs-$version.img"
+		[[ -s $kernel && -s $initrd && -s /etc/kernel/cmdline ]] || exit 1
+		install -d "$esp/os" "$esp/loader/entries"
+		install -m 0644 "$kernel" "$esp/os/.vmlinuz-$version.tmp"
+		install -m 0644 "$initrd" "$esp/os/.initramfs-$version.img.tmp"
+		mv -f "$esp/os/.vmlinuz-$version.tmp" "$esp/os/vmlinuz-$version"
+		mv -f "$esp/os/.initramfs-$version.img.tmp" "$esp/os/initramfs-$version.img"
+		entry_tmp=$(mktemp "$esp/loader/entries/.infinityos-$version.XXXXXX")
+		printf 'title Infinity OS (%s)\nversion %s\nlinux os/vmlinuz-%s\ninitrd os/initramfs-%s.img\noptions %s\n' \
+			"$version" "$version" "$version" "$version" "$(</etc/kernel/cmdline)" > "$entry_tmp"
+		chmod 0644 "$entry_tmp"
+		mv -f "$entry_tmp" "$esp/loader/entries/infinityos-$version.conf"
+		/usr/libexec/infinityos-backups-entry
+		;;
+	remove)
+		rm -f "$esp/loader/entries/infinityos-$version.conf" \
+			"$esp/os/vmlinuz-$version" "$esp/os/initramfs-$version.img"
+		/usr/libexec/infinityos-backups-entry
+		;;
+esac

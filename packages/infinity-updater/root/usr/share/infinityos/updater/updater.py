@@ -55,6 +55,8 @@ def main():
         def do_activate(self):
             if getattr(self, 'window', None):
                 self.window.present()
+                if not self.busy:
+                    self.on_refresh(None)
                 return
             css = Gtk.CssProvider()
             css.load_from_data(STYLE)
@@ -102,6 +104,7 @@ def main():
             layout.append(footer)
             self.render()
             self.window.present()
+            self.on_refresh(None)
 
         def render(self):
             while child := self.items.get_first_child():
@@ -114,7 +117,8 @@ def main():
             count_row.append(count)
             self.items.append(count_row)
             if not updates:
-                message = 'No updates found.' if errors else 'Your system is up to date.'
+                message = ('Could not confirm whether updates are available.' if errors
+                           else 'Your system is up to date.')
                 empty = Gtk.Label(label=message, xalign=0)
                 empty.set_margin_top(24)
                 self.items.append(empty)

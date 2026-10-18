@@ -52,6 +52,7 @@ export default class WackShellExtension extends Extension {
         global.wackDockSnapshots = [];
         global.wack_window_snapshots = [];
         this._setupDockSnapshots();
+        this._limitDashIconSize();
 
 
         // Hide native activities button and suppress it from showing up
@@ -152,6 +153,7 @@ this._settings.connectObject(
     }
 
     disable() {
+        this._restoreDashIconSize();
         // Guideline EGO-M-008: Documenting use of unlock-dialog.
         // This extension supports running during the 'unlock-dialog' session mode
         // to coordinate with the lock screen. When the extension is disabled during
@@ -285,6 +287,35 @@ if (global.wackDockSnapshots) {
 
     global.wackDockSnapshots = [];
 }
+    }
+
+    _limitDashIconSize() {
+        // The animated dock owns its icon sizing; resampling its actor blurs icons.
+        if (new Gio.Settings({schema_id: 'org.gnome.shell'})
+            .get_strv('enabled-extensions').includes('dash2dock-lite@icedman.github.com'))
+            return;
+        const dash = Main.overview?.dash;
+        if (!dash || this._originalDashSetMaxSize)
+            return;
+        this._dash = dash;
+        this._originalDashSetMaxSize = dash.setMaxSize;
+        dash.setMaxSize = (width, height) => {
+            this._lastDashSize = [width, height];
+            this._originalDashSetMaxSize.call(dash, width, Math.min(height, 78));
+        };
+        if (dash._maxWidth > 0 && dash._maxHeight > 0)
+            dash.setMaxSize(dash._maxWidth, dash._maxHeight);
+    }
+
+    _restoreDashIconSize() {
+        if (!this._dash || !this._originalDashSetMaxSize)
+            return;
+        this._dash.setMaxSize = this._originalDashSetMaxSize;
+        if (this._lastDashSize)
+            this._dash.setMaxSize(...this._lastDashSize);
+        this._dash = null;
+        this._originalDashSetMaxSize = null;
+        this._lastDashSize = null;
     }
 
     // ── Lockscreen Wallpaper Desktop Menu ────────────────────────────────────
@@ -960,6 +991,11 @@ _disconnectDockSnapshotWatchers() {
     }
 
     _initWorkspacesAppGrid() {
+        // V-Shell owns the overview layout when enabled. Do not wrap the same
+        // GNOME Shell methods twice; its workspace transitions then stay intact.
+        if (new Gio.Settings({schema_id: 'org.gnome.shell'})
+            .get_strv('enabled-extensions').includes('vertical-workspaces@G-dH.github.com'))
+            return;
         const hasDisableKey = this._settings.settings_schema.has_key('disable-workspaces-in-app-grid');
         const key = hasDisableKey ? 'disable-workspaces-in-app-grid' : 'workspaces-in-app-grid';
 
