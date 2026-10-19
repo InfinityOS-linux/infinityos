@@ -2097,15 +2097,14 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 /* Notifications & Message Tray */
 .notification-banner {
   min-height: 64px;
-  width: 34em;
-  margin: 4px;
-  padding: 4px;
+  width: 30em;
+  margin: 8px;
+  padding: 6px;
   border-radius: 16px;
-  border-left: none;
-  border-bottom: none;
-  box-shadow: 0 3px 3px rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(126, 92, 176, 0.35);
+  box-shadow: 0 8px 24px rgba(36, 24, 52, 0.2);
   color: rgba(0, 0, 0, 0.87);
-  background-color: rgba(255, 255, 255, 0.96);
+  background-color: rgba(250, 247, 255, 0.97);
 }
 
 .notification-banner:hover, .notification-banner:focus, .notification-banner:active {
@@ -2121,8 +2120,8 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
   min-height: 32px;
   padding: 0 16px;
   margin: 0 !important;
-  background-color: rgba(0, 0, 0, 0.04);
-  color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(126, 92, 176, 0.1);
+  color: rgba(36, 24, 52, 0.8);
   font-weight: 500;
   border: none;
   border-radius: 8px;
@@ -2133,20 +2132,20 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 }
 
 .notification-button:focus {
-  background-color: transparent;
-  color: rgba(0, 0, 0, 0.6);
-  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.08);
+  background-color: rgba(126, 92, 176, 0.14);
+  color: #241834;
+  box-shadow: inset 0 0 0 2px rgba(126, 92, 176, 0.48);
 }
 
 .notification-button:hover {
-  background-color: rgba(0, 0, 0, 0.08);
-  color: rgba(0, 0, 0, 0.87);
+  background-color: rgba(126, 92, 176, 0.2);
+  color: #241834;
   box-shadow: none;
 }
 
 .notification-button:active, .notification-button:checked {
-  background-color: rgba(0, 0, 0, 0.26);
-  color: rgba(0, 0, 0, 0.87);
+  background-color: rgba(126, 92, 176, 0.3);
+  color: #241834;
 }
 
 .notification-button:insensitive {
