@@ -38,7 +38,7 @@ grep -qx 'IsFinal=True' "$rootpoint/.buildstamp" || {
 for required in \
     usr/libexec/infinityos-liveinstall-boot-setup \
     usr/libexec/infinityos-live-power \
-    home/liveuser/.config/autostart/infinityos-live-power.desktop \
+    etc/skel/.config/autostart/infinityos-live-power.desktop \
     usr/lib/systemd/system/infinityos-liveinstall-boot-setup.service \
     usr/lib/kernel/install.d/96-infinityos-esp.install \
     usr/share/anaconda/post-scripts/91-infinityos-boot.ks; do

@@ -34,6 +34,11 @@ class LiveBootContractTests(unittest.TestCase):
         self.assertIn("%post --erroronfail --log=/var/log/infinityos-boot-install.log", setup)
         self.assertNotIn("Infinity OS boot setup deferred to first boot", setup)
 
+    def test_live_power_settings_reach_account_created_on_first_boot(self):
+        setup = (REPO / "config.sh").read_text()
+        self.assertIn("/etc/skel/.config/autostart/infinityos-live-power.desktop", setup)
+        self.assertNotIn("/home/liveuser/.config/autostart/infinityos-live-power.desktop", setup)
+
 
 if __name__ == "__main__":
     unittest.main()
