@@ -247,6 +247,7 @@ export var DesktopManager = class {
             const signalAdd = GLibUnix.signal_add ?? GLibUnix.signal_add_full;
             this._sigtermID = signalAdd(GLib.PRIORITY_DEFAULT, 15, () => {
                 GLib.source_remove(this._sigtermID);
+                this._desktopMenu.hideDesktopMenu(false);
                 for (const desktop of this._desktops)
                     desktop.destroy();
 
@@ -347,6 +348,7 @@ export var DesktopManager = class {
     }
 
     _createGridWindows() {
+        this._desktopMenu.hideDesktopMenu(false);
         this._removeAllFilesFromGrids();
         for (const desktop of this._desktops)
             desktop.destroy();
@@ -580,6 +582,7 @@ export var DesktopManager = class {
     }
 
     onPressMainButton(controller, x, y) {
+        this._desktopMenu.hideDesktopMenu();
         if (this._clickCaptured)
             return;
 

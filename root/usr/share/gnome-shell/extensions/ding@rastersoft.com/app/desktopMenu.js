@@ -43,15 +43,16 @@ export var DesktopMenu = class extends MenuHelper.MenuHelper {
         this._lastBgMenu = null;
         this._bgMenus = new WeakMap();
         this._bgMenuModels = new Map();
+        this._menuRequest = 0;
+        this._lastMenuClosedAt = 0;
+        this._closingBgMenu = null;
+        this._closeSourceId = 0;
         this.templatesMonitor = new TemplatesScriptsManager.TemplatesScriptsManager(
             DesktopIconsUtil.getTemplatesDir(),
             TemplatesScriptsManager.TemplatesScriptsManagerFlags.HIDE_EXTENSIONS
         );
         this._desktopDir = DesktopIconsUtil.getDesktopDir();
         this._addActions();
-        this._desktopManager.updateClipboard().catch(e => {
-            console.log(`Error updating clipboard: ${e.message}\n${e.stack}`);
-        });
     }
 
     setClickCoordinates(x, y) {
@@ -144,10 +145,63 @@ export var DesktopMenu = class extends MenuHelper.MenuHelper {
         });
     }
 
-    async showDesktopMenu(x, y, grid) {
+    hideDesktopMenu(animate = true) {
+        if (!animate)
+            this._finishClosingMenu();
+        if (this._lastBgMenu === null)
+            return;
+        const bgMenu = this._lastBgMenu;
+        this._menuRequest++;
+        this._lastBgMenu = null;
+        if (!bgMenu.menuPopover.get_visible())
+            return;
+
+        if (!animate || !Gtk.Settings.get_default()?.gtk_enable_animations) {
+            bgMenu.menuPopover.popdown();
+            return;
+        }
+
+        this._closingBgMenu = bgMenu;
+        bgMenu.menuPopover.add_css_class('menu-exit');
+        this._closeSourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 110, () => {
+            this._closeSourceId = 0;
+            if (this._closingBgMenu === bgMenu)
+                this._closingBgMenu = null;
+            bgMenu.menuPopover.popdown();
+            bgMenu.menuPopover.remove_css_class('menu-exit');
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _finishClosingMenu() {
+        if (this._closeSourceId) {
+            GLib.source_remove(this._closeSourceId);
+            this._closeSourceId = 0;
+        }
+        if (this._closingBgMenu) {
+            const bgMenu = this._closingBgMenu;
+            this._closingBgMenu = null;
+            bgMenu.menuPopover.popdown();
+            bgMenu.menuPopover.remove_css_class('menu-exit');
+        }
+    }
+
+    showDesktopMenu(x, y, grid) {
+        if (this._closingBgMenu) {
+            this._finishClosingMenu();
+            this._lastMenuClosedAt = 0;
+        }
+        // An outside right click can close the popover and reach the desktop
+        // gesture in the same event. Do not immediately reopen it.
+        if (GLib.get_monotonic_time() - this._lastMenuClosedAt < 100000)
+            return;
+
+        if (this._lastBgMenu !== null) {
+            this.hideDesktopMenu();
+            return;
+        }
+
         this._pasteAction.enabled = false;
-        if (this._lastBgMenu !== null)
-            this._lastBgMenu.menuPopover.popdown();
 
         const undoredo = this._syncUndoRedo();
         const menuKey = `${undoredo.undo}:${undoredo.redo}:${this.templatesMonitor.entriesRevision}`;
@@ -166,9 +220,21 @@ export var DesktopMenu = class extends MenuHelper.MenuHelper {
             const menuPopover = Gtk.PopoverMenu.new_from_model_full(menu, Gtk.PopoverMenuFlags.NESTED);
             menuPopover.add_css_class('desktopmenu');
             grid.put(menuPopover, x, y);
-            menuPopover.show();
-            bgMenu = {menuPopover, menuKey};
+            bgMenu = {menuPopover, menuKey, enterSourceId: 0};
             this._bgMenus.set(grid, bgMenu);
+            menuPopover.connect('closed', () => {
+                if (bgMenu.enterSourceId) {
+                    GLib.source_remove(bgMenu.enterSourceId);
+                    bgMenu.enterSourceId = 0;
+                    menuPopover.remove_css_class('menu-enter');
+                }
+                this._lastMenuClosedAt = GLib.get_monotonic_time();
+                if (this._closingBgMenu === bgMenu)
+                    this._finishClosingMenu();
+                if (this._lastBgMenu === bgMenu)
+                    this._lastBgMenu = null;
+                this._menuRequest++;
+            });
         } else {
             grid.move(bgMenu.menuPopover, x, y);
             if (bgMenu.menuKey !== menuKey) {
@@ -183,9 +249,21 @@ export var DesktopMenu = class extends MenuHelper.MenuHelper {
         rect.width = 1;
         rect.height = 1;
         bgMenu.menuPopover.set_pointing_to(rect);
-        bgMenu.menuPopover.popup();
+        if (Gtk.Settings.get_default()?.gtk_enable_animations) {
+            bgMenu.menuPopover.add_css_class('menu-enter');
+            bgMenu.enterSourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 20, () => {
+                bgMenu.enterSourceId = 0;
+                bgMenu.menuPopover.remove_css_class('menu-enter');
+                return GLib.SOURCE_REMOVE;
+            });
+        }
         this._lastBgMenu = bgMenu;
-        this._pasteAction.enabled = await this._desktopManager.updateClipboard();
+        bgMenu.menuPopover.popup();
+        const request = ++this._menuRequest;
+        this._desktopManager.updateClipboard().then(enabled => {
+            if (request === this._menuRequest && this._lastBgMenu === bgMenu)
+                this._pasteAction.enabled = enabled;
+        }).catch(e => console.log(`Error updating clipboard: ${e.message}`));
     }
 
     _syncUndoRedo() {

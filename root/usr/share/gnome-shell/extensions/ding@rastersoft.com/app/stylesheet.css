@@ -88,6 +88,22 @@ popover.fileitemmenu > contents {
     min-width: 320px;
 }
 
+popover.desktopmenu > contents {
+    opacity: 1;
+    transform: translateY(0px);
+    transition: opacity 140ms ease-out, transform 140ms ease-out;
+}
+
+popover.desktopmenu.menu-enter > contents {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
+popover.desktopmenu.menu-exit > contents {
+    opacity: 0;
+    transform: translateY(-6px);
+}
+
 popover.desktopmenu modelbutton,
 popover.fileitemmenu modelbutton {
     min-height: 26px;
