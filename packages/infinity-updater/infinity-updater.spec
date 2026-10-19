@@ -10,11 +10,12 @@ Requires:       python3-gobject
 Requires:       gtk4
 Requires:       dnf5
 Requires:       flatpak
+Requires:       fwupd
 Requires:       polkit
 Requires:       infinityos-shell-extensions >= 1.0.0
 
 %description
-Checks Fedora, Infinity OS, and Flatpak updates periodically and provides an
+Checks Fedora, Infinity OS, Flatpak, and device firmware updates periodically and provides an
 Infinity OS styled update window from the GNOME top panel.
 
 %prep

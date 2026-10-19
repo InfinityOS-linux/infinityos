@@ -1,9 +1,9 @@
-import subprocess
 import sys
 import threading
 from datetime import datetime
 
 from checker import check_updates, read_state, save_state
+from progress import run_update_command
 
 
 STYLE = b'''
@@ -19,6 +19,8 @@ window { background: #111018; color: #f4f0fa; }
 .primary:hover { background: #8e71c6; }
 .secondary { background: #322941; color: #f4edff; border-radius: 9px; padding: 9px 16px; }
 .footer { background: #17131f; border-top: 1px solid #3b3152; padding: 17px 24px; }
+.update-progress trough { min-height: 5px; background: #322941; border-radius: 999px; }
+.update-progress progress { min-height: 5px; background: #ad82e9; border-radius: 999px; }
 '''
 
 
@@ -33,6 +35,9 @@ def install_commands(updates):
     if 'Flatpak user' in kinds:
         commands.append(('Your Flatpaks', ['flatpak', 'update', '--user',
                                             '--noninteractive', '--assumeyes']))
+    if 'Firmware' in kinds:
+        commands.append(('Device firmware', ['pkexec', 'fwupdmgr', 'update',
+                                             '--assume-yes', '--no-reboot-check']))
     return commands
 
 
@@ -74,7 +79,7 @@ def main():
             title = Gtk.Label(label='Infinity OS Updates', xalign=0)
             title.add_css_class('hero-title')
             hero.append(title)
-            subtitle = Gtk.Label(label='Infinity OS · Flathub', xalign=0)
+            subtitle = Gtk.Label(label='System packages · Flatpaks · Device firmware', xalign=0)
             subtitle.add_css_class('hero-subtitle')
             hero.append(subtitle)
             layout.append(hero)
@@ -88,19 +93,26 @@ def main():
             scroll.set_child(self.items)
             layout.append(scroll)
 
-            footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            footer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
             footer.add_css_class('footer')
+            self.progress = Gtk.ProgressBar()
+            self.progress.add_css_class('update-progress')
+            self.progress.set_visible(False)
+            footer.append(self.progress)
+            actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
             self.status = Gtk.Label(xalign=0, hexpand=True)
             self.status.add_css_class('muted')
-            footer.append(self.status)
+            self.status.set_ellipsize(Pango.EllipsizeMode.END)
+            actions.append(self.status)
             self.refresh = Gtk.Button(label='Check again')
             self.refresh.add_css_class('secondary')
             self.refresh.connect('clicked', self.on_refresh)
-            footer.append(self.refresh)
+            actions.append(self.refresh)
             self.apply = Gtk.Button(label='Install updates')
             self.apply.add_css_class('primary')
             self.apply.connect('clicked', self.on_apply)
-            footer.append(self.apply)
+            actions.append(self.apply)
+            footer.append(actions)
             layout.append(footer)
             self.render()
             self.window.present()
@@ -163,10 +175,13 @@ def main():
 
             threading.Thread(target=work, daemon=True).start()
 
-        def finish_refresh(self, state):
+        def finish_refresh(self, state, notice=None):
             self.state = state
             self.busy = False
+            self.stop_progress()
             self.render()
+            if notice:
+                self.status.set_text(notice)
             self.release()
             return GLib.SOURCE_REMOVE
 
@@ -174,6 +189,7 @@ def main():
             self.state = read_state()
             self.state['errors'] = [message] + self.state.get('errors', [])
             self.busy = False
+            self.stop_progress()
             self.render()
             self.release()
             return GLib.SOURCE_REMOVE
@@ -184,19 +200,23 @@ def main():
                 return
             self.busy = True
             self.hold()
+            self.progress.set_fraction(0)
+            self.progress.set_visible(True)
+            self.progress_known = False
+            self.progress_source = GLib.timeout_add(100, self.pulse_progress)
             self.render()
 
             def work():
                 errors = []
+                completed_system_updates = False
                 for label, args in commands:
-                    GLib.idle_add(self.status.set_text, 'Updating ' + label + '…')
-                    try:
-                        result = subprocess.run(args, capture_output=True, text=True, check=False)
-                    except OSError as error:
-                        errors.append(label + ': ' + str(error))
-                        continue
+                    result = run_update_command(label, args, self.report_progress)
                     if result.returncode:
-                        errors.append(label + ': ' + (result.stderr.strip() or 'Update failed'))
+                        errors.append(label + ': ' + (result.stderr.strip() or
+                                                      result.stdout.strip() or 'Update failed'))
+                    elif label in ('System packages', 'Device firmware'):
+                        completed_system_updates = True
+                self.report_progress('Remaining updates', 'Checking', None, None)
                 try:
                     state = check_updates()
                     state['errors'] = errors + state['errors']
@@ -204,8 +224,32 @@ def main():
                 except Exception as error:
                     GLib.idle_add(self.finish_error, str(error))
                 else:
-                    GLib.idle_add(self.finish_refresh, state)
+                    notice = ('Some updates could not be installed.' if errors else
+                              'System updates installed. Restart may be required.'
+                              if completed_system_updates else 'Updates installed.')
+                    GLib.idle_add(self.finish_refresh, state, notice)
 
             threading.Thread(target=work, daemon=True).start()
+
+        def report_progress(self, label, phase, current, total):
+            GLib.idle_add(self.show_progress, label, phase, current, total)
+
+        def show_progress(self, label, phase, current, total):
+            detail = f'{phase} {current}/{total}' if total else phase
+            self.status.set_text(f'{detail} · {label}…')
+            self.progress_known = total is not None
+            self.progress.set_fraction(current / total if total else 0)
+            return GLib.SOURCE_REMOVE
+
+        def pulse_progress(self):
+            if not self.progress_known:
+                self.progress.pulse()
+            return GLib.SOURCE_CONTINUE
+
+        def stop_progress(self):
+            if getattr(self, 'progress_source', None):
+                GLib.source_remove(self.progress_source)
+                self.progress_source = None
+            self.progress.set_visible(False)
 
     return Updater().run(sys.argv)

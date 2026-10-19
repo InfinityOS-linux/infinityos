@@ -18,6 +18,29 @@ def _run(args):
         return subprocess.CompletedProcess(args, 1, '', str(error))
 
 
+def firmware_updates(result):
+    try:
+        data = json.loads(result.stdout)
+    except (TypeError, ValueError):
+        return None
+    devices = data.get('Devices') if isinstance(data, dict) else None
+    if not isinstance(devices, list):
+        return None
+    updates = []
+    for device in devices:
+        if not isinstance(device, dict):
+            continue
+        releases = device.get('Releases', [])
+        if not isinstance(releases, list) or not releases:
+            continue
+        release = releases[0]
+        if isinstance(release, dict):
+            updates.append({'kind': 'Firmware', 'name': device.get('Name') or 'Device firmware',
+                            'version': release.get('Version') or '',
+                            'source': release.get('RemoteId') or 'LVFS'})
+    return updates
+
+
 def check_updates():
     updates = []
     errors = []
@@ -48,6 +71,16 @@ def check_updates():
         else:
             errors.append('Flatpak ' + scope + ': ' +
                           (result.stderr.strip() or 'Could not check updates'))
+
+    result = _run(['fwupdmgr', 'get-updates', '--json'])
+    firmware = firmware_updates(result)
+    if result.returncode == 0 and firmware is not None:
+        updates.extend(firmware)
+    elif not (result.returncode == 2 and firmware == []) and not any(
+            message in (result.stdout + result.stderr).lower() for message in
+            ('no updates available', 'no updatable devices', 'no supported devices')):
+        errors.append('Firmware: ' + (result.stderr.strip() or result.stdout.strip() or
+                                      'Could not check updates'))
 
     return {'checked_at': datetime.now(timezone.utc).isoformat(),
             'updates': updates, 'errors': errors}
