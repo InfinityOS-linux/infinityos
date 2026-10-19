@@ -2,6 +2,7 @@ import Atk from 'gi://Atk';
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
@@ -13,6 +14,7 @@ import * as Workspace from 'resource:///org/gnome/shell/ui/workspace.js';
 
 const APP_ID = 'com.infinityos.GhosTTY';
 const KEYBINDING = 'infinity-terminal-toggle';
+const SWIPE_DISTANCE = 8;
 export default class InfinityTerminal extends Extension {
     enable() {
         this._settings = this.getSettings();
@@ -58,6 +60,27 @@ export default class InfinityTerminal extends Extension {
         Workspace.Workspace.prototype._isOverviewWindow = this._filteredOverviewWindow;
         Main.wm.addKeybinding(KEYBINDING, this._settings,
             Meta.KeyBindingFlags.NONE, Shell.ActionMode.ALL, () => this._toggle());
+        this._touchpadSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.peripherals.touchpad'});
+        this._gesture = null;
+        this._overviewHiddenId = 0;
+        this._gestureEventId = global.stage.connect('captured-event',
+            (_stage, event) => this._handleGesture(event));
+        this._workspaceSwipe = Main.wm._workspaceAnimation?._swipeTracker;
+        this._workspaceTouchpad = this._workspaceSwipe?._touchpadGesture;
+        this._workspaceUpdateId = this._workspaceTouchpad
+            ? GObject.signal_handler_find(this._workspaceTouchpad, {signalId: 'update'})
+            : 0;
+        if (this._workspaceUpdateId) {
+            this._workspaceTouchpad.block_signal_handler(this._workspaceUpdateId);
+            this._reversedWorkspaceUpdateId = this._workspaceTouchpad.connect('update',
+                (gesture, time, delta, distance) => {
+                    // Keep natural scrolling in apps, but map a physical right swipe
+                    // to the next workspace independently of that preference.
+                    const direction = this._touchpadSettings.get_boolean('natural-scroll') ? -1 : 1;
+                    this._workspaceSwipe._updateTouchpadGesture(gesture, time,
+                        delta * direction, distance);
+                });
+        }
         this._outsideClickId = global.stage.connect('captured-event', (_stage, event) => {
             const source = event.get_source();
             if (this._settings.get_boolean('pinned') || event.type() !== Clutter.EventType.BUTTON_PRESS ||
@@ -116,6 +139,18 @@ export default class InfinityTerminal extends Extension {
         if (Shell.AppSystem.prototype.get_running === this._filteredRunning)
             Shell.AppSystem.prototype.get_running = this._getRunning;
         Main.wm.removeKeybinding(KEYBINDING);
+        if (this._overviewHiddenId)
+            Main.overview.disconnect(this._overviewHiddenId);
+        this._overviewHiddenId = 0;
+        global.stage.disconnect(this._gestureEventId);
+        if (this._reversedWorkspaceUpdateId)
+            this._workspaceTouchpad.disconnect(this._reversedWorkspaceUpdateId);
+        if (this._workspaceUpdateId)
+            this._workspaceTouchpad.unblock_signal_handler(this._workspaceUpdateId);
+        this._workspaceSwipe = null;
+        this._workspaceTouchpad = null;
+        this._touchpadSettings = null;
+        this._gesture = null;
         this._settings.disconnect(this._hideRequestId);
         global.stage.disconnect(this._outsideClickId);
         global.display.disconnect(this._focusId);
@@ -146,6 +181,66 @@ export default class InfinityTerminal extends Extension {
     _isGhosTTY(window) {
         return window.get_gtk_application_id?.() === APP_ID ||
             window.get_wm_class?.() === APP_ID;
+    }
+
+    _handleGesture(event) {
+        if (event.type() !== Clutter.EventType.TOUCHPAD_SWIPE ||
+            event.get_touchpad_gesture_finger_count() !== 3 ||
+            !(Main.actionMode & (Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW)))
+            return Clutter.EVENT_PROPAGATE;
+
+        const phase = event.get_gesture_phase();
+        if (phase === Clutter.TouchpadGesturePhase.BEGIN) {
+            this._gesture = {dx: 0, dy: 0, direction: null};
+            return Clutter.EVENT_PROPAGATE;
+        }
+        if (!this._gesture)
+            return Clutter.EVENT_PROPAGATE;
+
+        if (phase === Clutter.TouchpadGesturePhase.UPDATE &&
+            this._gesture.direction === null) {
+            const [dx, dy] = event.get_gesture_motion_delta_unaccelerated();
+            this._gesture.dx += dx;
+            this._gesture.dy += dy;
+            const {dx: totalX, dy: totalY} = this._gesture;
+            if (Math.hypot(totalX, totalY) >= SWIPE_DISTANCE)
+                this._gesture.direction = totalY > 0 &&
+                    Math.abs(totalY) > Math.abs(totalX) * 1.25 ? 'down' : 'other';
+        }
+
+        const handled = this._gesture.direction === 'down';
+        if (phase === Clutter.TouchpadGesturePhase.END ||
+            phase === Clutter.TouchpadGesturePhase.CANCEL) {
+            this._gesture = null;
+            if (handled && phase === Clutter.TouchpadGesturePhase.END)
+                this._finishDownGesture();
+        }
+        return handled ? Clutter.EVENT_STOP : Clutter.EVENT_PROPAGATE;
+    }
+
+    _finishDownGesture() {
+        const controls = Main.overview._overview.controls;
+        const appGridOpen = Main.overview.visible &&
+            (controls.dash?.showAppsButton?.checked ?? controls._stateAdjustment.value > 1.5);
+        if (appGridOpen) {
+            controls.dash.showAppsButton.checked = false;
+        } else if (Main.overview.visible) {
+            if (!this._overviewHiddenId)
+                this._overviewHiddenId = Main.overview.connect('hidden', () => {
+                    Main.overview.disconnect(this._overviewHiddenId);
+                    this._overviewHiddenId = 0;
+                    this._showTerminal();
+                });
+            Main.overview.hide();
+        } else {
+            this._showTerminal();
+        }
+    }
+
+    _showTerminal() {
+        const window = this._findWindow();
+        if (!window || window.minimized)
+            this._toggle();
     }
 
     _findWindow() {
