@@ -257,7 +257,7 @@ export const Services = class {
     const appId = tempPath('downloads-dash2dock-lite.desktop');
     const desktopFile = Gio.File.new_for_path(appId);
     desktopFile.replace_contents(
-      '[Desktop Entry]\nVersion=1.0\nTerminal=false\nType=Application\nName=Downloads\nExec=/usr/libexec/infinityos-open-downloads\nIcon=folder-downloads\nStartupWMClass=downloads-dash2dock-lite\n',
+      '[Desktop Entry]\nVersion=1.0\nTerminal=false\nType=Application\nName=Downloads\nExec=/usr/libexec/infinityos-open-downloads\nIcon=/usr/share/infinityos/folder-icons/folder-download-dock.svg\nStartupWMClass=downloads-dash2dock-lite\n',
       null, false, Gio.FileCreateFlags.REPLACE_DESTINATION, null
     );
     this.setupFolderIcon(
