@@ -189,7 +189,9 @@ export const DockIcon = GObject.registerClass(
 
     _createIcon(size) {
       this._iconActor = new St.Icon({
-        icon_name: this._default_icon_name || 'file',
+        ...(this._default_gicon
+          ? { gicon: this._default_gicon }
+          : { icon_name: this._default_icon_name || 'file' }),
         icon_size: size,
         style_class: this._default_icon_style_class || '',
         track_hover: true,
@@ -293,7 +295,18 @@ export const DockItemContainer = GObject.registerClass(
 
       try {
         this.setLabelText(desktopApp.get_name());
-        dashIcon._default_icon_name = desktopApp.get_icon().get_names()[0];
+        const gicon = desktopApp.get_icon();
+        dashIcon._default_gicon = gicon;
+        dashIcon._default_icon_name = gicon.get_names?.()[0];
+        // DashIcon may have created its St.Icon during construction.
+        for (const icon of [
+          dashIcon._iconActor,
+          dashIcon.icon?.icon,
+          dashIcon.icon?._iconBin?.child,
+        ]) {
+          if (icon instanceof St.Icon)
+            icon.gicon = gicon;
+        }
       } catch (err) {
         console.log(err);
         console.log(params);

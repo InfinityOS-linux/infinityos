@@ -82,7 +82,7 @@ export const DockItemList = GObject.registerClass(
               exec: f.icon === '_downloadsIcon'
                 ? '/usr/libexec/infinityos-open-downloads'
                 : `${file_explorer} "${f.folder}"`,
-              icon: target._icon.icon_name,
+              icon: target._icon.gicon ?? target._icon.icon_name,
               type: 'exec',
             },
             ...files,
@@ -178,7 +178,9 @@ export const DockItemList = GObject.registerClass(
         w.createActualIcon = () => {
           let _icon = new St.Icon({
             name: 'icon',
-            icon_name: l.icon,
+            ...(typeof l.icon === 'string'
+              ? { icon_name: l.icon }
+              : { gicon: l.icon }),
             icon_size: icon_size,
           });
           w._icon.add_child(_icon);
