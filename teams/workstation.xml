@@ -10,7 +10,7 @@
 		</profile>
 		<profile name="Infinity-GNOME-Live" description="Infinity OS GNOME live image">
 			<requires profile="GNOME-Desktop"/>
-			<requires profile="LiveInstall"/>
+			<requires profile="InfinityLiveInstall"/>
 		</profile>
 		<profile name="Infinity-GNOME-Disk" description="Infinity OS GNOME disk image">
 			<requires profile="GNOME-Desktop"/>

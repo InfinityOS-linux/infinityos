@@ -110,7 +110,7 @@ start. The resulting RAW disk has a 2 GB EFI partition and Btrfs `root`,
 
 The systemd-boot **Backups** entry opens a text console for listing, creating, deleting, and restoring Snapper snapshots of `/`. Snapshots are stored in the separate `infinityos-snapshots` Btrfs subvolume, so they remain available after a restore. The first boot sets this up and switches normal boot entries to the Btrfs default root; subsequent kernel entry changes refresh Backups automatically. A restore creates a safety snapshot of the current root, selects a writable copy of the chosen snapshot as the next default root, and reboots. `/home` and `/var` are separate subvolumes and are not rolled back. The previous root stays on disk under `infinityos-roots` for manual recovery.
 
-The live installer selects systemd-boot for UEFI and Btrfs installations when Secure Boot is disabled. With Secure Boot enabled it keeps Fedora's signed GRUB entry and enables Snapper's timeline and cleanup, but the systemd-boot Backups menu is unavailable. A custom installation without Btrfs also keeps GRUB.
+The x86_64 and aarch64 live ISOs boot with systemd-boot on UEFI. The Fedora 44 Anaconda live payload still uses GRUB temporarily during installation; an Infinity OS post-install step installs systemd-boot, moves the installed kernel to the EFI system partition, and sets the UEFI boot order before the installer reports success. The target root must be Btrfs. The current systemd-boot binary is unsigned, so disable Secure Boot before booting the live ISO. Legacy BIOS boot is not supported. An installer failure leaves its log at `/var/log/infinityos-boot-install.log` on the target system.
 
 ## Project layout
 

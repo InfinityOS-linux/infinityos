@@ -55,6 +55,15 @@ done
     echo 'Installed boot retry marker missing from ISO' >&2
     exit 1
 }
+grep -Fqx '%post --erroronfail --log=/var/log/infinityos-boot-install.log' \
+    "$rootpoint/usr/share/anaconda/post-scripts/91-infinityos-boot.ks" || {
+    echo 'Installer can silently finish without systemd-boot' >&2
+    exit 1
+}
+rpm --root "$rootpoint" -q systemd-boot-unsigned >/dev/null || {
+    echo 'systemd-boot binary missing from ISO' >&2
+    exit 1
+}
 for required in \
     usr/libexec/infinityos-open-downloads \
     usr/local/share/applications/org.gnome.GPaste.Ui.desktop \

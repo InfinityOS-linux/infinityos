@@ -1,26 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Anaconda installs GRUB even when the live image was booted from UEFI. Keep
-# that working entry as a fallback while placing the installed kernel on ESP.
-[[ -d /sys/firmware/efi ]] || exit 0
+# Anaconda uses GRUB transiently with the Fedora 44 live payload. Finish the
+# installation with systemd-boot and a tested kernel entry on the target ESP.
+[[ -d /sys/firmware/efi ]] || { echo 'UEFI boot is required' >&2; exit 1; }
 if [[ $(findmnt -n -o FSTYPE /) != btrfs ]]; then
-	echo 'Btrfs root is not in use; keeping the installed GRUB entry' >&2
-	install -d /etc/infinityos
-	touch /etc/infinityos/liveinstall-grub-fallback
-	rm -f /etc/infinityos/liveinstall-boot-pending
-	exit 0
+	echo 'Infinity OS requires a Btrfs root for systemd-boot and Backups' >&2
+	exit 1
 fi
 [[ $(findmnt -n -M /boot/efi -o FSTYPE) == vfat ]] || { echo 'EFI system partition required' >&2; exit 1; }
 
 secure_boot=/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c
 if [[ -f $secure_boot && $(od -An -tu1 -j 4 -N 1 "$secure_boot" | tr -d ' ') == 1 ]]; then
-	echo 'Secure Boot is enabled; keeping the signed GRUB entry' >&2
-	systemctl enable infinityos-snapper-setup.service snapper-timeline.timer snapper-cleanup.timer
-	install -d /etc/infinityos
-	touch /etc/infinityos/liveinstall-grub-fallback
-	rm -f /etc/infinityos/liveinstall-boot-pending
-	exit 0
+	echo 'Disable Secure Boot before installing unsigned Infinity OS systemd-boot media' >&2
+	exit 1
 fi
 
 case $(uname -m) in

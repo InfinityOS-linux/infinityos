@@ -207,17 +207,12 @@ EOF
 			-e '/^Name\[/d' "$welcome_desktop"
 		# Live media mounts its root dynamically; disk-image UUIDs must not reach the ISO.
 		: > /etc/fstab
-		# Stage systemd-boot after Anaconda has created the target ESP and Btrfs
-		# root. GRUB stays installed as a recovery entry. A failed conversion
-		# never makes the installer fail at the end of installation.
+		# Anaconda 44 cannot select systemd-boot with a live payload. Convert its
+		# temporary GRUB installation before finishing, and surface any failure.
 		if [[ "$(uname -m)" == x86_64 || "$(uname -m)" == aarch64 ]]; then
 			cat > /usr/share/anaconda/post-scripts/91-infinityos-boot.ks <<'BOOT_POST_EOF'
-%post --log=/var/log/infinityos-boot-install.log
-if ! /usr/libexec/infinityos-liveinstall-boot-setup; then
-    echo 'Infinity OS boot setup deferred to first boot' >&2
-    mkdir -p /etc/infinityos
-    touch /etc/infinityos/liveinstall-boot-pending
-fi
+%post --erroronfail --log=/var/log/infinityos-boot-install.log
+/usr/libexec/infinityos-liveinstall-boot-setup
 %end
 BOOT_POST_EOF
 		fi
@@ -264,7 +259,7 @@ rm -f /var/lib/systemd/random-seed
 #======================================
 # Configure grub correctly
 #--------------------------------------
-if [[ "$kiwi_profiles" != *"Container"* ]] && [[ "$kiwi_profiles" != *"FEX"* ]] && [[ "$kiwi_profiles" != *"WSL"* ]] && [[ "$kiwi_profiles" != *"Infinity-GNOME-Disk"* ]]; then
+if [[ "$kiwi_profiles" != *"Container"* ]] && [[ "$kiwi_profiles" != *"FEX"* ]] && [[ "$kiwi_profiles" != *"WSL"* ]] && [[ "$kiwi_profiles" != *"Infinity-GNOME-Disk"* ]] && [[ "$kiwi_profiles" != *"Infinity-GNOME-Live"* ]]; then
 	## Works around issues with grub-bls
 	## See: https://github.com/OSInside/kiwi/issues/2198
 	echo "GRUB_DEFAULT=saved" >> /etc/default/grub
