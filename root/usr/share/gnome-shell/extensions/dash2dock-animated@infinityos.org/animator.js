@@ -241,6 +241,12 @@ export let Animator = class {
 
     let didScale = false;
     let didBounce = false;
+    let didLaunchPulse = false;
+    let now = Date.now();
+    for (let [appId, launchedAt] of dock._launchingApps ?? []) {
+      if (now - launchedAt >= 8000)
+        dock._launchingApps.delete(appId);
+    }
 
     //------------------------
     // animation behavior
@@ -775,9 +781,22 @@ export let Animator = class {
           icon._label.opacity = 0;
         }
 
-        //! todo... add placeholder opacity when dragging
+        let launchOpacity = 255;
+        let app = icon._appwell?.app;
+        let appId = app?.get_id?.();
+        let launchedAt = dock._launchingApps?.get(appId);
+        if (launchedAt !== undefined) {
+          let elapsed = now - launchedAt;
+          if (app.get_windows().length) {
+            dock._launchingApps.delete(appId);
+          } else {
+            didLaunchPulse = true;
+            launchOpacity = Math.round(175 + 80 *
+              (1 + Math.cos(elapsed * 2 * Math.PI / 900)) / 2);
+          }
+        }
         renderer.opacity =
-          icon._icon == dock._dragged && dock._dragging ? 75 : 255;
+          icon._icon == dock._dragged && dock._dragging ? 75 : launchOpacity;
       }
 
 
@@ -1035,7 +1054,7 @@ export let Animator = class {
       didScale = true;
     }
 
-    if (didFadeIn || didScale || dock._dragging || didBounce) {
+    if (didFadeIn || didScale || dock._dragging || didBounce || didLaunchPulse) {
       dock.autohider._debounceCheckHide();
       dock._debounceEndAnimation();
     }

@@ -198,6 +198,7 @@ export let Dock = GObject.registerClass(
     undock() {
       this._destroyList();
       this._endAnimation();
+      this._launchingApps?.clear();
       this.dash._box.remove_effect_by_name('icon-effect');
       this.autohider.disable();
       this.removeFromChrome();
@@ -815,6 +816,7 @@ export let Dock = GObject.registerClass(
               if (!c._menu) {
                 this._maybeBounce(c);
               }
+              this._markLaunching(c._appwell.app);
               this._maybeMinimizeOrMaximize(c._appwell.app);
               c._appwell._activate();
             } catch (err) {
@@ -1448,6 +1450,15 @@ export let Dock = GObject.registerClass(
 
     _pauseAllBounce(t = 250) {
       this._pauseBounce = t;
+    }
+
+    _markLaunching(app) {
+      if (!app?.get_id || !app.get_windows || app.get_windows().length)
+        return;
+
+      this._launchingApps ??= new Map();
+      this._launchingApps.set(app.get_id(), Date.now());
+      this._beginAnimation();
     }
 
     _maybeBounce(container, just_do_it) {
