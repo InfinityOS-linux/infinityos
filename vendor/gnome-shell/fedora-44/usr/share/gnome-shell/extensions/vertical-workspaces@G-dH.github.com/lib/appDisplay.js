@@ -1896,8 +1896,11 @@ const AppFolderDialog = {
         const folder = this.child;
 
         if (opt.APP_GRID_FOLDER_CENTER) {
-            dialogTargetX = folderAreaX + folderAreaWidth / 2 - folder.width / 2;
-            dialogTargetY = folderAreaY + folderAreaHeight / 2 - folder.height / 2;
+            // The app grid can still have a stale allocation on its first open.
+            // Monitor geometry is stable, so center the dialog on the screen.
+            const monitor = global.display.get_monitor_geometry(global.display.get_primary_monitor());
+            dialogTargetX = monitor.x + (monitor.width - folder.width) / 2;
+            dialogTargetY = monitor.y + (monitor.height - folder.height) / 2;
         } else {
             const minX = Math.min(folderAreaX, folderAreaX + (folderAreaWidth - folder.width) / 2);
             const maxX = Math.max(folderAreaX + folderAreaWidth - folder.width, folderAreaX + folderAreaWidth / 2 - folder.width / 2);

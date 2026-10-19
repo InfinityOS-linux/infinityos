@@ -40,6 +40,8 @@ vshell_defaults = dict(
     line.split("=", 1) for line in vshell_section.splitlines() if "=" in line
 )
 expected_vshell_defaults = {
+    "app-grid-folder-center": "true",
+    "notification-position": "2",
     "hot-corner-action": "2",
     "ws-max-spacing": "10",
     "ws-preview-scale": "80",
