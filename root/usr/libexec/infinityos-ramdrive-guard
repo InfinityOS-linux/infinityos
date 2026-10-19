@@ -3,6 +3,7 @@
 
 import locale
 import os
+import pwd
 from pathlib import Path
 
 import gi
@@ -69,6 +70,10 @@ class ShutdownGuard:
 
 
 def main():
+    # The live session has no persistent RAMDrive, and an inhibitor here can
+    # leave the installer's Restart button waiting for a shutdown dialog.
+    if pwd.getpwuid(os.getuid()).pw_name == "liveuser":
+        return
     guard = ShutdownGuard()
     loop = GLib.MainLoop()
 

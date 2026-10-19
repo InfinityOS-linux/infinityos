@@ -145,6 +145,18 @@ EOF
 		chown liveuser:liveuser /home/liveuser/.zshrc
 		install -d -o liveuser -g liveuser /home/liveuser/.config/gtk-4.0
 		ln -sfn /usr/share/infinityos/gtk4-adaptive.css /home/liveuser/.config/gtk-4.0/gtk.css
+		if [[ "$kiwi_profiles" == *"Infinity-GNOME-Live"* ]]; then
+			install -d -o liveuser -g liveuser /home/liveuser/.config/autostart
+			cat > /home/liveuser/.config/autostart/infinityos-live-power.desktop << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=Infinity OS live session power settings
+Exec=/usr/libexec/infinityos-live-power
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+EOF
+			chown liveuser:liveuser /home/liveuser/.config/autostart/infinityos-live-power.desktop
+		fi
 	fi
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Disk"* ]]; then
 		# The build host's storage controller differs from the target VM or PC.
