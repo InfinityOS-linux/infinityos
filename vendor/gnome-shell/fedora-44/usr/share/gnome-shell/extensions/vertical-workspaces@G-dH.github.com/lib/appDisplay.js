@@ -1897,7 +1897,7 @@ const AppFolderDialog = {
 
         if (opt.APP_GRID_FOLDER_CENTER) {
             dialogTargetX = folderAreaX + folderAreaWidth / 2 - folder.width / 2;
-            dialogTargetY = folderAreaY + (folderAreaHeight / 2 - folder.height / 2) / 2;
+            dialogTargetY = folderAreaY + folderAreaHeight / 2 - folder.height / 2;
         } else {
             const minX = Math.min(folderAreaX, folderAreaX + (folderAreaWidth - folder.width) / 2);
             const maxX = Math.max(folderAreaX + folderAreaWidth - folder.width, folderAreaX + folderAreaWidth / 2 - folder.width / 2);
