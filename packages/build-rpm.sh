@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-package=${1:?Usage: packages/build-rpm.sh infinity-launcher|infinity-terminal|infinity-updater|infinityos-repos|infinityos-wallpapers|infinityos-ramdrive|infinityos-shell-extensions}
+package=${1:?Usage: packages/build-rpm.sh infinity-config|infinity-launcher|infinity-terminal|infinity-updater|infinityos-repos|infinityos-wallpapers|infinityos-ramdrive|infinityos-shell-extensions}
 case "$package" in
+  infinity-config) version=1.0.0 ;;
   infinity-launcher) version=1.0.0 ;;
   infinity-terminal) version=1.3.1 ;;
   infinity-updater) version=1.0.0 ;;
@@ -24,7 +25,11 @@ fi
 install -d "$work/source/$package-$version/usr/share/infinityos/build-revisions"
 printf '%s\n' "$revision" > "$work/source/$package-$version/usr/share/infinityos/build-revisions/$package"
 
-if [[ "$package" == infinity-updater ]]; then
+if [[ "$package" == infinity-config ]]; then
+  install -d "$work/source/$package-$version/usr/share/licenses/infinity-config"
+  install -m 0644 "$repo/COPYING" \
+    "$work/source/$package-$version/usr/share/licenses/infinity-config/COPYING"
+elif [[ "$package" == infinity-updater ]]; then
   install -d "$work/source/$package-$version/usr/share/licenses/infinity-updater"
   install -m 0644 "$repo/COPYING" \
     "$work/source/$package-$version/usr/share/licenses/infinity-updater/COPYING"

@@ -1,16 +1,17 @@
 # Infinity OS RPM packages
 
-`infinity-launcher`, `infinity-updater`, `infinityos-repos`, `infinityos-wallpapers`, `infinityos-ramdrive`, and `infinityos-shell-extensions` are `noarch` RPMs. `infinity-terminal` includes the patched Ghostty binary and is built separately for `aarch64` and `x86_64`. The existing GNOME extension UUID, terminal application ID, desktop file ID, and launcher first-run marker remain stable so an RPM can adopt files from older images without losing shortcuts or first-run state. The visible names and launch commands are **InfinityLauncher** and **InfinityTerminal**.
+`infinity-config`, `infinity-launcher`, `infinity-updater`, `infinityos-repos`, `infinityos-wallpapers`, `infinityos-ramdrive`, and `infinityos-shell-extensions` are `noarch` RPMs. `infinity-terminal` includes the patched Ghostty binary and is built separately for `aarch64` and `x86_64`. The existing GNOME extension UUID, terminal application ID, desktop file ID, and launcher first-run marker remain stable so an RPM can adopt files from older images without losing shortcuts or first-run state. The visible names and launch commands are **InfinityLauncher** and **InfinityTerminal**.
 
 Each RPM contains the source commit in `/usr/share/infinityos/build-revisions/`.
-Commit changes before packaging and publish all seven RPMs from the same commit.
+Commit changes before packaging and publish all eight RPMs from the same commit.
 The image build refuses an RPM from a different commit, including an older
 published package with the same version number. Build a new image from the
 repository's `kiwi-build` wrapper, which uses a fresh source archive.
 
-Edit the app files under `packages/infinity-launcher/root/`, `packages/infinity-terminal/root/`, or `packages/infinity-updater/root/`. Terminal engine changes belong in `ghostty/ghostty-1.3.1-infinity.patch`. `packages/build-rpm.sh` builds one package locally with Docker. For example:
+Edit the app files under `packages/infinity-config/root/`, `packages/infinity-launcher/root/`, `packages/infinity-terminal/root/`, or `packages/infinity-updater/root/`. Terminal engine changes belong in `ghostty/ghostty-1.3.1-infinity.patch`. `packages/build-rpm.sh` builds one package locally with Docker. For example:
 
 ```sh
+packages/build-rpm.sh infinity-config
 packages/build-rpm.sh infinity-launcher
 packages/build-rpm.sh infinity-updater
 packages/build-rpm.sh infinityos-repos
@@ -28,7 +29,7 @@ for the same commit, so an old renderer cannot be stamped as new. Set
 architecture. The RPMs are written to `.build/rpm-output/`. Building these
 packages does not build an OS image.
 
-To publish another Infinity OS application, add its RPM spec and source, add a job or matrix entry in [the GitHub Actions workflow](../.github/workflows/publish-rpm.yml), and include its name in `publish-repo.sh` when it becomes required. The publisher automatically places all `noarch` RPMs in both repositories and architecture-specific RPMs in the matching repository. All seven RPMs remain required so a partial workflow cannot replace the published repository. Wallpaper sources and the GNOME catalog live in `root/usr/share/backgrounds/infinityos/` and `root/usr/share/infinityos/background-catalog.xml`.
+To publish another Infinity OS application, add its RPM spec and source, add a job or matrix entry in [the GitHub Actions workflow](../.github/workflows/publish-rpm.yml), and include its name in `publish-repo.sh` when it becomes required. The publisher automatically places all `noarch` RPMs in both repositories and architecture-specific RPMs in the matching repository. All eight RPMs remain required so a partial workflow cannot replace the published repository. Wallpaper sources and the GNOME catalog live in `root/usr/share/backgrounds/infinityos/` and `root/usr/share/infinityos/background-catalog.xml`.
 
 `infinityos-shell-extensions` owns the modified extensions in `root/usr/share/gnome-shell/extensions/` and the Fedora 44 extension snapshots in `vendor/gnome-shell/fedora-44/`. Its RPM obsoletes the six matching Fedora extension packages and owns the GNOME/Blur dconf defaults. This keeps extension code and settings at a tested Infinity OS revision during ordinary Fedora updates. Bump the snapshots and RPM together after checking them against the current GNOME Shell, GPaste service, and both supported architectures. GNOME Shell itself is still updated by Fedora, so a new Shell version must be tested before an Infinity OS release.
 
@@ -38,7 +39,7 @@ Infinity OS installs `infinityos-repos`, which owns the DNF configuration and pu
 
 ```sh
 sudo dnf -y --refresh makecache --repo infinityos
-sudo dnf install infinityos-repos infinity-launcher infinity-terminal infinityos-ramdrive infinity-updater infinityos-shell-extensions
+sudo dnf install infinityos-repos infinity-config infinity-launcher infinity-terminal infinityos-ramdrive infinity-updater infinityos-shell-extensions
 sudo dnf upgrade
 ```
 

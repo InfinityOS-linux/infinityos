@@ -97,7 +97,7 @@ for package in gnome-shell-extension-appindicator gnome-shell-extension-blur-my-
         exit 1
     fi
 done
-for package in gnome-software mpv infinity-terminal; do
+for package in gnome-software mpv infinity-config infinity-terminal; do
     rpm --root "$rootpoint" -q "$package" >/dev/null || {
         echo "Default application missing from ISO: $package" >&2
         exit 1

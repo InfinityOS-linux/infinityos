@@ -10,6 +10,7 @@ REPO = Path(__file__).resolve().parents[1]
 SOURCE_REVISION = REPO / "scripts/infinityos-source-revision"
 VERIFY_ROOT = REPO / "root/usr/libexec/infinityos-verify-build-root"
 PACKAGES = (
+    "infinity-config",
     "infinity-launcher",
     "infinity-terminal",
     "infinity-updater",
@@ -65,6 +66,7 @@ class ImageProvenanceTests(unittest.TestCase):
                 "picture-options='zoom'\n"
             )
             expected_files = (
+                "usr/bin/infinity-config",
                 "usr/bin/infinity-launcher",
                 "usr/bin/infinity-terminal",
                 "usr/bin/infinity-updater",

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Infinity Config
+Comment=Configure the Infinity OS desktop
+Exec=infinity-config
+Icon=infinity-config
+Terminal=false
+Categories=Settings;System;
+StartupWMClass=org.infinityos.Config
