@@ -1,4 +1,4 @@
-"""Keep the Infinity live ISO on UEFI systemd-boot without breaking Anaconda."""
+"""Keep the live installer bootable and require systemd-boot on the target."""
 
 import unittest
 import xml.etree.ElementTree as ET
@@ -9,21 +9,22 @@ REPO = Path(__file__).resolve().parents[1]
 
 
 class LiveBootContractTests(unittest.TestCase):
-    def test_infinity_live_profile_uses_systemd_boot_on_both_architectures(self):
+    def test_infinity_live_profile_uses_supported_iso_bootloader(self):
         workstation = ET.parse(REPO / "teams/workstation.xml").getroot()
         profile = workstation.find("./profiles/profile[@name='Infinity-GNOME-Live']")
         requirements = {item.get("profile") for item in profile.findall("requires")}
-        self.assertIn("InfinityLiveInstall", requirements)
-        self.assertNotIn("LiveInstall", requirements)
+        self.assertIn("LiveInstall", requirements)
 
         live = ET.parse(REPO / "components/liveinstall.xml").getroot()
-        preferences = live.findall("./preferences[@profiles='InfinityLiveInstall']")
-        self.assertEqual({item.get("arch") for item in preferences}, {"x86_64", "aarch64"})
+        preferences = live.findall("./preferences[@profiles='LiveInstall']")
+        self.assertTrue({"x86_64", "aarch64"}.issubset({item.get("arch") for item in preferences}))
         for item in preferences:
+            if item.get("arch") not in ("x86_64", "aarch64"):
+                continue
             image = item.find("type")
             self.assertEqual(image.get("firmware"), "uefi")
-            self.assertGreaterEqual(int(image.get("efifatimagesize")), 512)
-            self.assertEqual(image.find("bootloader").get("name"), "systemd_boot")
+            self.assertLessEqual(int(image.get("efifatimagesize")), 31)
+            self.assertEqual(image.find("bootloader").get("name"), "grub2")
             # Anaconda 44 rejects inst.sdboot with a live payload. Its GRUB
             # install is converted in the required post script instead.
             self.assertNotIn("inst.sdboot", image.get("kernelcmdline", ""))

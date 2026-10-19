@@ -4,31 +4,7 @@
 			<requires profile="BaseCommon"/>
 			<requires profile="BootCoreLive"/>
 		</profile>
-		<profile name="InfinityLiveInstall" description="Infinity OS UEFI live ISO with systemd-boot">
-			<requires profile="BaseCommon"/>
-			<!-- Anaconda 44 uses GRUB transiently for its live payload. The
-			     Infinity OS post script installs systemd-boot on the target. -->
-			<requires profile="BootCoreLive"/>
-		</profile>
 	</profiles>
-	<preferences profiles="InfinityLiveInstall" arch="x86_64">
-		<type image="iso"
-			publisher="Infinity OS" volid="InfinityOS" application_id="InfinityOS"
-			primary="true" flags="dmsquash" filesystem="erofs" erofscompression="lzma,level=6" mediacheck="true"
-			firmware="uefi" efiparttable="gpt" efifatimagesize="512" kernelcmdline="quiet rhgb"
-			fscreateoptions="-Efragments -C 1048576">
-			<bootloader name="systemd_boot" timeout="10"/>
-		</type>
-	</preferences>
-	<preferences profiles="InfinityLiveInstall" arch="aarch64">
-		<type image="iso"
-			publisher="Infinity OS" volid="InfinityOS" application_id="InfinityOS"
-			primary="true" flags="dmsquash" filesystem="erofs" erofscompression="lz4hc,level=9" mediacheck="true"
-			firmware="uefi" efiparttable="gpt" efifatimagesize="512" kernelcmdline="quiet rhgb"
-			fscreateoptions="-C 1048576">
-			<bootloader name="systemd_boot" timeout="10"/>
-		</type>
-	</preferences>
 	<preferences profiles="LiveInstall" arch="x86_64">
 		<type image="iso"
 			publisher="Infinity OS" volid="InfinityOS" application_id="InfinityOS"
@@ -69,7 +45,7 @@
 			<bootloader name="grub2" grub_template="grub-ppc.cfg.iso-template" console="console" timeout="10"/>
 		</type>
 	</preferences>
-	<packages type="iso" patternType="plusRecommended" profiles="LiveInstall,InfinityLiveInstall">
+	<packages type="iso" patternType="plusRecommended" profiles="LiveInstall">
 		<!-- Filter out unwanted EFI files from the embedded ESP, see rhbz#2358785 -->
 		<file name="iso-esp-excludes.yaml" target="image/exclude_files_efifatimage.yaml"/>
 		<!-- The point of a live image is to install -->
