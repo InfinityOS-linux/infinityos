@@ -8,11 +8,7 @@
   </defs>
   <rect x="8" y="8" width="496" height="496" rx="112" fill="url(#surface)"/>
   <rect x="10" y="10" width="492" height="492" rx="110" fill="none" stroke="#dfcaff" stroke-opacity=".29" stroke-width="4"/>
-  
-      <path d="M236 96h40l10 36 27 11 33-18 28 28-18 33 11 27 36 10v40l-36 10-11 27 18 33-28 28-33-18-27 11-10 36h-40l-10-36-27-11-33 18-28-28 18-33-11-27-36-10v-40l36-10 11-27-18-33 28-28 33 18 27-11Z"
-            fill="#d5b8ff" stroke="#faf7ff" stroke-width="9" stroke-linejoin="round"/>
-      <circle cx="256" cy="243" r="77" fill="#21172e"/>
-      <path d="M192 243c0-36 40-44 64 0 24 44 64 36 64 0s-40-44-64 0c-24 44-64 36-64 0Z"
-            fill="none" stroke="#faf7ff" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
-    
+  <path d="M236 108h40l10 35 25 10 32-18 28 28-18 32 10 25 35 10v52l-35 10-10 25 18 32-28 28-32-18-25 10-10 35h-40l-10-35-25-10-32 18-28-28 18-32-10-25-35-10v-52l35-10 10-25-18-32 28-28 32 18 25-10Z" fill="none" stroke="#faf7ff" stroke-width="17" stroke-linejoin="round"/>
+  <circle cx="256" cy="256" r="77" fill="none" stroke="#faf7ff" stroke-width="14"/>
+  <path d="M194 256c0-26 20-41 41-31 16 8 26 27 42 49 17 23 41 15 41-18s-24-41-41-18c-16 22-26 41-42 49-21 10-41-5-41-31Z" fill="none" stroke="#faf7ff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
