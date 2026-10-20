@@ -68,13 +68,12 @@ class LiveBootContractTests(unittest.TestCase):
         installer = (REPO / "root/usr/libexec/infinityos-refind-install").read_text()
         self.assertIn('lsblk -nr -o PARTN "$esp_device"', installer)
 
-    def test_live_installer_disables_extensions(self):
+    def test_live_installer_keeps_dock_active(self):
         setup = (REPO / "config.sh").read_text()
-        wrapper = (REPO / "root/usr/libexec/infinityos-liveinst").read_text()
         self.assertIn("installer_desktop=/usr/share/applications/liveinst.desktop", setup)
-        self.assertIn("Exec=/usr/libexec/infinityos-liveinst", setup)
-        self.assertIn("disable-user-extensions true", wrapper)
-        self.assertIn("gnome-extensions disable dash2dock-animated@infinityos.org", wrapper)
+        self.assertIn("grep -qx 'Exec=liveinst'", setup)
+        self.assertNotIn("disable-user-extensions", setup)
+        self.assertFalse((REPO / "root/usr/libexec/infinityos-liveinst").exists())
 
     def test_live_power_settings_reach_account_created_on_first_boot(self):
         setup = (REPO / "config.sh").read_text()

@@ -1,6 +1,7 @@
 'use strict';
 
 import Meta from 'gi://Meta';
+import Shell from 'gi://Shell';
 
 import { DockPosition } from './dock.js';
 import {
@@ -12,6 +13,10 @@ import {
 
 const DEBOUNCE_HIDE_TIMEOUT = 120;
 const PRESSURE_SENSE_DISTANCE = 40;
+const LAUNCHER_APP_IDS = new Set([
+  'org.infinityos.Launcher.desktop',
+  'infinity-launcher.desktop',
+]);
 
 // some codes lifted from dash-to-dock intellihide
 const handledWindowTypes = [
@@ -143,7 +148,7 @@ export let AutoHide = class {
   }
 
   show() {
-    if (!this.dock._monitor || this.dock._monitor.inFullscreen) {
+    if (!this.dock._monitor || this.dock._monitor.inFullscreen || this._launcherOpen()) {
       return;
     }
     this._dwell = 0;
@@ -157,6 +162,17 @@ export let AutoHide = class {
     this.frameDelay = 10;
     this._shown = false;
     this.dock.slideOut();
+  }
+
+  _launcherOpen() {
+    const tracker = Shell.WindowTracker.get_default();
+    return global.get_window_actors().some((actor) => {
+      const window = actor.get_meta_window();
+      if (!window) return false;
+      return window.get_gtk_application_id?.() === 'org.infinityos.Launcher' ||
+        window.get_wm_class?.() === 'org.infinityos.Launcher' ||
+        LAUNCHER_APP_IDS.has(tracker.get_window_app(window)?.get_id());
+    });
   }
 
   _track(window) {
@@ -293,6 +309,18 @@ export let AutoHide = class {
   }
 
   _checkHide() {
+    if (this._launcherOpen()) {
+      this._launcherForcedHidden = true;
+      this.hide();
+      return;
+    }
+    if (this._launcherForcedHidden) {
+      this._launcherForcedHidden = false;
+      if (!this._enabled) {
+        this.show();
+        return;
+      }
+    }
     if (this._enabled) {
       if (this._checkOverlap()) {
         this.hide();

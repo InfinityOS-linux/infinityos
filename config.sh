@@ -159,13 +159,10 @@ EOF
 			rpm -e systemd-boot-unsigned
 		fi
 		# livesys creates liveuser on first boot and copies /etc/skel then.
-		# Launch Anaconda with extensions disabled only in the disposable live
-		# session. An extension reload crashed GNOME Shell during installation.
+		# Keep the GNOME session and dock running while Anaconda is open.
 		installer_desktop=/usr/share/applications/liveinst.desktop
 		test -f "$installer_desktop"
-		sed -i 's@^Exec=liveinst$@Exec=/usr/libexec/infinityos-liveinst@' "$installer_desktop"
-		grep -qx 'Exec=/usr/libexec/infinityos-liveinst' "$installer_desktop"
-		chmod 0755 /usr/libexec/infinityos-liveinst
+		grep -qx 'Exec=liveinst' "$installer_desktop"
 		install -d /etc/skel/.config/autostart
 		cat > /etc/skel/.config/autostart/infinityos-live-power.desktop << 'EOF'
 [Desktop Entry]

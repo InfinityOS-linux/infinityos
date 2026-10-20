@@ -308,6 +308,7 @@ export default class Dash2DockLiteExt extends Extension {
 
   startUp() {
     this.createTheDocks();
+    this.checkHide();
     this._loTimer.runOnce(() => {
       this._updateWidgetStyle();
       this.animate({ refresh: true });
