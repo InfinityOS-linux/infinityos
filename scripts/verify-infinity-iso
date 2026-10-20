@@ -36,6 +36,7 @@ grep -qx 'IsFinal=True' "$rootpoint/.buildstamp" || {
     exit 1
 }
 for required in \
+    usr/libexec/infinityos-audit-install \
     usr/libexec/infinityos-liveinstall-boot-setup \
     usr/libexec/infinityos-live-power \
     usr/libexec/infinityos-liveinst \

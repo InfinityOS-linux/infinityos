@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Run as root after a fresh installation and first reboot.
+set -uo pipefail
+
+failures=0
+check() {
+    local label=$1
+    shift
+    if "$@" >/dev/null 2>&1; then
+        printf 'PASS  %s\n' "$label"
+    else
+        printf 'FAIL  %s\n' "$label"
+        failures=$((failures + 1))
+    fi
+}
+
+if [[ $EUID -ne 0 ]]; then
+    echo 'Run this installed-system audit with sudo.' >&2
+    exit 2
+fi
+
+case $(uname -m) in
+    aarch64) efi_arch=aa64 ;;
+    x86_64) efi_arch=x64 ;;
+    *) echo 'Unsupported architecture' >&2; exit 2 ;;
+esac
+
+check 'UEFI session' test -d /sys/firmware/efi
+check 'Btrfs root' bash -c '[[ $(findmnt -n -o FSTYPE /) == btrfs ]]'
+check 'EFI partition mounted' bash -c '[[ $(findmnt -n -M /boot/efi -o FSTYPE) == vfat ]]'
+check 'installer completed systemd-boot conversion' test -f /etc/infinityos/liveinstall-systemd-boot
+check 'systemd-boot EFI binary' test -s "/boot/efi/EFI/systemd/systemd-boot${efi_arch}.efi"
+check 'systemd-boot installed' bootctl --esp-path=/boot/efi is-installed
+check 'Infinity OS loader entry' bash -c 'compgen -G "/boot/efi/loader/entries/infinityos-*.conf"'
+check 'active Infinity OS boot entry' bash -c '
+    current=$(efibootmgr | sed -n "s/^BootCurrent: //p")
+    [[ $current =~ ^[0-9A-Fa-f]{4}$ ]] || exit 1
+    efibootmgr | grep -Eiq "^Boot${current}\\*?[[:space:]]+Infinity OS systemd-boot"
+'
+check 'Snapper root configuration' test -f /etc/snapper/configs/root
+check 'Btrfs backup setup' test -f /var/lib/infinityos/backups-ready
+check 'Backups loader entry' test -s /boot/efi/loader/entries/infinityos-backups.conf
+check 'Infinity OS desktop RPMs' rpm -q infinity-config infinity-launcher infinity-terminal infinity-updater infinityos-shell-extensions
+check 'Infinity OS GNOME defaults' test -f /usr/share/infinityos/gnome-defaults
+check 'Infinity OS desktop wallpaper' test -s /usr/share/backgrounds/infinityos/infinityos-dark.png
+
+if (( failures )); then
+    printf '%s installed-system checks failed.\n' "$failures" >&2
+    exit 1
+fi
+echo 'Installed Infinity OS boot, backups, applications and defaults are present.'
