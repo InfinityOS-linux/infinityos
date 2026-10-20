@@ -150,7 +150,7 @@ EOF
 		# livesys creates liveuser on first boot and copies /etc/skel then.
 		# Launch Anaconda with extensions disabled only in the disposable live
 		# session. An extension reload crashed GNOME Shell during installation.
-		installer_desktop=/usr/share/applications/anaconda.desktop
+		installer_desktop=/usr/share/applications/liveinst.desktop
 		test -f "$installer_desktop"
 		sed -i 's@^Exec=liveinst$@Exec=/usr/libexec/infinityos-liveinst@' "$installer_desktop"
 		grep -qx 'Exec=/usr/libexec/infinityos-liveinst' "$installer_desktop"

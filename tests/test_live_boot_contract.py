@@ -49,6 +49,7 @@ class LiveBootContractTests(unittest.TestCase):
     def test_live_installer_disables_extensions(self):
         setup = (REPO / "config.sh").read_text()
         wrapper = (REPO / "root/usr/libexec/infinityos-liveinst").read_text()
+        self.assertIn("installer_desktop=/usr/share/applications/liveinst.desktop", setup)
         self.assertIn("Exec=/usr/libexec/infinityos-liveinst", setup)
         self.assertIn("disable-user-extensions true", wrapper)
 

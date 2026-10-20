@@ -53,7 +53,7 @@ done
     exit 1
 }
 grep -Fqx 'Exec=/usr/libexec/infinityos-liveinst' \
-    "$rootpoint/usr/share/applications/anaconda.desktop" || {
+    "$rootpoint/usr/share/applications/liveinst.desktop" || {
     echo 'Installer does not disable unstable live GNOME extensions' >&2
     exit 1
 }
