@@ -8,7 +8,7 @@ case "$package" in
   infinity-terminal) version=1.3.1 ;;
   infinity-updater) version=1.0.0 ;;
   infinityos-repos) version=1.0.0 ;;
-  infinityos-wallpapers) version=1.0.0 ;;
+  infinityos-wallpapers) version=1.1.0 ;;
   infinityos-ramdrive) version=1.1.0 ;;
   infinityos-shell-extensions) version=1.0.0 ;;
   *) echo "Unknown package: $package" >&2; exit 2 ;;

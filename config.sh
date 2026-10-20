@@ -19,6 +19,8 @@ if [[ "$kiwi_profiles" == *"Infinity-GNOME"* ]]; then
 	# The supported kiwi-build wrapper stages a clean commit and its revision.
 	build_revision=$(cat /usr/share/infinityos/build-revision)
 	/usr/libexec/infinityos-verify-build-root / "$build_revision"
+	# Hide GNOME's blue Adwaita default from the wallpaper chooser.
+	rm -f /usr/share/gnome-background-properties/adwaita.xml
 	rm -f /etc/os-release
 	cat > /etc/os-release << 'EOF'
 NAME="Infinity OS"

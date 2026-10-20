@@ -55,4 +55,58 @@
     <pcolor>#f5f0f7</pcolor>
     <scolor>#d8c9ed</scolor>
   </wallpaper>
+  <wallpaper deleted="false">
+    <name>06 Infinity OS — Glass Light</name>
+    <filename>/usr/share/backgrounds/infinityos/infinityos-glass-light.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/infinityos-glass-light.jpg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#f2eaf6</pcolor>
+    <scolor>#c7b0df</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>07 Infinity OS — Glass Dark</name>
+    <filename>/usr/share/backgrounds/infinityos/infinityos-glass-dark.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/infinityos-glass-dark.jpg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#100b22</pcolor>
+    <scolor>#261341</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>08 Infinity OS — Topography Light</name>
+    <filename>/usr/share/backgrounds/infinityos/infinityos-topography-light.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/infinityos-topography-light.jpg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#f5eff2</pcolor>
+    <scolor>#b5a1d3</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>09 Infinity OS — Topography Dark</name>
+    <filename>/usr/share/backgrounds/infinityos/infinityos-topography-dark.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/infinityos-topography-dark.jpg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#121019</pcolor>
+    <scolor>#332448</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>10 Infinity OS — Prism Light</name>
+    <filename>/usr/share/backgrounds/infinityos/infinityos-prism-light.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/infinityos-prism-light.jpg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#f0eff4</pcolor>
+    <scolor>#c4b7dc</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>11 Infinity OS — Orbits Dark</name>
+    <filename>/usr/share/backgrounds/infinityos/infinityos-orbits-dark.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/infinityos-orbits-dark.jpg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#140d22</pcolor>
+    <scolor>#321b40</scolor>
+  </wallpaper>
 </wallpapers>
