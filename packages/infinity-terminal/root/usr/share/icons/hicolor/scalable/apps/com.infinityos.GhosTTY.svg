@@ -5,16 +5,9 @@
       <stop offset=".52" stop-color="#44316f"/>
       <stop offset="1" stop-color="#241b3c"/>
     </linearGradient>
-    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
-      <stop stop-color="#ffffff" stop-opacity=".19"/>
-      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
-    </linearGradient>
   </defs>
   <rect x="8" y="8" width="496" height="496" rx="112" fill="url(#surface)"/>
   <rect x="10" y="10" width="492" height="492" rx="110" fill="none" stroke="#dfcaff" stroke-opacity=".29" stroke-width="4"/>
-  <path d="M90 105Q245 38 421 122v108Q255 166 90 216Z" fill="url(#shine)"/>
-  <path d="M66 266c0-77 100-95 166 0 66 95 164 77 164 0s-98-95-164 0c-66 95-166 77-166 0Z"
-        fill="none" stroke="#d6b9ff" stroke-opacity=".13" stroke-width="30" stroke-linecap="round"/>
   
       <rect x="88" y="124" width="336" height="270" rx="34" fill="#21172e" stroke="#faf7ff" stroke-width="17"/>
       <path d="M96 191h320" stroke="#d5b8ff" stroke-width="17"/>
