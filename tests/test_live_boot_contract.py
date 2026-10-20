@@ -94,7 +94,8 @@ class LiveBootContractTests(unittest.TestCase):
         self.assertIn("scripts/finalize-infinity-iso", builder)
         self.assertIn('install -m 0644 "$kernel" "$efi_mount/os/linux"', finalizer)
         self.assertIn("menuentry \"Infinity OS Live\"", finalizer)
-        self.assertIn("icon /EFI/BOOT/infinity-theme/icons/os_infinityos.png", finalizer)
+        for label in ("live", "check", "safe"):
+            self.assertIn(f"icon /EFI/BOOT/infinity-theme/icons/os_infinityos_{label}.png", finalizer)
         self.assertIn("-rm_r /boot/grub2", finalizer)
 
 

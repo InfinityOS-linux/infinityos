@@ -119,15 +119,21 @@ efi_image="$efi_images/gpt_part2_efi.img"
 [[ -s $efi_image ]] || { echo 'rEFInd EFI partition missing from ISO' >&2; exit 1; }
 mount -o loop,ro "$efi_image" "$efi_mount"
 [[ -s $efi_mount/EFI/BOOT/$fallback &&
-   -s $efi_mount/os/linux && -s $efi_mount/os/initrd &&
-   -s $efi_mount/EFI/BOOT/infinity-theme/icons/os_infinityos.png ]] || {
+   -s $efi_mount/os/linux && -s $efi_mount/os/initrd ]] || {
     echo 'rEFInd live EFI files are incomplete' >&2; exit 1;
 }
+for icon in live check safe; do
+    [[ -s $efi_mount/EFI/BOOT/infinity-theme/icons/os_infinityos_${icon}.png ]] || {
+        echo "rEFInd $icon icon is missing" >&2; exit 1;
+    }
+done
 cmp "$rootpoint/usr/share/rEFInd/refind/refind_${efi_arch}.efi" "$efi_mount/EFI/BOOT/$fallback"
 cmp "$mountpoint/boot/$(uname -m)/loader/linux" "$efi_mount/os/linux"
 cmp "$mountpoint/boot/$(uname -m)/loader/initrd" "$efi_mount/os/initrd"
 grep -Fq 'menuentry "Infinity OS Live"' "$efi_mount/EFI/BOOT/refind.conf"
-grep -Fq 'icon /EFI/BOOT/infinity-theme/icons/os_infinityos.png' "$efi_mount/EFI/BOOT/refind.conf"
+for icon in live check safe; do
+    grep -Fq "icon /EFI/BOOT/infinity-theme/icons/os_infinityos_${icon}.png" "$efi_mount/EFI/BOOT/refind.conf"
+done
 grep -Fq 'rd.live.check' "$efi_mount/EFI/BOOT/refind.conf"
 grep -Fq 'nomodeset' "$efi_mount/EFI/BOOT/refind.conf"
 for required in \

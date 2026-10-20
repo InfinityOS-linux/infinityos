@@ -48,6 +48,7 @@ check 'Infinity OS rEFInd entry' grep -Fq 'menuentry "Infinity OS"' /boot/efi/EF
 check 'fallback rEFInd menu matches' cmp -s /boot/efi/EFI/refind/refind.conf /boot/efi/EFI/BOOT/refind.conf
 check 'fallback rEFInd theme' test -s /boot/efi/EFI/BOOT/infinity-theme/theme.conf
 check 'fallback Infinity OS icon' test -s /boot/efi/EFI/BOOT/infinity-theme/icons/os_infinityos.png
+check 'fallback recovery icon' test -s /boot/efi/EFI/BOOT/infinity-theme/icons/os_infinityos_recovery.png
 check 'active Infinity OS EFI entry' active_infinity_boot
 check 'Snapper root configuration' test -f /etc/snapper/configs/root
 check 'Btrfs backup setup' test -f /var/lib/infinityos/backups-ready

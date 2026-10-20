@@ -46,6 +46,7 @@ class BackupsTests(unittest.TestCase):
             self.assertIn('loader /os/vmlinuz-1', content)
             self.assertIn('initrd /os/initramfs-1.img', content)
             self.assertIn('icon /EFI/refind/infinity-theme/icons/os_infinityos.png', content)
+            self.assertIn('icon /EFI/refind/infinity-theme/icons/os_infinityos_recovery.png', content)
             self.assertIn('rootflags=subvol=root', content)
             self.assertIn('systemd.unit=infinityos-backups.target', content)
             fallback = esp / "EFI/BOOT/refind.conf"

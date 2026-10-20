@@ -37,7 +37,11 @@ theme="$root_mount/usr/share/infinityos/refind-theme"
 [[ -s $source/refind_$efi_arch.efi ]] || {
     echo 'rEFInd EFI binary is missing' >&2; exit 1;
 }
-[[ -s $theme/icons/os_infinityos.png ]] || { echo 'Infinity OS icon is missing' >&2; exit 1; }
+for icon in live check safe; do
+    [[ -s $theme/icons/os_infinityos_${icon}.png ]] || {
+        echo "Infinity OS $icon icon is missing" >&2; exit 1;
+    }
+done
 
 fat="$work/refind-efi.img"
 kernel="$iso_mount/boot/$arch/loader/linux"
@@ -63,19 +67,19 @@ include infinity-theme/theme.conf
 
 menuentry "Infinity OS Live" {
     loader /os/linux
-    icon /EFI/BOOT/infinity-theme/icons/os_infinityos.png
+    icon /EFI/BOOT/infinity-theme/icons/os_infinityos_live.png
     initrd /os/initrd
     options "quiet rhgb root=live:CDLABEL=$volid rd.live.image"
 }
 menuentry "Test media and start Infinity OS" {
     loader /os/linux
-    icon /EFI/BOOT/infinity-theme/icons/os_infinityos.png
+    icon /EFI/BOOT/infinity-theme/icons/os_infinityos_check.png
     initrd /os/initrd
     options "quiet rhgb root=live:CDLABEL=$volid rd.live.image rd.live.check"
 }
 menuentry "Infinity OS Live (basic graphics)" {
     loader /os/linux
-    icon /EFI/BOOT/infinity-theme/icons/os_infinityos.png
+    icon /EFI/BOOT/infinity-theme/icons/os_infinityos_safe.png
     initrd /os/initrd
     options "quiet rhgb root=live:CDLABEL=$volid rd.live.image nomodeset"
 }

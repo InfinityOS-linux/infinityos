@@ -70,7 +70,7 @@ EOF
 	done
 	printf 'menuentry "Backups (Btrfs)" {\n'
 	printf '    loader /os/vmlinuz-%s\n' "$version"
-	printf '    icon /EFI/refind/infinity-theme/icons/os_infinityos.png\n'
+	printf '    icon /EFI/refind/infinity-theme/icons/os_infinityos_recovery.png\n'
 	printf '    initrd /os/initramfs-%s.img\n' "$version"
 	printf '    options "%s systemd.unit=infinityos-backups.target plymouth.enable=0"\n' "${backup_options[*]}"
 	printf '}\n'

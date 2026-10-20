@@ -22,7 +22,8 @@ mv -f "$esp/EFI/BOOT/.$fallback.tmp" "$esp/EFI/BOOT/$fallback"
 # EFI firmware sees the fallback path even when it forgets NVRAM entries.
 [[ -s $esp/EFI/refind/refind_$arch.efi && -s $esp/EFI/BOOT/$fallback &&
    -s $esp/EFI/BOOT/infinity-theme/theme.conf &&
-   -s $esp/EFI/BOOT/infinity-theme/icons/os_infinityos.png ]]
+   -s $esp/EFI/BOOT/infinity-theme/icons/os_infinityos.png &&
+   -s $esp/EFI/BOOT/infinity-theme/icons/os_infinityos_recovery.png ]]
 if [[ ${2:-} == --activate ]]; then
 	command -v efibootmgr >/dev/null
 	esp_device=$(findmnt -n -M "$esp" -o SOURCE)
