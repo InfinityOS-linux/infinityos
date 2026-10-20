@@ -29,27 +29,24 @@ mount -o subvol=root "$partition" "$mountpoint"
 chmod 0755 "$mountpoint"
 [[ $(stat -c %a "$mountpoint") == 755 ]]
 
-# KIWI creates a temporary systemd-boot layout. A published Infinity OS disk
-# must expose only rEFInd, including the firmware fallback path and Backups.
+# The custom KIWI bootloader leaves EFI setup to this finalizer. Use the
+# Btrfs UUID and the known root subvolume, then copy each kernel/initramfs.
 mount "${loopdev}p1" "$efi_mountpoint"
-source_entry=$(find "$efi_mountpoint/loader/entries" -maxdepth 1 -type f -name '*.conf' ! -name '*rescue*' | sort -V | tail -n 1)
-[[ -n $source_entry ]] || { echo 'Missing KIWI kernel entry' >&2; exit 1; }
-options=$(sed -n 's/^options[[:space:]]*//p' "$source_entry" | head -n 1)
-[[ -n $options ]] || { echo 'Missing kernel options' >&2; exit 1; }
+root_uuid=$(blkid -s UUID -o value "$partition")
+[[ $root_uuid =~ ^[A-Fa-f0-9-]{36}$ ]] || { echo 'Missing Btrfs UUID' >&2; exit 1; }
 install -d "$mountpoint/etc/kernel" "$mountpoint/etc/infinityos" "$efi_mountpoint/os"
-printf '%s\n' "$options" > "$mountpoint/etc/kernel/cmdline"
+printf 'root=UUID=%s rootflags=subvol=root rw rhgb quiet\n' "$root_uuid" > "$mountpoint/etc/kernel/cmdline"
 
 copied=0
-for entry in "$efi_mountpoint"/loader/entries/*.conf; do
-    [[ -f $entry ]] || continue
-    linux=$(awk '$1 == "linux" { print $2; exit }' "$entry")
-    [[ $linux == os/vmlinuz-* ]] || continue
-    version=${linux#os/vmlinuz-}
+for kernel in "$mountpoint"/boot/vmlinuz-*; do
+    [[ -s $kernel && $kernel != *rescue* ]] || continue
+    version=${kernel##*/vmlinuz-}
     [[ $version =~ ^[A-Za-z0-9._+-]+$ ]] || exit 1
-    kernel="$efi_mountpoint/os/vmlinuz-$version"
     initramfs="$mountpoint/boot/initramfs-$version.img"
-    [[ -s $kernel && -s $initramfs ]] || { echo "Missing kernel or initramfs $version" >&2; exit 1; }
+    [[ -s $initramfs ]] || { echo "Missing initramfs $version" >&2; exit 1; }
+    install -m 0644 "$kernel" "$efi_mountpoint/os/vmlinuz-$version"
     install -m 0644 "$initramfs" "$efi_mountpoint/os/initramfs-$version.img"
+    cmp "$kernel" "$efi_mountpoint/os/vmlinuz-$version"
     cmp "$initramfs" "$efi_mountpoint/os/initramfs-$version.img"
     copied=$((copied + 1))
 done
@@ -59,7 +56,7 @@ INFINITYOS_ROOT=$mountpoint "$script_dir/../root/usr/libexec/infinityos-refind-i
 "$script_dir/../root/usr/libexec/infinityos-refind-config" \
     "$efi_mountpoint" "$mountpoint/etc/kernel/cmdline" "$mountpoint/var/lib/infinityos/backups-ready"
 grep -Fq 'menuentry "Backups (Btrfs)"' "$efi_mountpoint/EFI/refind/refind.conf"
-# rEFInd is complete before removing KIWI's compose-time loader.
+# No KIWI loader is expected on the finished EFI partition.
 rm -rf "$efi_mountpoint/EFI/systemd" "$efi_mountpoint/loader"
 "$script_dir/../root/usr/libexec/infinityos-remove-obsolete-efi-loaders" "$mountpoint"
 rm -rf "$mountpoint/boot/grub2" "$efi_mountpoint/EFI/infinityos"

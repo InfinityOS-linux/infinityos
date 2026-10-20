@@ -22,7 +22,7 @@
 		      efipartsize="2048" firmware="uefi"
 		      rootfs_label="infinityos"
 		      >
-			<bootloader name="systemd_boot" timeout="5"/>
+			<bootloader name="custom"/>
 			<systemdisk name="infinityos">
 				<volume name="@root=root"/>
 				<volume name="home" parent="/"/>
@@ -178,9 +178,7 @@
 		<package name="uboot-images-riscv64" arch="riscv64"/>
 	</packages>
 	<packages type="image" profiles="InfinityBootDiskCore">
-		<!-- KIWI uses systemd-boot only while composing the RAW disk. The
-		     required finalizer replaces every EFI entry with rEFInd. -->
-		<package name="systemd-boot-unsigned"/>
+		<!-- KIWI leaves the EFI loader to finalize-infinity-disk. -->
 		<package name="rEFInd"/>
 		<package name="rEFInd-unsigned-x64" arch="x86_64"/>
 		<package name="rEFInd-unsigned-aa64" arch="aarch64"/>

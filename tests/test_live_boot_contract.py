@@ -15,6 +15,8 @@ class LiveBootContractTests(unittest.TestCase):
         requirements = {item.get("profile") for item in profile.findall("requires")}
         self.assertIn("InfinityBootCore", requirements)
         self.assertNotIn("BootCore", requirements)
+        image = boot.find("./preferences[@profiles='InfinityBootDiskCore']/type")
+        self.assertEqual(image.find("bootloader").get("name"), "custom")
         packages = [
             package.get("name")
             for group in boot.findall("./packages")
@@ -22,6 +24,7 @@ class LiveBootContractTests(unittest.TestCase):
             for package in group.findall("package")
         ]
         self.assertFalse(any(name.startswith("grub2-") for name in packages))
+        self.assertNotIn("systemd-boot-unsigned", packages)
 
     def test_infinity_live_profile_uses_supported_iso_bootloader(self):
         workstation = ET.parse(REPO / "teams/workstation.xml").getroot()

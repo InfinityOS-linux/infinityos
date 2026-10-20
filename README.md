@@ -109,7 +109,8 @@ sudo ./kiwi-build --kiwi-file=InfinityOS.kiwi --image-type=oem \
 ```
 
 The wrapper runs [`scripts/finalize-infinity-disk`](scripts/finalize-infinity-disk)
-after an OEM build. That step checks the embedded revision and applications,
+after an OEM build. KIWI uses its `custom` bootloader mode and does not install
+systemd-boot in the disk image. The finalizer checks the embedded revision and applications,
 then installs rEFInd, writes the Btrfs recovery entry, and fixes permissions
 on the Btrfs root subvolume so desktop services can start. The resulting RAW disk has a 2 GB EFI partition and Btrfs `root`,
 `home`, and `var` subvolumes. Building `x86_64` requires an x86_64 Fedora host or CI runner.
