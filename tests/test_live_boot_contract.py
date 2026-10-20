@@ -49,7 +49,9 @@ class LiveBootContractTests(unittest.TestCase):
     def test_installer_must_report_failed_conversion(self):
         setup = (REPO / "config.sh").read_text()
         self.assertIn("%post --erroronfail --log=/var/log/infinityos-boot-install.log", setup)
-        self.assertIn("bootloader --location=none", setup)
+        # Anaconda's automatic partitioning omits the ESP when its bootloader
+        # is disabled, so conversion must run after normal UEFI partitioning.
+        self.assertNotIn("bootloader --location=none", setup)
         self.assertIn("cat >> /usr/share/anaconda/interactive-defaults.ks <<'BOOT_POST_EOF'", setup)
         self.assertIn("cat >> /usr/share/anaconda/interactive-defaults.ks <<'NVIDIA_POST_EOF'", setup)
         self.assertNotIn("cat > /usr/share/anaconda/post-scripts/91-infinityos-boot.ks", setup)

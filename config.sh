@@ -222,10 +222,12 @@ EOF
 			-e '/^Name\[/d' "$welcome_desktop"
 		# Live media mounts its root dynamically; disk-image UUIDs must not reach the ISO.
 		: > /etc/fstab
-		# Anaconda creates kernel metadata but skips its EFI loader. The post
-		# script installs rEFInd before the installer reports success.
+		# Anaconda must create an ESP and kernel metadata. The post script
+		# replaces its EFI loader with rEFInd before reporting success.
 		if [[ "$(uname -m)" == x86_64 || "$(uname -m)" == aarch64 ]]; then
-			printf 'bootloader --location=none\n' >> /usr/share/anaconda/interactive-defaults.ks
+			# Keep Anaconda's UEFI bootloader enabled while it partitions the
+			# destination. Disabling it also suppresses the required ESP. The
+			# post script replaces its EFI loader with rEFInd before success.
 			# Fedora's gen_grub_cfgstub assumes the EFI vendor directory already
 			# exists. Its package creates EFI/fedora, but our Anaconda profile uses
 			# EFI/infinityos. Create that directory in the installer target.
