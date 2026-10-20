@@ -74,6 +74,7 @@ class LiveBootContractTests(unittest.TestCase):
         self.assertIn("installer_desktop=/usr/share/applications/liveinst.desktop", setup)
         self.assertIn("Exec=/usr/libexec/infinityos-liveinst", setup)
         self.assertIn("disable-user-extensions true", wrapper)
+        self.assertIn("gnome-extensions disable dash2dock-animated@infinityos.org", wrapper)
 
     def test_live_power_settings_reach_account_created_on_first_boot(self):
         setup = (REPO / "config.sh").read_text()

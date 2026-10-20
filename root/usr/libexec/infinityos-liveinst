@@ -5,4 +5,8 @@ set -euo pipefail
 # crash the live Shell. The live account is disposable; keep extensions off
 # until reboot so the installation screen remains stable.
 gsettings set org.gnome.shell disable-user-extensions true || true
+# Force the dock extension to tear down before the installer window appears.
+# The settings change above is delivered to GNOME Shell asynchronously.
+gnome-extensions disable dash2dock-animated@infinityos.org || true
+sleep 1
 exec /usr/bin/liveinst "$@"
