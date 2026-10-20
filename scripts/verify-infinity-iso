@@ -38,10 +38,11 @@ grep -qx 'IsFinal=True' "$rootpoint/.buildstamp" || {
 for required in \
     usr/libexec/infinityos-liveinstall-boot-setup \
     usr/libexec/infinityos-live-power \
+    usr/libexec/infinityos-liveinst \
     etc/skel/.config/autostart/infinityos-live-power.desktop \
     usr/lib/systemd/system/infinityos-liveinstall-boot-setup.service \
     usr/lib/kernel/install.d/96-infinityos-esp.install \
-    usr/share/anaconda/post-scripts/91-infinityos-boot.ks; do
+    usr/share/anaconda/interactive-defaults.ks; do
     [[ -f "$rootpoint/$required" ]] || {
         echo "Installed boot setup missing from ISO: $required" >&2
         exit 1
@@ -51,13 +52,34 @@ done
     echo 'Live power settings script is not executable' >&2
     exit 1
 }
+grep -Fqx 'Exec=/usr/libexec/infinityos-liveinst' \
+    "$rootpoint/usr/share/applications/anaconda.desktop" || {
+    echo 'Installer does not disable unstable live GNOME extensions' >&2
+    exit 1
+}
 [[ -f "$rootpoint/etc/infinityos/liveinstall-boot-pending" ]] || {
     echo 'Installed boot retry marker missing from ISO' >&2
     exit 1
 }
 grep -Fqx '%post --erroronfail --log=/var/log/infinityos-boot-install.log' \
-    "$rootpoint/usr/share/anaconda/post-scripts/91-infinityos-boot.ks" || {
+    "$rootpoint/usr/share/anaconda/interactive-defaults.ks" || {
     echo 'Installer can silently finish without systemd-boot' >&2
+    exit 1
+}
+grep -Fqx '/usr/libexec/infinityos-liveinstall-boot-setup' \
+    "$rootpoint/usr/share/anaconda/interactive-defaults.ks" || {
+    echo 'Installer is missing the systemd-boot conversion command' >&2
+    exit 1
+}
+if [[ $(uname -m) == x86_64 ]]; then
+    grep -Fq '/usr/libexec/infinityos-install-nvidia /mnt/sysroot' \
+        "$rootpoint/usr/share/anaconda/interactive-defaults.ks" || {
+        echo 'Installer is missing the NVIDIA hardware detection hook' >&2
+        exit 1
+    }
+fi
+grep -Fqx 'mkdir -p "$EFI_HOME"' "$rootpoint/usr/sbin/gen_grub_cfgstub" || {
+    echo 'Installer cannot create the Infinity OS EFI directory' >&2
     exit 1
 }
 rpm --root "$rootpoint" -q systemd-boot-unsigned >/dev/null || {

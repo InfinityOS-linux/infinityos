@@ -148,6 +148,13 @@ EOF
 	fi
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Live"* ]]; then
 		# livesys creates liveuser on first boot and copies /etc/skel then.
+		# Launch Anaconda with extensions disabled only in the disposable live
+		# session. An extension reload crashed GNOME Shell during installation.
+		installer_desktop=/usr/share/applications/anaconda.desktop
+		test -f "$installer_desktop"
+		sed -i 's@^Exec=liveinst$@Exec=/usr/libexec/infinityos-liveinst@' "$installer_desktop"
+		grep -qx 'Exec=/usr/libexec/infinityos-liveinst' "$installer_desktop"
+		chmod 0755 /usr/libexec/infinityos-liveinst
 		install -d /etc/skel/.config/autostart
 		cat > /etc/skel/.config/autostart/infinityos-live-power.desktop << 'EOF'
 [Desktop Entry]
@@ -210,7 +217,19 @@ EOF
 		# Anaconda 44 cannot select systemd-boot with a live payload. Convert its
 		# temporary GRUB installation before finishing, and surface any failure.
 		if [[ "$(uname -m)" == x86_64 || "$(uname -m)" == aarch64 ]]; then
-			cat > /usr/share/anaconda/post-scripts/91-infinityos-boot.ks <<'BOOT_POST_EOF'
+			# Fedora's gen_grub_cfgstub assumes the EFI vendor directory already
+			# exists. Its package creates EFI/fedora, but our Anaconda profile uses
+			# EFI/infinityos. Create that directory in the installer target.
+			cfgstub=/usr/sbin/gen_grub_cfgstub
+			test -f "$cfgstub"
+			if ! grep -Fqx 'mkdir -p "$EFI_HOME"' "$cfgstub"; then
+				grep -Fqx 'EFI_HOME=$2' "$cfgstub"
+				sed -i '/^EFI_HOME=\$2$/a mkdir -p "$EFI_HOME"' "$cfgstub"
+			fi
+			# Anaconda 44 parses interactive-defaults.ks for liveinst, but no
+			# longer calls appendPostScripts(). Put required hooks in the file it
+			# actually reads so success requires a working systemd-boot install.
+			cat >> /usr/share/anaconda/interactive-defaults.ks <<'BOOT_POST_EOF'
 %post --erroronfail --log=/var/log/infinityos-boot-install.log
 /usr/libexec/infinityos-liveinstall-boot-setup
 %end
@@ -226,7 +245,7 @@ BOOT_POST_EOF
 		if [[ "$(uname -m)" == "x86_64" ]]; then
 			# Detect the target PC while Anaconda still has access to its PCI devices.
 			# A failed network download is retried after installation at boot.
-			cat > /usr/share/anaconda/post-scripts/90-infinityos-nvidia.ks <<'NVIDIA_POST_EOF'
+			cat >> /usr/share/anaconda/interactive-defaults.ks <<'NVIDIA_POST_EOF'
 %post --nochroot --log=/mnt/sysroot/var/log/infinityos-nvidia-install.log
 if ! /usr/libexec/infinityos-install-nvidia /mnt/sysroot; then
     mkdir -p /mnt/sysroot/etc/systemd/system/multi-user.target.wants

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# GNOME extensions can reload actors while Anaconda's WebUI is running and
+# crash the live Shell. The live account is disposable; keep extensions off
+# until reboot so the installation screen remains stable.
+gsettings set org.gnome.shell disable-user-extensions true || true
+exec /usr/bin/liveinst "$@"

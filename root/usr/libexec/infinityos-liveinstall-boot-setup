@@ -59,8 +59,8 @@ bootctl --esp-path="$esp" list --no-pager | grep -Fq "infinityos-$version.conf"
 boot_entry=$(efibootmgr | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\* Infinity OS systemd-boot.*/\1/p' | head -n 1)
 if [[ -z $boot_entry ]]; then
 	esp_device=$(findmnt -n -M "$esp" -o SOURCE)
-	disk=$(lsblk -n -o PKNAME "$esp_device" | head -n 1)
-	part=$(lsblk -n -o PARTN "$esp_device" | head -n 1)
+	disk=$(lsblk -nr -o PKNAME "$esp_device" | head -n 1)
+	part=$(lsblk -nr -o PARTN "$esp_device" | head -n 1)
 	[[ -n $disk && $part =~ ^[0-9]+$ ]] || { echo 'Cannot identify the EFI partition' >&2; exit 1; }
 	efibootmgr -c -d "/dev/$disk" -p "$part" -L 'Infinity OS systemd-boot' \
 		-l "\\EFI\\systemd\\systemd-boot${efi_arch}.efi"

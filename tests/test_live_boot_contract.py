@@ -32,7 +32,25 @@ class LiveBootContractTests(unittest.TestCase):
     def test_installer_must_report_failed_conversion(self):
         setup = (REPO / "config.sh").read_text()
         self.assertIn("%post --erroronfail --log=/var/log/infinityos-boot-install.log", setup)
+        self.assertIn("cat >> /usr/share/anaconda/interactive-defaults.ks <<'BOOT_POST_EOF'", setup)
+        self.assertIn("cat >> /usr/share/anaconda/interactive-defaults.ks <<'NVIDIA_POST_EOF'", setup)
+        self.assertNotIn("cat > /usr/share/anaconda/post-scripts/91-infinityos-boot.ks", setup)
         self.assertNotIn("Infinity OS boot setup deferred to first boot", setup)
+
+    def test_installer_creates_branded_efi_directory(self):
+        setup = (REPO / "config.sh").read_text()
+        self.assertIn('EFI_HOME=$2', setup)
+        self.assertIn('mkdir -p "$EFI_HOME"', setup)
+
+    def test_boot_entry_reads_partition_number_without_padding(self):
+        installer = (REPO / "root/usr/libexec/infinityos-liveinstall-boot-setup").read_text()
+        self.assertIn('lsblk -nr -o PARTN "$esp_device"', installer)
+
+    def test_live_installer_disables_extensions(self):
+        setup = (REPO / "config.sh").read_text()
+        wrapper = (REPO / "root/usr/libexec/infinityos-liveinst").read_text()
+        self.assertIn("Exec=/usr/libexec/infinityos-liveinst", setup)
+        self.assertIn("disable-user-extensions true", wrapper)
 
     def test_live_power_settings_reach_account_created_on_first_boot(self):
         setup = (REPO / "config.sh").read_text()
