@@ -56,9 +56,12 @@ INFINITYOS_ROOT=$mountpoint "$script_dir/../root/usr/libexec/infinityos-refind-i
 "$script_dir/../root/usr/libexec/infinityos-refind-config" \
     "$efi_mountpoint" "$mountpoint/etc/kernel/cmdline" "$mountpoint/var/lib/infinityos/backups-ready"
 grep -Fq 'menuentry "Backups (Btrfs)"' "$efi_mountpoint/EFI/refind/refind.conf"
+cmp "$efi_mountpoint/EFI/refind/refind.conf" "$efi_mountpoint/EFI/BOOT/refind.conf"
 # No KIWI loader is expected on the finished EFI partition.
 rm -rf "$efi_mountpoint/EFI/systemd" "$efi_mountpoint/loader"
 "$script_dir/../root/usr/libexec/infinityos-remove-obsolete-efi-loaders" "$mountpoint"
 rm -rf "$mountpoint/boot/grub2" "$efi_mountpoint/EFI/infinityos"
+systemctl --root="$mountpoint" mask --force systemd-boot-update.service \
+    systemd-boot-clear-sysfail.service systemd-boot-random-seed.service
 touch "$mountpoint/etc/infinityos/refind-installed"
 echo "Verified Infinity OS rEFInd disk from source revision $revision"

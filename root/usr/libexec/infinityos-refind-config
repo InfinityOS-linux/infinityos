@@ -5,7 +5,9 @@ esp=${1:-/boot/efi}
 cmdline_file=${2:-/etc/kernel/cmdline}
 ready_marker=${3:-/var/lib/infinityos/backups-ready}
 config="$esp/EFI/refind/refind.conf"
+fallback_config="$esp/EFI/BOOT/refind.conf"
 [[ -d $esp/EFI/refind && -s $cmdline_file ]] || exit 1
+install -d "$esp/EFI/BOOT"
 options=$(<"$cmdline_file")
 [[ -n $options && $options != *'"'* && $options != *$'\n'* ]] || exit 1
 
@@ -33,7 +35,8 @@ IFS=$'\n' versions=($(printf '%s\n' "${versions[@]}" | sort -Vr))
 unset IFS
 
 tmp=$(mktemp "$esp/EFI/refind/.refind.conf.XXXXXX")
-trap 'rm -f "$tmp"' EXIT
+fallback_tmp=$(mktemp "$esp/EFI/BOOT/.refind.conf.XXXXXX")
+trap 'rm -f "$tmp" "$fallback_tmp"' EXIT
 {
 	cat <<'EOF'
 timeout 5
@@ -73,5 +76,10 @@ EOF
 	printf '}\n'
 } > "$tmp"
 chmod 0644 "$tmp"
-if [[ -f $config ]] && cmp -s "$tmp" "$config"; then exit 0; fi
-mv -f "$tmp" "$config"
+if [[ ! -f $config ]] || ! cmp -s "$tmp" "$config"; then
+	mv -f "$tmp" "$config"
+fi
+cp "$config" "$fallback_tmp"
+if [[ ! -f $fallback_config ]] || ! cmp -s "$fallback_tmp" "$fallback_config"; then
+	mv -f "$fallback_tmp" "$fallback_config"
+fi

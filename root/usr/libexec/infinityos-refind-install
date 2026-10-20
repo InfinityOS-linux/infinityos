@@ -11,15 +11,18 @@ root=${INFINITYOS_ROOT:-}
 source=$root/usr/share/rEFInd/refind
 theme=$root/usr/share/infinityos/refind-theme
 [[ -s $source/refind_$arch.efi && -d $theme && -d $esp/EFI ]] || exit 1
-install -d "$esp/EFI/refind/infinity-theme" "$esp/EFI/BOOT"
+install -d "$esp/EFI/refind/infinity-theme" "$esp/EFI/BOOT/infinity-theme"
 cp -a "$theme/." "$esp/EFI/refind/infinity-theme/"
+cp -a "$theme/." "$esp/EFI/BOOT/infinity-theme/"
 install -m 0644 "$source/refind_$arch.efi" "$esp/EFI/refind/.refind_$arch.efi.tmp"
 mv -f "$esp/EFI/refind/.refind_$arch.efi.tmp" "$esp/EFI/refind/refind_$arch.efi"
 install -m 0644 "$source/refind_$arch.efi" "$esp/EFI/BOOT/.$fallback.tmp"
 mv -f "$esp/EFI/BOOT/.$fallback.tmp" "$esp/EFI/BOOT/$fallback"
 
 # EFI firmware sees the fallback path even when it forgets NVRAM entries.
-[[ -s $esp/EFI/refind/refind_$arch.efi && -s $esp/EFI/BOOT/$fallback ]]
+[[ -s $esp/EFI/refind/refind_$arch.efi && -s $esp/EFI/BOOT/$fallback &&
+   -s $esp/EFI/BOOT/infinity-theme/theme.conf &&
+   -s $esp/EFI/BOOT/infinity-theme/icons/os_infinityos.png ]]
 if [[ ${2:-} == --activate ]]; then
 	command -v efibootmgr >/dev/null
 	esp_device=$(findmnt -n -M "$esp" -o SOURCE)

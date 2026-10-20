@@ -1,7 +1,7 @@
 [Unit]
 Description=Infinity OS backup console
-Requires=infinityos-backups-setup.service
-After=infinityos-backups-setup.service local-fs.target
+Requires=infinityos-backups-setup.service dbus.service snapperd.service
+After=infinityos-backups-setup.service dbus.service snapperd.service local-fs.target
 RequiresMountsFor=/boot/efi /.snapshots
 Conflicts=getty@tty1.service
 

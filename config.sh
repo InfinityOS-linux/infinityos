@@ -289,7 +289,7 @@ rm -f /var/lib/systemd/random-seed
 #======================================
 # Configure grub correctly
 #--------------------------------------
-if [[ "$kiwi_profiles" != *"Container"* ]] && [[ "$kiwi_profiles" != *"FEX"* ]] && [[ "$kiwi_profiles" != *"WSL"* ]] && [[ "$kiwi_profiles" != *"Infinity-GNOME-Disk"* ]]; then
+if [[ "$kiwi_profiles" != *"Container"* ]] && [[ "$kiwi_profiles" != *"FEX"* ]] && [[ "$kiwi_profiles" != *"WSL"* ]] && [[ "$kiwi_profiles" != *"Infinity-GNOME-"* ]]; then
 	## Works around issues with grub-bls
 	## See: https://github.com/OSInside/kiwi/issues/2198
 	echo "GRUB_DEFAULT=saved" >> /etc/default/grub

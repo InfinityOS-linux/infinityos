@@ -39,9 +39,24 @@ mv -f "$esp/os/.initramfs-$version.img.tmp" "$esp/os/initramfs-$version.img"
 /usr/libexec/infinityos-refind-install "$esp"
 /usr/libexec/infinityos-refind-config "$esp"
 grep -Fq 'menuentry "Backups (Btrfs)"' "$esp/EFI/refind/refind.conf"
+cmp "$esp/EFI/refind/refind.conf" "$esp/EFI/BOOT/refind.conf"
 /usr/libexec/infinityos-remove-obsolete-efi-loaders
 # RPM erasure must not be able to remove the firmware fallback installed above.
 /usr/libexec/infinityos-refind-install "$esp" --activate
+
+# Fedora enables bootctl maintenance during installation. It must not
+# recreate EFI/loader or change the boot path after switching to rEFInd.
+systemctl disable systemd-boot-update.service systemd-boot-clear-sysfail.service \
+    systemd-boot-random-seed.service
+systemctl mask --force systemd-boot-update.service systemd-boot-clear-sysfail.service \
+    systemd-boot-random-seed.service
+
+# Drop firmware entries whose EFI binaries were removed by the conversion.
+while IFS= read -r entry; do
+    if [[ $entry =~ ^Boot([0-9A-Fa-f]{4})\*? ]]; then
+        efibootmgr -b "${BASH_REMATCH[1]}" -B
+    fi
+done < <(efibootmgr -v | grep -Ei 'EFI[\\/]infinityos[\\/](shim|grub)|EFI[\\/]systemd[\\/]systemd-boot' || true)
 
 # Only remove firmware-visible GRUB and systemd-boot paths after rEFInd is
 # complete. The fallback EFI/BOOT path above survives lost NVRAM entries.

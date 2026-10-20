@@ -48,6 +48,8 @@ class BackupsTests(unittest.TestCase):
             self.assertIn('icon /EFI/refind/infinity-theme/icons/os_infinityos.png', content)
             self.assertIn('rootflags=subvol=root', content)
             self.assertIn('systemd.unit=infinityos-backups.target', content)
+            fallback = esp / "EFI/BOOT/refind.conf"
+            self.assertEqual(fallback.read_text(), content)
             ready.touch()
             subprocess.run([CONFIG, esp, cmdline, ready], check=True)
             content = result.read_text()
@@ -55,6 +57,7 @@ class BackupsTests(unittest.TestCase):
             timestamp = result.stat().st_mtime_ns
             subprocess.run([CONFIG, esp, cmdline, ready], check=True)
             self.assertEqual(result.stat().st_mtime_ns, timestamp)
+            self.assertEqual(fallback.read_text(), content)
 
 
 if __name__ == "__main__":
