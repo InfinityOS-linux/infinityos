@@ -41,7 +41,7 @@ trap 'rm -f "$tmp" "$fallback_tmp"' EXIT
 	cat <<'EOF'
 timeout 5
 default_selection "Infinity OS"
-scanfor manual,external,optical
+scanfor manual
 showtools reboot,shutdown,firmware
 include infinity-theme/theme.conf
 

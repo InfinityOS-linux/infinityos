@@ -41,6 +41,7 @@ class BackupsTests(unittest.TestCase):
             subprocess.run([CONFIG, esp, cmdline, ready], check=True)
             result = esp / "EFI/refind/refind.conf"
             content = result.read_text()
+            self.assertIn("\nscanfor manual\n", content)
             self.assertIn('menuentry "Infinity OS"', content)
             self.assertIn('menuentry "Backups (Btrfs)"', content)
             self.assertIn('loader /os/vmlinuz-1', content)
