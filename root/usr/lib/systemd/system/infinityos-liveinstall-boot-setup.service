@@ -1,10 +1,9 @@
 [Unit]
-Description=Finish Infinity OS systemd-boot setup after installation
+Description=Finish Infinity OS rEFInd setup after installation
 After=local-fs.target
 ConditionPathIsMountPoint=/boot/efi
 ConditionPathExists=/etc/infinityos/liveinstall-boot-pending
-ConditionPathExists=!/etc/infinityos/liveinstall-systemd-boot
-ConditionPathExists=!/etc/infinityos/liveinstall-grub-fallback
+ConditionPathExists=!/etc/infinityos/liveinstall-refind
 
 [Service]
 Type=oneshot

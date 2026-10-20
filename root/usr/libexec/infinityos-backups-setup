@@ -25,17 +25,8 @@ snapper -c root list >/dev/null
 # can then follow it without renaming a mounted root subvolume.
 root_id=$(btrfs inspect-internal rootid /)
 btrfs subvolume set-default "$root_id" "$top"
-if [[ -s /etc/kernel/cmdline ]]; then
-	cmdline=$(cat /etc/kernel/cmdline)
-else
-	cmdline=
-	for entry in /boot/efi/loader/entries/*.conf; do
-		[[ -f $entry ]] || continue
-		grep -Eq '^title[[:space:]]+Infinity OS' "$entry" || continue
-		cmdline=$(sed -n 's/^options[[:space:]]*//p' "$entry" | head -n 1)
-		break
-	done
-fi
+[[ -s /etc/kernel/cmdline ]] || { echo 'Missing kernel command line' >&2; exit 1; }
+cmdline=$(</etc/kernel/cmdline)
 read -r -a args <<< "$cmdline"
 filtered=()
 for arg in "${args[@]}"; do
@@ -44,11 +35,6 @@ done
 [[ ${#filtered[@]} -gt 0 ]] || { echo 'Missing kernel command line' >&2; exit 1; }
 printf '%s\n' "${filtered[*]}" > /etc/kernel/cmdline
 
-for entry in /boot/efi/loader/entries/*.conf; do
-	[[ -f $entry ]] || continue
-	grep -Eq '^title[[:space:]]+Infinity OS' "$entry" || continue
-	sed -i -E 's/(^| )rootflags=subvol=root( |$)/\1\2/g' "$entry"
-done
 install -d /var/lib/infinityos
 touch /var/lib/infinityos/backups-ready
 /usr/libexec/infinityos-backups-entry

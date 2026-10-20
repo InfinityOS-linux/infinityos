@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# KIWI/Anaconda need GRUB while composing the live payload. Replace the
+# published ISO's El Torito and USB EFI partition with rEFInd before bundling.
+# The final EFI partition holds the kernel and initramfs because firmware and
+# rEFInd cannot reliably load an EFI-stub kernel from ISO9660 on every machine.
+iso=${1:?Pass the Infinity OS live ISO}
+[[ -f $iso && $EUID -eq 0 ]] || { echo 'Run as root with an existing ISO' >&2; exit 1; }
+case $(uname -m) in
+    x86_64) arch=x86_64; efi_arch=x64; fallback=BOOTX64.EFI ;;
+    aarch64) arch=aarch64; efi_arch=aa64; fallback=BOOTAA64.EFI ;;
+    *) echo 'Unsupported live architecture' >&2; exit 1 ;;
+esac
+volid=$(xorriso -indev "$iso" -pvd_info 2>&1 | sed -n 's/^Volume Id[[:space:]]*:[[:space:]]*//p' | head -n 1)
+[[ $volid =~ ^[A-Za-z0-9._-]+$ ]] || { echo 'Invalid ISO volume ID' >&2; exit 1; }
+
+work=$(mktemp -d "$(dirname "$iso")/.infinityos-refind.XXXXXX")
+iso_mount="$work/iso"
+root_mount="$work/root"
+efi_mount="$work/efi"
+mkdir -p "$iso_mount" "$root_mount" "$efi_mount"
+cleanup() {
+    mountpoint -q "$efi_mount" && umount "$efi_mount"
+    mountpoint -q "$root_mount" && umount "$root_mount"
+    mountpoint -q "$iso_mount" && umount "$iso_mount"
+    rm -rf "$work"
+}
+trap cleanup EXIT
+mount -o loop,ro "$iso" "$iso_mount"
+[[ -s $iso_mount/boot/$arch/loader/linux && -s $iso_mount/boot/$arch/loader/initrd ]] || {
+    echo 'Live kernel or initramfs is missing' >&2; exit 1;
+}
+mount -t erofs -o loop,ro "$iso_mount/LiveOS/squashfs.img" "$root_mount"
+source="$root_mount/usr/share/rEFInd/refind"
+theme="$root_mount/usr/share/infinityos/refind-theme"
+[[ -s $source/refind_$efi_arch.efi ]] || {
+    echo 'rEFInd EFI binary is missing' >&2; exit 1;
+}
+[[ -s $theme/icons/os_infinityos.png ]] || { echo 'Infinity OS icon is missing' >&2; exit 1; }
+
+fat="$work/refind-efi.img"
+kernel="$iso_mount/boot/$arch/loader/linux"
+initrd="$iso_mount/boot/$arch/loader/initrd"
+bytes=$(( $(stat -c %s "$kernel") + $(stat -c %s "$initrd") + 64 * 1024 * 1024 ))
+fat_mb=$(( (bytes + 1024 * 1024 - 1) / (1024 * 1024) ))
+truncate -s "${fat_mb}M" "$fat"
+mkfs.vfat -F 32 -n BOOT "$fat" >/dev/null
+mount -o loop "$fat" "$efi_mount"
+install -d "$efi_mount/EFI/BOOT/infinity-theme" "$efi_mount/os"
+install -m 0644 "$source/refind_$efi_arch.efi" "$efi_mount/EFI/BOOT/$fallback"
+install -m 0644 "$kernel" "$efi_mount/os/linux"
+install -m 0644 "$initrd" "$efi_mount/os/initrd"
+cmp "$kernel" "$efi_mount/os/linux"
+cmp "$initrd" "$efi_mount/os/initrd"
+cp -a "$theme/." "$efi_mount/EFI/BOOT/infinity-theme/"
+cat > "$efi_mount/EFI/BOOT/refind.conf" <<EOF_CONF
+timeout 10
+default_selection "Infinity OS Live"
+scanfor manual
+showtools reboot,shutdown,firmware
+include infinity-theme/theme.conf
+
+menuentry "Infinity OS Live" {
+    loader /os/linux
+    icon /EFI/BOOT/infinity-theme/icons/os_infinityos.png
+    initrd /os/initrd
+    options "quiet rhgb root=live:CDLABEL=$volid rd.live.image"
+}
+menuentry "Test media and start Infinity OS" {
+    loader /os/linux
+    icon /EFI/BOOT/infinity-theme/icons/os_infinityos.png
+    initrd /os/initrd
+    options "quiet rhgb root=live:CDLABEL=$volid rd.live.image rd.live.check"
+}
+menuentry "Infinity OS Live (basic graphics)" {
+    loader /os/linux
+    icon /EFI/BOOT/infinity-theme/icons/os_infinityos.png
+    initrd /os/initrd
+    options "quiet rhgb root=live:CDLABEL=$volid rd.live.image nomodeset"
+}
+EOF_CONF
+sync
+umount "$efi_mount"
+
+new="$work/InfinityOS-refind.iso"
+xorriso -indev "$iso" -outdev "$new" \
+    -boot_image any discard \
+    -rm_r /boot/grub2 "/boot/$arch/loader/grub2" -- \
+    -boot_image any partition_offset=16 \
+    -boot_image any cat_path=/boot/boot.cat \
+    -boot_image any cat_hidden=on \
+    -boot_image any appended_part_as=gpt \
+    -append_partition 2 0xef "$fat" \
+    -boot_image any next \
+    -boot_image any efi_path=--interval:appended_partition_2:all:: \
+    -boot_image any platform_id=0xef \
+    -boot_image any emul_type=no_emulation \
+    -commit
+implantisomd5 "$new"
+checkisomd5 "$new"
+# Keep the original if any build, media-check, or metadata step fails.
+mv -f "$new" "$iso"
+echo "Finalized rEFInd live ISO: $iso"

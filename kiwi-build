@@ -122,6 +122,7 @@ fi
 if [ "$kiwi_status" = 0 ] && [ "$image_type" = iso ] && [ "$image_profile" = Infinity-GNOME-Live ]; then
 	for image in "${output_dir}-build"/*.iso; do
 		[ -f "$image" ] || { echo "Infinity OS ISO was not produced" >&2; exit 1; }
+		"${kiwibuild_scriptdir}/scripts/finalize-infinity-iso" "$image"
 		"${kiwibuild_scriptdir}/scripts/verify-infinity-iso" "$image" "$kiwibuild_revision"
 	done
 fi

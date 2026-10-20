@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+esp=${1:-/boot/efi}
+cmdline_file=${2:-/etc/kernel/cmdline}
+ready_marker=${3:-/var/lib/infinityos/backups-ready}
+config="$esp/EFI/refind/refind.conf"
+[[ -d $esp/EFI/refind && -s $cmdline_file ]] || exit 1
+options=$(<"$cmdline_file")
+[[ -n $options && $options != *'"'* && $options != *$'\n'* ]] || exit 1
+
+if [[ -e $ready_marker ]]; then
+	read -r -a args <<< "$options"
+	filtered=()
+	for arg in "${args[@]}"; do
+		[[ $arg == rootflags=subvol=root ]] || filtered+=("$arg")
+	done
+	options=${filtered[*]}
+fi
+
+shopt -s nullglob
+kernels=("$esp"/os/vmlinuz-*)
+(( ${#kernels[@]} )) || { echo 'No kernel on the EFI partition' >&2; exit 1; }
+versions=()
+for kernel in "${kernels[@]}"; do
+	version=${kernel##*/vmlinuz-}
+	[[ $version =~ ^[A-Za-z0-9._+-]+$ ]] || continue
+	[[ -s $esp/os/initramfs-$version.img ]] || continue
+	versions+=("$version")
+done
+(( ${#versions[@]} )) || { echo 'No matching kernel and initramfs' >&2; exit 1; }
+IFS=$'\n' versions=($(printf '%s\n' "${versions[@]}" | sort -Vr))
+unset IFS
+
+tmp=$(mktemp "$esp/EFI/refind/.refind.conf.XXXXXX")
+trap 'rm -f "$tmp"' EXIT
+{
+	cat <<'EOF'
+timeout 5
+default_selection "Infinity OS"
+scanfor manual,external,optical
+showtools reboot,shutdown,firmware
+include infinity-theme/theme.conf
+
+EOF
+	for version in "${versions[@]}"; do
+		if [[ $version == "${versions[0]}" ]]; then
+			title='Infinity OS'
+		else
+			title="Infinity OS ($version)"
+		fi
+		printf 'menuentry "%s" {\n' "$title"
+		printf '    loader /os/vmlinuz-%s\n' "$version"
+		printf '    icon /EFI/refind/infinity-theme/icons/os_infinityos.png\n'
+		printf '    initrd /os/initramfs-%s.img\n' "$version"
+		printf '    options "%s"\n' "$options"
+		printf '}\n\n'
+	done
+	version=${versions[0]}
+	backup_options=()
+	read -r -a args <<< "$options"
+	for arg in "${args[@]}"; do
+		case $arg in
+			rhgb|quiet|systemd.unit=*|plymouth.enable=*) ;;
+			*) backup_options+=("$arg") ;;
+		esac
+	done
+	printf 'menuentry "Backups (Btrfs)" {\n'
+	printf '    loader /os/vmlinuz-%s\n' "$version"
+	printf '    icon /EFI/refind/infinity-theme/icons/os_infinityos.png\n'
+	printf '    initrd /os/initramfs-%s.img\n' "$version"
+	printf '    options "%s systemd.unit=infinityos-backups.target plymouth.enable=0"\n' "${backup_options[*]}"
+	printf '}\n'
+} > "$tmp"
+chmod 0644 "$tmp"
+if [[ -f $config ]] && cmp -s "$tmp" "$config"; then exit 0; fi
+mv -f "$tmp" "$config"

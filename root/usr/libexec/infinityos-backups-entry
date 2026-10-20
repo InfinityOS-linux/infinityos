@@ -1,45 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
-
 esp=${1:-/boot/efi}
-entries="$esp/loader/entries"
-[[ -d $entries ]] || exit 0
-normal=
-for entry in "$entries"/*.conf; do
-	[[ -f $entry && $entry != */infinityos-backups.conf ]] || continue
-	grep -Eq '^title[[:space:]]+Infinity OS' "$entry" || continue
-	grep -Eq '^linux[[:space:]]+os/vmlinuz-' "$entry" || continue
-	normal=$entry
-done
-[[ -n $normal ]] || exit 0
-
-linux=$(awk '$1 == "linux" { print $2; exit }' "$normal")
-initrd=$(awk '$1 == "initrd" { print $2; exit }' "$normal")
-options=$(sed -n 's/^options[[:space:]]*//p' "$normal" | head -n 1)
-[[ -n $linux && -n $initrd && -n $options ]] || exit 1
-[[ -s $esp/${linux#/} && -s $esp/${initrd#/} ]] || exit 1
-
-# A fresh image still boots with subvol=root until the first-boot migration.
-read -r -a args <<< "$options"
-filtered=()
-for arg in "${args[@]}"; do
-	case $arg in
-		rhgb|quiet|systemd.unit=*|plymouth.enable=*) ;;
-		rootflags=subvol=root) [[ ! -e /var/lib/infinityos/backups-ready ]] && filtered+=("$arg") ;;
-		*) filtered+=("$arg") ;;
-	esac
-done
-options=${filtered[*]}
-tmp=$(mktemp "$entries/.infinityos-backups.XXXXXX")
-trap 'rm -f "$tmp"' EXIT
-{
-	printf 'title Backups\n'
-	printf 'linux %s\n' "$linux"
-	printf 'initrd %s\n' "$initrd"
-	printf 'options %s systemd.unit=infinityos-backups.target plymouth.enable=0\n' "$options"
-} > "$tmp"
-chmod 0644 "$tmp"
-if [[ -f $entries/infinityos-backups.conf ]] && cmp -s "$tmp" "$entries/infinityos-backups.conf"; then
-	exit 0
-fi
-mv -f "$tmp" "$entries/infinityos-backups.conf"
+[[ -d $esp/EFI/refind ]] || exit 0
+exec /usr/libexec/infinityos-refind-config "$esp"

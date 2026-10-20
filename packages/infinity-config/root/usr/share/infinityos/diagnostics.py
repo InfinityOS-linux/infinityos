@@ -61,8 +61,8 @@ def collect(run=subprocess.run, root=Path("/")):
         "root_filesystem": _output(["findmnt", "-n", "-o", "FSTYPE", "/"], run),
         # The ESP is root-only on Infinity OS. A user report can show the
         # installer's marker, while the full boot audit must run with sudo.
-        "systemd_boot_conversion_recorded":
-            (root / "etc/infinityos/liveinstall-systemd-boot").is_file(),
+        "refind_installation_recorded":
+            (root / "etc/infinityos/refind-installed").is_file(),
         "backups_ready": (root / "var/lib/infinityos/backups-ready").is_file(),
         "infinity_packages": package_versions,
         "enabled_packaged_extensions": packaged_enabled,

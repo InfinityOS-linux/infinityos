@@ -15,13 +15,16 @@ check() {
 }
 
 active_infinity_boot() {
-    local status
-    status=$(LC_ALL=C bootctl --esp-path=/boot/efi status --no-pager) || return 1
-    # Some UEFI firmware boots the fallback EFI/BOOT path and drops named NVRAM
-    # entries. Verify the loader and selected OS entry actually used to boot.
-    status=$(sed -n '/^Current Boot Loader:/,/^Current Stub:/p' <<< "$status")
-    grep -Eq '^[[:space:]]*Product:[[:space:]]+systemd-boot([[:space:]]|$)' <<< "$status" &&
-        grep -Eq '^[[:space:]]*Current Entry:[[:space:]]+infinityos-[0-9][^[:space:]]*\.conf$' <<< "$status"
+    local current details
+    current=$(efibootmgr | sed -n 's/^BootCurrent: //p') || return 1
+    [[ $current =~ ^[0-9A-Fa-f]{4}$ ]] || return 1
+    details=$(efibootmgr -v | grep -i "^Boot${current}\\*" | head -n 1) || return 1
+    if grep -Eiq 'EFI[\\/]refind[\\/]refind_|EFI[\\/]BOOT[\\/]BOOT' <<< "$details"; then
+        return 0
+    fi
+    # Some firmware records only the hard disk path. Its removable-media
+    # fallback is the byte-identical rEFInd binary verified below.
+    [[ $details == *'HD('* && $details != *'File('* ]]
 }
 
 if [[ $EUID -ne 0 ]]; then
@@ -38,14 +41,16 @@ esac
 check 'UEFI session' test -d /sys/firmware/efi
 check 'Btrfs root' bash -c '[[ $(findmnt -n -o FSTYPE /) == btrfs ]]'
 check 'EFI partition mounted' bash -c '[[ $(findmnt -n -M /boot/efi -o FSTYPE) == vfat ]]'
-check 'installer completed systemd-boot conversion' test -f /etc/infinityos/liveinstall-systemd-boot
-check 'systemd-boot EFI binary' test -s "/boot/efi/EFI/systemd/systemd-boot${efi_arch}.efi"
-check 'systemd-boot installed' bootctl --esp-path=/boot/efi is-installed
-check 'Infinity OS loader entry' bash -c 'compgen -G "/boot/efi/loader/entries/infinityos-*.conf"'
-check 'active Infinity OS systemd-boot entry' active_infinity_boot
+check 'rEFInd installation recorded' test -f /etc/infinityos/refind-installed
+check 'rEFInd EFI binary' test -s "/boot/efi/EFI/refind/refind_${efi_arch}.efi"
+check 'rEFInd fallback matches' cmp -s "/boot/efi/EFI/refind/refind_${efi_arch}.efi" "/boot/efi/EFI/BOOT/BOOT${efi_arch^^}.EFI"
+check 'Infinity OS rEFInd entry' grep -Fq 'menuentry "Infinity OS"' /boot/efi/EFI/refind/refind.conf
+check 'active Infinity OS EFI entry' active_infinity_boot
 check 'Snapper root configuration' test -f /etc/snapper/configs/root
 check 'Btrfs backup setup' test -f /var/lib/infinityos/backups-ready
-check 'Backups loader entry' test -s /boot/efi/loader/entries/infinityos-backups.conf
+check 'Btrfs Backups rEFInd entry' grep -Fq 'menuentry "Backups (Btrfs)"' /boot/efi/EFI/refind/refind.conf
+check 'obsolete EFI loaders absent' bash -c '[[ ! -e /boot/efi/EFI/infinityos && ! -e /boot/efi/EFI/systemd && ! -e /boot/efi/loader && ! -e /boot/grub2 ]]'
+check 'obsolete EFI loader packages absent' bash -c '! rpm -qa --qf "%{NAME}\n" | grep -Eq "^(grub2-efi-|grub2-pc($|-)|grub2-tools-efi$|shim-(aa64|ia32|x64)$|systemd-boot-unsigned$)"'
 check 'Infinity OS desktop RPMs' rpm -q infinity-config infinity-launcher infinity-terminal infinity-updater infinityos-shell-extensions
 check 'Infinity OS GNOME defaults' test -f /usr/share/infinityos/gnome-defaults
 check 'Infinity OS desktop wallpaper' test -s /usr/share/backgrounds/infinityos/infinityos-dark.png

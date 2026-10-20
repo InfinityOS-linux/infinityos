@@ -38,6 +38,9 @@ grep -qx 'IsFinal=True' "$rootpoint/.buildstamp" || {
 for required in \
     usr/libexec/infinityos-audit-install \
     usr/libexec/infinityos-liveinstall-boot-setup \
+    usr/libexec/infinityos-refind-install \
+    usr/libexec/infinityos-refind-config \
+    usr/libexec/infinityos-remove-obsolete-efi-loaders \
     usr/libexec/infinityos-live-power \
     usr/libexec/infinityos-liveinst \
     etc/skel/.config/autostart/infinityos-live-power.desktop \
@@ -64,12 +67,16 @@ grep -Fqx 'Exec=/usr/libexec/infinityos-liveinst' \
 }
 grep -Fqx '%post --erroronfail --log=/var/log/infinityos-boot-install.log' \
     "$rootpoint/usr/share/anaconda/interactive-defaults.ks" || {
-    echo 'Installer can silently finish without systemd-boot' >&2
+    echo 'Installer can silently finish without rEFInd' >&2
     exit 1
 }
 grep -Fqx '/usr/libexec/infinityos-liveinstall-boot-setup' \
     "$rootpoint/usr/share/anaconda/interactive-defaults.ks" || {
-    echo 'Installer is missing the systemd-boot conversion command' >&2
+    echo 'Installer is missing the rEFInd conversion command' >&2
+    exit 1
+}
+grep -Fqx 'bootloader --location=none' "$rootpoint/usr/share/anaconda/interactive-defaults.ks" || {
+    echo 'Anaconda still installs a temporary EFI bootloader' >&2
     exit 1
 }
 if [[ $(uname -m) == x86_64 ]]; then
@@ -83,10 +90,46 @@ grep -Fqx 'mkdir -p "$EFI_HOME"' "$rootpoint/usr/sbin/gen_grub_cfgstub" || {
     echo 'Installer cannot create the Infinity OS EFI directory' >&2
     exit 1
 }
-rpm --root "$rootpoint" -q systemd-boot-unsigned >/dev/null || {
-    echo 'systemd-boot binary missing from ISO' >&2
+case $(uname -m) in
+    x86_64) efi_arch=x64; fallback=BOOTX64.EFI ;;
+    aarch64) efi_arch=aa64; fallback=BOOTAA64.EFI ;;
+esac
+rpm --root "$rootpoint" -q rEFInd "rEFInd-unsigned-$efi_arch" >/dev/null || {
+    echo 'rEFInd package missing from ISO' >&2
     exit 1
 }
+if rpm --root "$rootpoint" -q systemd-boot-unsigned >/dev/null 2>&1; then
+    echo 'systemd-boot package remained in the live system' >&2
+    exit 1
+fi
+[[ ! -e $mountpoint/boot/grub2 && ! -e $mountpoint/boot/$(uname -m)/loader/grub2 ]] || {
+    echo 'Published ISO still contains the GRUB menu' >&2
+    exit 1
+}
+efi_images=$(mktemp -d)
+efi_mount=$(mktemp -d)
+cleanup_efi() {
+    mountpoint -q "$efi_mount" && umount "$efi_mount"
+    rm -rf "$efi_images"
+    rmdir "$efi_mount"
+}
+trap 'cleanup_efi; cleanup' EXIT
+xorriso -osirrox on -indev "$iso" -extract_boot_images "$efi_images" >/dev/null 2>&1
+efi_image="$efi_images/gpt_part2_efi.img"
+[[ -s $efi_image ]] || { echo 'rEFInd EFI partition missing from ISO' >&2; exit 1; }
+mount -o loop,ro "$efi_image" "$efi_mount"
+[[ -s $efi_mount/EFI/BOOT/$fallback &&
+   -s $efi_mount/os/linux && -s $efi_mount/os/initrd &&
+   -s $efi_mount/EFI/BOOT/infinity-theme/icons/os_infinityos.png ]] || {
+    echo 'rEFInd live EFI files are incomplete' >&2; exit 1;
+}
+cmp "$rootpoint/usr/share/rEFInd/refind/refind_${efi_arch}.efi" "$efi_mount/EFI/BOOT/$fallback"
+cmp "$mountpoint/boot/$(uname -m)/loader/linux" "$efi_mount/os/linux"
+cmp "$mountpoint/boot/$(uname -m)/loader/initrd" "$efi_mount/os/initrd"
+grep -Fq 'menuentry "Infinity OS Live"' "$efi_mount/EFI/BOOT/refind.conf"
+grep -Fq 'icon /EFI/BOOT/infinity-theme/icons/os_infinityos.png' "$efi_mount/EFI/BOOT/refind.conf"
+grep -Fq 'rd.live.check' "$efi_mount/EFI/BOOT/refind.conf"
+grep -Fq 'nomodeset' "$efi_mount/EFI/BOOT/refind.conf"
 for required in \
     usr/libexec/infinityos-open-downloads \
     usr/local/share/applications/org.gnome.GPaste.Ui.desktop \

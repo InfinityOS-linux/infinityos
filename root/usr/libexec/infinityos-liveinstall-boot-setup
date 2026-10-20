@@ -1,27 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Anaconda uses GRUB transiently with the Fedora 44 live payload. Finish the
-# installation with systemd-boot and a tested kernel entry on the target ESP.
+# Anaconda's live payload creates kernel and BLS files without installing an
+# EFI loader. The target is complete after both rEFInd boot choices exist.
 [[ -d /sys/firmware/efi ]] || { echo 'UEFI boot is required' >&2; exit 1; }
-if [[ $(findmnt -n -o FSTYPE /) != btrfs ]]; then
-	echo 'Infinity OS requires a Btrfs root for systemd-boot and Backups' >&2
-	exit 1
-fi
+[[ $(findmnt -n -o FSTYPE /) == btrfs ]] || { echo 'Infinity OS requires a Btrfs root' >&2; exit 1; }
 [[ $(findmnt -n -M /boot/efi -o FSTYPE) == vfat ]] || { echo 'EFI system partition required' >&2; exit 1; }
-
 secure_boot=/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c
 if [[ -f $secure_boot && $(od -An -tu1 -j 4 -N 1 "$secure_boot" | tr -d ' ') == 1 ]]; then
-	echo 'Disable Secure Boot before installing unsigned Infinity OS systemd-boot media' >&2
-	exit 1
+    echo 'Disable Secure Boot before installing unsigned Infinity OS rEFInd media' >&2
+    exit 1
 fi
-
-case $(uname -m) in
-	x86_64) efi_arch=x64 ;;
-	aarch64) efi_arch=aa64 ;;
-	*) echo 'Unsupported EFI architecture' >&2; exit 1 ;;
-esac
-[[ -s /usr/lib/systemd/boot/efi/systemd-boot${efi_arch}.efi ]]
 command -v snapper >/dev/null
 command -v efibootmgr >/dev/null
 
@@ -33,54 +22,34 @@ kernel="/boot/vmlinuz-$version"
 initrd="/boot/initramfs-$version.img"
 [[ -s $kernel && -s $initrd ]] || { echo 'Kernel or initramfs is missing' >&2; exit 1; }
 if [[ -s /etc/kernel/cmdline ]]; then
-	options=$(</etc/kernel/cmdline)
+    options=$(</etc/kernel/cmdline)
 else
-	options=$(sed -n 's/^options[[:space:]]*//p' "$source_entry" | head -n 1)
-	[[ -n $options ]] || { echo 'Kernel options are missing' >&2; exit 1; }
-	install -d /etc/kernel
-	printf '%s\n' "$options" > /etc/kernel/cmdline
+    options=$(sed -n 's/^options[[:space:]]*//p' "$source_entry" | head -n 1)
+    [[ -n $options ]] || { echo 'Kernel options are missing' >&2; exit 1; }
+    install -d /etc/kernel
+    printf '%s\n' "$options" > /etc/kernel/cmdline
 fi
 
 esp=/boot/efi
-install -d "$esp/os" "$esp/loader/entries" /etc/infinityos
+install -d "$esp/os" /etc/infinityos
 install -m 0644 "$kernel" "$esp/os/.vmlinuz-$version.tmp"
 install -m 0644 "$initrd" "$esp/os/.initramfs-$version.img.tmp"
 mv -f "$esp/os/.vmlinuz-$version.tmp" "$esp/os/vmlinuz-$version"
 mv -f "$esp/os/.initramfs-$version.img.tmp" "$esp/os/initramfs-$version.img"
-entry_tmp=$(mktemp "$esp/loader/entries/.infinityos-$version.XXXXXX")
-printf 'title Infinity OS (%s)\nversion %s\nlinux os/vmlinuz-%s\ninitrd os/initramfs-%s.img\noptions %s\n' \
-	"$version" "$version" "$version" "$version" "$options" > "$entry_tmp"
-chmod 0644 "$entry_tmp"
-mv -f "$entry_tmp" "$esp/loader/entries/infinityos-$version.conf"
-printf 'default infinityos-*\ntimeout 5\n' > "$esp/loader/loader.conf"
-bootctl --esp-path="$esp" install --no-variables
-bootctl --esp-path="$esp" list --no-pager | grep -Fq "infinityos-$version.conf"
+/usr/libexec/infinityos-refind-install "$esp"
+/usr/libexec/infinityos-refind-config "$esp"
+grep -Fq 'menuentry "Backups (Btrfs)"' "$esp/EFI/refind/refind.conf"
+/usr/libexec/infinityos-remove-obsolete-efi-loaders
+# RPM erasure must not be able to remove the firmware fallback installed above.
+/usr/libexec/infinityos-refind-install "$esp" --activate
 
-boot_entry=$(efibootmgr | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\* Infinity OS systemd-boot.*/\1/p' | head -n 1)
-if [[ -z $boot_entry ]]; then
-	esp_device=$(findmnt -n -M "$esp" -o SOURCE)
-	disk=$(lsblk -nr -o PKNAME "$esp_device" | head -n 1)
-	part=$(lsblk -nr -o PARTN "$esp_device" | head -n 1)
-	[[ -n $disk && $part =~ ^[0-9]+$ ]] || { echo 'Cannot identify the EFI partition' >&2; exit 1; }
-	efibootmgr -c -d "/dev/$disk" -p "$part" -L 'Infinity OS systemd-boot' \
-		-l "\\EFI\\systemd\\systemd-boot${efi_arch}.efi"
-	boot_entry=$(efibootmgr | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\* Infinity OS systemd-boot.*/\1/p' | head -n 1)
-fi
-[[ -n $boot_entry ]]
-order=$(efibootmgr | sed -n 's/^BootOrder: //p')
-[[ -n $order ]]
-new_order=$boot_entry
-IFS=, read -r -a existing_entries <<< "$order"
-for existing in "${existing_entries[@]}"; do
-	[[ $existing == "$boot_entry" ]] || new_order+=",$existing"
-done
-efibootmgr -o "$new_order"
+# Only remove firmware-visible GRUB and systemd-boot paths after rEFInd is
+# complete. The fallback EFI/BOOT path above survives lost NVRAM entries.
+rm -rf "$esp/EFI/infinityos" "$esp/EFI/systemd" "$esp/loader" /boot/grub2
 
-# Enable snapshots in Anaconda's installed target, not in the read-only live
-# session that supplied the installer.
 systemctl enable infinityos-snapper-setup.service infinityos-backups-setup.service \
-	infinityos-backups-entry.service infinityos-backups-entry.path \
-	snapper-timeline.timer snapper-cleanup.timer
+    infinityos-backups-entry.service infinityos-backups-entry.path \
+    snapper-timeline.timer snapper-cleanup.timer
 
-touch /etc/infinityos/liveinstall-systemd-boot
+touch /etc/infinityos/liveinstall-refind /etc/infinityos/refind-installed
 rm -f /etc/infinityos/liveinstall-boot-pending

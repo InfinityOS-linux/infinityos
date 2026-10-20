@@ -2,6 +2,7 @@
 
 | Component | Source | Version | License |
 | --- | --- | --- | --- |
+| Rosé Pine rEFInd theme | https://github.com/blackma9ick/refind | `c0bf9f7af28b258bde543eaaf39b0efea693a369`; main background, selection art and icons adapted for Infinity OS | MIT, included at `root/usr/share/infinityos/refind-theme/LICENSE` |
 | Oh My Zsh | https://github.com/ohmyzsh/ohmyzsh | `48feb570f7b7d80cc7554629ba428c520ea8a3d5`; runtime core and the three configured plugins | MIT, included at `root/usr/share/oh-my-zsh/LICENSE.txt` |
 | Powerlevel10k and gitstatus | https://github.com/romkatv/powerlevel10k | `v1.20.0`; the architecture-specific gitstatus daemon is fetched and checksum-checked during the image build | MIT, included at `root/usr/share/oh-my-zsh/custom/themes/powerlevel10k/LICENSE` |
 | IBM Plex Sans | https://github.com/IBM/plex/releases/tag/%40ibm/plex-sans%401.1.0 | `1.1.0`; 16 TTF faces from the upstream release | OFL-1.1, included at `root/usr/share/licenses/infinityos-plex-sans/LICENSE.txt` |

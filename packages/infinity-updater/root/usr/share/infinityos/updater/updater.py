@@ -244,7 +244,7 @@ def main():
                     notice = ('Some updates could not be installed.' if errors else
                               'System updates installed. Restart may be required.'
                               if completed_system_updates else 'Updates installed.')
-                    recovery = (f'Root snapshot #{snapshot} is available in Backups at boot. '
+                    recovery = (f'Root snapshot #{snapshot} is available in Backups (Btrfs) in rEFInd. '
                                 '/home, /var and device firmware are not part of this snapshot.'
                                 if snapshot else None)
                     GLib.idle_add(self.finish_refresh, state, notice, recovery)

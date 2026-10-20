@@ -1,6 +1,7 @@
 <image>
 	<profiles>
 		<profile name="BootCore" description="Boot core packages"/>
+		<profile name="InfinityBootCore" description="rEFInd disk boot packages"/>
 		<profile name="BootCoreUKI" description="Boot core packages for UKI"/>
 		<profile name="BootCoreLive" description="Boot core packages for Live DVDs"/>
 		<profile name="BootDiskCore" description="Boot disk core configuration">
@@ -8,10 +9,10 @@
 			<requires profile="HardwareCommon"/>
 			<requires profile="BootCore"/>
 		</profile>
-		<profile name="InfinityBootDiskCore" description="Infinity OS UEFI disk with systemd-boot">
+		<profile name="InfinityBootDiskCore" description="Infinity OS UEFI disk finalized with rEFInd">
 			<requires profile="BaseCommon"/>
 			<requires profile="HardwareCommon"/>
-			<requires profile="BootCore"/>
+			<requires profile="InfinityBootCore"/>
 		</profile>
 	</profiles>
 	<preferences profiles="InfinityBootDiskCore" arch="x86_64,aarch64">
@@ -108,6 +109,9 @@
 	<packages type="bootstrap" patternType="plusRecommended" profiles="BootCore,BootCoreUKI,BootCoreLive">
 		<package name="grubby"/>
 	</packages>
+	<packages type="bootstrap" profiles="InfinityBootCore">
+		<package name="grubby"/>
+	</packages>
 	<packages type="image" patternType="plusRecommended" profiles="BootCore,BootCoreLive">
 		<package name="grub2-efi-aa64" arch="aarch64"/>
 		<package name="grub2-efi-aa64-modules" arch="aarch64"/>
@@ -131,6 +135,12 @@
 	<packages type="image" patternType="plusRecommended" profiles="BootCore">
 		<ignore name="kernel-*debug*"/>
 		<package name="kernel-core"/>
+	</packages>
+	<packages type="image" profiles="InfinityBootCore">
+		<ignore name="kernel-*debug*"/>
+		<package name="kernel-core"/>
+		<package name="systemd-oomd-defaults"/>
+		<package name="systemd-resolved"/>
 	</packages>
 	<packages type="image" patternType="plusRecommended" profiles="BootCoreLive">
 		<ignore name="kernel-*debug*"/>
@@ -168,7 +178,12 @@
 		<package name="uboot-images-riscv64" arch="riscv64"/>
 	</packages>
 	<packages type="image" profiles="InfinityBootDiskCore">
+		<!-- KIWI uses systemd-boot only while composing the RAW disk. The
+		     required finalizer replaces every EFI entry with rEFInd. -->
 		<package name="systemd-boot-unsigned"/>
+		<package name="rEFInd"/>
+		<package name="rEFInd-unsigned-x64" arch="x86_64"/>
+		<package name="rEFInd-unsigned-aa64" arch="aarch64"/>
 		<package name="snapper"/>
 	</packages>
 </image>

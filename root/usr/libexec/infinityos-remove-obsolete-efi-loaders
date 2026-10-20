@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root=${1:-/}
+[[ $root == /* && -d $root ]] || exit 1
+
+# Fedora's Anaconda and grubby still require grub2-common and grub2-tools.
+# Remove the firmware loaders, shim, and systemd-boot only after rEFInd has
+# been installed. This keeps the RPM dependency graph valid.
+mapfile -t obsolete < <(
+    rpm --root "$root" -qa --qf '%{NAME}\n' |
+        grep -E '^(grub2-efi-|grub2-pc($|-)|grub2-tools-efi$|shim-(aa64|ia32|x64)$|systemd-boot-unsigned$)' || true
+)
+if (( ${#obsolete[@]} )); then
+    rpm --root "$root" -e --test "${obsolete[@]}"
+    rpm --root "$root" -e --noscripts --notriggers "${obsolete[@]}"
+fi
+if rpm --root "$root" -qa --qf '%{NAME}\n' |
+    grep -Eq '^(grub2-efi-|grub2-pc($|-)|grub2-tools-efi$|shim-(aa64|ia32|x64)$|systemd-boot-unsigned$)'; then
+    echo 'An obsolete EFI loader package remains installed' >&2
+    exit 1
+fi

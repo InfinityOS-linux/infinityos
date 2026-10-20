@@ -29,53 +29,39 @@ mount -o subvol=root "$partition" "$mountpoint"
 chmod 0755 "$mountpoint"
 [[ $(stat -c %a "$mountpoint") == 755 ]]
 
-# A reused prepared root may contain rescue images for an older kernel. KIWI
-# can otherwise pair that rescue initramfs with the newest kernel on the ESP.
+# KIWI creates a temporary systemd-boot layout. A published Infinity OS disk
+# must expose only rEFInd, including the firmware fallback path and Backups.
 mount "${loopdev}p1" "$efi_mountpoint"
-for entry in "$efi_mountpoint"/loader/entries/*.conf; do
-	[[ -f $entry ]] || continue
-	linux=$(awk '$1 == "linux" { print $2; exit }' "$entry")
-	[[ $linux == os/vmlinuz-* ]] || continue
-	version=${linux#os/vmlinuz-}
-	initramfs="initramfs-${version}.img"
-	[[ -s "$mountpoint/boot/$initramfs" ]] || {
-		echo "Missing initramfs for kernel $version" >&2
-		exit 1
-	}
-	install -m 0644 "$mountpoint/boot/$initramfs" "$efi_mountpoint/os/$initramfs"
-	sed -i "s|^initrd .*|initrd os/$initramfs|" "$entry"
-	grep -Fxq "initrd os/$initramfs" "$entry"
-	cmp "$mountpoint/boot/$initramfs" "$efi_mountpoint/os/$initramfs"
-done
+source_entry=$(find "$efi_mountpoint/loader/entries" -maxdepth 1 -type f -name '*.conf' ! -name '*rescue*' | sort -V | tail -n 1)
+[[ -n $source_entry ]] || { echo 'Missing KIWI kernel entry' >&2; exit 1; }
+options=$(sed -n 's/^options[[:space:]]*//p' "$source_entry" | head -n 1)
+[[ -n $options ]] || { echo 'Missing kernel options' >&2; exit 1; }
+install -d "$mountpoint/etc/kernel" "$mountpoint/etc/infinityos" "$efi_mountpoint/os"
+printf '%s\n' "$options" > "$mountpoint/etc/kernel/cmdline"
 
-# The disk must expose Backups even before its first normal boot. The first
-# boot then migrates Snapper storage and switches to the Btrfs default root.
-backup_created=false
+copied=0
 for entry in "$efi_mountpoint"/loader/entries/*.conf; do
-	[[ -f $entry ]] || continue
-	grep -Eq '^title[[:space:]]+Infinity OS' "$entry" || continue
-	linux=$(awk '$1 == "linux" { print $2; exit }' "$entry")
-	initrd=$(awk '$1 == "initrd" { print $2; exit }' "$entry")
-	options=$(sed -n 's/^options[[:space:]]*//p' "$entry" | head -n 1)
-	[[ $linux == os/vmlinuz-* && -n $initrd && -n $options ]] || continue
-	[[ -s $efi_mountpoint/${linux#/} && -s $efi_mountpoint/${initrd#/} ]] || continue
-	read -r -a args <<< "$options"
-	filtered=()
-	for arg in "${args[@]}"; do
-		[[ $arg == rhgb || $arg == quiet ]] || filtered+=("$arg")
-	done
-	options=${filtered[*]}
-	cat > "$efi_mountpoint/loader/entries/infinityos-backups.conf" <<EOF
-title Backups
-linux $linux
-initrd $initrd
-options $options systemd.unit=infinityos-backups.target plymouth.enable=0
-EOF
-	backup_created=true
-	break
+    [[ -f $entry ]] || continue
+    linux=$(awk '$1 == "linux" { print $2; exit }' "$entry")
+    [[ $linux == os/vmlinuz-* ]] || continue
+    version=${linux#os/vmlinuz-}
+    [[ $version =~ ^[A-Za-z0-9._+-]+$ ]] || exit 1
+    kernel="$efi_mountpoint/os/vmlinuz-$version"
+    initramfs="$mountpoint/boot/initramfs-$version.img"
+    [[ -s $kernel && -s $initramfs ]] || { echo "Missing kernel or initramfs $version" >&2; exit 1; }
+    install -m 0644 "$initramfs" "$efi_mountpoint/os/initramfs-$version.img"
+    cmp "$initramfs" "$efi_mountpoint/os/initramfs-$version.img"
+    copied=$((copied + 1))
 done
-[[ $backup_created == true ]] || {
-	echo 'Could not create the systemd-boot Backups entry' >&2
-	exit 1
-}
-echo "Verified Infinity OS disk from source revision $revision"
+(( copied )) || { echo 'No bootable Infinity OS kernel' >&2; exit 1; }
+
+INFINITYOS_ROOT=$mountpoint "$script_dir/../root/usr/libexec/infinityos-refind-install" "$efi_mountpoint"
+"$script_dir/../root/usr/libexec/infinityos-refind-config" \
+    "$efi_mountpoint" "$mountpoint/etc/kernel/cmdline" "$mountpoint/var/lib/infinityos/backups-ready"
+grep -Fq 'menuentry "Backups (Btrfs)"' "$efi_mountpoint/EFI/refind/refind.conf"
+# rEFInd is complete before removing KIWI's compose-time loader.
+rm -rf "$efi_mountpoint/EFI/systemd" "$efi_mountpoint/loader"
+"$script_dir/../root/usr/libexec/infinityos-remove-obsolete-efi-loaders" "$mountpoint"
+rm -rf "$mountpoint/boot/grub2" "$efi_mountpoint/EFI/infinityos"
+touch "$mountpoint/etc/infinityos/refind-installed"
+echo "Verified Infinity OS rEFInd disk from source revision $revision"

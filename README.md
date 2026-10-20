@@ -25,7 +25,7 @@ This repository is the source for the Infinity OS KIWI images, desktop configura
 | --- | --- |
 | Base | Fedora 44 packages, DNF, Fedora Updates, RPM Fusion Free and Nonfree |
 | Desktop | GNOME with Orchis Purple Dark Compact by default and an optional Light mode, Kora icons, Bibata cursor, Infinity OS artwork, IBM Plex Sans, and a dark lock screen |
-| Storage | Writable Btrfs root, systemd-boot, Snapper timeline and cleanup |
+| Storage | Writable Btrfs root, rEFInd, Snapper timeline and cleanup |
 | Applications | Firefox, GNOME Software, Flatpak with Flathub, mpv, InfinityLauncher, and InfinityTerminal |
 | Development | Zsh with Oh My Zsh and a compact purple Powerlevel10k prompt, Iosevka Term in InfinityTerminal |
 | Gaming | GameMode, MangoHud, Gamescope, gamepad support; Steam and Lutris on `x86_64` |
@@ -61,7 +61,7 @@ Infinity Config's Tweaks tab opens Extensions, system settings and Updates. It c
 
 ## Packages and updates
 
-Before an RPM upgrade, InfinityUpdater creates a numbered Snapper snapshot of the Btrfs root. If backups are not ready or snapshot creation fails, the RPM upgrade stops and explains why. The update window shows the snapshot number and points to the systemd-boot Backups menu. `/home`, `/var` and device firmware are outside that root snapshot.
+Before an RPM upgrade, InfinityUpdater creates a numbered Snapper snapshot of the Btrfs root. If backups are not ready or snapshot creation fails, the RPM upgrade stops and explains why. The update window shows the snapshot number and points to the rEFInd Backups (Btrfs) entry. `/home`, `/var` and device firmware are outside that root snapshot.
 
 Fedora and Fedora Updates provide the base system. RPM Fusion provides multimedia codecs and nonfree hardware packages. The desktop includes GNOME Software for applications, mpv as the default video player, Proview as the default PDF and image viewer, and InfinityUpdater for periodic RPM and Flatpak update checks. GNOME Software's own update checks are disabled to avoid duplicate notifications. It also includes FFmpeg, GNOME Files archive integration, UnRAR, 7-Zip, TLP, and purple folder icons. IBM Plex Sans is the default from the installer and login screen through the desktop. Microsoft Core Fonts are downloaded and checksum-verified on the installed machine after network access is available; their font files are not distributed in the image. Infinity OS builds `infinity-launcher` and `infinity-terminal` as signed RPMs and publishes them through its own DNF repository. See [`packages/README.md`](packages/README.md) for the build, signing, and release flow. Docker CE uses Docker's official Fedora repository when selected in InfinityLauncher.
 
@@ -74,7 +74,7 @@ The image build requires the Infinity OS RPM repository to be published and reac
 Use a Fedora 44 host with the target CPU architecture and Btrfs ACL support. Install KIWI and its system dependencies:
 
 ```sh
-sudo dnf install kiwi kiwi-systemdeps distribution-gpg-keys
+sudo dnf install kiwi kiwi-systemdeps distribution-gpg-keys erofs-utils dosfstools xorriso isomd5sum
 ```
 
 Commit all image and application changes first. Publish all seven Infinity OS RPMs
@@ -110,13 +110,13 @@ sudo ./kiwi-build --kiwi-file=InfinityOS.kiwi --image-type=oem \
 
 The wrapper runs [`scripts/finalize-infinity-disk`](scripts/finalize-infinity-disk)
 after an OEM build. That step checks the embedded revision and applications,
-then fixes permissions on the Btrfs root subvolume so desktop services can
-start. The resulting RAW disk has a 2 GB EFI partition and Btrfs `root`,
+then installs rEFInd, writes the Btrfs recovery entry, and fixes permissions
+on the Btrfs root subvolume so desktop services can start. The resulting RAW disk has a 2 GB EFI partition and Btrfs `root`,
 `home`, and `var` subvolumes. Building `x86_64` requires an x86_64 Fedora host or CI runner.
 
-The systemd-boot **Backups** entry opens a text console for listing, creating, deleting, and restoring Snapper snapshots of `/`. Snapshots are stored in the separate `infinityos-snapshots` Btrfs subvolume, so they remain available after a restore. The first boot sets this up and switches normal boot entries to the Btrfs default root; subsequent kernel entry changes refresh Backups automatically. A restore creates a safety snapshot of the current root, selects a writable copy of the chosen snapshot as the next default root, and reboots. `/home` and `/var` are separate subvolumes and are not rolled back. The previous root stays on disk under `infinityos-roots` for manual recovery.
+The rEFInd **Backups (Btrfs)** entry opens a text console for listing, creating, deleting, and restoring Snapper snapshots of `/`. Snapshots are stored in the separate `infinityos-snapshots` Btrfs subvolume, so they remain available after a restore. The first boot sets this up and switches normal boot entries to the Btrfs default root; subsequent kernel entry changes refresh Backups automatically. A restore creates a safety snapshot of the current root, selects a writable copy of the chosen snapshot as the next default root, and reboots. `/home` and `/var` are separate subvolumes and are not rolled back. The previous root stays on disk under `infinityos-roots` for manual recovery.
 
-The x86_64 and aarch64 live ISOs use GRUB for the installer because KIWI's El Torito EFI image is limited to 31 MB, smaller than the live kernel and initramfs. An Infinity OS post-install step installs systemd-boot on the target, moves the installed kernel to the EFI system partition, and sets the UEFI boot order before the installer reports success. The target root must be Btrfs. The installed systemd-boot binary is unsigned, so disable Secure Boot before installation. Legacy BIOS boot is not supported. An installer failure leaves its log at `/var/log/infinityos-boot-install.log` on the target system.
+Published x86_64 and aarch64 live ISOs boot through rEFInd. The ISO finalizer enlarges the EFI partition and places the live kernel and initramfs there, avoiding firmware-dependent ISO9660 loading. The menu offers the live session, media check, and basic graphics mode. KIWI uses GRUB while composing the ISO, but the published EFI image contains rEFInd. Anaconda creates kernel metadata with `bootloader --location=none`; the required post script installs rEFInd before reporting success. The installed system boots through rEFInd with Infinity OS and Backups (Btrfs) entries. Unused GRUB EFI, shim, and systemd-boot packages are removed from installed systems. Fedora still requires `grub2-common` and `grub2-tools` for Anaconda and `grubby`, so those packages remain in the live root and installed system. The target root must be Btrfs. The shipped rEFInd binary is unsigned, so disable Secure Boot before installation. Legacy BIOS boot is not supported. An installer failure leaves its log at `/var/log/infinityos-boot-install.log` on the target system.
 
 ## Project layout
 

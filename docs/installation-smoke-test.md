@@ -6,9 +6,9 @@ an installed Infinity OS disk: it can hide a broken installer.
 
 1. Record the ISO path, SHA-256 and source revision. Run
    `scripts/verify-infinity-iso IMAGE.iso REVISION` on a Linux builder.
-2. Boot the ISO, choose the entire blank virtual disk in the graphical
+2. Confirm the ISO opens the themed rEFInd menu, start the live session, then choose the entire blank virtual disk in the graphical
    installer, complete installation, and reboot without the ISO attached.
-3. Confirm the systemd-boot menu offers Infinity OS and Backups, then log in.
+3. Confirm the rEFInd menu offers Infinity OS and Backups (Btrfs), then log in.
 4. Run `sudo /usr/libexec/infinityos-audit-install` in the installed system.
    Every line must be `PASS` and the command must exit 0. Save its output and
    `/var/log/infinityos-boot-install.log` with the release evidence.

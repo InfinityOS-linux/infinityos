@@ -147,6 +147,11 @@ EOF
 		ln -sfn /usr/share/infinityos/gtk4-adaptive.css /home/liveuser/.config/gtk-4.0/gtk.css
 	fi
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Live"* ]]; then
+		# This profile uses GRUB only while KIWI composes the ISO. The
+		# unrelated systemd-boot package is not needed in the live root.
+		if rpm -q systemd-boot-unsigned >/dev/null 2>&1; then
+			rpm -e systemd-boot-unsigned
+		fi
 		# livesys creates liveuser on first boot and copies /etc/skel then.
 		# Launch Anaconda with extensions disabled only in the disposable live
 		# session. An extension reload crashed GNOME Shell during installation.
@@ -186,7 +191,10 @@ EOF
 			install -d /etc/infinityos
 			touch /etc/infinityos/liveinstall-boot-pending
 			systemctl enable infinityos-liveinstall-boot-setup.service
-			rpm -q systemd-boot-unsigned snapper efibootmgr
+			case $(uname -m) in
+				x86_64) rpm -q rEFInd rEFInd-unsigned-x64 snapper efibootmgr ;;
+				aarch64) rpm -q rEFInd rEFInd-unsigned-aa64 snapper efibootmgr ;;
+			esac
 			cat >> /usr/lib/systemd/system-preset/00-infinityos.preset << 'EOF'
 enable infinityos-liveinstall-boot-setup.service
 EOF
@@ -214,9 +222,10 @@ EOF
 			-e '/^Name\[/d' "$welcome_desktop"
 		# Live media mounts its root dynamically; disk-image UUIDs must not reach the ISO.
 		: > /etc/fstab
-		# Anaconda 44 cannot select systemd-boot with a live payload. Convert its
-		# temporary GRUB installation before finishing, and surface any failure.
+		# Anaconda creates kernel metadata but skips its EFI loader. The post
+		# script installs rEFInd before the installer reports success.
 		if [[ "$(uname -m)" == x86_64 || "$(uname -m)" == aarch64 ]]; then
+			printf 'bootloader --location=none\n' >> /usr/share/anaconda/interactive-defaults.ks
 			# Fedora's gen_grub_cfgstub assumes the EFI vendor directory already
 			# exists. Its package creates EFI/fedora, but our Anaconda profile uses
 			# EFI/infinityos. Create that directory in the installer target.
@@ -228,7 +237,7 @@ EOF
 			fi
 			# Anaconda 44 parses interactive-defaults.ks for liveinst, but no
 			# longer calls appendPostScripts(). Put required hooks in the file it
-			# actually reads so success requires a working systemd-boot install.
+			# actually reads so success requires a working rEFInd install.
 			cat >> /usr/share/anaconda/interactive-defaults.ks <<'BOOT_POST_EOF'
 %post --erroronfail --log=/var/log/infinityos-boot-install.log
 /usr/libexec/infinityos-liveinstall-boot-setup

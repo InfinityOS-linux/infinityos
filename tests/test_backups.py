@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FSTAB = ROOT / "root/usr/libexec/infinityos-backups-fstab"
-ENTRY = ROOT / "root/usr/libexec/infinityos-backups-entry"
+CONFIG = ROOT / "root/usr/libexec/infinityos-refind-config"
 
 
 class BackupsTests(unittest.TestCase):
@@ -28,29 +28,32 @@ class BackupsTests(unittest.TestCase):
             subprocess.run([FSTAB, path, "abc"], check=True)
             self.assertEqual(path.read_text(), result)
 
-    def test_boot_entry_uses_matching_kernel_and_is_idempotent(self):
+    def test_refind_entries_track_kernel_and_default_btrfs_root(self):
         with tempfile.TemporaryDirectory() as tmp:
-            esp = Path(tmp)
-            (esp / "loader/entries").mkdir(parents=True)
+            esp = Path(tmp) / "esp"
+            (esp / "EFI/refind").mkdir(parents=True)
             (esp / "os").mkdir()
             (esp / "os/vmlinuz-1").write_bytes(b"kernel")
             (esp / "os/initramfs-1.img").write_bytes(b"initrd")
-            (esp / "loader/entries/infinityos.conf").write_text(
-                "title Infinity OS 44\n"
-                "options rootflags=subvol=root rhgb quiet root=UUID=abc\n"
-                "linux os/vmlinuz-1\n"
-                "initrd os/initramfs-1.img\n"
-            )
-            subprocess.run([ENTRY, esp], check=True)
-            result = esp / "loader/entries/infinityos-backups.conf"
+            cmdline = Path(tmp) / "cmdline"
+            cmdline.write_text("rootflags=subvol=root rhgb quiet root=UUID=abc\n")
+            ready = Path(tmp) / "backups-ready"
+            subprocess.run([CONFIG, esp, cmdline, ready], check=True)
+            result = esp / "EFI/refind/refind.conf"
             content = result.read_text()
-            self.assertIn("title Backups", content)
-            self.assertIn("linux os/vmlinuz-1", content)
-            self.assertIn("systemd.unit=infinityos-backups.target", content)
-            self.assertNotIn(" rhgb", content)
-            self.assertNotIn(" quiet", content)
+            self.assertIn('menuentry "Infinity OS"', content)
+            self.assertIn('menuentry "Backups (Btrfs)"', content)
+            self.assertIn('loader /os/vmlinuz-1', content)
+            self.assertIn('initrd /os/initramfs-1.img', content)
+            self.assertIn('icon /EFI/refind/infinity-theme/icons/os_infinityos.png', content)
+            self.assertIn('rootflags=subvol=root', content)
+            self.assertIn('systemd.unit=infinityos-backups.target', content)
+            ready.touch()
+            subprocess.run([CONFIG, esp, cmdline, ready], check=True)
+            content = result.read_text()
+            self.assertNotIn('rootflags=subvol=root', content)
             timestamp = result.stat().st_mtime_ns
-            subprocess.run([ENTRY, esp], check=True)
+            subprocess.run([CONFIG, esp, cmdline, ready], check=True)
             self.assertEqual(result.stat().st_mtime_ns, timestamp)
 
 

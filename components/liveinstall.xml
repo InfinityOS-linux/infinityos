@@ -63,9 +63,11 @@
 		<package name="livesys-scripts"/>
 		<package name="btrfs-progs"/>
 		<package name="udisks2-btrfs"/>
-		<!-- Anaconda copies the live root to disk; keep the installed boot and
-		     snapshot tools in that root as well. -->
-		<package name="systemd-boot-unsigned" arch="x86_64,aarch64"/>
+		<!-- Anaconda copies the live root to disk; keep rEFInd and snapshot
+		     tools in that root for the installed system. -->
+		<package name="rEFInd" arch="x86_64,aarch64"/>
+		<package name="rEFInd-unsigned-x64" arch="x86_64"/>
+		<package name="rEFInd-unsigned-aa64" arch="aarch64"/>
 		<package name="snapper" arch="x86_64,aarch64"/>
 		<package name="efibootmgr" arch="x86_64,aarch64"/>
 		<ignore name="device-mapper-multipath"/>

@@ -30,9 +30,13 @@ restore_snapshot() (
 		cp -a "/usr/lib/modules/$kernel" "$target/usr/lib/modules/"
 	fi
 	# A snapshot predating this feature must still boot with its backup tools.
-	install -d "$target/usr/libexec" "$target/usr/lib/systemd/system"
+	install -d "$target/usr/libexec" "$target/usr/lib/systemd/system" \
+		"$target/usr/lib/kernel/install.d" "$target/etc/infinityos"
 	cp -a /usr/libexec/infinityos-backups-* "$target/usr/libexec/"
+	cp -a /usr/libexec/infinityos-refind-config "$target/usr/libexec/"
+	cp -a /usr/lib/kernel/install.d/96-infinityos-esp.install "$target/usr/lib/kernel/install.d/"
 	cp -a /usr/lib/systemd/system/infinityos-backups* "$target/usr/lib/systemd/system/"
+	touch "$target/etc/infinityos/refind-installed"
 	systemctl --root="$target" enable infinityos-backups-setup.service infinityos-backups-entry.service infinityos-backups-entry.path
 	root_id=$(btrfs inspect-internal rootid "$target")
 	btrfs subvolume set-default "$root_id" "$top"

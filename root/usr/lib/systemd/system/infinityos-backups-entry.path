@@ -1,8 +1,8 @@
 [Unit]
-Description=Refresh Backups when systemd-boot entries change
+Description=Refresh rEFInd when EFI kernels change
 
 [Path]
-PathChanged=/boot/efi/loader/entries
+PathChanged=/boot/efi/os
 Unit=infinityos-backups-entry.service
 
 [Install]
