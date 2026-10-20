@@ -87,6 +87,10 @@ export const SettingsKeys = (patch) => {
       widget_type: 'color',
       themed: true,
     },
+    'adaptive-background': {
+      default_value: false,
+      widget_type: 'switch',
+    },
     'customize-topbar': {
       default_value: false,
       widget_type: 'switch',

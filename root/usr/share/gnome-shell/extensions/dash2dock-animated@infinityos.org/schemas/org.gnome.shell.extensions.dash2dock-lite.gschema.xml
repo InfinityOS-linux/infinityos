@@ -471,6 +471,11 @@
         <summary>Enable background blur</summary>
         <description></description>
     </key>
+    <key type="b" name="adaptive-background">
+        <default>false</default>
+        <summary>Match the translucent dock to the color scheme</summary>
+        <description>Use a light or dark translucent dock surface over the blurred desktop wallpaper.</description>
+    </key>
     <key type="i" name="multi-monitor-filter">
         <default>0</default>
         <summary>Multi-Monitor Filter</summary>

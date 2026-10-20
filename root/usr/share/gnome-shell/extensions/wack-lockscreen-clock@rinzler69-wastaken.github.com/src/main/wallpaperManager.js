@@ -32,7 +32,16 @@ export class WallpaperManager {
             if (path && monitorManager.get_monitor_for_connector(connector) === monitorIndex)
                 return path;
         }
-        return settings.get_string('lockscreen-wallpaper-path');
+        const customPath = settings.get_string('lockscreen-wallpaper-path');
+        if (customPath)
+            return customPath;
+
+        // A new user's Sonoma lock screen follows the desktop wallpaper until
+        // a separate lock-screen image is chosen.
+        const bg = this._extension._bgSettings;
+        const dark = this._extension._interfaceSettings?.get_string('color-scheme') === 'prefer-dark';
+        const uri = bg?.get_string(dark ? 'picture-uri-dark' : 'picture-uri');
+        return uri?.startsWith('file://') ? Gio.File.new_for_uri(uri).get_path() ?? '' : '';
     }
 
     /**

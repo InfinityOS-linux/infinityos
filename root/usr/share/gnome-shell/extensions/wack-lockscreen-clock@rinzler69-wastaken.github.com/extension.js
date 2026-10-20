@@ -173,7 +173,10 @@ export default class WackLockscreenClockExtension extends Extension {
         // Wallpaper settings
         this._bgSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.background' });
         this._interfaceSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
-        const syncAlpha = () => this._updateClockAlpha();
+        const syncAlpha = () => {
+            this._updateClockAlpha();
+            this._updateCustomWallpaperOverlay();
+        };
         this._bgSettings.connectObject(
             'changed::picture-uri', syncAlpha,
             'changed::picture-uri-dark', syncAlpha,

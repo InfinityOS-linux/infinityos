@@ -23,6 +23,15 @@ pipeline='pipeline_default_rounded'
 blur=true
 pipeline='pipeline_default'
 
+[org/gnome/shell/extensions/blur-my-shell/dash-to-dock]
+blur=true
+static-blur=false
+override-background=false
+customize=true
+sigma=28
+brightness=1.0
+corner-radius=28
+
 [org/gnome/shell/extensions/blur-my-shell/screenshot]
 blur=true
 pipeline='pipeline_default'

@@ -450,7 +450,7 @@ export default class Dash2DockLiteExt extends Extension {
       this._interfaceSettings.connectObject(
         'changed::color-scheme',
         () => {
-          // apply light/dark themeing
+          this._updateStyle();
         },
         this
       );
@@ -631,6 +631,7 @@ export default class Dash2DockLiteExt extends Extension {
         // case 'topbar-background-color':
         // case 'topbar-blur-background':
         case 'background-color':
+        case 'adaptive-background':
         case 'blur-resolution':
         case 'blur-background':
           this.integrations.hookBms();
@@ -1018,10 +1019,22 @@ export default class Dash2DockLiteExt extends Extension {
       }
       ss.push(`border-radius: ${r}px;`);
       this.computed_border_radius = r;
-      let rgba = this._style.rgba(this.background_color);
+      // The translucent surface lets Blur My Shell carry the wallpaper's hue.
+      // Keep the tint neutral so gray and warm wallpapers do not turn purple.
+      let surface = this.background_color;
+      if (this.adaptive_background) {
+        surface = this._getPreferredColorScheme() === 'dark'
+          ? [0.07, 0.07, 0.09, 0.26]
+          : [1, 1, 1, 0.32];
+      }
+      let rgba = this._style.rgba(surface);
       ss.push(`background: rgba(${rgba});`);
       if (this.border_thickness > 0) {
-        let border = this._style.rgba(this.border_color);
+        let borderColor = this.adaptive_background
+          ? (this._getPreferredColorScheme() === 'dark'
+            ? [1, 1, 1, 0.18] : [0, 0, 0, 0.12])
+          : this.border_color;
+        let border = this._style.rgba(borderColor);
         ss.push(`border: ${this.border_thickness}px solid rgba(${border});`);
       }
       styles.push(`#d2daBackground { ${ss.join(' ')}}`);
@@ -1133,7 +1146,11 @@ export default class Dash2DockLiteExt extends Extension {
 
     let border_style = '';
     if (this.border_thickness /* && !this._disable_borders */) {
-      let rgba = this._style.rgba(this.border_color);
+      let borderColor = this.adaptive_background
+        ? (this._getPreferredColorScheme() === 'dark'
+          ? [1, 1, 1, 0.18] : [0, 0, 0, 0.12])
+        : this.border_color;
+      let rgba = this._style.rgba(borderColor);
       border_style = `border: ${this.border_thickness}px solid rgba(${rgba}) !important;`;
     }
 

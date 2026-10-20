@@ -22,6 +22,7 @@ name='Orchis-Purple-Dark-Compact'
 
 [org/gnome/shell/extensions/wack-lockscreen-clock]
 lockscreen-mode='cupertino'
+lockscreen-wallpaper-enable=true
 
 [org/gnome/shell/extensions/wack-shell]
 use-custom-logo=true
@@ -36,6 +37,8 @@ hide-qs-power-options=false
 enable-panel-proximity=false
 
 [org/gnome/shell/extensions/dash2dock-lite]
+adaptive-background=true
+blur-background=true
 hide-labels=true
 preferred-monitor=0
 dock-location=0
@@ -65,7 +68,7 @@ open-app-animation=false
 lamp-app-animation=false
 scroll-sensitivity=0.4
 debug-visual=false
-background-color=(0.129, 0.102, 0.176, 0.78)
+background-color=(0.129, 0.102, 0.176, 0.22)
 border-color=(0.61, 0.482, 0.82, 0.28)
 border-thickness=1
 border-radius=5.0
