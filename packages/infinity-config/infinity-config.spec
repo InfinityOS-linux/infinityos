@@ -9,6 +9,9 @@ BuildArch:      noarch
 Requires:       python3-gobject
 Requires:       gtk4
 Requires:       gsettings-desktop-schemas
+Requires:       gnome-extensions-app
+Requires:       gnome-control-center
+Requires:       infinity-updater
 Requires:       infinityos-shell-extensions
 
 %description
@@ -28,6 +31,7 @@ cp -a usr %{buildroot}/
 /usr/bin/infinity-config
 /usr/share/infinityos/config.py
 /usr/share/infinityos/config_backend.py
+/usr/share/infinityos/diagnostics.py
 /usr/share/applications/org.infinityos.Config.desktop
 /usr/share/icons/hicolor/scalable/apps/infinity-config.svg
 

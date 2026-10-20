@@ -2,16 +2,19 @@
 """Infinity OS desktop controls."""
 
 import sys
+import subprocess
+import threading
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gio, Gtk
+from gi.repository import Gio, GLib, Gtk
 
 from config_backend import (
     CURSOR_SCHEMA, DOCK_SCHEMA, DOCK_SCHEMA_DIR, cursor_percent,
     cursor_size, dock_percent, dock_size, percent_to_slider,
     slider_to_percent,
 )
+from diagnostics import write_report
 
 
 CSS = b"""
@@ -35,8 +38,11 @@ label.infinity-value { color: #d7b6ff; font-size: 17px; font-weight: 700; }
 label.infinity-muted { color: #a99db8; font-size: 13px; }
 scale.infinity-scale trough { min-height: 8px; border-radius: 8px; background: #3c304e; }
 scale.infinity-scale highlight { border-radius: 8px; background: #a77bdb; }
-scale.infinity-scale slider { min-width: 20px; min-height: 20px; border-radius: 50%; background: #f4eaff; border: 3px solid #a77bdb; }
+scale.infinity-scale slider { min-width: 20px; min-height: 20px; margin: -6px; border-radius: 50%; background: #f4eaff; border: 0; box-shadow: 0 0 0 2px #a77bdb; }
 scale.infinity-scale marks label { color: #aa9bbd; font-size: 12px; }
+button.infinity-action { background: #211b2b; border: 1px solid #3d314e; border-radius: 12px; padding: 14px 18px; color: #f3eef8; box-shadow: none; }
+button.infinity-action:hover { background: #352942; border-color: #8c6db5; }
+button.infinity-action:focus-visible { outline: 2px solid #c3a2ef; }
 box.infinity-footer { border-top: 1px solid #392d49; padding-top: 16px; }
 """
 
@@ -132,7 +138,7 @@ class InfinityConfig(Gtk.Application):
         for name, symbol, description in (
             ("Desktop", "user-desktop-symbolic", "Pointer and desktop appearance"),
             ("Dock", "view-grid-symbolic", "Size and appearance of the dock"),
-            ("Tweaks", "preferences-system-symbolic", "More controls are coming soon"),
+            ("Tweaks", "preferences-system-symbolic", "System tools and diagnostics"),
         ):
             button = Gtk.ToggleButton()
             tab_content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
@@ -163,6 +169,16 @@ class InfinityConfig(Gtk.Application):
                     self._add_control(page, "Dock size", "Scale dock icons and their spacing.",
                                       DOCK_SCHEMA, "icon-size", settings,
                                       dock_percent, dock_size, "double")
+            else:
+                self._add_shortcut(page, "Extensions", "Enable or disable GNOME extensions.",
+                                   "application-x-addon-symbolic", ["gnome-extensions-app"])
+                self._add_shortcut(page, "System settings", "Open GNOME system settings.",
+                                   "preferences-system-symbolic", ["gnome-control-center"])
+                self._add_shortcut(page, "Updates", "Check packages and device firmware.",
+                                   "software-update-available-symbolic", ["infinity-updater"])
+                self._add_shortcut(page, "Save diagnostic report",
+                                   "Save a private report without logs or personal identifiers.",
+                                   "document-save-symbolic", None)
         group.set_active(True)
 
         footer = Gtk.Box()
@@ -171,6 +187,7 @@ class InfinityConfig(Gtk.Application):
         footer.set_margin_end(28)
         footer.set_margin_bottom(22)
         self.status = label("Changes apply immediately.", "infinity-muted")
+        self.status.set_wrap(True)
         footer.append(self.status)
         card.append(footer)
         self.window.present()
@@ -186,14 +203,45 @@ class InfinityConfig(Gtk.Application):
         page.set_margin_top(24)
         page.append(label(name, "infinity-page-title"))
         page.append(label(description, "infinity-muted"))
-        if name == "Tweaks":
-            empty = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-            empty.add_css_class("infinity-row")
-            empty.set_margin_top(14)
-            empty.append(label("Tweaks", "infinity-setting-name"))
-            empty.append(label("More system shortcuts will appear here.", "infinity-muted"))
-            page.append(empty)
         return page
+
+    def _add_shortcut(self, page, title, description, icon_name, command):
+        button = Gtk.Button()
+        button.add_css_class("infinity-action")
+        button.set_margin_top(4)
+        content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=14)
+        icon = Gtk.Image.new_from_icon_name(icon_name)
+        icon.set_pixel_size(24)
+        content.append(icon)
+        copy = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        copy.append(label(title, "infinity-setting-name"))
+        copy.append(label(description, "infinity-muted"))
+        content.append(copy)
+        button.set_child(content)
+        if command:
+            button.connect("clicked", self._launch_tool, command)
+        else:
+            button.connect("clicked", self._save_diagnostics)
+        page.append(button)
+
+    def _launch_tool(self, _button, command):
+        try:
+            subprocess.Popen(command, start_new_session=True)
+        except OSError as error:
+            self.status.set_text(f"Could not open {command[0]}: {error}")
+
+    def _save_diagnostics(self, _button):
+        self.status.set_text("Collecting system information…")
+
+        def work():
+            try:
+                path = write_report()
+            except OSError as error:
+                GLib.idle_add(self.status.set_text, f"Could not save report: {error}")
+            else:
+                GLib.idle_add(self.status.set_text, f"Saved private report: {path}")
+
+        threading.Thread(target=work, daemon=True).start()
 
     def _add_control(self, page, title, description, schema, key, settings,
                      to_percent, to_value, value_type):

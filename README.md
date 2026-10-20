@@ -55,6 +55,8 @@ The desktop extensions and their default settings ship in the signed `infinityos
 
 The extension RPM pins the tested GNOME Shell major version, and GitHub's RPM workflow checks every enabled extension's metadata before publishing. If an extension prevents the desktop from loading, log in on a text console and run `infinityos-shell-recover --list`, then `infinityos-shell-recover --disable UUID`. `--disable-all` provides a minimal session; `--restore-defaults` restores the packaged selection. Run these commands as the affected user, without sudo.
 
+Infinity Config's Tweaks tab opens Extensions, system settings and Updates. It can save a private diagnostic JSON report under `~/.local/state/infinityos/diagnostics/`; the report contains package versions, GNOME and backup state, but no logs, hostname, network identifiers or account names. It lists enabled packaged extensions and only a count of other extensions. The full boot audit in `docs/installation-smoke-test.md` requires sudo.
+
 **RAMDrive** keeps its files in a protected folder and offers a removable shortcut on the Desktop plus a bookmark in Files. Deleting the Desktop shortcut leaves the files and Files bookmark intact; the shortcut stays removed on later logins. Existing Desktop RAMDrive files move to protected storage on the first login after upgrading. The storage folder itself cannot be removed by a regular user. Its contents are deleted during an orderly shutdown or reboot. The folder uses disk storage so files remain recoverable after a crash or forced reset; it is not a `tmpfs` RAM disk.
 
 ## Packages and updates

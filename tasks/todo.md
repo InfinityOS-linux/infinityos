@@ -29,9 +29,9 @@
 
 ## 5. Infinity Config diagnostics
 
-- [ ] Replace the Tweaks placeholder with useful controls and shortcuts.
-- [ ] Add an explicit diagnostic report with sensitive-data redaction.
-- [ ] Verify the report and UI, commit and push to GitHub.
+- [x] Replace the Tweaks placeholder with useful controls and shortcuts.
+- [x] Add an explicit diagnostic report with sensitive-data redaction.
+- [x] Verify the report and UI, commit and push to GitHub.
 
 ## Final checkpoint
 
