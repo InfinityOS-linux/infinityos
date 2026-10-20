@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# The only privileged RPM operation exposed by InfinityUpdater.
+set -euo pipefail
+
+if [[ $# -ne 0 || $EUID -ne 0 ]]; then
+    echo 'Infinity OS system upgrade must be authorized by polkit.' >&2
+    exit 2
+fi
+if [[ $(findmnt -n -o FSTYPE /) != btrfs ]]; then
+    echo 'RPM upgrade stopped: the root filesystem is not Btrfs.' >&2
+    exit 1
+fi
+if [[ ! -f /etc/snapper/configs/root ]] || ! mountpoint -q /.snapshots; then
+    echo 'RPM upgrade stopped: Btrfs backups are not ready. Reboot once and retry.' >&2
+    exit 1
+fi
+
+# Print the number while it is still visible in the update progress stream.
+# Snapper's number cleanup policy bounds how many single snapshots are kept.
+number=$(snapper -c root create -t single -c number -p \
+    -d "Before Infinity OS update $(date -u +%Y-%m-%dT%H:%M:%SZ)") || {
+    echo 'RPM upgrade stopped: could not create the pre-update snapshot.' >&2
+    exit 1
+}
+[[ $number =~ ^[1-9][0-9]*$ ]] || {
+    echo 'RPM upgrade stopped: Snapper did not return a snapshot number.' >&2
+    exit 1
+}
+printf 'Infinity OS root snapshot #%s created.\n' "$number"
+exec dnf -y upgrade --refresh

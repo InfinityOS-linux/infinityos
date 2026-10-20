@@ -28,7 +28,7 @@ def install_commands(updates):
     kinds = {item['kind'] for item in updates}
     commands = []
     if 'RPM' in kinds:
-        commands.append(('System packages', ['pkexec', 'dnf', '-y', 'upgrade', '--refresh']))
+        commands.append(('System packages', ['pkexec', '/usr/libexec/infinityos-upgrade-system']))
     if 'Flatpak system' in kinds:
         commands.append(('System Flatpaks', ['pkexec', 'flatpak', 'update',
                                               '--system', '--noninteractive', '--assumeyes']))
@@ -99,6 +99,11 @@ def main():
             self.progress.add_css_class('update-progress')
             self.progress.set_visible(False)
             footer.append(self.progress)
+            self.recovery = Gtk.Label(xalign=0)
+            self.recovery.add_css_class('muted')
+            self.recovery.set_wrap(True)
+            self.recovery.set_visible(False)
+            footer.append(self.recovery)
             actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
             self.status = Gtk.Label(xalign=0, hexpand=True)
             self.status.add_css_class('muted')
@@ -175,13 +180,16 @@ def main():
 
             threading.Thread(target=work, daemon=True).start()
 
-        def finish_refresh(self, state, notice=None):
+        def finish_refresh(self, state, notice=None, recovery=None):
             self.state = state
             self.busy = False
             self.stop_progress()
             self.render()
             if notice:
                 self.status.set_text(notice)
+            if recovery:
+                self.recovery.set_text(recovery)
+                self.recovery.set_visible(True)
             self.release()
             return GLib.SOURCE_REMOVE
 
@@ -202,6 +210,7 @@ def main():
             self.hold()
             self.progress.set_fraction(0)
             self.progress.set_visible(True)
+            self.recovery.set_visible(False)
             self.progress_known = False
             self.progress_source = GLib.timeout_add(100, self.pulse_progress)
             self.render()
@@ -209,8 +218,16 @@ def main():
             def work():
                 errors = []
                 completed_system_updates = False
+                snapshot = None
+
+                def report(label, phase, current, total):
+                    nonlocal snapshot
+                    if label == 'System packages' and phase.startswith('Root snapshot #'):
+                        snapshot = phase.partition('#')[2].partition(' ')[0]
+                    self.report_progress(label, phase, current, total)
+
                 for label, args in commands:
-                    result = run_update_command(label, args, self.report_progress)
+                    result = run_update_command(label, args, report)
                     if result.returncode:
                         errors.append(label + ': ' + (result.stderr.strip() or
                                                       result.stdout.strip() or 'Update failed'))
@@ -227,7 +244,10 @@ def main():
                     notice = ('Some updates could not be installed.' if errors else
                               'System updates installed. Restart may be required.'
                               if completed_system_updates else 'Updates installed.')
-                    GLib.idle_add(self.finish_refresh, state, notice)
+                    recovery = (f'Root snapshot #{snapshot} is available in Backups at boot. '
+                                '/home, /var and device firmware are not part of this snapshot.'
+                                if snapshot else None)
+                    GLib.idle_add(self.finish_refresh, state, notice, recovery)
 
             threading.Thread(target=work, daemon=True).start()
 

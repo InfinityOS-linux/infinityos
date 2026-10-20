@@ -9,10 +9,10 @@
 
 ## 2. Update recovery
 
-- [ ] Create a pre-upgrade Btrfs root snapshot from InfinityUpdater.
-- [ ] Block RPM upgrade when a required snapshot fails.
-- [ ] Show recovery information and update progress honestly.
-- [ ] Test, commit and push to GitHub.
+- [x] Create a pre-upgrade Btrfs root snapshot from InfinityUpdater.
+- [x] Block RPM upgrade when a required snapshot fails.
+- [x] Show recovery information and update progress honestly.
+- [x] Test, commit and push to GitHub.
 
 ## 3. Extension compatibility
 

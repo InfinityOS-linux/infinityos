@@ -18,7 +18,9 @@ class UpdateProgress:
         if not line:
             return
         lower = line.lower()
-        if 'updating and loading repositories' in lower:
+        if lower.startswith('infinity os root snapshot #') and lower.endswith(' created.'):
+            self.phase = line[len('Infinity OS '):-1].capitalize()
+        elif 'updating and loading repositories' in lower:
             self.phase = 'Checking repositories'
         elif 'download' in lower or 'fetching' in lower:
             self.phase = 'Downloading'

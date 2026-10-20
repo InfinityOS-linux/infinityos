@@ -67,7 +67,7 @@ class UpdaterTests(unittest.TestCase):
     def test_installation_only_runs_for_sources_with_updates(self):
         commands = updater.install_commands([{'kind': 'RPM'}, {'kind': 'Flatpak user'},
                                              {'kind': 'Firmware'}])
-        self.assertEqual(commands[0][1], ['pkexec', 'dnf', '-y', 'upgrade', '--refresh'])
+        self.assertEqual(commands[0][1], ['pkexec', '/usr/libexec/infinityos-upgrade-system'])
         self.assertEqual(commands[1][1][:3], ['flatpak', 'update', '--user'])
         self.assertEqual(commands[2][1], ['pkexec', 'fwupdmgr', 'update', '--assume-yes',
                                           '--no-reboot-check'])
@@ -116,6 +116,20 @@ class UpdaterTests(unittest.TestCase):
             ('System packages', 'Checking repositories', None, None),
             ('System packages', 'Downloading', 5, 250),
             ('System packages', 'Installing', 38, 250)])
+
+    def test_progress_reports_snapshot_number_before_download(self):
+        events = []
+        parser = progress.UpdateProgress('System packages', lambda *event: events.append(event))
+        parser.feed('Infinity OS root snapshot #17 created.')
+        parser.feed('Downloading 1/2')
+        self.assertEqual(events, [
+            ('System packages', 'Root snapshot #17 created', None, None),
+            ('System packages', 'Downloading', 1, 2)])
+
+    def test_privileged_upgrade_creates_snapshot_before_dnf(self):
+        script = (SOURCE.parents[2] / 'libexec/infinityos-upgrade-system').read_text()
+        self.assertLess(script.index('number=$(snapper'), script.index('exec dnf'))
+        self.assertIn('RPM upgrade stopped: could not create', script)
 
     def test_update_command_streams_carriage_return_progress(self):
         events = []

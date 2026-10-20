@@ -12,6 +12,7 @@ Requires:       dnf5
 Requires:       flatpak
 Requires:       fwupd
 Requires:       polkit
+Requires:       snapper
 Requires:       infinityos-shell-extensions >= 1.0.0
 
 %description
@@ -35,6 +36,7 @@ systemctl --global enable infinity-updater.timer >/dev/null 2>&1 || :
 %license /usr/share/licenses/infinity-updater/COPYING
 /usr/share/infinityos/build-revisions/infinity-updater
 /usr/bin/infinity-updater
+/usr/libexec/infinityos-upgrade-system
 /usr/share/infinityos/updater/
 /usr/share/applications/org.infinityos.Updater.desktop
 /usr/share/icons/hicolor/scalable/apps/org.infinityos.Updater.svg
