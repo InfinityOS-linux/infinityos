@@ -47,9 +47,11 @@ cmp "$esp/EFI/refind/refind.conf" "$esp/EFI/BOOT/refind.conf"
 # Fedora enables bootctl maintenance during installation. It must not
 # recreate EFI/loader or change the boot path after switching to rEFInd.
 systemctl disable systemd-boot-update.service systemd-boot-clear-sysfail.service \
-    systemd-boot-random-seed.service
+    systemd-boot-random-seed.service systemd-bootctl.socket \
+    grub-boot-indeterminate.service
 systemctl mask --force systemd-boot-update.service systemd-boot-clear-sysfail.service \
-    systemd-boot-random-seed.service
+    systemd-boot-random-seed.service systemd-bootctl.socket \
+    grub-boot-indeterminate.service
 
 # Drop firmware entries whose EFI binaries were removed by the conversion.
 while IFS= read -r entry; do

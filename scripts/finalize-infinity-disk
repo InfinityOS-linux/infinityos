@@ -62,6 +62,7 @@ rm -rf "$efi_mountpoint/EFI/systemd" "$efi_mountpoint/loader"
 "$script_dir/../root/usr/libexec/infinityos-remove-obsolete-efi-loaders" "$mountpoint"
 rm -rf "$mountpoint/boot/grub2" "$efi_mountpoint/EFI/infinityos"
 systemctl --root="$mountpoint" mask --force systemd-boot-update.service \
-    systemd-boot-clear-sysfail.service systemd-boot-random-seed.service
+    systemd-boot-clear-sysfail.service systemd-boot-random-seed.service \
+    systemd-bootctl.socket grub-boot-indeterminate.service
 touch "$mountpoint/etc/infinityos/refind-installed"
 echo "Verified Infinity OS rEFInd disk from source revision $revision"
