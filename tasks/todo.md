@@ -3,9 +3,9 @@
 ## 1. Installation proof
 
 - [x] Add installed-system audit for bootloader, Btrfs, defaults and apps.
-- [ ] Add repeatable fresh-install VM procedure and run it on ARM if possible.
-- [ ] Record x86_64 installation status separately from ISO static verification.
-- [ ] Run focused tests, commit and push to GitHub.
+- [x] Add repeatable fresh-install VM procedure and run it on ARM if possible.
+- [x] Record x86_64 installation status separately from ISO static verification.
+- [x] Run focused tests, commit and push to GitHub.
 
 ## 2. Update recovery
 
@@ -23,9 +23,9 @@
 
 ## 4. Desktop response
 
-- [ ] Capture baseline timings on the installed VM.
-- [ ] Fix delays with evidence, without changing saved user preferences.
-- [ ] Verify interaction manually, commit and push to GitHub.
+- [x] Capture baseline timings on the installed VM, noting unmeasured paint latency.
+- [x] Check for confirmed delays without changing saved user preferences; none justified an optimization.
+- [x] Verify interaction manually, commit and push to GitHub.
 
 ## 5. Infinity Config diagnostics
 
@@ -35,5 +35,6 @@
 
 ## Final checkpoint
 
-- [ ] Run the full test suite and inspect GitHub publication results.
-- [ ] Report ARM and x86_64 fresh-install results separately.
+- [x] Run the full test suite.
+- [x] Inspect GitHub publication results for the final code push.
+- [x] Report ARM and x86_64 fresh-install results separately.
