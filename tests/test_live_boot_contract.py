@@ -61,7 +61,8 @@ class LiveBootContractTests(unittest.TestCase):
     def test_release_has_an_installed_system_audit(self):
         audit = (REPO / "root/usr/libexec/infinityos-audit-install").read_text()
         image_check = (REPO / "scripts/verify-infinity-iso").read_text()
-        self.assertIn("BootCurrent:", audit)
+        self.assertIn("active_infinity_boot", audit)
+        self.assertIn("Current Entry:", audit)
         self.assertIn("/etc/infinityos/liveinstall-systemd-boot", audit)
         self.assertIn("/var/lib/infinityos/backups-ready", audit)
         self.assertIn("infinityos-audit-install", image_check)
