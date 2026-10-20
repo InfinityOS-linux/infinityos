@@ -117,6 +117,10 @@ def main():
             self.apply.add_css_class('primary')
             self.apply.connect('clicked', self.on_apply)
             actions.append(self.apply)
+            self.release_apply = Gtk.Button(label='Upgrade Infinity OS')
+            self.release_apply.add_css_class('primary')
+            self.release_apply.connect('clicked', self.on_release)
+            actions.append(self.release_apply)
             footer.append(actions)
             layout.append(footer)
             self.render()
@@ -128,6 +132,21 @@ def main():
                 self.items.remove(child)
             updates = self.state.get('updates', [])
             errors = self.state.get('errors', [])
+            release = self.state.get('release')
+            if release:
+                card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+                card.add_css_class('update-card')
+                title = Gtk.Label(label=f"Infinity OS {release['version']} is available", xalign=0)
+                title.add_css_class('update-name')
+                card.append(title)
+                message = ('First install current system packages, then download and install the new release. '
+                           'A Btrfs recovery snapshot is created before each system transaction.'
+                           if release.get('supported') else
+                           'This release changes the Fedora base and needs a dedicated migration path.')
+                detail = Gtk.Label(label=message, xalign=0, wrap=True)
+                detail.add_css_class('muted')
+                card.append(detail)
+                self.items.append(card)
             count = Gtk.Label(label=f'{len(updates)} available updates', xalign=0)
             count.add_css_class('pill')
             count_row = Gtk.Box()
@@ -156,6 +175,8 @@ def main():
                 warning.add_css_class('muted')
                 self.items.append(warning)
             self.apply.set_sensitive(bool(updates) and not self.busy)
+            self.release_apply.set_visible(bool(release))
+            self.release_apply.set_sensitive(bool(release and release.get('supported')) and not self.busy)
             self.refresh.set_sensitive(not self.busy)
             if not self.busy:
                 checked_at = self.state.get('checked_at')
@@ -248,6 +269,61 @@ def main():
                                 '/home, /var and device firmware are not part of this snapshot.'
                                 if snapshot else None)
                     GLib.idle_add(self.finish_refresh, state, notice, recovery)
+
+            threading.Thread(target=work, daemon=True).start()
+
+        def on_release(self, _button):
+            release = self.state.get('release')
+            if not release or not release.get('supported') or self.busy:
+                return
+            version = release['version']
+            fedora = release['fedora_release']
+            self.busy = True
+            self.hold()
+            self.progress.set_fraction(0)
+            self.progress.set_visible(True)
+            self.recovery.set_visible(False)
+            self.progress_known = False
+            self.progress_source = GLib.timeout_add(100, self.pulse_progress)
+            self.render()
+
+            def work():
+                snapshot = None
+
+                def report(label, phase, current, total):
+                    nonlocal snapshot
+                    if phase.startswith('Root snapshot #'):
+                        snapshot = phase.partition('#')[2].partition(' ')[0]
+                    self.report_progress(label, phase, current, total)
+
+                try:
+                    # The privileged release helper repeats the signed-manifest
+                    # and pending-RPM checks before switching repositories.
+                    current = run_update_command('Current system packages',
+                                                 ['pkexec', '/usr/libexec/infinityos-upgrade-system'], report)
+                    if current.returncode:
+                        raise RuntimeError(current.stderr.strip() or current.stdout.strip() or
+                                           'Current package update failed')
+                    self.report_progress('Current system packages', 'Checking', None, None)
+                    state = check_updates()
+                    if not state.get('rpm_check_ok') or any(item['kind'] == 'RPM' for item in state['updates']):
+                        raise RuntimeError('Current RPM updates are still pending; release upgrade stopped')
+                    installed = run_update_command(f'Infinity OS {version}',
+                                                   ['pkexec', '/usr/libexec/infinityos-upgrade-release',
+                                                    version, str(fedora)], report)
+                    if installed.returncode:
+                        raise RuntimeError(installed.stderr.strip() or installed.stdout.strip() or
+                                           'Release upgrade failed')
+                    state = check_updates()
+                    save_state(state)
+                except Exception as error:
+                    GLib.idle_add(self.finish_error, str(error))
+                else:
+                    recovery = (f'Root snapshot #{snapshot} is available in Backups (Btrfs) in rEFInd. '
+                                '/home, /var and device firmware are not part of this snapshot.'
+                                if snapshot else None)
+                    GLib.idle_add(self.finish_refresh, state,
+                                  f'Infinity OS {version} installed. Restart to use the new release.', recovery)
 
             threading.Thread(target=work, daemon=True).start()
 

@@ -1,4 +1,5 @@
 import importlib.util
+from importlib.machinery import SourceFileLoader
 import sys
 import tempfile
 import unittest
@@ -20,9 +21,24 @@ def load(name):
 checker = load('checker')
 updater = load('updater')
 progress = load('progress')
+release = load('release')
+
+helper_path = SOURCE.parents[2] / 'libexec/infinityos-upgrade-release'
+spec = importlib.util.spec_from_loader('upgrade_release', SourceFileLoader('upgrade_release', str(helper_path)))
+upgrade_release = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(upgrade_release)
 
 
 class UpdaterTests(unittest.TestCase):
+    def setUp(self):
+        current = patch.object(checker, 'installed_version', return_value=('1.0', 44))
+        latest = patch.object(checker, 'load_manifest', return_value={
+            'version': '1.0', 'fedora_release': 44})
+        current.start()
+        latest.start()
+        self.addCleanup(current.stop)
+        self.addCleanup(latest.stop)
+
     def test_checks_each_source_and_saves_state(self):
         outputs = [
             type('Result', (), {'returncode': 0, 'stdout': 'firefox|158.0|updates\n', 'stderr': ''})(),
@@ -63,6 +79,108 @@ class UpdaterTests(unittest.TestCase):
         self.assertEqual(state['errors'], [])
         self.assertTrue(any(arg.startswith('--setopt=system_state_dir=') for arg in calls[0]))
         self.assertIn('--assumeyes', calls[0])
+
+    def test_signed_new_release_is_separate_from_ordinary_updates(self):
+        outputs = [
+            type('Result', (), {'returncode': 0, 'stdout': '', 'stderr': ''})(),
+            type('Result', (), {'returncode': 0, 'stdout': '', 'stderr': ''})(),
+            type('Result', (), {'returncode': 0, 'stdout': '', 'stderr': ''})(),
+            type('Result', (), {'returncode': 0, 'stdout': '{"Devices": []}', 'stderr': ''})(),
+        ]
+        with patch.object(checker, '_run', side_effect=outputs), patch.object(
+                checker, 'load_manifest', return_value={'version': '1.1', 'fedora_release': 44}):
+            state = checker.check_updates()
+        self.assertEqual(state['updates'], [])
+        self.assertEqual(state['release'], {'version': '1.1', 'fedora_release': 44, 'supported': True})
+        self.assertTrue(state['rpm_check_ok'])
+
+    def test_release_validation_rejects_untrusted_paths_and_base_changes(self):
+        self.assertIsNone(release.available_release({'version': '1.0', 'fedora_release': 44}, '1.0', 44))
+        self.assertFalse(release.available_release({'version': '1.1', 'fedora_release': 45},
+                                                   '1.0', 44)['supported'])
+        with self.assertRaises(ValueError):
+            release.repository_url('../1.1', 44, 'x86_64')
+        with self.assertRaises(ValueError):
+            release.repository_url('1.1', 44, 'i686')
+
+    def test_release_helper_requires_current_packages_and_signed_target(self):
+        with patch.object(upgrade_release.os, 'geteuid', return_value=0), patch.object(
+                upgrade_release, 'installed_version', return_value=('1.0', 44)), patch.object(
+                upgrade_release, 'load_manifest', return_value={'version': '1.1', 'fedora_release': 44}), patch.object(
+                upgrade_release, 'run') as run, patch.object(
+                upgrade_release.Path, 'is_file', return_value=True):
+            run.side_effect = [type('R', (), {'stdout': 'btrfs\n'})(),
+                               type('R', (), {'stdout': ''})(),
+                               type('R', (), {'stdout': 'firefox\n'})()]
+            with self.assertRaisesRegex(ValueError, 'current system package updates'):
+                upgrade_release.main(['upgrader', '1.1', '44'])
+            self.assertEqual([call.args[0][0] for call in run.call_args_list],
+                             ['findmnt', 'mountpoint', 'dnf'])
+
+        with patch.object(upgrade_release.os, 'geteuid', return_value=0), patch.object(
+                upgrade_release, 'installed_version', return_value=('1.0', 44)), patch.object(
+                upgrade_release, 'load_manifest', return_value={'version': '1.2', 'fedora_release': 44}), patch.object(
+                upgrade_release, 'run') as run:
+            with self.assertRaisesRegex(ValueError, 'signed release'):
+                upgrade_release.main(['upgrader', '1.1', '44'])
+            run.assert_not_called()
+
+    def test_release_helper_downloads_before_install_and_marks_success_last(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            os_release = root / 'os-release'
+            os_release.write_text('NAME="Infinity OS"\nPRETTY_NAME="Infinity OS 44"\n'
+                                  'ID=infinityos\nVERSION_ID=44\n')
+            outputs = ['btrfs\n', '', '', 'x86_64\n', '17\n', '', '']
+            events = []
+
+            def run(args, **_kwargs):
+                events.append(('run', args))
+                return type('R', (), {'stdout': outputs.pop(0)})()
+
+            def write(path, content):
+                events.append(('write', path.name))
+                if path.parent == root:
+                    path.write_text(content)
+
+            with patch.object(upgrade_release.os, 'geteuid', return_value=0), patch.object(
+                    upgrade_release, 'installed_version', return_value=('1.0', 44)), patch.object(
+                    upgrade_release, 'load_manifest', return_value={'version': '1.1', 'fedora_release': 44}), patch.object(
+                    upgrade_release, 'run', side_effect=run), patch.object(
+                    upgrade_release, 'write_atomic', side_effect=write), patch.object(
+                    upgrade_release.Path, 'is_file', return_value=True), patch.object(
+                    upgrade_release, 'REPO_FILE', root / 'infinityos.repo'), patch.object(
+                    upgrade_release, 'MARKER', root / 'infinityos-release'), patch.object(
+                    upgrade_release, 'OS_RELEASE', os_release):
+                upgrade_release.main(['upgrader', '1.1', '44'])
+
+            commands = [args for kind, args in events if kind == 'run']
+            self.assertEqual(commands[4][0], 'snapper')
+            self.assertIn('--downloadonly', commands[5])
+            self.assertEqual(commands[6][-1], 'distro-sync')
+            self.assertEqual(events[7], ('write', 'infinityos.repo'))
+            self.assertEqual(events[-1], ('write', 'infinityos-release'))
+            self.assertEqual((root / 'infinityos-release').read_text(), '1.1\n')
+            self.assertIn('INFINITYOS_VERSION_ID=1.1', os_release.read_text())
+
+    def test_release_helper_never_marks_a_failed_package_transaction(self):
+        from subprocess import CalledProcessError
+        outputs = ['btrfs\n', '', '', 'aarch64\n', '8\n', '']
+
+        def run(args, **_kwargs):
+            if args[-1] == 'distro-sync':
+                raise CalledProcessError(1, args)
+            return type('R', (), {'stdout': outputs.pop(0)})()
+
+        with patch.object(upgrade_release.os, 'geteuid', return_value=0), patch.object(
+                upgrade_release, 'installed_version', return_value=('1.0', 44)), patch.object(
+                upgrade_release, 'load_manifest', return_value={'version': '1.1', 'fedora_release': 44}), patch.object(
+                upgrade_release, 'run', side_effect=run), patch.object(
+                upgrade_release, 'write_atomic') as write, patch.object(
+                upgrade_release.Path, 'is_file', return_value=True):
+            with self.assertRaises(CalledProcessError):
+                upgrade_release.main(['upgrader', '1.1', '44'])
+            write.assert_not_called()
 
     def test_installation_only_runs_for_sources_with_updates(self):
         commands = updater.install_commands([{'kind': 'RPM'}, {'kind': 'Flatpak user'},

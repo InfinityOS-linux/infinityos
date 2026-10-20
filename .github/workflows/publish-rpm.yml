@@ -86,6 +86,11 @@ jobs:
     name: Sign RPMs and prepare Pages
     runs-on: ubuntu-24.04
     needs: [build-noarch, build-terminal]
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -106,7 +111,7 @@ jobs:
             -v "$PWD:/work" \
             -v "$signing_key:/signing.asc:ro" \
             -w /work fedora:44 sh -ec '
-              dnf -qy install createrepo_c rpm-sign gnupg2
+              dnf -qy install createrepo_c rpm-sign gnupg2 python3
               export GNUPGHOME="$(mktemp -d)"
               chmod 700 "$GNUPGHOME"
               gpg --batch --import /signing.asc
@@ -114,6 +119,40 @@ jobs:
               rm -rf "$GNUPGHOME"
             '
           rm -f "$signing_key"
+      - name: Keep previously published release repositories
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' > "$RUNNER_TEMP/previous-releases"
+          import json
+          from pathlib import Path
+          data = json.loads(Path('releases/stable.json').read_text())
+          for version in data['previous']:
+              print(version)
+          PY
+          while IFS= read -r previous; do
+            [[ -n "$previous" ]] || continue
+            gh release download "repo-$previous" \
+              --pattern "rpm-repo-$previous.tar.gz" --dir "$RUNNER_TEMP"
+            tar -xzf "$RUNNER_TEMP/rpm-repo-$previous.tar.gz" -C public
+          done < "$RUNNER_TEMP/previous-releases"
+          if [[ -d public/rpm/44/releases/1.0 && $(python3 -c 'import json; print(json.load(open("releases/stable.json"))["version"])') != 1.0 ]]; then
+            for arch in aarch64 x86_64; do
+              mkdir -p "public/rpm/44/$arch"
+              cp -a "public/rpm/44/releases/1.0/$arch/." "public/rpm/44/$arch/"
+            done
+          fi
+      - name: Archive the active signed repository
+        run: |
+          set -euo pipefail
+          version=$(python3 -c 'import json; print(json.load(open("releases/stable.json"))["version"])')
+          fedora=$(python3 -c 'import json; print(json.load(open("releases/stable.json"))["fedora_release"])')
+          archive="$RUNNER_TEMP/rpm-repo-$version.tar.gz"
+          tar -czf "$archive" -C public "rpm/$fedora/releases/$version"
+          if ! gh release view "repo-$version" >/dev/null 2>&1; then
+            gh release create "repo-$version" --draft \
+              --title "Infinity OS $version RPM archive" --target "$GITHUB_SHA"
+          fi
+          gh release upload "repo-$version" "$archive" --clobber
       - uses: actions/upload-pages-artifact@v4
         with:
           path: public

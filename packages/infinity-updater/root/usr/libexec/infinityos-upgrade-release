@@ -1,0 +1,105 @@
+#!/usr/bin/python3
+"""Privileged, fail-closed Infinity OS release upgrade (same Fedora base)."""
+
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+
+sys.path.insert(0, '/usr/share/infinityos/updater')
+from release import (available_release, installed_version, load_manifest,
+                     repository_url, version_tuple)
+
+
+REPO_FILE = Path('/etc/yum.repos.d/infinityos.repo')
+MARKER = Path('/etc/infinityos-release')
+OS_RELEASE = Path('/etc/os-release')
+
+
+def run(args, *, capture=False):
+    return subprocess.run(args, check=True, text=True,
+                          stdout=subprocess.PIPE if capture else None)
+
+
+def write_atomic(path, content):
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8',
+                                     dir=path.parent, prefix='.infinityos-', delete=False) as temp:
+        temp.write(content)
+        temporary = Path(temp.name)
+    os.chmod(temporary, 0o644)
+    os.replace(temporary, path)
+
+
+def main(argv):
+    if os.geteuid() != 0 or len(argv) != 3:
+        raise ValueError('Authorize a versioned Infinity OS upgrade through polkit')
+    requested, requested_fedora = argv[1:]
+    version_tuple(requested)
+    if not requested_fedora.isdecimal():
+        raise ValueError('Invalid Fedora release')
+    requested_fedora = int(requested_fedora)
+    current, current_fedora = installed_version()
+    manifest = load_manifest()
+    release = available_release(manifest, current, current_fedora)
+    if (not release or not release['supported'] or
+            release['version'] != requested or release['fedora_release'] != requested_fedora):
+        raise ValueError('The signed release does not match this installation')
+
+    if run(['findmnt', '-n', '-o', 'FSTYPE', '/'], capture=True).stdout.strip() != 'btrfs':
+        raise ValueError('Release upgrade requires a Btrfs root filesystem')
+    if not Path('/etc/snapper/configs/root').is_file():
+        raise ValueError('Btrfs backup configuration is missing')
+    run(['mountpoint', '-q', '/.snapshots'])
+
+    # Ordinary updates must finish before the target repository is enabled.
+    pending = run(['dnf', '--quiet', '--assumeyes', '--refresh', 'repoquery',
+                   '--upgrades', '--qf', '%{name}\n'], capture=True)
+    if pending.stdout.strip():
+        raise ValueError('Install the current system package updates first')
+
+    arch = run(['rpm', '--eval', '%{_arch}'], capture=True).stdout.strip()
+    target_url = repository_url(requested, requested_fedora, arch)
+    snapshot = run(['snapper', '-c', 'root', 'create', '-t', 'single', '-c', 'number', '-p',
+                    '-d', f'Before Infinity OS {requested} upgrade'], capture=True).stdout.strip()
+    if not snapshot.isdecimal() or int(snapshot) < 1:
+        raise ValueError('Could not create a Btrfs recovery snapshot')
+    print(f'Infinity OS root snapshot #{snapshot} created.', flush=True)
+
+    command = ['dnf', '-y', '--refresh', '--disable-repo=infinityos',
+               f'--repofrompath=infinityos-next,{target_url}',
+               '--setopt=infinityos-next.gpgcheck=1',
+               '--setopt=infinityos-next.repo_gpgcheck=1',
+               '--setopt=infinityos-next.gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos']
+    print(f'Downloading Infinity OS {requested} packages...', flush=True)
+    run(command + ['distro-sync', '--downloadonly'])
+    print(f'Installing Infinity OS {requested} packages...', flush=True)
+    run(command + ['distro-sync'])
+
+    repo = (f'[infinityos]\nname=Infinity OS {requested} - $basearch\n'
+            f'baseurl={target_url.replace(arch, "$basearch")}\n'
+            'enabled=1\ngpgcheck=1\nrepo_gpgcheck=1\n'
+            'gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos\n'
+            'skip_if_unavailable=0\n')
+    write_atomic(REPO_FILE, repo)
+    os_release = OS_RELEASE.read_text(encoding='utf-8')
+    os_release = re.sub(r'^INFINITYOS_VERSION_ID=.*\n?', '', os_release, flags=re.MULTILINE)
+    os_release = re.sub(r'^PRETTY_NAME=.*$',
+                        f'PRETTY_NAME="Infinity OS {requested} (Fedora {requested_fedora})"',
+                        os_release, count=1, flags=re.MULTILINE)
+    write_atomic(OS_RELEASE, os_release.rstrip() + f'\nINFINITYOS_VERSION_ID={requested}\n')
+    write_atomic(Path('/etc/issue'), f'Infinity OS {requested} (Fedora {requested_fedora})\n')
+    write_atomic(Path('/etc/issue.net'), f'Infinity OS {requested} (Fedora {requested_fedora})\n')
+    # The marker is the authoritative installed version. Publish it only after
+    # the transaction and the remaining release files have succeeded.
+    write_atomic(MARKER, requested + '\n')
+    print(f'Infinity OS {requested} installed. Restart to use the new release.', flush=True)
+
+
+if __name__ == '__main__':
+    try:
+        main(sys.argv)
+    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+        print(f'Infinity OS release upgrade stopped: {error}', file=sys.stderr)
+        sys.exit(1)

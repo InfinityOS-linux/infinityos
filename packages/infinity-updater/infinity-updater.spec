@@ -1,5 +1,5 @@
 Name:           infinity-updater
-Version:        1.0.0
+Version:        1.1.0
 Release:        %{?infinity_release}%{!?infinity_release:1}%{?dist}
 Summary:        Infinity OS update indicator and package updater
 License:        GPL-3.0-or-later
@@ -13,6 +13,8 @@ Requires:       flatpak
 Requires:       fwupd
 Requires:       polkit
 Requires:       snapper
+Requires:       gnupg2
+Requires:       infinityos-repos >= 1.0.0
 Requires:       infinityos-shell-extensions >= 1.0.0
 
 %description
@@ -37,6 +39,7 @@ systemctl --global enable infinity-updater.timer >/dev/null 2>&1 || :
 /usr/share/infinityos/build-revisions/infinity-updater
 /usr/bin/infinity-updater
 /usr/libexec/infinityos-upgrade-system
+/usr/libexec/infinityos-upgrade-release
 /usr/share/infinityos/updater/
 /usr/share/applications/org.infinityos.Updater.desktop
 /usr/share/icons/hicolor/scalable/apps/org.infinityos.Updater.svg
@@ -46,5 +49,8 @@ systemctl --global enable infinity-updater.timer >/dev/null 2>&1 || :
 /usr/lib/systemd/user/infinity-updater.timer
 
 %changelog
+* Tue Oct 20 2026 Infinity OS Contributors <noreply@infinityos.eu> - 1.1.0-1
+- Detect signed Infinity OS releases and upgrade after current RPMs are installed
+
 * Wed Oct 14 2026 Infinity OS Contributors <noreply@gitlab.com> - 1.0.0-1
 - Initial daily update indicator

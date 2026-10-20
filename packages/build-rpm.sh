@@ -6,7 +6,7 @@ case "$package" in
   infinity-config) version=1.0.0 ;;
   infinity-launcher) version=1.0.0 ;;
   infinity-terminal) version=1.3.1 ;;
-  infinity-updater) version=1.0.0 ;;
+  infinity-updater) version=1.1.0 ;;
   infinityos-repos) version=1.0.0 ;;
   infinityos-wallpapers) version=1.1.0 ;;
   infinityos-ramdrive) version=1.1.0 ;;

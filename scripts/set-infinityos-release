@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+"""Prepare source files for the next same-Fedora-base Infinity OS release."""
+
+import json
+from pathlib import Path
+import re
+import sys
+
+
+ROOT = Path(__file__).resolve().parents[1]
+MANIFEST = ROOT / 'releases/stable.json'
+VERSION = re.compile(r'^[1-9][0-9]*\.[0-9]+(?:\.[0-9]+)?$')
+
+
+def number(value):
+    if not VERSION.fullmatch(value):
+        raise ValueError('Use a numeric version such as 1.1')
+    return tuple(int(part) for part in value.split('.'))
+
+
+def replace_url(path, new_url):
+    source = path.read_text(encoding='utf-8')
+    updated, count = re.subn(r'https://infinityos-linux\.github\.io/infinityos/rpm/44/(?:releases/[^/]+/)?\$basearch/',
+                             new_url, source)
+    if count != 1:
+        raise ValueError(f'Expected one Infinity OS repository URL in {path}')
+    path.write_text(updated, encoding='utf-8')
+
+
+def main(argv):
+    if len(argv) != 2:
+        raise ValueError('Usage: scripts/set-infinityos-release 1.1')
+    target = argv[1]
+    data = json.loads(MANIFEST.read_text(encoding='utf-8'))
+    current = data['version']
+    if number(target) <= number(current):
+        raise ValueError('The new release must be newer than the published release')
+    if data['fedora_release'] != 44:
+        raise ValueError('This release path currently supports Fedora 44 only')
+    url = f'https://infinityos-linux.github.io/infinityos/rpm/44/releases/{target}/$basearch/'
+    replace_url(ROOT / 'root/usr/share/infinityos/repos/infinityos.repo', url)
+    replace_url(ROOT / 'repositories/infinityos.xml', url)
+    data['previous'].append(current)
+    data['version'] = target
+    MANIFEST.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')
+    (ROOT / 'root/usr/share/infinityos/image-release-version').write_text(target + '\n', encoding='utf-8')
+    print(f'Prepared Infinity OS {target}. Review the diff, build and test the new image, then push when ready.')
+
+
+if __name__ == '__main__':
+    try:
+        main(sys.argv)
+    except (KeyError, OSError, ValueError) as error:
+        print(error, file=sys.stderr)
+        sys.exit(1)

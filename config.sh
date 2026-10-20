@@ -21,14 +21,17 @@ if [[ "$kiwi_profiles" == *"Infinity-GNOME"* ]]; then
 	/usr/libexec/infinityos-verify-build-root / "$build_revision"
 	# Hide GNOME's blue Adwaita default from the wallpaper chooser.
 	rm -f /usr/share/gnome-background-properties/adwaita.xml
+	release_version=$(cat /usr/share/infinityos/image-release-version)
+	[[ $release_version =~ ^[1-9][0-9]*\.[0-9]+(\.[0-9]+)?$ ]] || exit 1
 	rm -f /etc/os-release
-	cat > /etc/os-release << 'EOF'
+	cat > /etc/os-release << EOF
 NAME="Infinity OS"
-PRETTY_NAME="Infinity OS 44"
+PRETTY_NAME="Infinity OS ${release_version} (Fedora 44)"
 ID=infinityos
 ID_LIKE=fedora
 VERSION_ID=44
 VERSION="44"
+INFINITYOS_VERSION_ID=${release_version}
 VARIANT="GNOME Workstation"
 VARIANT_ID=workstation
 LOGO=infinityos-logo
@@ -36,9 +39,10 @@ ANSI_COLOR="0;38;2;100;83;148"
 HOME_URL="https://github.com/InfinityOS-linux/infinityos"
 DOCUMENTATION_URL="https://github.com/InfinityOS-linux/infinityos/blob/main/README.md"
 EOF
-	printf 'Infinity OS 44\n' > /etc/issue
-	printf 'Infinity OS 44\n' > /etc/issue.net
-	chmod 0644 /etc/os-release /etc/issue /etc/issue.net
+	printf '%s\n' "$release_version" > /etc/infinityos-release
+	printf 'Infinity OS %s (Fedora 44)\n' "$release_version" > /etc/issue
+	printf 'Infinity OS %s (Fedora 44)\n' "$release_version" > /etc/issue.net
+	chmod 0644 /etc/os-release /etc/infinityos-release /etc/issue /etc/issue.net
 	if rpm -q mediawriter >/dev/null 2>&1; then
 		dnf -y remove mediawriter
 	fi

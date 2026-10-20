@@ -5,6 +5,8 @@ import subprocess
 import tempfile
 from datetime import datetime, timezone
 
+from release import available_release, installed_version, load_manifest
+
 
 def state_path():
     cache = Path(os.environ.get('XDG_CACHE_HOME', Path.home() / '.cache'))
@@ -50,7 +52,8 @@ def check_updates():
         result = _run(['dnf', '--quiet', '--assumeyes', '--refresh',
                        f'--setopt=system_state_dir={state_dir}', 'repoquery', '--upgrades',
                        '--qf', '%{name}|%{evr}|%{repoid}\n'])
-    if result.returncode == 0:
+    rpm_check_ok = result.returncode == 0
+    if rpm_check_ok:
         for line in result.stdout.splitlines():
             fields = line.split('|', 2)
             if len(fields) == 3:
@@ -82,8 +85,16 @@ def check_updates():
         errors.append('Firmware: ' + (result.stderr.strip() or result.stdout.strip() or
                                       'Could not check updates'))
 
+    release = None
+    try:
+        current, fedora = installed_version()
+        release = available_release(load_manifest(), current, fedora)
+    except (OSError, ValueError, KeyError, TimeoutError, subprocess.SubprocessError) as error:
+        errors.append('Release: ' + str(error))
+
     return {'checked_at': datetime.now(timezone.utc).isoformat(),
-            'updates': updates, 'errors': errors}
+            'updates': updates, 'release': release,
+            'rpm_check_ok': rpm_check_ok, 'errors': errors}
 
 
 def save_state(state, path=None):
@@ -103,4 +114,5 @@ def read_state(path=None):
         with open(path or state_path(), encoding='utf-8') as file:
             return json.load(file)
     except (OSError, ValueError):
-        return {'checked_at': None, 'updates': [], 'errors': []}
+        return {'checked_at': None, 'updates': [], 'release': None,
+                'rpm_check_ok': False, 'errors': []}
