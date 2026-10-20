@@ -75,7 +75,8 @@ elif [[ "$package" == infinityos-ramdrive ]]; then
 elif [[ "$package" == infinityos-shell-extensions ]]; then
   source_root="$work/source/$package-$version"
   fedora_snapshot="$repo/vendor/gnome-shell/fedora-44/usr/share"
-  install -d "$source_root/usr/share/gnome-shell/extensions" \
+  install -d "$source_root/usr/bin" \
+    "$source_root/usr/share/gnome-shell/extensions" \
     "$source_root/usr/share/glib-2.0/schemas" \
     "$source_root/usr/share/infinityos" \
     "$source_root/usr/share/licenses/infinityos-shell-extensions" \
@@ -84,6 +85,8 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
     "$source_root/usr/share/gnome-shell/extensions/"
   cp -a "$repo/root/usr/share/gnome-shell/extensions/." \
     "$source_root/usr/share/gnome-shell/extensions/"
+  install -m 0755 "$repo/root/usr/bin/infinityos-shell-recover" \
+    "$source_root/usr/bin/infinityos-shell-recover"
   cp -a "$fedora_snapshot/glib-2.0/schemas/." \
     "$source_root/usr/share/glib-2.0/schemas/"
   install -m 0644 "$repo/root/usr/share/infinityos/gnome-defaults" \

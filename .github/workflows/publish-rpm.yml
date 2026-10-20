@@ -13,9 +13,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify-source:
+    name: Verify release source
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test source and GNOME extension contracts
+        run: |
+          python3 -m unittest discover -s tests -p 'test_*.py' -q
+          node --test tests/folder-click.test.mjs
+          scripts/verify-gnome-extension-contracts
+
   build-noarch:
     name: Build ${{ matrix.package }}
     runs-on: ubuntu-24.04
+    needs: verify-source
     strategy:
       fail-fast: false
       matrix:
@@ -43,6 +55,7 @@ jobs:
   build-terminal:
     name: Build InfinityTerminal (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
+    needs: verify-source
     strategy:
       fail-fast: false
       matrix:

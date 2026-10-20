@@ -53,6 +53,8 @@ GNOME starts with desktop icons, AppIndicator support, dynamic Blur My Shell, th
 
 The desktop extensions and their default settings ship in the signed `infinityos-shell-extensions` RPM. Its source includes Infinity OS modifications and pinned Fedora 44 snapshots for GPaste, AppIndicator Support, Blur My Shell, Caffeine, User Themes, and V-Shell. Fedora package updates cannot replace those extension files independently; Infinity OS updates them together after compatibility checks. User overrides in dconf remain possible.
 
+The extension RPM pins the tested GNOME Shell major version, and GitHub's RPM workflow checks every enabled extension's metadata before publishing. If an extension prevents the desktop from loading, log in on a text console and run `infinityos-shell-recover --list`, then `infinityos-shell-recover --disable UUID`. `--disable-all` provides a minimal session; `--restore-defaults` restores the packaged selection. Run these commands as the affected user, without sudo.
+
 **RAMDrive** keeps its files in a protected folder and offers a removable shortcut on the Desktop plus a bookmark in Files. Deleting the Desktop shortcut leaves the files and Files bookmark intact; the shortcut stays removed on later logins. Existing Desktop RAMDrive files move to protected storage on the first login after upgrading. The storage folder itself cannot be removed by a regular user. Its contents are deleted during an orderly shutdown or reboot. The folder uses disk storage so files remain recoverable after a crash or forced reset; it is not a `tmpfs` RAM disk.
 
 ## Packages and updates

@@ -7,9 +7,11 @@ URL:            https://github.com/InfinityOS-linux/infinityos
 Source0:        infinityos-shell-extensions-%{version}.tar.gz
 BuildArch:      noarch
 Requires:       gnome-shell >= 50
+Requires:       gnome-shell < 51
 Requires:       gpaste-ui >= 50.6
 Requires:       glib2
 Requires:       dconf
+Requires:       python3-gobject
 
 # Adopt the six Fedora extension directories so that only an Infinity OS RPM
 # may update their code. The GPaste service remains Fedora-managed.
@@ -52,6 +54,7 @@ done
 dconf update || :
 
 %files
+/usr/bin/infinityos-shell-recover
 /usr/share/infinityos/build-revisions/infinityos-shell-extensions
 /usr/share/infinityos/gnome-defaults
 /usr/share/infinityos/blur-defaults

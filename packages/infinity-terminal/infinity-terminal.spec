@@ -8,7 +8,8 @@ License:        MIT AND GPL-3.0-or-later
 URL:            https://github.com/InfinityOS-linux/infinityos
 Source0:        infinity-terminal-%{version}.tar.gz
 ExclusiveArch:  aarch64 x86_64
-Requires:       gnome-shell
+Requires:       gnome-shell >= 50
+Requires:       gnome-shell < 51
 
 %description
 InfinityTerminal combines a patched Ghostty renderer with an Infinity OS

@@ -3,6 +3,8 @@
 
 import ast
 import json
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -14,6 +16,20 @@ source_tree = defaults.exists()
 if not source_tree:
     extensions = root / "usr/share/gnome-shell/extensions"
     defaults = root / "usr/share/infinityos/gnome-defaults"
+
+if source_tree:
+    spec = (root / "packages/infinityos-shell-extensions/infinityos-shell-extensions.spec").read_text()
+    minimum = re.search(r"^Requires:\s+gnome-shell >= (\d+)$", spec, re.MULTILINE)
+    maximum = re.search(r"^Requires:\s+gnome-shell < (\d+)$", spec, re.MULTILINE)
+    if not minimum or not maximum or int(maximum[1]) != int(minimum[1]) + 1:
+        raise SystemExit("Infinity OS extension RPM must pin one GNOME Shell major version")
+    shell_major = minimum[1]
+else:
+    result = subprocess.run(
+        ["rpm", "--root", str(root), "-q", "--qf", "%{VERSION}", "gnome-shell"],
+        capture_output=True, text=True, check=True,
+    )
+    shell_major = result.stdout.split(".", 1)[0]
 
 fedora_snapshot = root / "vendor/gnome-shell/fedora-44/usr/share/gnome-shell/extensions"
 fedora_extensions = {
@@ -70,6 +86,21 @@ if source_tree:
         metadata = fedora_snapshot / uuid / "metadata.json"
         if not metadata.is_file() or json.loads(metadata.read_text()).get("uuid") != uuid:
             raise SystemExit(f"Vendored Fedora extension missing or mismatched: {uuid}")
+
+for uuid in enabled:
+    candidates = [extensions / uuid / "metadata.json"]
+    if source_tree:
+        candidates.extend([
+            fedora_snapshot / uuid / "metadata.json",
+            root / "packages/infinity-terminal/root/usr/share/gnome-shell/extensions" / uuid / "metadata.json",
+            root / "packages/infinity-updater/root/usr/share/gnome-shell/extensions" / uuid / "metadata.json",
+        ])
+    metadata_path = next((path for path in candidates if path.is_file()), None)
+    if metadata_path is None:
+        raise SystemExit(f"Enabled GNOME extension has no metadata: {uuid}")
+    metadata = json.loads(metadata_path.read_text())
+    if metadata.get("uuid") != uuid or shell_major not in metadata.get("shell-version", []):
+        raise SystemExit(f"GNOME {shell_major} is unsupported by enabled extension: {uuid}")
 
 dock = extensions / new_dock
 for name in ("extension.js", "dockItemMenu.js", "folderClick.js", "metadata.json"):

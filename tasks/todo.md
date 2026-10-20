@@ -16,10 +16,10 @@
 
 ## 3. Extension compatibility
 
-- [ ] Check bundled and enabled extension GNOME version metadata.
-- [ ] Provide a safe way to disable a broken extension.
-- [ ] Add checks to the RPM publication gate.
-- [ ] Test, commit and push to GitHub.
+- [x] Check bundled and enabled extension GNOME version metadata.
+- [x] Provide a safe way to disable a broken extension.
+- [x] Add checks to the RPM publication gate.
+- [x] Test, commit and push to GitHub.
 
 ## 4. Desktop response
 

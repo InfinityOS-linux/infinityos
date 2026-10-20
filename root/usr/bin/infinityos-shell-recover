@@ -1,0 +1,43 @@
+#!/usr/bin/python3
+"""Disable a broken GNOME extension from the affected user's session or TTY."""
+
+import argparse
+import os
+import re
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    action = parser.add_mutually_exclusive_group(required=True)
+    action.add_argument("--list", action="store_true", help="list enabled extensions")
+    action.add_argument("--disable", metavar="UUID", help="disable one extension")
+    action.add_argument("--disable-all", action="store_true", help="start GNOME without extensions")
+    action.add_argument("--restore-defaults", action="store_true", help="restore Infinity OS defaults")
+    args = parser.parse_args()
+    if os.geteuid() == 0:
+        parser.error("Run as the affected desktop user, without sudo")
+
+    from gi.repository import Gio
+
+    settings = Gio.Settings.new("org.gnome.shell")
+    enabled = settings.get_strv("enabled-extensions")
+    if args.list:
+        print("\n".join(enabled) if enabled else "No extensions enabled")
+    elif args.disable:
+        if not re.fullmatch(r"[A-Za-z0-9._@-]+", args.disable):
+            parser.error("Invalid extension UUID")
+        if args.disable not in enabled:
+            parser.error("Extension is not currently enabled; use --list")
+        settings.set_strv("enabled-extensions", [uuid for uuid in enabled if uuid != args.disable])
+        print(f"Disabled {args.disable}. Log out and in again.")
+    elif args.disable_all:
+        settings.set_strv("enabled-extensions", [])
+        print("All extensions disabled. Log out and in again.")
+    else:
+        settings.reset("enabled-extensions")
+        print("Restored Infinity OS extension defaults. Log out and in again.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
