@@ -52,6 +52,8 @@ class LiveBootContractTests(unittest.TestCase):
         # Anaconda's automatic partitioning omits the ESP when its bootloader
         # is disabled, so conversion must run after normal UEFI partitioning.
         self.assertNotIn("bootloader --location=none", setup)
+        verifier = (REPO / "scripts/verify-infinity-iso").read_text()
+        self.assertIn("if grep -Fqx 'bootloader --location=none'", verifier)
         self.assertIn("cat >> /usr/share/anaconda/interactive-defaults.ks <<'BOOT_POST_EOF'", setup)
         self.assertIn("cat >> /usr/share/anaconda/interactive-defaults.ks <<'NVIDIA_POST_EOF'", setup)
         self.assertNotIn("cat > /usr/share/anaconda/post-scripts/91-infinityos-boot.ks", setup)

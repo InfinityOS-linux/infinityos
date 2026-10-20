@@ -75,10 +75,10 @@ grep -Fqx '/usr/libexec/infinityos-liveinstall-boot-setup' \
     echo 'Installer is missing the rEFInd conversion command' >&2
     exit 1
 }
-grep -Fqx 'bootloader --location=none' "$rootpoint/usr/share/anaconda/interactive-defaults.ks" || {
-    echo 'Anaconda still installs a temporary EFI bootloader' >&2
+if grep -Fqx 'bootloader --location=none' "$rootpoint/usr/share/anaconda/interactive-defaults.ks"; then
+    echo 'Anaconda cannot create the required EFI partition' >&2
     exit 1
-}
+fi
 if [[ $(uname -m) == x86_64 ]]; then
     grep -Fq '/usr/libexec/infinityos-install-nvidia /mnt/sysroot' \
         "$rootpoint/usr/share/anaconda/interactive-defaults.ks" || {
