@@ -79,7 +79,8 @@ class LauncherBackendTests(unittest.TestCase):
         app = next(app for app in backend.APPS if app.name == "WinBoat")
         self.assertFalse(backend.available(app, "aarch64"))
         self.assertTrue(backend.available(app, "x86_64"))
-        self.assertEqual(app.group, "Other")
+        self.assertEqual((app.category, app.group), ("System", "Windows apps"))
+        self.assertNotIn(app, [item for item in backend.APPS if item.category == "Gaming"])
         with patch.object(backend, "_latest_rpm", return_value=Path("/tmp/winboat-0.9.2-x86_64.rpm")) as latest, \
              patch.object(backend, "_run") as run:
             backend.install(app)
