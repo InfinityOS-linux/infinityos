@@ -85,6 +85,8 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
     "$source_root/usr/share/gnome-shell/extensions/"
   cp -a "$repo/root/usr/share/gnome-shell/extensions/." \
     "$source_root/usr/share/gnome-shell/extensions/"
+  cp -a "$repo/root/usr/share/infinityos/folder-icons" \
+    "$source_root/usr/share/infinityos/"
   install -m 0755 "$repo/root/usr/bin/infinityos-shell-recover" \
     "$source_root/usr/bin/infinityos-shell-recover"
   cp -a "$fedora_snapshot/glib-2.0/schemas/." \

@@ -263,7 +263,7 @@ export const Services = class {
     this.setupFolderIcon(
       'documents',
       'Documents',
-      'folder-documents',
+      '/usr/share/infinityos/folder-icons/folder-documents-dock.svg',
       'Documents'
     );
   }

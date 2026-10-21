@@ -138,6 +138,8 @@ grep -Fq 'rd.live.check' "$efi_mount/EFI/BOOT/refind.conf"
 grep -Fq 'nomodeset' "$efi_mount/EFI/BOOT/refind.conf"
 for required in \
     usr/libexec/infinityos-open-downloads \
+    usr/share/infinityos/folder-icons/folder-download-dock.svg \
+    usr/share/infinityos/folder-icons/folder-documents-dock.svg \
     usr/local/share/applications/org.gnome.GPaste.Ui.desktop \
     usr/local/share/applications/org.gnome.GPaste.Preferences.desktop \
     usr/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/extension.js \

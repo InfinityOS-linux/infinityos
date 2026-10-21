@@ -58,6 +58,7 @@ dconf update || :
 /usr/share/infinityos/build-revisions/infinityos-shell-extensions
 /usr/share/infinityos/gnome-defaults
 /usr/share/infinityos/blur-defaults
+/usr/share/infinityos/folder-icons/
 /etc/dconf/db/local.d/00-infinityos
 /etc/dconf/db/local.d/01-infinity-blur
 /usr/share/gnome-shell/extensions/GPaste@gnome-shell-extensions.gnome.org/
