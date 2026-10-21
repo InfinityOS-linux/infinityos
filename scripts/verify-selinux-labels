@@ -6,6 +6,10 @@ import stat
 import sys
 
 
+# Fedora's file_contexts deliberately assigns <<none>> to this mount point.
+UNLABELED_MOUNT_POINTS = {"var/lib/nfs/rpc_pipefs"}
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         print("Usage: verify-selinux-labels LIVE_ROOT", file=sys.stderr)
@@ -22,6 +26,8 @@ def main() -> int:
         paths += [os.path.join(directory, name) for name in children
                   if os.path.islink(os.path.join(directory, name))]
         for path in paths:
+            if os.path.relpath(path, root) in UNLABELED_MOUNT_POINTS:
+                continue
             mode = os.lstat(path).st_mode
             if not (stat.S_ISDIR(mode) or stat.S_ISREG(mode) or stat.S_ISLNK(mode)):
                 continue
@@ -33,7 +39,7 @@ def main() -> int:
             if not context or b":unlabeled_t:" in context:
                 missing.append(os.path.relpath(path, root))
     if missing:
-        print(f"Live root has {len(missing)} files or directories without SELinux "
+        print(f"Live root has {len(missing)} paths without SELinux "
               f"labels (checked {checked}):", file=sys.stderr)
         for path in missing[:30]:
             print(f"  {path}", file=sys.stderr)
