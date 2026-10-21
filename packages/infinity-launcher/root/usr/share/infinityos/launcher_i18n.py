@@ -76,6 +76,8 @@ POLISH = {
     "Voice and text chat.": "Rozmowy głosowe i tekstowe.",
     "Alternative Discord client.": "Alternatywny klient Discorda.",
     "Wine environments for Windows apps.": "Środowiska Wine dla aplikacji Windows.",
+    "Run Windows apps in a container-backed VM; requires KVM, 4 GB RAM and 32 GB free space.":
+        "Uruchamiaj aplikacje Windows w maszynie wirtualnej; wymaga KVM, 4 GB RAM i 32 GB wolnego miejsca.",
     "Open-source photo editor built in Rust.": "Edytor zdjęć o otwartym kodzie, napisany w Rust.",
     "Create and edit vector art in an open-source Rust app.": "Twórz i edytuj grafikę wektorową w aplikacji Rust o otwartym kodzie.",
     "Edit photos non-destructively in an open-source Rust app.": "Edytuj zdjęcia bez naruszania oryginałów w aplikacji Rust o otwartym kodzie.",

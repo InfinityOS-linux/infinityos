@@ -75,6 +75,29 @@ class LauncherBackendTests(unittest.TestCase):
             app = next(app for app in backend.APPS if app.name == name)
             self.assertTrue(backend.available(app, "aarch64"))
 
+    def test_winboat_is_x86_only_and_installs_runtime_with_rpm(self):
+        app = next(app for app in backend.APPS if app.name == "WinBoat")
+        self.assertFalse(backend.available(app, "aarch64"))
+        self.assertTrue(backend.available(app, "x86_64"))
+        self.assertEqual(app.group, "Other")
+        with patch.object(backend, "_latest_rpm", return_value=Path("/tmp/winboat-0.9.2-x86_64.rpm")) as latest, \
+             patch.object(backend, "_run") as run:
+            backend.install(app)
+        self.assertEqual(latest.call_args.args[0], app)
+        self.assertEqual(run.call_args.args[0], [
+            "pkexec", "dnf", "-y", "install", "podman", "podman-compose", "freerdp",
+            "/tmp/winboat-0.9.2-x86_64.rpm"])
+
+    def test_winboat_release_asset_matches_upstream_rpm_name(self):
+        app = next(app for app in backend.APPS if app.name == "WinBoat")
+        release = {"assets": [{"name": "winboat-0.9.2-x86_64.rpm", "size": 3,
+                               "browser_download_url": "https://github.com/winboat-org/winboat/releases/download/v0.9.2/winboat-0.9.2-x86_64.rpm"}]}
+        responses = (io.BytesIO(json.dumps(release).encode()), io.BytesIO(b"rpm"))
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(backend.urllib.request, "urlopen", side_effect=responses):
+            package = backend._latest_rpm(app, "x86_64", directory)
+            self.assertEqual(package.name, "winboat-0.9.2-x86_64.rpm")
+
     def test_controller_install_uses_packaged_root_helper(self):
         app = next(app for app in backend.APPS if app.source == "xone")
         with patch.object(backend, "_run") as run:

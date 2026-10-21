@@ -84,6 +84,7 @@ APPS = (
     App("Gaming", "Discord", "flatpak", "com.discordapp.Discord", "Voice and text chat.", True, group="Communication", icon="mail-message-new-symbolic"),
     App("Gaming", "Vesktop", "flatpak", "dev.vencord.Vesktop", "Alternative Discord client.", group="Communication", icon="mail-message-new-symbolic"),
     App("Gaming", "Bottles", "flatpak", "com.usebottles.bottles", "Wine environments for Windows apps.", True, group="Other", icon="applications-system-symbolic"),
+    App("Gaming", "WinBoat", "winboat-rpm", "winboat-org/winboat", "Run Windows apps in a container-backed VM; requires KVM, 4 GB RAM and 32 GB free space.", True, website="https://github.com/winboat-org/winboat", group="Other", icon="winboat", package="winboat"),
     App("Creative", "PhotoCraft", "github-rpm", "storytold/photocraft", "Open-source photo editor built in Rust.", website="https://github.com/storytold/photocraft", group="Image", icon="ai.storyteller.photocraft"),
     App("Creative", "VectorCraft", "github-rpm", "storytold/vectorcraft", "Create and edit vector art in an open-source Rust app.", website="https://github.com/storytold/vectorcraft", group="Image", icon="ai.storyteller.vectorcraft"),
     App("Creative", "LightCraft", "github-rpm", "storytold/lightcraft", "Edit photos non-destructively in an open-source Rust app.", website="https://github.com/storytold/lightcraft", group="Image", icon="ai.storyteller.lightcraft"),
@@ -283,7 +284,7 @@ def _latest_rpm(app, arch, directory):
     with urllib.request.urlopen(request, timeout=30) as response:
         release = json.load(response)
     release_arch = {"aarch64": "arm64", "x86_64": "amd64"}.get(arch, arch)
-    suffixes = (f"-linux-{arch}.rpm", f".{arch}.rpm", f"-linux-{release_arch}.rpm")
+    suffixes = (f"-linux-{arch}.rpm", f".{arch}.rpm", f"-linux-{release_arch}.rpm", f"-{arch}.rpm")
     assets = [asset for asset in release.get("assets", ()) if asset["name"].endswith(suffixes)]
     if len(assets) != 1:
         raise RuntimeError(f"No unique {arch} RPM in the latest {app.name} release.")
@@ -322,6 +323,11 @@ def install(app, home=None):
         with tempfile.TemporaryDirectory(prefix="infinity-launcher-") as directory:
             package = _latest_rpm(app, os.uname().machine, directory)
             _run(["pkexec", "dnf", "-y", "install", str(package)])
+    elif app.kind == "winboat-rpm":
+        with tempfile.TemporaryDirectory(prefix="infinity-launcher-") as directory:
+            package = _latest_rpm(app, os.uname().machine, directory)
+            _run(["pkexec", "dnf", "-y", "install", "podman", "podman-compose",
+                  "freerdp", str(package)])
     elif app.kind == "driver":
         if app.source not in DRIVERS:
             raise ValueError(f"Unknown controller driver: {app.source}")
