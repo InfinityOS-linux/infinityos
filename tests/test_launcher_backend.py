@@ -154,7 +154,7 @@ class LauncherBackendTests(unittest.TestCase):
             info.size = len(data)
             archive.addfile(info, io.BytesIO(data))
         archive_bytes = archive_buffer.getvalue()
-        pinned = ("medusalix/xone", "pinned", hashlib.sha256(archive_bytes).hexdigest(), "xone", "v0.3")
+        pinned = ("dlundqvist/xone", "pinned", hashlib.sha256(archive_bytes).hexdigest(), "xone", "0.5.8")
         with tempfile.TemporaryDirectory() as directory, \
              patch.dict(backend.DRIVERS, {"xone": pinned}), \
              patch.object(backend.urllib.request, "urlopen", return_value=io.BytesIO(archive_bytes)):
@@ -166,6 +166,36 @@ class LauncherBackendTests(unittest.TestCase):
              patch.object(backend.urllib.request, "urlopen", return_value=io.BytesIO(archive_bytes)):
             with self.assertRaisesRegex(RuntimeError, "checksum"):
                 backend._verified_driver_source("xone", directory)
+
+    def test_xone_old_version_requires_upgrade(self):
+        app = next(app for app in backend.APPS if app.source == "xone")
+        status = "xone/v0.3, 6.0.0, x86_64: installed\n"
+        with patch.object(backend.shutil, "which", return_value="/usr/bin/dkms"), \
+             patch.object(backend.os, "uname", return_value=SimpleNamespace(release="6.0.0")), \
+             patch.object(backend.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout=status)):
+            self.assertFalse(backend.installed(app))
+            self.assertEqual(backend._old_xone_versions(), ["v0.3"])
+        status = "xone/0.5.8, 6.0.0, x86_64: installed\n"
+        with patch.object(backend.shutil, "which", return_value="/usr/bin/dkms"), \
+             patch.object(backend.os, "uname", return_value=SimpleNamespace(release="6.0.0")), \
+             patch.object(backend.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout=status)):
+            self.assertTrue(backend._driver_module_installed("xone", "0.5.8"))
+
+    def test_xone_requires_all_new_dongle_firmware_files(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(backend.XONE_FIRMWARES, clear=True):
+            backend.XONE_FIRMWARES.update({
+                "02e6": ("https://example.com/02e6.cab", "firmware.bin", hashlib.sha256(b"first").hexdigest()),
+                "02fe": ("https://example.com/02fe.cab", "firmware.bin", hashlib.sha256(b"second").hexdigest()),
+            })
+            firmware_dir = Path(directory) / "firmware"
+            self.assertFalse(backend._xone_firmware_valid(firmware_dir))
+            responses = (io.BytesIO(b"cab1"), io.BytesIO(b"cab2"))
+            outputs = (SimpleNamespace(returncode=0, stdout=b"first"),
+                       SimpleNamespace(returncode=0, stdout=b"second"))
+            with patch.object(backend.urllib.request, "urlopen", side_effect=responses), \
+                 patch.object(backend.subprocess, "run", side_effect=outputs):
+                backend._install_xone_firmware(directory, firmware_dir)
+            self.assertTrue(backend._xone_firmware_valid(firmware_dir))
 
     def test_flatpak_install_starts_only_when_called(self):
         steam = next(app for app in backend.APPS if app.name == "Steam")

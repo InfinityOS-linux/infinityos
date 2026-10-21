@@ -43,12 +43,21 @@ LOCAL_MODELS = {
 
 
 DRIVERS = {
-    "xone": ("medusalix/xone", "8311a25f2b4e69b7a3f8133b884cede065b253cc",
-             "6ba4ad757e0598a886c9ed50f1b9f0477a6eab3fbca4de7c564d415e3b4aadc8", "xone", "v0.3"),
+    "xone": ("dlundqvist/xone", "f2aa9fe01103d7600553b505b298ff0bd47ff280",
+             "a41601d1c4eb974fe5f9edd8e5ed45ef738e73b8f478e5e605cc59cd9a9960fc", "xone", "0.5.8"),
     "xpadneo": ("atar-axis/xpadneo", "e8f103a77f777c2c54536dd947969cf228699c13",
                 "3e37e6d774ad6bd0e0f49d0854e30b715851b845520155cbaa428ca90d4780ac", "hid-xpadneo", "v0.10.5"),
 }
-XONE_FIRMWARE_SHA256 = "48084d9fa53b9bb04358f3bb127b7495dc8f7bb0b3ca1437bd24ef2b6eabdf66"
+XONE_FIRMWARES = {
+    "02e6": ("https://catalog.s.download.windowsupdate.com/d/msdownload/update/driver/drvs/2017/03/2ea9591b-f751-442c-80ce-8f4692cdc67b_6b555a3a288153cf04aec6e03cba360afe2fce34.cab",
+             "FW_ACC_00U.bin", "080ce4091e53a4ef3e5fe29939f51fd91f46d6a88be6d67eb6e99a5723b3a223"),
+    "02fe": ("https://catalog.s.download.windowsupdate.com/c/msdownload/update/driver/drvs/2017/07/1cd6a87c-623f-4407-a52d-c31be49e925c_e19f60808bdcbfbd3c3df6be3e71ffc52e43261e.cab",
+             "FW_ACC_00U.bin", "48084d9fa53b9bb04358f3bb127b7495dc8f7bb0b3ca1437bd24ef2b6eabdf66"),
+    "02f9": ("https://catalog.s.download.windowsupdate.com/c/msdownload/update/driver/drvs/2017/06/1dbd7cb4-53bc-4857-a5b0-5955c8acaf71_9081931e7d664429a93ffda0db41b7545b7ac257.cab",
+             "FW_ACC_CL.bin", "0023a7bae02974834500c665a281e25b1ba52c9226c84989f9084fa5ce591d9b"),
+    "091e": ("https://catalog.s.download.windowsupdate.com/d/msdownload/update/driver/drvs/2017/08/aeff215c-3bc4-4d36-a3ea-e14bfa8fa9d2_e58550c4f74a27e51e5cb6868b10ff633fa77164.cab",
+             "FW_ACC_BR.bin", "e2710daf81e7b36d35985348f68a81d18bc537a2b0c508ffdfde6ac3eae1bad7"),
+}
 
 
 APPS = (
@@ -81,7 +90,7 @@ APPS = (
     App("Gaming", "Prism Launcher", "flatpak", "org.prismlauncher.PrismLauncher", "Minecraft instances and modpacks.", group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "OpenGamepadUI", "github-rpm", "shadowblip/OpenGamepadUI", "Controller-first game library.", group="Game launchers", icon="opengamepadui"),
     App("Gaming", "ProtonPlus", "flatpak", "com.vysp3r.ProtonPlus", "Manage Proton, Wine, DXVK and VKD3D versions for game launchers.", website="https://protonplus.vysp3r.com/", group="Game launchers", icon="com.vysp3r.ProtonPlus"),
-    App("Gaming", "Xbox Controller · USB / Dongle", "driver", "xone", "xone driver for wired Xbox controllers and the Xbox Wireless Adapter; installs dongle firmware.", website="https://github.com/medusalix/xone", group="Xbox Controller", icon="input-gaming-symbolic"),
+    App("Gaming", "Xbox Controller · USB / Dongle", "driver", "xone", "xone driver for wired Xbox controllers and the Xbox Wireless Adapter; installs dongle firmware.", website="https://github.com/dlundqvist/xone", group="Xbox Controller", icon="input-gaming-symbolic"),
     App("Gaming", "Xbox Controller · Bluetooth", "driver", "xpadneo", "xpadneo Bluetooth driver for Xbox controllers; pair the controller after installation.", website="https://github.com/atar-axis/xpadneo", group="Xbox Controller", icon="input-gaming-symbolic"),
     App("Gaming", "Discord", "flatpak", "com.discordapp.Discord", "Voice and text chat.", True, group="Communication", icon="mail-message-new-symbolic"),
     App("Gaming", "Vesktop", "flatpak", "dev.vencord.Vesktop", "Alternative Discord client.", group="Communication", icon="mail-message-new-symbolic"),
@@ -156,7 +165,7 @@ def installed(app, home=None):
         command = "claude" if "anthropic" in app.source else "codex"
         return (home / ".local/bin" / command).exists() or shutil.which(command) is not None
     if app.kind == "driver":
-        return _driver_module_installed(app.source) and (
+        return _driver_module_installed(app.source, DRIVERS[app.source][4]) and (
             app.source != "xone" or _xone_firmware_valid())
     package = app.package or (app.source.rsplit("/", 1)[-1].lower()
                               if app.kind == "github-rpm" else app.source)
@@ -175,18 +184,23 @@ def _run(command):
         raise RuntimeError(output.strip()[-1000:] or f"Command failed with exit code {result.returncode}.")
 
 
-def _driver_module_installed(driver):
+def _driver_module_installed(driver, version=None):
     if not shutil.which("dkms"):
         return False
     module = DRIVERS[driver][3]
     result = subprocess.run(["dkms", "status", module], stdout=subprocess.PIPE,
                             stderr=subprocess.DEVNULL, text=True, check=False)
-    return result.returncode == 0 and "installed" in result.stdout
+    if result.returncode:
+        return False
+    return any(line.startswith(f"{module}/{version}," if version else f"{module}/") and
+               "installed" in line and os.uname().release in line
+               for line in result.stdout.splitlines())
 
 
-def _xone_firmware_valid():
-    firmware = Path("/lib/firmware/xow_dongle.bin")
-    return firmware.is_file() and hashlib.sha256(firmware.read_bytes()).hexdigest() == XONE_FIRMWARE_SHA256
+def _xone_firmware_valid(firmware_dir=Path("/lib/firmware")):
+    return all((firmware_dir / f"xone_dongle_{pid}.bin").is_file() and
+               hashlib.sha256((firmware_dir / f"xone_dongle_{pid}.bin").read_bytes()).hexdigest() == expected
+               for pid, (_, _, expected) in XONE_FIRMWARES.items())
 
 
 def _verified_driver_source(driver, directory):
@@ -219,27 +233,36 @@ def _verified_driver_source(driver, directory):
     return Path(directory) / root_name
 
 
-def _install_xone_firmware(directory):
-    firmware = Path("/lib/firmware/xow_dongle.bin")
-    if _xone_firmware_valid():
-        return
-    # Microsoft's legacy CAB endpoint only offers HTTP; the extracted firmware
-    # is authenticated with the SHA256 from xone before it enters /lib/firmware.
-    url = ("http://download.windowsupdate.com/c/msdownload/update/driver/drvs/2017/07/"
-           "1cd6a87c-623f-4407-a52d-c31be49e925c_e19f60808bdcbfbd3c3df6be3e71ffc52e43261e.cab")
-    cab = Path(directory) / "driver.cab"
-    with urllib.request.urlopen(url, timeout=60) as response:
-        payload = response.read(1_000_001)
-    if len(payload) > 1_000_000:
-        raise RuntimeError("Xbox Wireless Adapter firmware archive is too large.")
-    cab.write_bytes(payload)
-    _run(["cabextract", "-F", "FW_ACC_00U.bin", "-d", str(directory), str(cab)])
-    extracted = Path(directory) / "FW_ACC_00U.bin"
-    if not extracted.is_file() or hashlib.sha256(extracted.read_bytes()).hexdigest() != XONE_FIRMWARE_SHA256:
-        raise RuntimeError("Xbox Wireless Adapter firmware failed checksum verification.")
-    firmware.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(extracted, firmware)
-    firmware.chmod(0o644)
+def _install_xone_firmware(directory, firmware_dir=Path("/lib/firmware")):
+    firmware_dir.mkdir(parents=True, exist_ok=True)
+    for pid, (url, member, expected) in XONE_FIRMWARES.items():
+        firmware = firmware_dir / f"xone_dongle_{pid}.bin"
+        if firmware.is_file() and hashlib.sha256(firmware.read_bytes()).hexdigest() == expected:
+            continue
+        cab = Path(directory) / f"xone-{pid}.cab"
+        with urllib.request.urlopen(url, timeout=60) as response:
+            payload = response.read(1_000_001)
+        if len(payload) > 1_000_000:
+            raise RuntimeError(f"Xbox Wireless Adapter {pid} firmware archive is too large.")
+        cab.write_bytes(payload)
+        extracted = subprocess.run(["bsdtar", "-xOf", str(cab), member],
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+        if extracted.returncode or hashlib.sha256(extracted.stdout).hexdigest() != expected:
+            raise RuntimeError(f"Xbox Wireless Adapter {pid} firmware failed checksum verification.")
+        temporary = firmware.with_suffix(".tmp")
+        temporary.write_bytes(extracted.stdout)
+        temporary.chmod(0o644)
+        temporary.replace(firmware)
+    legacy = firmware_dir / "xow_dongle.bin"
+    if legacy.is_file() and hashlib.sha256(legacy.read_bytes()).hexdigest() == "48084d9fa53b9bb04358f3bb127b7495dc8f7bb0b3ca1437bd24ef2b6eabdf66":
+        legacy.unlink()
+
+
+def _old_xone_versions():
+    result = subprocess.run(["dkms", "status", "xone"], stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL, text=True, check=False)
+    return sorted({match.group(1) for line in result.stdout.splitlines()
+                   if (match := re.match(r"^xone/([^,: ]+)", line))})
 
 
 def _install_driver_as_root(driver):
@@ -251,17 +274,22 @@ def _install_driver_as_root(driver):
     if not build_dir.is_dir():
         prerequisites.append(f"kernel-devel-{kernel}")
     if driver == "xone":
-        prerequisites.append("cabextract")
+        prerequisites.append("bsdtar")
     else:
         prerequisites.extend(("bluez", "bluez-tools"))
     _run(["dnf", "-y", "install", *prerequisites])
     if not build_dir.is_dir():
         raise RuntimeError(f"Kernel headers for {kernel} are missing. Update packages, reboot, then retry.")
     with tempfile.TemporaryDirectory(prefix="infinity-controller-") as directory:
-        if not _driver_module_installed(driver):
+        if not _driver_module_installed(driver, DRIVERS[driver][4]):
             source = _verified_driver_source(driver, directory)
             if driver == "xone":
                 version = DRIVERS[driver][4]
+                for old_version in _old_xone_versions():
+                    _run(["dkms", "remove", "-m", "xone", "-v", old_version, "--all"])
+                    old_source = Path("/usr/src") / f"xone-{old_version}"
+                    if old_source.is_dir():
+                        shutil.rmtree(old_source)
                 destination = Path("/usr/src") / f"xone-{version}"
                 if destination.exists():
                     shutil.rmtree(destination)
@@ -270,6 +298,10 @@ def _install_driver_as_root(driver):
                     contents = path.read_bytes()
                     if b"#VERSION#" in contents:
                         path.write_bytes(contents.replace(b"#VERSION#", version.encode()))
+                if "clang" in Path("/proc/version").read_text(encoding="utf-8"):
+                    with (destination / "dkms.conf").open("a", encoding="utf-8") as config:
+                        config.write('MAKE[0]="make V=1 LLVM=1 -C ${kernel_source_dir} '
+                                     'M=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}/build"\n')
                 _run(["dkms", "install", "-m", "xone", "-v", version])
                 blacklist = Path("/etc/modprobe.d/xone-blacklist.conf")
                 shutil.copyfile(destination / "install/modprobe.conf", blacklist)
