@@ -2,7 +2,7 @@
 Type=Application
 Name=InfinityTerminal
 Comment=Infinity OS drop-down terminal powered by Ghostty
-Exec=infinity-terminal
+Exec=infinity-terminal --toggle
 Icon=com.infinityos.GhosTTY
 Terminal=false
 Categories=System;TerminalEmulator;

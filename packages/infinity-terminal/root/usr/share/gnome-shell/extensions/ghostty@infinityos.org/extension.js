@@ -42,6 +42,7 @@ export default class InfinityTerminal extends Extension {
             if (window && !window.minimized)
                 this._hide(window);
         });
+        this._toggleRequestId = this._settings.connect('changed::toggle-request', () => this._toggle());
         const getRunning = Shell.AppSystem.prototype.get_running;
         this._getRunning = getRunning;
         this._filteredRunning = function () {
@@ -153,6 +154,7 @@ export default class InfinityTerminal extends Extension {
         this._touchpadSettings = null;
         this._gesture = null;
         this._settings.disconnect(this._hideRequestId);
+        this._settings.disconnect(this._toggleRequestId);
         global.stage.disconnect(this._outsideClickId);
         global.display.disconnect(this._focusId);
         global.display.disconnect(this._windowCreatedId);

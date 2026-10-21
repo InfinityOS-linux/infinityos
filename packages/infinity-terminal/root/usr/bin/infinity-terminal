@@ -1,4 +1,9 @@
 #!/bin/sh
+if [ "${1:-}" = '--toggle' ]; then
+	# Ask the Shell controller to use the same drop-down behavior as Super+T.
+	export GSETTINGS_SCHEMA_DIR=/usr/share/gnome-shell/extensions/ghostty@infinityos.org/schemas
+	exec gsettings set org.infinityos.GhosTTY toggle-request "$(date +%s%N)"
+fi
 export GHOSTTY_RESOURCES_DIR=/usr/share/ghostty
 if [ "$(systemd-detect-virt)" = parallels ]; then
 	export LIBGL_ALWAYS_SOFTWARE=1

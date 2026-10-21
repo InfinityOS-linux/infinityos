@@ -199,6 +199,16 @@ for required in \
     }
 done
 grep -Fq 'source /usr/share/infinityos/ghostty/keybindings.zsh' "$rootpoint/etc/skel/.zshrc"
+grep -qx 'Exec=infinity-terminal --toggle' \
+    "$rootpoint/usr/share/applications/com.infinityos.GhosTTY.desktop" || {
+    echo 'InfinityTerminal dock launcher does not request the drop-down panel' >&2
+    exit 1
+}
+grep -Fq 'changed::toggle-request' \
+    "$rootpoint/usr/share/gnome-shell/extensions/ghostty@infinityos.org/extension.js" || {
+    echo 'InfinityTerminal drop-down controller missing from ISO' >&2
+    exit 1
+}
 for package in gnome-builder ptyxis gnome-terminal gnome-console showtime totem; do
     if rpm --root "$rootpoint" -q "$package" >/dev/null 2>&1; then
         echo "Replaced default application still installed in ISO: $package" >&2
