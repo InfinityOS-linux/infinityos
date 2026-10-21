@@ -66,6 +66,27 @@ def label(text, style=None):
     return widget
 
 
+def catalog_icon(path):
+    """Fit the visible artwork, rather than its transparent canvas, into the row."""
+    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(path), 128, 128, True)
+    if pixbuf.get_has_alpha():
+        pixels = pixbuf.get_pixels()
+        width, height = pixbuf.get_width(), pixbuf.get_height()
+        stride, channels = pixbuf.get_rowstride(), pixbuf.get_n_channels()
+        visible = [(x, y) for y in range(height) for x in range(width)
+                   if pixels[y * stride + x * channels + 3] > 12]
+        if visible:
+            left = min(x for x, _ in visible)
+            top = min(y for _, y in visible)
+            pixbuf = pixbuf.new_subpixbuf(left, top,
+                                          max(x for x, _ in visible) - left + 1,
+                                          max(y for _, y in visible) - top + 1)
+    scale = 36 / max(pixbuf.get_width(), pixbuf.get_height())
+    return pixbuf.scale_simple(max(1, round(pixbuf.get_width() * scale)),
+                               max(1, round(pixbuf.get_height() * scale)),
+                               GdkPixbuf.InterpType.BILINEAR)
+
+
 class InfinityLauncher(Gtk.Application):
     def __init__(self, first_run=False):
         super().__init__(application_id="org.infinityos.Launcher")
@@ -239,7 +260,7 @@ class InfinityLauncher(Gtk.Application):
             if not private_icon.is_file():
                 private_icon = ICON_DIR / f"{icon_name}.svg"
             if private_icon.is_file():
-                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(private_icon), 36, 36, True)
+                pixbuf = catalog_icon(private_icon)
                 icon = Gtk.Image.new_from_pixbuf(pixbuf)
             else:
                 if not Gtk.IconTheme.get_for_display(self.window.get_display()).has_icon(icon_name):
@@ -262,7 +283,7 @@ class InfinityLauncher(Gtk.Application):
                 link = Gtk.LinkButton(uri=app.website, label=tr("View source and releases"))
                 link.set_halign(Gtk.Align.START)
                 details.append(link)
-            elif app.kind in ("lutris-installer", "epic-appimage"):
+            elif app.website:
                 link = Gtk.LinkButton(uri=app.website, label=tr("Official website"))
                 link.set_halign(Gtk.Align.START)
                 details.append(link)

@@ -1,6 +1,8 @@
 import importlib.util
+import hashlib
 import io
 import json
+import tarfile
 import tempfile
 import unittest
 from pathlib import Path
@@ -59,6 +61,52 @@ class LauncherBackendTests(unittest.TestCase):
         self.assertFalse(backend.available(steam, "aarch64"))
         self.assertTrue(backend.available(steam, "x86_64"))
         self.assertTrue(backend.available(photocraft, "aarch64"))
+
+    def test_new_catalog_entries_and_order(self):
+        gaming = [app.name for app in backend.APPS if app.category == "Gaming"]
+        office = [app.name for app in backend.APPS if app.category == "Office"]
+        creative = [app.name for app in backend.APPS if app.category == "Creative"]
+        self.assertEqual(gaming[gaming.index("OpenGamepadUI") + 1], "ProtonPlus")
+        self.assertEqual(office[office.index("WordCraft") + 1], "GridCraft")
+        self.assertIn("SoundCraft", creative)
+        self.assertIn("FigCraft", creative)
+        self.assertNotIn("ArtCraft Launcher", creative)
+        for name in ("GridCraft", "SoundCraft", "FigCraft", "ProtonPlus"):
+            app = next(app for app in backend.APPS if app.name == name)
+            self.assertTrue(backend.available(app, "aarch64"))
+
+    def test_controller_install_uses_packaged_root_helper(self):
+        app = next(app for app in backend.APPS if app.source == "xone")
+        with patch.object(backend, "_run") as run:
+            backend.install(app)
+        self.assertEqual(run.call_args.args[0][-2:], ["--install-driver", "xone"])
+        self.assertEqual(run.call_args.args[0][:2], ["pkexec", "/usr/bin/python3"])
+
+    def test_controller_is_available_before_dkms_is_installed(self):
+        app = next(app for app in backend.APPS if app.source == "xpadneo")
+        with patch.object(backend.shutil, "which", return_value=None):
+            self.assertFalse(backend.installed(app))
+
+    def test_controller_source_checksum_and_safe_extraction(self):
+        archive_buffer = io.BytesIO()
+        with tarfile.open(fileobj=archive_buffer, mode="w:gz") as archive:
+            data = b"driver source"
+            info = tarfile.TarInfo("xone-pinned/install.sh")
+            info.size = len(data)
+            archive.addfile(info, io.BytesIO(data))
+        archive_bytes = archive_buffer.getvalue()
+        pinned = ("medusalix/xone", "pinned", hashlib.sha256(archive_bytes).hexdigest(), "xone", "v0.3")
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.dict(backend.DRIVERS, {"xone": pinned}), \
+             patch.object(backend.urllib.request, "urlopen", return_value=io.BytesIO(archive_bytes)):
+            source = backend._verified_driver_source("xone", directory)
+            self.assertEqual((source / "install.sh").read_bytes(), b"driver source")
+        bad_pin = (*pinned[:2], "0" * 64, *pinned[3:])
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.dict(backend.DRIVERS, {"xone": bad_pin}), \
+             patch.object(backend.urllib.request, "urlopen", return_value=io.BytesIO(archive_bytes)):
+            with self.assertRaisesRegex(RuntimeError, "checksum"):
+                backend._verified_driver_source("xone", directory)
 
     def test_flatpak_install_starts_only_when_called(self):
         steam = next(app for app in backend.APPS if app.name == "Steam")

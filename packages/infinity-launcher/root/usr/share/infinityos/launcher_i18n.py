@@ -32,6 +32,7 @@ POLISH = {
     "Web browsers": "Przeglądarki internetowe", "Media players": "Odtwarzacze multimedialne",
     "Download managers": "Menedżery pobierania", "Email clients": "Klienci poczty",
     "Device tools": "Narzędzia urządzeń", "Game launchers": "Launchery gier",
+    "Xbox Controller": "Kontroler Xbox", "Audio": "Dźwięk",
     "Communication": "Komunikacja", "Other": "Inne", "Image": "Obraz",
     "Video": "Wideo", "Design": "Projektowanie", "More tools": "Więcej narzędzi",
     "Development tools": "Narzędzia programistyczne", "Assistants": "Asystenci",
@@ -66,16 +67,26 @@ POLISH = {
     "Windows games with Wine.": "Gry z Windows przez Wine.",
     "Minecraft instances and modpacks.": "Instancje i paczki modyfikacji Minecrafta.",
     "Controller-first game library.": "Biblioteka gier sterowana padem.",
+    "Manage Proton, Wine, DXVK and VKD3D versions for game launchers.":
+        "Zarządzaj wersjami Proton, Wine, DXVK i VKD3D dla launcherów gier.",
+    "xone driver for wired Xbox controllers and the Xbox Wireless Adapter; installs dongle firmware.":
+        "Sterownik xone dla przewodowych kontrolerów Xbox i adaptera bezprzewodowego; instaluje firmware adaptera.",
+    "xpadneo Bluetooth driver for Xbox controllers; pair the controller after installation.":
+        "Sterownik Bluetooth xpadneo dla kontrolerów Xbox; sparuj kontroler po instalacji.",
     "Voice and text chat.": "Rozmowy głosowe i tekstowe.",
     "Alternative Discord client.": "Alternatywny klient Discorda.",
     "Wine environments for Windows apps.": "Środowiska Wine dla aplikacji Windows.",
-    "Adobe-style photo editor clone.": "Klon edytora zdjęć Adobe.",
-    "Adobe-style vector editor clone.": "Klon edytora grafiki wektorowej Adobe.",
-    "Adobe-style photo workflow clone.": "Klon programu Adobe do obróbki zdjęć.",
-    "Adobe-style video editor clone.": "Klon edytora wideo Adobe.",
-    "Adobe-style visual effects clone.": "Klon programu Adobe do efektów wizualnych.",
-    "Adobe-style layout editor clone.": "Klon programu Adobe do składu publikacji.",
-    "Adobe-style 3D design clone.": "Klon programu Adobe do projektowania 3D.",
+    "Open-source photo editor built in Rust.": "Edytor zdjęć o otwartym kodzie, napisany w Rust.",
+    "Create and edit vector art in an open-source Rust app.": "Twórz i edytuj grafikę wektorową w aplikacji Rust o otwartym kodzie.",
+    "Edit photos non-destructively in an open-source Rust app.": "Edytuj zdjęcia bez naruszania oryginałów w aplikacji Rust o otwartym kodzie.",
+    "Edit video on a nonlinear timeline in an open-source Rust app.": "Montuj wideo na nieliniowej osi czasu w aplikacji Rust o otwartym kodzie.",
+    "Create motion graphics and composite visual effects.": "Twórz animowaną grafikę i łącz efekty wizualne.",
+    "Design pages and publication layouts in an open-source Rust app.": "Projektuj strony i układy publikacji w aplikacji Rust o otwartym kodzie.",
+    "Computer-aided design and drafting in an open-source Rust app.": "Projektowanie i rysowanie CAD w aplikacji Rust o otwartym kodzie.",
+    "Design and prototype interfaces with frames, components and layouts (early alpha).":
+        "Projektuj i prototypuj interfejsy z ramkami, komponentami i układami (wczesna alfa).",
+    "Record, edit and mix multitrack audio (pre-alpha).":
+        "Nagrywaj, edytuj i miksuj dźwięk wielościeżkowy (przed alfą).",
     "Edit raster images.": "Edytuj obrazy rastrowe.",
     "Paint and illustrate.": "Maluj i twórz ilustracje.",
     "Edit vector graphics.": "Edytuj grafikę wektorową.",
@@ -99,9 +110,13 @@ POLISH = {
     "Documents, presentations and spreadsheets.": "Dokumenty, prezentacje i arkusze kalkulacyjne.",
     "Documents, spreadsheets, presentations and PDFs.":
         "Dokumenty, arkusze kalkulacyjne, prezentacje i pliki PDF.",
-    "Adobe-style PDF editor clone.": "Klon edytora PDF Adobe.",
-    "Adobe-style document editor clone.": "Klon edytora dokumentów Adobe.",
-    "Adobe-style presentation editor clone.": "Klon edytora prezentacji Adobe.",
+    "Read and edit PDF documents in an open-source Rust app.": "Czytaj i edytuj PDF w aplikacji Rust o otwartym kodzie.",
+    "Create and edit word-processing documents in an open-source Rust app.":
+        "Twórz i edytuj dokumenty tekstowe w aplikacji Rust o otwartym kodzie.",
+    "Create spreadsheets for data and tables in an open-source Rust app.":
+        "Twórz arkusze kalkulacyjne dla danych i tabel w aplikacji Rust o otwartym kodzie.",
+    "Create presentations and slide shows in an open-source Rust app.":
+        "Twórz prezentacje i pokazy slajdów w aplikacji Rust o otwartym kodzie.",
 }
 
 

@@ -1,12 +1,15 @@
 """Application catalog and deferred installation for InfinityLauncher."""
 
 import hashlib
+import io
 import json
 import os
 import pwd
 import re
 import shutil
 import subprocess
+import sys
+import tarfile
 import tempfile
 import urllib.parse
 import urllib.request
@@ -39,6 +42,15 @@ LOCAL_MODELS = {
 }
 
 
+DRIVERS = {
+    "xone": ("medusalix/xone", "8311a25f2b4e69b7a3f8133b884cede065b253cc",
+             "6ba4ad757e0598a886c9ed50f1b9f0477a6eab3fbca4de7c564d415e3b4aadc8", "xone", "v0.3"),
+    "xpadneo": ("atar-axis/xpadneo", "e8f103a77f777c2c54536dd947969cf228699c13",
+                "3e37e6d774ad6bd0e0f49d0854e30b715851b845520155cbaa428ca90d4780ac", "hid-xpadneo", "v0.10.5"),
+}
+XONE_FIRMWARE_SHA256 = "48084d9fa53b9bb04358f3bb127b7495dc8f7bb0b3ca1437bd24ef2b6eabdf66"
+
+
 APPS = (
     App("System", "Google Chrome", "flatpak", "com.google.Chrome", "Google's web browser with account sync.", group="Web browsers", icon="web-browser-symbolic"),
     App("System", "Chromium", "flatpak", "org.chromium.Chromium", "Open-source Chromium web browser.", group="Web browsers", icon="web-browser-symbolic"),
@@ -66,16 +78,21 @@ APPS = (
     App("Gaming", "Faugus Launcher", "flatpak", "io.github.Faugus.faugus-launcher", "Windows games with Wine.", True, group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Prism Launcher", "flatpak", "org.prismlauncher.PrismLauncher", "Minecraft instances and modpacks.", group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "OpenGamepadUI", "github-rpm", "shadowblip/OpenGamepadUI", "Controller-first game library.", group="Game launchers", icon="opengamepadui"),
+    App("Gaming", "ProtonPlus", "flatpak", "com.vysp3r.ProtonPlus", "Manage Proton, Wine, DXVK and VKD3D versions for game launchers.", website="https://protonplus.vysp3r.com/", group="Game launchers", icon="com.vysp3r.ProtonPlus"),
+    App("Gaming", "Xbox Controller · USB / Dongle", "driver", "xone", "xone driver for wired Xbox controllers and the Xbox Wireless Adapter; installs dongle firmware.", website="https://github.com/medusalix/xone", group="Xbox Controller", icon="input-gaming-symbolic"),
+    App("Gaming", "Xbox Controller · Bluetooth", "driver", "xpadneo", "xpadneo Bluetooth driver for Xbox controllers; pair the controller after installation.", website="https://github.com/atar-axis/xpadneo", group="Xbox Controller", icon="input-gaming-symbolic"),
     App("Gaming", "Discord", "flatpak", "com.discordapp.Discord", "Voice and text chat.", True, group="Communication", icon="mail-message-new-symbolic"),
     App("Gaming", "Vesktop", "flatpak", "dev.vencord.Vesktop", "Alternative Discord client.", group="Communication", icon="mail-message-new-symbolic"),
     App("Gaming", "Bottles", "flatpak", "com.usebottles.bottles", "Wine environments for Windows apps.", True, group="Other", icon="applications-system-symbolic"),
-    App("Creative", "PhotoCraft", "github-rpm", "storytold/photocraft", "Adobe-style photo editor clone.", website="https://github.com/storytold/photocraft", group="Image", icon="ai.storyteller.photocraft"),
-    App("Creative", "VectorCraft", "github-rpm", "storytold/vectorcraft", "Adobe-style vector editor clone.", website="https://github.com/storytold/vectorcraft", group="Image", icon="ai.storyteller.vectorcraft"),
-    App("Creative", "LightCraft", "github-rpm", "storytold/lightcraft", "Adobe-style photo workflow clone.", website="https://github.com/storytold/lightcraft", group="Image", icon="ai.storyteller.lightcraft"),
-    App("Creative", "FilmCraft", "github-rpm", "storytold/filmcraft", "Adobe-style video editor clone.", website="https://github.com/storytold/filmcraft", group="Video", icon="ai.storyteller.filmcraft"),
-    App("Creative", "EffectCraft", "github-rpm", "storytold/effectcraft", "Adobe-style visual effects clone.", website="https://github.com/storytold/effectcraft", group="Video", icon="ai.storyteller.effectcraft"),
-    App("Creative", "DesignCraft", "github-rpm", "storytold/designcraft", "Adobe-style layout editor clone.", website="https://github.com/storytold/designcraft", group="Design", icon="ai.storyteller.designcraft"),
-    App("Creative", "CADCraft", "github-rpm", "storytold/cadcraft", "Adobe-style 3D design clone.", website="https://github.com/storytold/cadcraft", group="Design", icon="ai.storyteller.cadcraft"),
+    App("Creative", "PhotoCraft", "github-rpm", "storytold/photocraft", "Open-source photo editor built in Rust.", website="https://github.com/storytold/photocraft", group="Image", icon="ai.storyteller.photocraft"),
+    App("Creative", "VectorCraft", "github-rpm", "storytold/vectorcraft", "Create and edit vector art in an open-source Rust app.", website="https://github.com/storytold/vectorcraft", group="Image", icon="ai.storyteller.vectorcraft"),
+    App("Creative", "LightCraft", "github-rpm", "storytold/lightcraft", "Edit photos non-destructively in an open-source Rust app.", website="https://github.com/storytold/lightcraft", group="Image", icon="ai.storyteller.lightcraft"),
+    App("Creative", "FilmCraft", "github-rpm", "storytold/filmcraft", "Edit video on a nonlinear timeline in an open-source Rust app.", website="https://github.com/storytold/filmcraft", group="Video", icon="ai.storyteller.filmcraft"),
+    App("Creative", "EffectCraft", "github-rpm", "storytold/effectcraft", "Create motion graphics and composite visual effects.", website="https://github.com/storytold/effectcraft", group="Video", icon="ai.storyteller.effectcraft"),
+    App("Creative", "DesignCraft", "github-rpm", "storytold/designcraft", "Design pages and publication layouts in an open-source Rust app.", website="https://github.com/storytold/designcraft", group="Design", icon="ai.storyteller.designcraft"),
+    App("Creative", "CADCraft", "github-rpm", "storytold/cadcraft", "Computer-aided design and drafting in an open-source Rust app.", website="https://github.com/storytold/cadcraft", group="Design", icon="ai.storyteller.cadcraft"),
+    App("Creative", "FigCraft", "github-rpm", "storytold/figcraft", "Design and prototype interfaces with frames, components and layouts (early alpha).", website="https://github.com/storytold/figcraft", group="Design", icon="ai.storyteller.figcraft"),
+    App("Creative", "SoundCraft", "github-rpm", "storytold/soundcraft", "Record, edit and mix multitrack audio (pre-alpha).", website="https://github.com/storytold/soundcraft", group="Audio", icon="ai.storyteller.soundcraft"),
     App("Creative", "GIMP", "flatpak", "org.gimp.GIMP", "Edit raster images.", group="More tools", icon="applications-graphics-symbolic"),
     App("Creative", "Krita", "flatpak", "org.kde.krita", "Paint and illustrate.", group="More tools", icon="applications-graphics-symbolic"),
     App("Creative", "Inkscape", "flatpak", "org.inkscape.Inkscape", "Edit vector graphics.", group="More tools", icon="applications-graphics-symbolic"),
@@ -92,9 +109,10 @@ APPS = (
     App("AI", "Qwen3.5 35B A3B Q5 · 64 GB RAM", "local-model", "infinity-qwen-35b", "For 64 GB RAM. Needs about 30 GB free disk; local coding agent.", group="Local models", icon="infinity-ai"),
     App("Office", "EuroOffice", "github-rpm", "Euro-Office/DesktopEditors", "Documents, spreadsheets, presentations and PDFs.", website="https://github.com/Euro-Office/DesktopEditors", group="Office suite", icon="applications-office-symbolic", package="euro-office-euro-office"),
     App("Office", "LibreOffice", "flatpak", "org.libreoffice.LibreOffice", "Documents, presentations and spreadsheets.", group="Office suite", icon="applications-office-symbolic"),
-    App("Office", "PDFCraft", "github-rpm", "storytold/pdfcraft", "Adobe-style PDF editor clone.", website="https://github.com/storytold/pdfcraft", group="Documents", icon="ai.storyteller.pdfcraft"),
-    App("Office", "WordCraft", "github-rpm", "storytold/wordcraft", "Adobe-style document editor clone.", website="https://github.com/storytold/wordcraft", group="Documents", icon="ai.storyteller.wordcraft"),
-    App("Office", "DeckCraft", "github-rpm", "storytold/deckcraft", "Adobe-style presentation editor clone.", website="https://github.com/storytold/deckcraft", group="Documents", icon="ai.storyteller.deckcraft"),
+    App("Office", "PDFCraft", "github-rpm", "storytold/pdfcraft", "Read and edit PDF documents in an open-source Rust app.", website="https://github.com/storytold/pdfcraft", group="Documents", icon="ai.storyteller.pdfcraft"),
+    App("Office", "WordCraft", "github-rpm", "storytold/wordcraft", "Create and edit word-processing documents in an open-source Rust app.", website="https://github.com/storytold/wordcraft", group="Documents", icon="ai.storyteller.wordcraft"),
+    App("Office", "GridCraft", "github-rpm", "storytold/gridcraft", "Create spreadsheets for data and tables in an open-source Rust app.", website="https://github.com/storytold/gridcraft", group="Documents", icon="ai.storyteller.gridcraft"),
+    App("Office", "DeckCraft", "github-rpm", "storytold/deckcraft", "Create presentations and slide shows in an open-source Rust app.", website="https://github.com/storytold/deckcraft", group="Documents", icon="ai.storyteller.deckcraft"),
 )
 
 
@@ -132,6 +150,9 @@ def installed(app, home=None):
     if app.kind == "npm":
         command = "claude" if "anthropic" in app.source else "codex"
         return (home / ".local/bin" / command).exists() or shutil.which(command) is not None
+    if app.kind == "driver":
+        return _driver_module_installed(app.source) and (
+            app.source != "xone" or _xone_firmware_valid())
     package = app.package or (app.source.rsplit("/", 1)[-1].lower()
                               if app.kind == "github-rpm" else app.source)
     return subprocess.run(["rpm", "-q", package], stdout=subprocess.DEVNULL,
@@ -147,6 +168,113 @@ def _run(command):
         if "EAI_AGAIN" in output:
             raise RuntimeError("Could not resolve the package server. Check your internet connection, then press APPLY to retry.")
         raise RuntimeError(output.strip()[-1000:] or f"Command failed with exit code {result.returncode}.")
+
+
+def _driver_module_installed(driver):
+    if not shutil.which("dkms"):
+        return False
+    module = DRIVERS[driver][3]
+    result = subprocess.run(["dkms", "status", module], stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL, text=True, check=False)
+    return result.returncode == 0 and "installed" in result.stdout
+
+
+def _xone_firmware_valid():
+    firmware = Path("/lib/firmware/xow_dongle.bin")
+    return firmware.is_file() and hashlib.sha256(firmware.read_bytes()).hexdigest() == XONE_FIRMWARE_SHA256
+
+
+def _verified_driver_source(driver, directory):
+    repository, commit, expected, _, _ = DRIVERS[driver]
+    url = f"https://codeload.github.com/{repository}/tar.gz/{commit}"
+    request = urllib.request.Request(url, headers={"User-Agent": "InfinityLauncher"})
+    with urllib.request.urlopen(request, timeout=60) as response:
+        archive = response.read(20_000_001)
+    if len(archive) > 20_000_000 or hashlib.sha256(archive).hexdigest() != expected:
+        raise RuntimeError(f"{driver} source archive failed checksum verification.")
+    root_name = f"{repository.rsplit('/', 1)[-1]}-{commit}"
+    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz") as tar:
+        members = tar.getmembers()
+        if any(not (member.isfile() or member.isdir()) or
+               not (member.name == root_name or member.name.startswith(root_name + "/")) or
+               ".." in Path(member.name).parts or member.name.startswith("/")
+               for member in members):
+            raise RuntimeError(f"{driver} source archive contains unsafe paths.")
+        if sum(member.size for member in members) > 80_000_000:
+            raise RuntimeError(f"{driver} source archive is too large.")
+        for member in members:
+            destination = Path(directory) / member.name
+            if member.isdir():
+                destination.mkdir(parents=True, exist_ok=True)
+            else:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                with tar.extractfile(member) as source, destination.open("wb") as output:
+                    shutil.copyfileobj(source, output)
+                destination.chmod(member.mode & 0o777)
+    return Path(directory) / root_name
+
+
+def _install_xone_firmware(directory):
+    firmware = Path("/lib/firmware/xow_dongle.bin")
+    if _xone_firmware_valid():
+        return
+    # Microsoft's legacy CAB endpoint only offers HTTP; the extracted firmware
+    # is authenticated with the SHA256 from xone before it enters /lib/firmware.
+    url = ("http://download.windowsupdate.com/c/msdownload/update/driver/drvs/2017/07/"
+           "1cd6a87c-623f-4407-a52d-c31be49e925c_e19f60808bdcbfbd3c3df6be3e71ffc52e43261e.cab")
+    cab = Path(directory) / "driver.cab"
+    with urllib.request.urlopen(url, timeout=60) as response:
+        payload = response.read(1_000_001)
+    if len(payload) > 1_000_000:
+        raise RuntimeError("Xbox Wireless Adapter firmware archive is too large.")
+    cab.write_bytes(payload)
+    _run(["cabextract", "-F", "FW_ACC_00U.bin", "-d", str(directory), str(cab)])
+    extracted = Path(directory) / "FW_ACC_00U.bin"
+    if not extracted.is_file() or hashlib.sha256(extracted.read_bytes()).hexdigest() != XONE_FIRMWARE_SHA256:
+        raise RuntimeError("Xbox Wireless Adapter firmware failed checksum verification.")
+    firmware.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(extracted, firmware)
+    firmware.chmod(0o644)
+
+
+def _install_driver_as_root(driver):
+    if os.geteuid() != 0 or driver not in DRIVERS:
+        raise PermissionError("Controller driver installation requires root and a known driver.")
+    kernel = os.uname().release
+    build_dir = Path(f"/lib/modules/{kernel}/build")
+    prerequisites = ["dkms", "gcc", "make", "kernel-headers"]
+    if not build_dir.is_dir():
+        prerequisites.append(f"kernel-devel-{kernel}")
+    if driver == "xone":
+        prerequisites.append("cabextract")
+    else:
+        prerequisites.extend(("bluez", "bluez-tools"))
+    _run(["dnf", "-y", "install", *prerequisites])
+    if not build_dir.is_dir():
+        raise RuntimeError(f"Kernel headers for {kernel} are missing. Update packages, reboot, then retry.")
+    with tempfile.TemporaryDirectory(prefix="infinity-controller-") as directory:
+        if not _driver_module_installed(driver):
+            source = _verified_driver_source(driver, directory)
+            if driver == "xone":
+                version = DRIVERS[driver][4]
+                destination = Path("/usr/src") / f"xone-{version}"
+                if destination.exists():
+                    shutil.rmtree(destination)
+                shutil.copytree(source, destination)
+                for path in (*destination.rglob("dkms.conf"), *destination.rglob("*.c")):
+                    contents = path.read_bytes()
+                    if b"#VERSION#" in contents:
+                        path.write_bytes(contents.replace(b"#VERSION#", version.encode()))
+                _run(["dkms", "install", "-m", "xone", "-v", version])
+                blacklist = Path("/etc/modprobe.d/xone-blacklist.conf")
+                shutil.copyfile(destination / "install/modprobe.conf", blacklist)
+            else:
+                _run(["bash", str(source / "install.sh")])
+        if driver == "xone":
+            _install_xone_firmware(directory)
+    _run(["depmod", "-a"])
+    if driver == "xpadneo":
+        _run(["systemctl", "enable", "--now", "bluetooth.service"])
 
 
 def _latest_rpm(app, arch, directory):
@@ -194,6 +322,11 @@ def install(app, home=None):
         with tempfile.TemporaryDirectory(prefix="infinity-launcher-") as directory:
             package = _latest_rpm(app, os.uname().machine, directory)
             _run(["pkexec", "dnf", "-y", "install", str(package)])
+    elif app.kind == "driver":
+        if app.source not in DRIVERS:
+            raise ValueError(f"Unknown controller driver: {app.source}")
+        _run(["pkexec", "/usr/bin/python3", str(Path(__file__).resolve()),
+              "--install-driver", app.source])
     elif app.kind == "dnf":
         if app.source == "docker-ce":
             if not Path("/etc/yum.repos.d/docker-ce.repo").exists():
@@ -336,3 +469,9 @@ def _install_local_model(app, home):
         subprocess.run(["gapplication", "action", "com.infinityos.GhosTTY",
                         "refresh-cli-tabs"], stdout=subprocess.DEVNULL,
                        stderr=subprocess.DEVNULL, check=False)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3 or sys.argv[1] != "--install-driver":
+        raise SystemExit("Usage: launcher_backend.py --install-driver xone|xpadneo")
+    _install_driver_as_root(sys.argv[2])
