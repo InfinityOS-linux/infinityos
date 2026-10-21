@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+real_mkfs=${INFINITYOS_REAL_MKFS_EROFS:?kiwi-build must provide mkfs.erofs}
+source_dir=${!#}
+policy="$source_dir/etc/selinux/targeted/contexts/files/file_contexts"
+
+if [[ -f "$source_dir/usr/share/infinityos/build-revision" ]]; then
+    [[ -s "$policy" ]] || {
+        echo "Infinity OS live root has no SELinux file contexts: $policy" >&2
+        exit 1
+    }
+    exec "$real_mkfs" "--file-contexts=$policy" "$@"
+fi
+
+exec "$real_mkfs" "$@"

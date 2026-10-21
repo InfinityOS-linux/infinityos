@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+"""Reject live roots that rsync cannot safely copy onto an SELinux system."""
+
+import os
+import stat
+import sys
+
+
+def main() -> int:
+    if len(sys.argv) != 2:
+        print("Usage: verify-selinux-labels LIVE_ROOT", file=sys.stderr)
+        return 2
+    root = os.path.abspath(sys.argv[1])
+    missing = []
+    checked = 0
+    for directory, children, files in os.walk(root, followlinks=False):
+        relative = os.path.relpath(directory, root)
+        if relative == ".":
+            children[:] = [name for name in children if name not in
+                           {"dev", "proc", "sys", "run"}]
+        paths = [directory] + [os.path.join(directory, name) for name in files]
+        paths += [os.path.join(directory, name) for name in children
+                  if os.path.islink(os.path.join(directory, name))]
+        for path in paths:
+            mode = os.lstat(path).st_mode
+            if not (stat.S_ISDIR(mode) or stat.S_ISREG(mode) or stat.S_ISLNK(mode)):
+                continue
+            checked += 1
+            try:
+                context = os.getxattr(path, "security.selinux", follow_symlinks=False)
+            except OSError:
+                context = b""
+            if not context or b":unlabeled_t:" in context:
+                missing.append(os.path.relpath(path, root))
+    if missing:
+        print(f"Live root has {len(missing)} files or directories without SELinux "
+              f"labels (checked {checked}):", file=sys.stderr)
+        for path in missing[:30]:
+            print(f"  {path}", file=sys.stderr)
+        return 1
+    print(f"Verified SELinux labels on {checked} live root paths")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -29,6 +29,7 @@ mount -o loop,ro "$iso" "$mountpoint"
 }
 fsck.erofs --extract "$mountpoint/LiveOS/squashfs.img"
 mount -t erofs -o loop,ro "$mountpoint/LiveOS/squashfs.img" "$rootpoint"
+"$script_dir/verify-selinux-labels" "$rootpoint"
 "$script_dir/../root/usr/libexec/infinityos-verify-build-root" "$rootpoint" "$revision"
 "$script_dir/verify-gnome-extension-contracts" "$rootpoint"
 grep -qx 'IsFinal=True' "$rootpoint/.buildstamp" || {
