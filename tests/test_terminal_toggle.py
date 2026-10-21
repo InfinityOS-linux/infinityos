@@ -9,6 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1] / "packages/infinity-terminal/root"
+DOCK = Path(__file__).resolve().parents[1] / "root/usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/dock.js"
 TERMINAL = ROOT / "usr/bin/infinity-terminal"
 EXTENSION = ROOT / "usr/share/gnome-shell/extensions/ghostty@infinityos.org"
 
@@ -48,6 +49,11 @@ class TerminalToggleTests(unittest.TestCase):
         source = (EXTENSION / "extension.js").read_text()
         self.assertIn("changed::toggle-request', () => this._toggle()", source)
         self.assertIn("this._settings.disconnect(this._toggleRequestId)", source)
+
+    def test_dock_does_not_activate_the_persistent_ghostty_window(self):
+        dock = DOCK.read_text()
+        self.assertIn("c._appwell.app?.get_id?.() === 'com.infinityos.GhosTTY.desktop'", dock)
+        self.assertIn("Gio.Subprocess.new(['/usr/bin/infinity-terminal', '--toggle']", dock)
 
 
 if __name__ == "__main__":

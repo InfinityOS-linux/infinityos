@@ -812,6 +812,15 @@ export let Dock = GObject.registerClass(
         if (c._appwell && !c._appwell._activate) {
           c._appwell._activate = c._appwell.activate;
           c._appwell.activate = () => {
+            if (c._appwell.app?.get_id?.() === 'com.infinityos.GhosTTY.desktop') {
+              Main.overview.hide();
+              try {
+                Gio.Subprocess.new(['/usr/bin/infinity-terminal', '--toggle'], Gio.SubprocessFlags.NONE);
+              } catch (error) {
+                console.error(`Could not toggle InfinityTerminal: ${error}`);
+              }
+              return;
+            }
             try {
               if (!c._menu) {
                 this._maybeBounce(c);
