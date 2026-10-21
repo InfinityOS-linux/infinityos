@@ -31,6 +31,7 @@ POLISH = {
     "Installing {index}/{total}: {name}…": "Instalowanie {index}/{total}: {name}…",
     "Web browsers": "Przeglądarki internetowe", "Media players": "Odtwarzacze multimedialne",
     "Download managers": "Menedżery pobierania", "Email clients": "Klienci poczty",
+    "System maintenance": "Konserwacja systemu",
     "Device tools": "Narzędzia urządzeń", "Windows apps": "Aplikacje Windows",
     "Game launchers": "Launchery gier",
     "Xbox Controller": "Kontroler Xbox", "Audio": "Dźwięk",
@@ -55,6 +56,8 @@ POLISH = {
     "GNOME email, calendar and contacts.": "Poczta, kalendarz i kontakty dla GNOME.",
     "Email client with a unified inbox.": "Klient poczty ze wspólną skrzynką odbiorczą.",
     "Email client with a modern inbox.": "Klient poczty z nowoczesną skrzynką odbiorczą.",
+    "Inspect disk usage and choose safe cleanup actions with clear explanations.":
+        "Sprawdź zajęte miejsce i wybierz działania porządkowe z jasnymi objaśnieniami.",
     "Configure Logitech mouse buttons, DPI and SmartShift locally.":
         "Konfiguruj przyciski myszy Logitech, DPI i SmartShift lokalnie.",
     "Drivers and daemon for Razer devices; log out and back in after installation.":

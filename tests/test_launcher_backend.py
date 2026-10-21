@@ -99,6 +99,41 @@ class LauncherBackendTests(unittest.TestCase):
             package = backend._latest_rpm(app, "x86_64", directory)
             self.assertEqual(package.name, "winboat-0.9.2-x86_64.rpm")
 
+    def test_safe_disk_cleaner_release_on_both_architectures(self):
+        app = next(app for app in backend.APPS if app.name == "Safe Disk Cleaner")
+        self.assertEqual((app.category, app.group), ("System", "System maintenance"))
+        for arch, machine in (("x86_64", 62), ("aarch64", 183)):
+            with self.subTest(arch=arch):
+                payload = (b"\x7fELF\x02\x01\x01\x00AI\x02" + b"\x00" * 7 +
+                           machine.to_bytes(2, "little") + b"\x00" * 4096)
+                name = f"Safe_Disk_Cleaner-1.1.1-{arch}.AppImage"
+                release = {"assets": [{"name": name, "size": len(payload),
+                                       "digest": "sha256:" + hashlib.sha256(payload).hexdigest(),
+                                       "browser_download_url": f"https://github.com/{app.source}/releases/download/v1.1.1/{name}"}]}
+                responses = (io.BytesIO(json.dumps(release).encode()), io.BytesIO(payload))
+                with tempfile.TemporaryDirectory() as directory, \
+                     patch.object(backend.urllib.request, "urlopen", side_effect=responses):
+                    package = backend._latest_appimage(app, arch, directory)
+                    self.assertEqual(package.read_bytes(), payload)
+                release["assets"][0]["digest"] = "sha256:" + "0" * 64
+                responses = (io.BytesIO(json.dumps(release).encode()), io.BytesIO(payload))
+                with tempfile.TemporaryDirectory() as directory, \
+                     patch.object(backend.urllib.request, "urlopen", side_effect=responses):
+                    with self.assertRaisesRegex(RuntimeError, "checksum"):
+                        backend._latest_appimage(app, arch, directory)
+
+    def test_safe_disk_cleaner_install_creates_desktop_entry(self):
+        app = next(app for app in backend.APPS if app.name == "Safe Disk Cleaner")
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            source = home / "source.AppImage"
+            source.write_bytes(b"appimage")
+            with patch.object(backend, "_latest_appimage", return_value=source):
+                backend.install(app, home)
+            self.assertTrue(backend.installed(app, home))
+            desktop = home / ".local/share/applications/io.github.cyb3rl00m.SafeDiskCleaner.desktop"
+            self.assertIn("APPIMAGE_EXTRACT_AND_RUN=1", desktop.read_text())
+
     def test_controller_install_uses_packaged_root_helper(self):
         app = next(app for app in backend.APPS if app.source == "xone")
         with patch.object(backend, "_run") as run:
