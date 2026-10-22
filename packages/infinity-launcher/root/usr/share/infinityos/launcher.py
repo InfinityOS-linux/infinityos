@@ -14,7 +14,8 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk
 
 from launcher_backend import (APPS, active_local_model, available, deactivate_local_model,
-                              install, installed, open_lutris_installer, removable, uninstall)
+                              install, installed, installed_flatpaks,
+                              open_lutris_installer, removable, uninstall)
 from launcher_i18n import tr
 
 
@@ -165,6 +166,7 @@ class InfinityLauncher(Gtk.Application):
         self.stack.set_vexpand(True)
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         self.stack.set_transition_duration(100)
+        self.flatpak_ids = installed_flatpaks()
         navigation = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
         navigation.add_css_class("infinity-nav")
         navigation.set_margin_start(26)
@@ -311,7 +313,7 @@ class InfinityLauncher(Gtk.Application):
                 switch = Gtk.Switch()
             switch.set_valign(Gtk.Align.CENTER)
             supported = available(app)
-            already = supported and installed(app)
+            already = supported and installed(app, flatpak_ids=self.flatpak_ids)
             initial = already if app.kind != "local-model" else app.source == selected_model
             switch.set_active(initial)
             self.initial_active[app] = initial

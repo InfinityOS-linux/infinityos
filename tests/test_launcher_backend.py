@@ -287,6 +287,28 @@ class LauncherBackendTests(unittest.TestCase):
         self.assertEqual(run.call_count, 2)
         self.assertEqual(run.call_args_list[1].args[0][-1], "com.valvesoftware.Steam")
 
+    def test_catalog_reads_flatpak_installations_once_per_scope(self):
+        vlc = next(app for app in backend.APPS if app.name == "VLC")
+        responses = (
+            SimpleNamespace(returncode=0, stdout="org.videolan.VLC\n"),
+            SimpleNamespace(returncode=0, stdout="org.gimp.GIMP\n"),
+        )
+        with patch.object(backend.subprocess, "run", side_effect=responses) as run:
+            installed_ids = backend.installed_flatpaks()
+            self.assertTrue(backend.installed(vlc, flatpak_ids=installed_ids))
+            self.assertFalse(backend.installed(vlc._replace(source="org.videolan.Other"),
+                                               flatpak_ids=installed_ids))
+        self.assertEqual(run.call_count, 2)
+
+    def test_flatpak_catalog_falls_back_to_individual_checks_on_list_error(self):
+        vlc = next(app for app in backend.APPS if app.name == "VLC")
+        with patch.object(backend.subprocess, "run", side_effect=[
+                SimpleNamespace(returncode=1, stdout=""),
+                SimpleNamespace(returncode=0)]) as run:
+            self.assertIsNone(backend.installed_flatpaks())
+            self.assertTrue(backend.installed(vlc))
+        self.assertEqual(run.call_count, 2)
+
     def test_cli_shortcut_is_created_after_successful_install(self):
         codex = next(app for app in backend.APPS if "Codex CLI" in app.name)
         with tempfile.TemporaryDirectory() as directory:

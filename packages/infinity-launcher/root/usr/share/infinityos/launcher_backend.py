@@ -175,7 +175,24 @@ def ollama_binary():
     return str(upstream) if upstream.exists() else shutil.which("ollama")
 
 
-def installed(app, home=None):
+def installed_flatpaks():
+    """Read installed Flatpak IDs once when building the application catalog."""
+    applications = set()
+    for scope in ("--user", "--system"):
+        try:
+            result = subprocess.run(
+                ["flatpak", "list", scope, "--app", "--columns=application"],
+                capture_output=True, text=True, check=False,
+            )
+        except OSError:
+            return None
+        if result.returncode:
+            return None
+        applications.update(result.stdout.splitlines())
+    return applications
+
+
+def installed(app, home=None, flatpak_ids=None):
     home = Path(home or Path.home())
     if app.source == "com.valvesoftware.Steam" and os.uname().machine == "aarch64":
         return ((home / ".local/share/Steam/steamrtarm64/steam").is_file() and
@@ -193,6 +210,8 @@ def installed(app, home=None):
             [ollama, "show", app.source], stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL, check=False).returncode == 0)
     if app.kind == "flatpak":
+        if flatpak_ids is not None:
+            return app.source in flatpak_ids
         return any(
             subprocess.run(["flatpak", "info", scope, app.source], stdout=subprocess.DEVNULL,
                            stderr=subprocess.DEVNULL, check=False).returncode == 0
