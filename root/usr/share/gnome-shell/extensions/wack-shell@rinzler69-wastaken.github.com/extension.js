@@ -150,9 +150,51 @@ this._settings.connectObject(
 
         this._setupWindowCache();
         this._initWorkspacesAppGrid();
+        if (!global.infinityosPanelEntrancePlayed && Main.sessionMode.currentMode === 'user') {
+            global.infinityosPanelEntrancePlayed = true;
+            const animations = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'})
+                .get_boolean('enable-animations');
+            if (animations) {
+                this._entranceActive = true;
+                Main.panel.translation_y = -50;
+                Main.panel.opacity = 0;
+                const revealPanel = () => {
+                    this._entranceSourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1110, () => {
+                        this._entranceSourceId = 0;
+                        Main.panel.ease({translation_y: 0, opacity: 255, duration: 420,
+                            mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+                            onComplete: () => { this._entranceActive = false; }});
+                        return GLib.SOURCE_REMOVE;
+                    });
+                };
+                if (Main.layoutManager._startingUp) {
+                    this._entranceStartupId = Main.layoutManager.connect('startup-complete', () => {
+                        Main.layoutManager.disconnect(this._entranceStartupId);
+                        this._entranceStartupId = 0;
+                        revealPanel();
+                    });
+                } else {
+                    revealPanel();
+                }
+            }
+        }
     }
 
     disable() {
+        if (this._entranceStartupId) {
+            Main.layoutManager.disconnect(this._entranceStartupId);
+            this._entranceStartupId = 0;
+        }
+        if (this._entranceSourceId) {
+            GLib.source_remove(this._entranceSourceId);
+            this._entranceSourceId = 0;
+        }
+        if (this._entranceActive) {
+            this._entranceActive = false;
+            Main.panel.remove_all_transitions();
+            Main.panel.translation_y = 0;
+            Main.panel.opacity = 255;
+        }
         this._restoreDashIconSize();
         // Guideline EGO-M-008: Documenting use of unlock-dialog.
         // This extension supports running during the 'unlock-dialog' session mode

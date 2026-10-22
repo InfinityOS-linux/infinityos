@@ -52,6 +52,7 @@ export var DesktopManager = class {
         this.dbusManager = dbusManager;
         this._lastSelected = null;
         this._fileList = [];
+        this._entrancePending = asDesktop;
         this._desktopMenu = new DesktopMenu.DesktopMenu(this, mainApp, dbusManager);
         this.using_X11 = Gdk.Display.get_default().constructor.$gtype.name === 'GdkX11Display';
         if (asDesktop) {
@@ -1334,6 +1335,16 @@ export var DesktopManager = class {
                 this._renameWindow.closeWindow();
         }
         this._placeAllFilesOnGrids();
+        if (this._entrancePending && this._fileList.length && !this._entranceTimeoutId) {
+            // Let GTK paint the icons at their final grid coordinates before revealing them.
+            this._entranceTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 120, () => {
+                this._entranceTimeoutId = 0;
+                this._entrancePending = false;
+                for (const item of this._fileList)
+                    item.container?.remove_css_class('infinity-entrance');
+                return GLib.SOURCE_REMOVE;
+            });
+        }
         this._fileItemMenu.refreshedIcons();
         this._selectedFiles = null;
     }

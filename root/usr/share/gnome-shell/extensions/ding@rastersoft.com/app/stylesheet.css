@@ -24,7 +24,11 @@
     border-style: solid;
     border-width: 3px;
     border-color: rgba(0, 0, 0, 0);
-    transition: background-color 180ms ease-out, border-color 180ms ease-out;
+    transition: background-color 180ms ease-out, border-color 180ms ease-out, opacity 480ms ease-out;
+}
+
+.file-item.infinity-entrance {
+    opacity: 0;
 }
 
 .file-item.file-item-opening {

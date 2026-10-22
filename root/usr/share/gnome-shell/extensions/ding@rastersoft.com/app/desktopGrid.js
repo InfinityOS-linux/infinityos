@@ -380,6 +380,8 @@ export var DesktopGrid = class extends SignalManager.SignalManager {
         const localX = Math.floor(this._width * column / this._maxColumns);
         const localY = Math.floor(this._height * row / this._maxRows);
         this._container.put(fileItem.container, localX + elementSpacing, localY + elementSpacing);
+        if (this._desktopManager._entrancePending)
+            fileItem.container.add_css_class('infinity-entrance');
         this._setGridUse(column, row, fileItem);
         this._fileItems[fileItem.uri] = [column, row, fileItem];
         const [x, y] = this.coordinatesLocalToGlobal(localX + elementSpacing, localY + elementSpacing);

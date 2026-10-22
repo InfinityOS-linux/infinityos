@@ -27,6 +27,7 @@ import Shell from 'gi://Shell';
 import Graphene from 'gi://Graphene';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import Clutter from 'gi://Clutter';
 import { tempPath, trySpawnCommandLine } from './utils.js';
 import { loadFile } from './utils.js';
 
@@ -242,6 +243,15 @@ export default class Dash2DockLiteExt extends Extension {
   }
 
   disable() {
+    if (this._entranceStartupId) {
+      Main.layoutManager.disconnect(this._entranceStartupId);
+      this._entranceStartupId = 0;
+    }
+    if (this._entranceSourceId) {
+      GLib.source_remove(this._entranceSourceId);
+      this._entranceSourceId = 0;
+    }
+    this.docks.forEach(dock => { dock.translation_y = 0; });
     this._timer?.shutdown();
     this._hiTimer?.shutdown();
     this._loTimer?.shutdown();
@@ -309,6 +319,35 @@ export default class Dash2DockLiteExt extends Extension {
   startUp() {
     this.createTheDocks();
     this.checkHide();
+    if (!global.infinityosDockEntrancePlayed && Main.sessionMode.currentMode === 'user') {
+      global.infinityosDockEntrancePlayed = true;
+      const animations = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' })
+        .get_boolean('enable-animations');
+      if (animations) {
+        const entranceDocks = [...this.docks];
+        entranceDocks.forEach(dock => { dock.translation_y = 110; });
+        const revealDock = () => {
+          this._entranceSourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 690, () => {
+            this._entranceSourceId = 0;
+            entranceDocks.forEach(dock => {
+              if (!dock.is_destroyed())
+                dock.ease({ translation_y: 0, duration: 480,
+                  mode: Clutter.AnimationMode.EASE_OUT_CUBIC });
+            });
+            return GLib.SOURCE_REMOVE;
+          });
+        };
+        if (Main.layoutManager._startingUp) {
+          this._entranceStartupId = Main.layoutManager.connect('startup-complete', () => {
+            Main.layoutManager.disconnect(this._entranceStartupId);
+            this._entranceStartupId = 0;
+            revealDock();
+          });
+        } else {
+          revealDock();
+        }
+      }
+    }
     this._loTimer.runOnce(() => {
       this._updateWidgetStyle();
       this.animate({ refresh: true });
