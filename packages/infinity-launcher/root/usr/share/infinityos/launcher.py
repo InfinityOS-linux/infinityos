@@ -11,7 +11,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
-from gi.repository import GdkPixbuf, GLib, Gtk
+from gi.repository import GdkPixbuf, Gio, GLib, Gtk
 
 from launcher_backend import (APPS, active_local_model, available, deactivate_local_model,
                               install, installed, open_lutris_installer, removable, uninstall)
@@ -47,6 +47,8 @@ box.infinity-row { background: #211b2b; border: 1px solid #3d314e; border-radius
 box.infinity-row:hover { background: #292136; border-color: #65517d; }
 label.infinity-section { color: #bea7df; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
 label.infinity-app-name { color: #f3eef8; font-weight: 700; }
+label.infinity-app-status { color: #c9a8ed; font-size: 11px; font-weight: 600; }
+box.infinity-app-icon { background: linear-gradient(135deg, #533778, #34234d); border: 1px solid #785998; border-radius: 11px; }
 button.infinity-save { background: #745aa4; border: 1px solid #9478c4; color: white; border-radius: 10px; min-width: 124px; min-height: 42px; font-weight: 700; }
 button.infinity-save:hover { background: #8569b8; }
 button.infinity-save:disabled { background: #413451; color: #a99cb8; }
@@ -68,7 +70,7 @@ def label(text, style=None):
 
 
 def catalog_icon(path):
-    """Fit the visible artwork, rather than its transparent canvas, into the row."""
+    """Crop transparent margins and let GTK scale the icon for the display."""
     pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(path), 128, 128, True)
     if pixbuf.get_has_alpha():
         pixels = pixbuf.get_pixels()
@@ -82,10 +84,8 @@ def catalog_icon(path):
             pixbuf = pixbuf.new_subpixbuf(left, top,
                                           max(x for x, _ in visible) - left + 1,
                                           max(y for _, y in visible) - top + 1)
-    scale = 36 / max(pixbuf.get_width(), pixbuf.get_height())
-    return pixbuf.scale_simple(max(1, round(pixbuf.get_width() * scale)),
-                               max(1, round(pixbuf.get_height() * scale)),
-                               GdkPixbuf.InterpType.BILINEAR)
+    _success, encoded = pixbuf.save_to_bufferv("png", [], [])
+    return Gio.BytesIcon.new(GLib.Bytes.new(encoded))
 
 
 class InfinityLauncher(Gtk.Application):
@@ -261,15 +261,15 @@ class InfinityLauncher(Gtk.Application):
             if not private_icon.is_file():
                 private_icon = ICON_DIR / f"{icon_name}.svg"
             if private_icon.is_file():
-                pixbuf = catalog_icon(private_icon)
-                icon = Gtk.Image.new_from_pixbuf(pixbuf)
+                icon = Gtk.Image.new_from_gicon(catalog_icon(private_icon))
             else:
                 if not Gtk.IconTheme.get_for_display(self.window.get_display()).has_icon(icon_name):
                     icon_name = app.icon
                 icon = Gtk.Image.new_from_icon_name(icon_name)
-                icon.set_pixel_size(36)
+            icon.set_pixel_size(32)
             icon_cell = Gtk.Box()
-            icon_cell.set_size_request(36, 36)
+            icon_cell.add_css_class("infinity-app-icon")
+            icon_cell.set_size_request(44, 44)
             icon.set_halign(Gtk.Align.CENTER)
             icon.set_valign(Gtk.Align.CENTER)
             icon_cell.append(icon)
@@ -280,6 +280,9 @@ class InfinityLauncher(Gtk.Application):
             note = label(tr(app.description), "infinity-muted")
             note.set_wrap(True)
             details.append(note)
+            status = label("", "infinity-app-status")
+            status.set_visible(False)
+            details.append(status)
             if app.website.startswith("https://github.com/storytold/"):
                 link = Gtk.LinkButton(uri=app.website, label=tr("View source and releases"))
                 link.set_halign(Gtk.Align.START)
@@ -293,10 +296,11 @@ class InfinityLauncher(Gtk.Application):
                 button = Gtk.Button(label=tr("Open installer"))
                 button.set_valign(Gtk.Align.CENTER)
                 button.set_sensitive(available(app))
-                button.connect("clicked", self._open_lutris_installer, app, note)
+                button.connect("clicked", self._open_lutris_installer, app, status)
                 self.installer_buttons.append((button, app))
                 if not available(app):
-                    note.set_text(tr("Available on x86_64"))
+                    status.set_text(tr("Only available on x64 computers"))
+                    status.set_visible(True)
                 row.append(button)
                 body.append(row)
                 continue
@@ -314,11 +318,13 @@ class InfinityLauncher(Gtk.Application):
             switch.set_sensitive(supported and (app.kind == "local-model" or
                                                 not already or removable(app)))
             if already and app.kind != "local-model":
-                note.set_text(tr("Installed"))
+                status.set_text(tr("Installed"))
+                status.set_visible(True)
             elif not supported:
-                note.set_text(tr("Available on x86_64"))
+                status.set_text(tr("Only available on x64 computers"))
+                status.set_visible(True)
             self.switches[app] = switch
-            self.notes[app] = note
+            self.notes[app] = status
             row.append(switch)
             body.append(row)
         return scroller
@@ -335,6 +341,7 @@ class InfinityLauncher(Gtk.Application):
         self.save_button.set_sensitive(False)
         button.set_sensitive(False)
         note.set_text(tr("Opening installer in Lutris…"))
+        note.set_visible(True)
 
         def open_installer():
             try:
@@ -396,8 +403,10 @@ class InfinityLauncher(Gtk.Application):
         GLib.idle_add(self._finished, errors)
 
     def _installed(self, app, enabled):
-        self.notes[app].set_text(tr("Active local model") if enabled and app.kind == "local-model"
-                                 else tr("Installed") if enabled else tr(app.description))
+        status = self.notes[app]
+        status.set_text(tr("Active local model") if enabled and app.kind == "local-model"
+                        else tr("Installed") if enabled else "")
+        status.set_visible(enabled)
         self.initial_active[app] = enabled
         return False
 

@@ -27,7 +27,7 @@ POLISH = {
     "Opening installer in Lutris…": "Otwieranie instalatora w Lutris…",
     "Finish installation in Lutris.": "Dokończ instalację w Lutris.",
     "Could not open installer:": "Nie udało się otworzyć instalatora:",
-    "Installed": "Zainstalowano", "Available on x86_64": "Dostępne na x86_64",
+    "Installed": "Zainstalowano", "Only available on x64 computers": "Dostępne tylko na komputerach x64",
     "Could not install:\n": "Nie udało się zainstalować:\n",
     "Could not apply changes:\n": "Nie udało się wprowadzić zmian:\n",
     "Wait for installation to finish.": "Poczekaj na zakończenie instalacji.",
@@ -44,89 +44,78 @@ POLISH = {
     "Development tools": "Narzędzia programistyczne", "Assistants": "Asystenci",
     "Local models": "Modele lokalne", "Active local model": "Aktywny model lokalny",
     "Office suite": "Pakiet biurowy", "Documents": "Dokumenty",
-    "Google's web browser with account sync.": "Przeglądarka Google z synchronizacją konta.",
-    "Open-source Chromium web browser.": "Przeglądarka Chromium z otwartym kodem.",
-    "Firefox-based browser with a focused workspace.": "Przeglądarka oparta na Firefoxie, stworzona do skupionej pracy.",
-    "Web browser with built-in sidebar tools.": "Przeglądarka z narzędziami w panelu bocznym.",
-    "Gaming browser with performance controls.": "Przeglądarka dla graczy z kontrolą wydajności.",
-    "Privacy-focused Chromium browser.": "Przeglądarka Chromium skupiona na prywatności.",
-    "Play video, audio and network streams.": "Odtwarzaj filmy, muzykę i strumienie sieciowe.",
-    "Stream music, podcasts and audiobooks.": "Słuchaj muzyki, podcastów i audiobooków.",
-    "Lightweight video player with keyboard controls.": "Lekki odtwarzacz filmów sterowany klawiaturą.",
-    "Torrent client with search and queue controls.": "Klient torrentów z wyszukiwarką i kolejką pobierania.",
-    "Simple, lightweight torrent client.": "Prosty i lekki klient torrentów.",
-    "Download files from many hosting services.": "Pobieraj pliki z wielu serwisów hostingowych.",
-    "Email, calendar and contacts.": "Poczta, kalendarz i kontakty.",
-    "GNOME email, calendar and contacts.": "Poczta, kalendarz i kontakty dla GNOME.",
-    "Email client with a unified inbox.": "Klient poczty ze wspólną skrzynką odbiorczą.",
-    "Email client with a modern inbox.": "Klient poczty z nowoczesną skrzynką odbiorczą.",
-    "Inspect disk usage and choose safe cleanup actions with clear explanations.":
-        "Sprawdź zajęte miejsce i wybierz działania porządkowe z jasnymi objaśnieniami.",
-    "Configure Logitech mouse buttons, DPI and SmartShift locally.":
-        "Konfiguruj przyciski myszy Logitech, DPI i SmartShift lokalnie.",
-    "Drivers and daemon for Razer devices; log out and back in after installation.":
-        "Sterowniki i usługa dla urządzeń Razer; po instalacji wyloguj się i zaloguj ponownie.",
-    "Steam games and store.": "Gry i sklep Steam.",
-    "Native Linux Preview from Epic Games.": "Natywna wersja Preview dla Linuksa od Epic Games.",
-    "Windows launcher; install through Lutris and Wine.":
-        "Launcher Windows; zainstaluj przez Lutris i Wine.",
-    "Epic, GOG and Amazon games.": "Gry z Epic, GOG i Amazon.",
-    "Games from multiple stores.": "Gry z różnych sklepów.",
-    "Windows games with Wine.": "Gry z Windows przez Wine.",
-    "Minecraft instances and modpacks.": "Instancje i paczki modyfikacji Minecrafta.",
-    "Controller-first game library.": "Biblioteka gier sterowana padem.",
-    "Manage Proton, Wine, DXVK and VKD3D versions for game launchers.":
-        "Zarządzaj wersjami Proton, Wine, DXVK i VKD3D dla launcherów gier.",
-    "xone driver for wired Xbox controllers and the Xbox Wireless Adapter; installs dongle firmware.":
-        "Sterownik xone dla przewodowych kontrolerów Xbox i adaptera bezprzewodowego; instaluje firmware adaptera.",
-    "xpadneo Bluetooth driver for Xbox controllers; pair the controller after installation.":
-        "Sterownik Bluetooth xpadneo dla kontrolerów Xbox; sparuj kontroler po instalacji.",
-    "Voice and text chat.": "Rozmowy głosowe i tekstowe.",
-    "Alternative Discord client.": "Alternatywny klient Discorda.",
-    "Wine environments for Windows apps.": "Środowiska Wine dla aplikacji Windows.",
-    "Run Windows apps in a container-backed VM; requires KVM, 4 GB RAM and 32 GB free space.":
-        "Uruchamiaj aplikacje Windows w maszynie wirtualnej; wymaga KVM, 4 GB RAM i 32 GB wolnego miejsca.",
-    "Open-source photo editor built in Rust.": "Edytor zdjęć o otwartym kodzie, napisany w Rust.",
-    "Create and edit vector art in an open-source Rust app.": "Twórz i edytuj grafikę wektorową w aplikacji Rust o otwartym kodzie.",
-    "Edit photos non-destructively in an open-source Rust app.": "Edytuj zdjęcia bez naruszania oryginałów w aplikacji Rust o otwartym kodzie.",
-    "Edit video on a nonlinear timeline in an open-source Rust app.": "Montuj wideo na nieliniowej osi czasu w aplikacji Rust o otwartym kodzie.",
-    "Create motion graphics and composite visual effects.": "Twórz animowaną grafikę i łącz efekty wizualne.",
-    "Design pages and publication layouts in an open-source Rust app.": "Projektuj strony i układy publikacji w aplikacji Rust o otwartym kodzie.",
-    "Computer-aided design and drafting in an open-source Rust app.": "Projektowanie i rysowanie CAD w aplikacji Rust o otwartym kodzie.",
-    "Design and prototype interfaces with frames, components and layouts (early alpha).":
-        "Projektuj i prototypuj interfejsy z ramkami, komponentami i układami (wczesna alfa).",
-    "Record, edit and mix multitrack audio (pre-alpha).":
-        "Nagrywaj, edytuj i miksuj dźwięk wielościeżkowy (przed alfą).",
-    "Edit raster images.": "Edytuj obrazy rastrowe.",
-    "Paint and illustrate.": "Maluj i twórz ilustracje.",
-    "Edit vector graphics.": "Edytuj grafikę wektorową.",
-    "Model and animate in 3D.": "Modeluj i animuj w 3D.",
+    "Browse the web and sync bookmarks with Google.":
+        "Przeglądaj internet i synchronizuj zakładki z Google.",
+    "Browse the web with an open-source browser.":
+        "Przeglądaj internet w przeglądarce z otwartym kodem.",
+    "Browse the web with tabs arranged in workspaces.":
+        "Przeglądaj internet i porządkuj karty w przestrzeniach.",
+    "Browse the web with a built-in sidebar.": "Przeglądaj internet z wygodnym panelem bocznym.",
+    "Browse the web with tools for gaming.": "Przeglądaj internet z dodatkowymi narzędziami dla graczy.",
+    "Browse the web with built-in ad blocking.": "Przeglądaj internet z wbudowanym blokowaniem reklam.",
+    "Play videos, music and online streams.": "Odtwarzaj filmy, muzykę i transmisje internetowe.",
+    "Listen to music and podcasts online.": "Słuchaj muzyki i podcastów w internecie.",
+    "Play videos with a lightweight player.": "Odtwarzaj filmy w lekkim odtwarzaczu.",
+    "Download and manage torrents.": "Pobieraj torrenty i zarządzaj nimi.",
+    "Download torrents with a simple app.": "Pobieraj torrenty w prostej aplikacji.",
+    "Download files from many websites.": "Pobieraj pliki z wielu stron internetowych.",
+    "Manage email, calendars and contacts.": "Obsługuj pocztę, kalendarze i kontakty.",
+    "Manage email, calendars and contacts in GNOME.": "Obsługuj pocztę, kalendarze i kontakty w GNOME.",
+    "Read email from several accounts in one inbox.": "Czytaj pocztę z kilku kont w jednej skrzynce.",
+    "Read and organize email from several accounts.": "Czytaj i porządkuj pocztę z kilku kont.",
+    "See what uses disk space and remove unneeded files.":
+        "Sprawdź, co zajmuje miejsce na dysku, i usuń zbędne pliki.",
+    "Set up Logitech mouse buttons and sensitivity.": "Ustaw przyciski i czułość myszy Logitech.",
+    "Enable and configure Razer gaming devices.": "Uruchom i skonfiguruj urządzenia Razer.",
+    "Run Windows easily on this system.": "Uruchom w łatwy sposób Windowsa na tym systemie.",
+    "Buy, install and play games from Steam.": "Kupuj, instaluj i uruchamiaj gry ze Steam.",
+    "Install and play games from Epic Games.": "Instaluj i uruchamiaj gry z Epic Games.",
+    "Install and play Blizzard games through Lutris.":
+        "Instaluj i uruchamiaj gry Blizzarda przez Lutris.",
+    "Install and play games from Epic, GOG and Amazon.": "Instaluj gry z Epic, GOG i Amazon.",
+    "Install and manage games from many stores.": "Instaluj gry z różnych sklepów i zarządzaj nimi.",
+    "Run Windows games on Linux with Wine.": "Uruchamiaj gry z Windowsa na Linuksie przez Wine.",
+    "Manage Minecraft versions and modpacks.": "Zarządzaj wersjami Minecrafta i paczkami modów.",
+    "Browse and launch games using a controller.": "Przeglądaj i uruchamiaj gry za pomocą pada.",
+    "Install and update tools for Windows games.": "Instaluj i aktualizuj narzędzia do gier z Windowsa.",
+    "Use an Xbox controller by USB or wireless dongle.":
+        "Podłącz pad Xbox przez USB lub adapter bezprzewodowy.",
+    "Use an Xbox controller over Bluetooth.": "Podłącz pad Xbox przez Bluetooth.",
+    "Talk with friends by voice and text.": "Rozmawiaj ze znajomymi głosowo i przez wiadomości.",
+    "Use Discord with extra customization.": "Korzystaj z Discorda z dodatkowymi opcjami wyglądu.",
+    "Run Windows apps in separate Wine environments.":
+        "Uruchamiaj aplikacje Windows w osobnych środowiskach Wine.",
+    "Edit and improve photos.": "Edytuj i poprawiaj zdjęcia.",
+    "Draw and edit vector graphics.": "Rysuj i edytuj grafikę wektorową.",
+    "Adjust photos without changing the originals.": "Poprawiaj zdjęcia bez zmieniania oryginałów.",
     "Edit videos on a timeline.": "Montuj filmy na osi czasu.",
-    "Record and stream your screen.": "Nagrywaj i transmituj ekran.",
+    "Create animations and video effects.": "Twórz animacje i efekty do filmów.",
+    "Design page layouts and publications.": "Projektuj układy stron i publikacje.",
+    "Draw precise technical designs.": "Rysuj precyzyjne projekty techniczne.",
+    "Design app screens and prototypes (early version).":
+        "Projektuj ekrany aplikacji i prototypy (wczesna wersja).",
+    "Record, edit and mix audio (early version).": "Nagrywaj, edytuj i miksuj dźwięk (wczesna wersja).",
+    "Edit photos and other images.": "Edytuj zdjęcia i inne obrazy.",
+    "Paint and draw digital art.": "Maluj i rysuj cyfrowe ilustracje.",
+    "Create and edit vector graphics.": "Twórz i edytuj grafikę wektorową.",
+    "Create 3D models and animations.": "Twórz modele 3D i animacje.",
+    "Record your screen and stream video.": "Nagrywaj ekran i prowadź transmisje wideo.",
     "Record and edit audio.": "Nagrywaj i edytuj dźwięk.",
-    "Microsoft's code editor.": "Edytor kodu Microsoftu.",
-    "Docker's official packages. Use sudo unless you configure user access.":
-        "Oficjalne pakiety Dockera. Użyj sudo lub skonfiguruj dostęp użytkownika.",
-    "CLI and Claude web shortcut. Adds a pinned terminal tab.":
-        "CLI i skrót do Claude w przeglądarce. Dodaje przypiętą kartę terminala.",
-    "CLI and Codex web shortcut. Adds a pinned terminal tab.":
-        "CLI i skrót do Codexa w przeglądarce. Dodaje przypiętą kartę terminala.",
-    "For 16 GB RAM. Needs about 10 GB free disk; local coding agent.":
-        "Dla 16 GB RAM. Wymaga ok. 10 GB wolnego miejsca; lokalny agent programistyczny.",
-    "For 24–32 GB RAM. Needs about 11 GB free disk; local coding agent.":
-        "Dla 24–32 GB RAM. Wymaga ok. 11 GB wolnego miejsca; lokalny agent programistyczny.",
-    "For 64 GB RAM. Needs about 30 GB free disk; local coding agent.":
-        "Dla 64 GB RAM. Wymaga ok. 30 GB wolnego miejsca; lokalny agent programistyczny.",
-    "Documents, presentations and spreadsheets.": "Dokumenty, prezentacje i arkusze kalkulacyjne.",
-    "Documents, spreadsheets, presentations and PDFs.":
-        "Dokumenty, arkusze kalkulacyjne, prezentacje i pliki PDF.",
-    "Read and edit PDF documents in an open-source Rust app.": "Czytaj i edytuj PDF w aplikacji Rust o otwartym kodzie.",
-    "Create and edit word-processing documents in an open-source Rust app.":
-        "Twórz i edytuj dokumenty tekstowe w aplikacji Rust o otwartym kodzie.",
-    "Create spreadsheets for data and tables in an open-source Rust app.":
-        "Twórz arkusze kalkulacyjne dla danych i tabel w aplikacji Rust o otwartym kodzie.",
-    "Create presentations and slide shows in an open-source Rust app.":
-        "Twórz prezentacje i pokazy slajdów w aplikacji Rust o otwartym kodzie.",
+    "Write and edit code.": "Pisz i edytuj kod.",
+    "Run apps in isolated containers.": "Uruchamiaj aplikacje w odizolowanych kontenerach.",
+    "Use Claude in the browser and terminal.": "Korzystaj z Claude w przeglądarce i terminalu.",
+    "Use Codex in the browser and terminal.": "Korzystaj z Codexa w przeglądarce i terminalu.",
+    "Run a local AI coding assistant. Needs 10 GB of disk space.":
+        "Uruchom lokalnego asystenta AI do kodu. Potrzebuje 10 GB miejsca na dysku.",
+    "Run a local AI coding assistant. Needs 11 GB of disk space.":
+        "Uruchom lokalnego asystenta AI do kodu. Potrzebuje 11 GB miejsca na dysku.",
+    "Run a local AI coding assistant. Needs 30 GB of disk space.":
+        "Uruchom lokalnego asystenta AI do kodu. Potrzebuje 30 GB miejsca na dysku.",
+    "Create documents, spreadsheets and presentations.": "Twórz dokumenty, arkusze i prezentacje.",
+    "Open and edit PDF files.": "Otwieraj i edytuj pliki PDF.",
+    "Write and edit text documents.": "Pisz i edytuj dokumenty tekstowe.",
+    "Create and edit spreadsheets.": "Twórz i edytuj arkusze kalkulacyjne.",
+    "Create and edit presentations.": "Twórz i edytuj prezentacje.",
 }
 
 

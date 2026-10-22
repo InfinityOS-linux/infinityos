@@ -16,9 +16,30 @@ SOURCE = Path(__file__).resolve().parents[1] / "packages/infinity-launcher/root/
 SPEC = importlib.util.spec_from_file_location("launcher_backend", SOURCE)
 backend = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(backend)
+CATALOG_DIR = SOURCE.parent
+I18N_SPEC = importlib.util.spec_from_file_location("launcher_i18n", CATALOG_DIR / "launcher_i18n.py")
+i18n = importlib.util.module_from_spec(I18N_SPEC)
+I18N_SPEC.loader.exec_module(i18n)
 
 
 class LauncherBackendTests(unittest.TestCase):
+    def test_every_catalog_description_has_a_polish_translation(self):
+        missing = [app.name for app in backend.APPS if app.description not in i18n.POLISH]
+        self.assertEqual(missing, [])
+        winboat = next(app for app in backend.APPS if app.name == "WinBoat")
+        self.assertEqual(i18n.POLISH[winboat.description],
+                         "Uruchom w łatwy sposób Windowsa na tym systemie.")
+
+    def test_game_store_brands_have_bundled_icons(self):
+        icons = CATALOG_DIR / "launcher-icons"
+        for name in ("Epic Games Launcher", "Blizzard Battle.net"):
+            app = next(app for app in backend.APPS if app.name == name)
+            with self.subTest(name=name):
+                icon = icons / f"{app.icon}.svg"
+                self.assertTrue(icon.is_file())
+                self.assertEqual(ElementTree.parse(icon).getroot().tag,
+                                 "{http://www.w3.org/2000/svg}svg")
+
     def test_gaming_launchers_follow_steam(self):
         names = [app.name for app in backend.APPS if app.category == "Gaming"]
         self.assertEqual(names[:3], ["Steam", "Epic Games Launcher", "Blizzard Battle.net"])
