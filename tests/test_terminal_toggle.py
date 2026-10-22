@@ -50,6 +50,13 @@ class TerminalToggleTests(unittest.TestCase):
         self.assertIn("changed::toggle-request', () => this._toggle()", source)
         self.assertIn("this._settings.disconnect(this._toggleRequestId)", source)
 
+    def test_new_terminal_window_stays_hidden_without_toggle_request(self):
+        source = (EXTENSION / "extension.js").read_text()
+        track = source.split("    _track(window, fresh) {", 1)[1].split("    _place(window) {", 1)[0]
+        self.assertEqual(track.count("this._reveal(window)"), 1)
+        self.assertIn("if (this._pendingShow) {\n                this._pendingShow = false;\n                this._reveal(window);", track)
+        self.assertIn("if (fresh && !this._pendingShow)", track)
+
     def test_dock_does_not_activate_the_persistent_ghostty_window(self):
         dock = DOCK.read_text()
         self.assertIn("c._appwell.app?.get_id?.() === 'com.infinityos.GhosTTY.desktop'", dock)

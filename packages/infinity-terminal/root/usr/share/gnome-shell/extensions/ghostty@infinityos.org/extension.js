@@ -20,7 +20,6 @@ export default class InfinityTerminal extends Extension {
         this._settings = this.getSettings();
         this._settings.set_boolean('pinned', false);
         this._window = null;
-        this._initialWindowPending = true;
         this._pendingShow = false;
         this._sourceId = 0;
         this._pendingWindows = new Map();
@@ -263,14 +262,12 @@ export default class InfinityTerminal extends Extension {
     }
 
     _track(window, fresh) {
-        const initialWindow = this._initialWindowPending;
-        this._initialWindowPending = false;
         if (this._unmanagedId && this._window)
             this._window.disconnect(this._unmanagedId);
         if (this._minimizedId && this._window)
             this._window.disconnect(this._minimizedId);
         this._window = window;
-        if (fresh && initialWindow && !this._pendingShow) {
+        if (fresh && !this._pendingShow) {
             const actor = window.get_compositor_private();
             if (actor) {
                 actor.opacity = 0;
@@ -295,13 +292,11 @@ export default class InfinityTerminal extends Extension {
             if (this._pendingShow) {
                 this._pendingShow = false;
                 this._reveal(window);
-            } else if (fresh && initialWindow) {
+            } else if (fresh) {
                 const actor = window.get_compositor_private();
                 if (actor)
                     Main.wm.skipNextEffect(actor);
                 window.minimize();
-            } else if (fresh) {
-                this._reveal(window);
             }
             return GLib.SOURCE_REMOVE;
         });
