@@ -187,6 +187,12 @@ enable snapper-cleanup.timer
 EOF
 	fi
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Live"* ]]; then
+		# Anaconda WebUI builds its localized title from PRETTY_NAME.
+		# Keep the installed system's release name; the post-install hook restores it.
+		installer_name="InfinityOS_${release_version}"
+		[[ $release_version == 1.0 ]] && installer_name=InfinityOS_01
+		sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"$installer_name\"/" /etc/os-release
+		grep -Fqx "PRETTY_NAME=\"$installer_name\"" /etc/os-release
 		if [[ "$(uname -m)" == x86_64 || "$(uname -m)" == aarch64 ]]; then
 			# Anaconda copies the live root to the target. Keep a pending marker
 			# until the post script finishes; the retry unit needs both this marker
@@ -256,6 +262,7 @@ BOOT_POST_EOF
 			sed -i 's@</head>@<link rel="stylesheet" href="infinityos-font.css"></head>@' \
 				/usr/share/cockpit/anaconda-webui/index.html
 		fi
+		/usr/bin/python3 /usr/libexec/infinityos-brand-installer
 		if [[ "$(uname -m)" == "x86_64" ]]; then
 			# Detect the target PC while Anaconda still has access to its PCI devices.
 			# A failed network download is retried after installation at boot.

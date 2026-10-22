@@ -1,0 +1,67 @@
+#!/usr/bin/python3
+"""Apply the InfinityOS live installer changes to Fedora Anaconda WebUI 68."""
+
+import gzip
+import sys
+from pathlib import Path
+
+
+WEBUI = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/usr/share/cockpit/anaconda-webui")
+MESSAGE = "When reboot begins, remove the installation USB before the next boot."
+
+
+def replace_once(content, old, new, label):
+    count = content.count(old)
+    if count != 1:
+        raise RuntimeError(f"Anaconda WebUI 68 {label} changed: expected one match, got {count}")
+    return content.replace(old, new)
+
+
+version = (WEBUI / "VERSION.txt").read_text(encoding="utf-8").strip()
+if not version.startswith("68"):
+    raise RuntimeError(f"Unsupported Anaconda WebUI version: {version}")
+
+bundle = WEBUI / "index.js.gz"
+source = gzip.decompress(bundle.read_bytes()).decode("utf-8")
+if MESSAGE not in source:
+    source = replace_once(
+        source,
+        'Y.format(Yo("To begin using $0, reboot your system."),p.PRETTY_NAME)',
+        '(t=>t==="' + MESSAGE + '"?Yo("Reboot to installed system")+" · "+'
+        'Yo("Remove")+" USB":t)(Yo("' + MESSAGE + '"))',
+        "completion message",
+    )
+    source = replace_once(
+        source,
+        'Yo(d?"Reboot to installed system":"Exit to live desktop")',
+        'Yo("Reboot to installed system")',
+        "reboot button",
+    )
+    source = replace_once(
+        source,
+        'secondary:e==="success"&&Le.default.createElement(it,{onClick:Qp}',
+        'secondary:e==="success"&&Le.default.createElement(it,{onClick:()=>'
+        'Y.spawn(["systemctl","reboot"],{superuser:"require"})}',
+        "success action",
+    )
+    bundle.write_bytes(gzip.compress(source.encode("utf-8"), compresslevel=9, mtime=0))
+
+polish = WEBUI / "po.pl.js.gz"
+locale = gzip.decompress(polish.read_bytes()).decode("utf-8").rstrip()
+if MESSAGE not in locale:
+    tail = '\n});'
+    if not locale.endswith(tail):
+        raise RuntimeError("Anaconda WebUI Polish catalog format changed")
+    locale = locale[:-len(tail)].rstrip()
+    if not locale.endswith(']'):
+        raise RuntimeError("Anaconda WebUI Polish catalog is incomplete")
+    locale += (',\n "' + MESSAGE + '": [null, '
+               '"Gdy rozpocznie się restart, wyjmij USB przed ponownym uruchomieniem systemu."]' + tail + '\n')
+    polish.write_bytes(gzip.compress(locale.encode("utf-8"), compresslevel=9, mtime=0))
+
+index = WEBUI / "index.html"
+html = index.read_text(encoding="utf-8")
+if 'infinityos-installer.css' not in html:
+    html = replace_once(html, '</head>',
+                        '<link rel="stylesheet" href="infinityos-installer.css"></head>', "HTML head")
+    index.write_text(html, encoding="utf-8")

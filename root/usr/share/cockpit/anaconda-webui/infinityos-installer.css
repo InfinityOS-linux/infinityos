@@ -1,0 +1,16 @@
+/* Keep the final installer state centered and remove Fedora feedback links. */
+#installation-wizard .pf-v6-c-wizard__main-body:has(.anaconda-screen-progress-status) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.anaconda-screen-progress-status {
+  width: 100%;
+  gap: 0 !important;
+}
+
+.feedback-section,
+#about-modal-dropdown-item-report {
+  display: none !important;
+}

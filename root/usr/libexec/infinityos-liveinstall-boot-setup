@@ -68,5 +68,11 @@ systemctl enable infinityos-snapper-setup.service infinityos-backups-setup.servi
     infinityos-backups-entry.service infinityos-backups-entry.path \
     snapper-timeline.timer snapper-cleanup.timer
 
+# The live PRETTY_NAME is the installer title. Restore the actual release in
+# the copied target so GNOME and update metadata identify the installed OS.
+release_version=$(</usr/share/infinityos/image-release-version)
+[[ $release_version =~ ^[1-9][0-9]*\.[0-9]+(\.[0-9]+)?$ ]] || exit 1
+sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"Infinity OS $release_version (Fedora 44)\"/" /etc/os-release
+grep -Fqx "PRETTY_NAME=\"Infinity OS $release_version (Fedora 44)\"" /etc/os-release
 touch /etc/infinityos/liveinstall-refind /etc/infinityos/refind-installed
 rm -f /etc/infinityos/liveinstall-boot-pending
