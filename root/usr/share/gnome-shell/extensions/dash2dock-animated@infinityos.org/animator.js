@@ -901,7 +901,9 @@ export let Animator = class {
 
       let any = next ?? prev;
       if (!vertical && any) {
-        actor.translationY = any.height / 2 - actor.height / 2;
+        // The separator is already centered by the horizontal box layout.
+        actor.y_align = Clutter.ActorAlign.CENTER;
+        actor.translationY = 0;
       } else if (vertical && any) {
         // actor.translationX = any.width / 2 - actor.width / 2;
       }
