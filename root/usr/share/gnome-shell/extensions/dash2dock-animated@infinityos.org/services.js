@@ -289,28 +289,16 @@ export const Services = class {
       basename
     )}-dash2dock-lite.desktop`;
     let fullpath = mount.get_default_location().get_path();
-    let icon = 'drive-harddisk-solidstate';
-    if (mount.get_icon() && mount.get_icon().names) {
-      icon =
-        this.extension.lookup_icon_from_names(mount.get_icon().names) ?? icon;
-    }
+    let icon = '/usr/share/infinityos/folder-icons/drive-dock.svg';
     let mount_exec = 'echo "not implemented"';
     let unmount_exec = `umount ${fullpath}`;
     let mount_id = tempPath(appname);
     let fn = Gio.File.new_for_path(mount_id);
 
-    if (!fn.query_exists(null)) {
-      let content = `[Desktop Entry]\nVersion=1.0\nTerminal=false\nType=Application\nName=${label}\nExec=xdg-open ${fullpath}\nIcon=${icon}\nStartupWMClass=mount-${this._toSafeFileName(
+    let content = `[Desktop Entry]\nVersion=1.0\nTerminal=false\nType=Application\nName=${label}\nExec=xdg-open ${fullpath}\nIcon=${icon}\nStartupWMClass=mount-${this._toSafeFileName(
         basename
       )}-dash2dock-lite\nActions=unmount;\n\n[Desktop Action mount]\nName=Mount\nExec=${mount_exec}\n\n[Desktop Action unmount]\nName=Unmount\nExec=${unmount_exec}\n`;
-      const [, etag] = fn.replace_contents(
-        content,
-        null,
-        false,
-        Gio.FileCreateFlags.REPLACE_DESTINATION,
-        null
-      );
-    }
+    fn.replace_contents(content, null, false, Gio.FileCreateFlags.REPLACE_DESTINATION, null);
 
     this._mounts[mount_id] = mount;
   }
@@ -651,7 +639,7 @@ export const Services = class {
       }
     }
 
-    return 'Volume';
+    return name || 'Volume';
   }
 
   checkMounts() {

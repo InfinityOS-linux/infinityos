@@ -245,6 +245,12 @@ export async function manageIconDrop(fileItem, drop) {
             console.log(`Unknown mime type for DnD: ${mimetype}`);
             break;
         }
+        // A special desktop item (notably Trash) can be its own drag source.
+        // Never send a self-move to the file operations service.
+        if (fileList.includes(fileItem.uri)) {
+            drop.finish(0);
+            return null;
+        }
         drop.finish(gdkDropAction);
         return {
             'action': gdkDropAction,

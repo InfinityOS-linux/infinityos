@@ -75,8 +75,6 @@
 		<package name="mangohud"/>
 		<package name="gamescope"/>
 		<package name="steam-devices"/>
-		<package name="lutris" arch="x86_64"/>
-		<package name="steam" arch="x86_64"/>
 		<package name="dconf"/>
 		<package name="firefox"/>
 		<package name="zsh"/>

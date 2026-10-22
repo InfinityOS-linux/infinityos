@@ -28,7 +28,7 @@ This repository is the source for the Infinity OS KIWI images, desktop configura
 | Storage | Writable Btrfs root, rEFInd, Snapper timeline and cleanup |
 | Applications | Firefox, GNOME Software, Flatpak with Flathub, mpv, InfinityLauncher, and InfinityTerminal |
 | Development | Zsh with Oh My Zsh and a compact purple Powerlevel10k prompt, Iosevka Term in InfinityTerminal |
-| Gaming | GameMode, MangoHud, Gamescope, gamepad support; Steam and Lutris on `x86_64` |
+| Gaming | GameMode, MangoHud, Gamescope, gamepad support; Steam and Lutris available through InfinityLauncher |
 | Hardware | Fedora Intel and AMD graphics support; NVIDIA driver branch selected from the GPU's PCI ID during `x86_64` live installation |
 
 ## Performance defaults
@@ -38,6 +38,7 @@ Infinity OS uses compressed zram swap sized to half of RAM, capped at 16 GiB, wi
 GameMode, MangoHud, Gamescope, TLP, and the existing bounded `vm.max_map_count` setting remain in place. No OSTree or immutable root is used.
 
 **InfinityLauncher** opens on first login. It groups optional software under AI, System, Gaming, Creative, Office, and Programming. You choose applications and press **Apply** before installation starts. The choices include Steam, Epic Games Launcher Preview, Heroic, Lutris, Prism Launcher, creative tools, EuroOffice, OpenRazer, VS Code, Docker CE, Codex, Claude, and three local coding models. Epic's native Linux AppImage is downloaded from Epic when selected. The Battle.net row opens its interactive installer in Lutris. Selecting a local model installs Ollama and OpenCode, downloads the model, and configures the terminal agent. A progress strip appears while apps install. Its source and RPM specification live in [`packages/infinity-launcher`](packages/infinity-launcher).
+On ARM64, the Steam choice installs Valve's native public beta client; game compatibility depends on the machine's graphics stack and any needed FEX or Proton setup.
 
 **Infinity Config** opens from the application grid when needed. Its Desktop and Dock tabs resize the system cursor and animated dock from 20% to 200%, with the shipped sizes at 100%; Tweaks is reserved for future controls. It uses the same visual language as InfinityLauncher and is packaged in [`packages/infinity-config`](packages/infinity-config).
 

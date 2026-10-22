@@ -112,7 +112,6 @@ export var DesktopMenu = class extends MenuHelper.MenuHelper {
             DBusUtils.RemoteFileOperations.RedoRemote();
         });
         this._addNewAction('select-all', null, () => this._desktopManager.selectAll());
-        this._addNewAction('arrange-icons', null, () => this._desktopManager.sortAllFilesFromGridsByPosition());
         this._addNewActionBoolean('keep-arranged');
         this._addNewActionBoolean('keep-stacked');
         this._addNewActionBoolean('sort-special-folders');
@@ -320,7 +319,6 @@ export var DesktopMenu = class extends MenuHelper.MenuHelper {
         this._newMenuElement(_('Select All'), 'select-all', section);
 
         section = this._newSection(menuContainer);
-        this._newMenuElement(_('Arrange Icons'), 'arrange-icons', section);
         section.append_submenu(_('Arrange By...'), this._addSortingSubMenu());
 
         section = this._newSection(menuContainer);

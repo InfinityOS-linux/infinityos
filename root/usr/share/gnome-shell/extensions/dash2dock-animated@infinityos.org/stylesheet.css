@@ -23,6 +23,12 @@
  padding: 0px !important;
 }
 
+/* Keep a real gap between pinned and running applications. */
+#d2daDock .dash-separator {
+ margin-left: 10px !important;
+ margin-right: 10px !important;
+}
+
 #d2daDock.hi #dash .dash-item-container {
 }
 

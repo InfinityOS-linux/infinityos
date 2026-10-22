@@ -1195,8 +1195,8 @@ export let Dock = GObject.registerClass(
       this._background.opacity = transparent ? 0 : 255;
 
       if (this.animator._bms && this.animator._bms.first_child) {
-        this.animator._bms.first_child.visible =
-          !transparent && this.extension.blur_background;
+        this.animator._bms.visible = this.extension.blur_background &&
+          !(Main.overview.visible || this.extension._inOverview);
       }
 
       if (this.extension.customize_topbar) {

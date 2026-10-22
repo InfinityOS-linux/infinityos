@@ -187,7 +187,10 @@ export const Integrations = class {
       return;
     }
 
-    bms.visible = dock.extension.blur_background;
+    // Blur My Shell clips this layer to a rectangle. In the overview it
+    // becomes visible outside the rounded dock, especially in the app grid.
+    bms.visible = dock.extension.blur_background &&
+      !(Main.overview.visible || dock.extension._inOverview);
     if (!bms.visible) {
       return;
     }
