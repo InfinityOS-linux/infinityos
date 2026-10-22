@@ -15,6 +15,24 @@
   display: none !important;
 }
 
+/* Keep Back on the left; put Abort immediately before Next at the far right. */
+#installation-wizard .pf-v6-c-wizard__footer .pf-v6-c-action-list:has(#installation-quit-btn) {
+  width: 100%;
+}
+
+#installation-wizard .pf-v6-c-wizard__footer .pf-v6-c-action-list__group:has(#installation-back-btn) {
+  display: contents;
+}
+
+#installation-wizard .pf-v6-c-wizard__footer .pf-v6-c-action-list__item:has(#installation-quit-btn) {
+  order: 1;
+  margin-inline-start: auto;
+}
+
+#installation-wizard .pf-v6-c-wizard__footer .pf-v6-c-action-list__item:has(#installation-next-btn) {
+  order: 2;
+}
+
 /* The 72px installer header leaves equal space above and below 44px controls. */
 .infinityos-installer-audio {
   position: fixed;

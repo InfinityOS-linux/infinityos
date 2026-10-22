@@ -2,6 +2,7 @@
 """Apply the InfinityOS live installer changes to Fedora Anaconda WebUI 68."""
 
 import gzip
+import re
 import sys
 from pathlib import Path
 
@@ -61,7 +62,11 @@ if MESSAGE not in locale:
         raise RuntimeError("Anaconda WebUI Polish catalog is incomplete")
     locale += (',\n "' + MESSAGE + '": [null, '
                '"Gdy rozpocznie się restart, wyjmij USB przed ponownym uruchomieniem systemu."]' + tail + '\n')
-    polish.write_bytes(gzip.compress(locale.encode("utf-8"), compresslevel=9, mtime=0))
+quit_translation = re.compile(r'("Quit"\s*:\s*\[null,\s*")(?:\\.|[^"\\])*("\s*\])')
+locale, count = quit_translation.subn(r'\1Przerwij\2', locale)
+if count != 1:
+    raise RuntimeError(f"Anaconda WebUI Polish Quit translation changed: expected one match, got {count}")
+polish.write_bytes(gzip.compress(locale.encode("utf-8"), compresslevel=9, mtime=0))
 
 index = WEBUI / "index.html"
 html = index.read_text(encoding="utf-8")

@@ -7,6 +7,7 @@ from pathlib import Path
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "root/usr/libexec/infinityos-brand-installer"
+CSS = Path(__file__).resolve().parents[1] / "root/usr/share/cockpit/anaconda-webui/infinityos-installer.css"
 
 
 class InstallerBrandingTests(unittest.TestCase):
@@ -20,7 +21,8 @@ class InstallerBrandingTests(unittest.TestCase):
                 'secondary:e==="success"&&Le.default.createElement(it,{onClick:Qp}'
             )
             (webui / "index.js.gz").write_bytes(gzip.compress(source.encode()))
-            (webui / "po.pl.js.gz").write_bytes(gzip.compress(b'cockpit.locale({"undo":[null,"cofnij"]\n});\n'))
+            (webui / "po.pl.js.gz").write_bytes(gzip.compress(
+                b'cockpit.locale({"undo":[null,"cofnij"],"Quit":[null,"Zako\xc5\x84cz"]\n});\n'))
             (webui / "index.html").write_text("<html><head></head></html>")
             for asset in ("infinityos-installer.css", "infinityos-installer-audio.js",
                           "infinityos-installer-music.mp3"):
@@ -32,8 +34,12 @@ class InstallerBrandingTests(unittest.TestCase):
             self.assertIn('Yo("Reboot to installed system")+" · "+Yo("Remove")+" USB"', result)
             self.assertEqual((webui / "index.html").read_text().count("infinityos-installer.css"), 1)
             self.assertEqual((webui / "index.html").read_text().count("infinityos-installer-audio.js"), 1)
-            self.assertIn("Gdy rozpocznie się restart, wyjmij USB", gzip.decompress(
-                (webui / "po.pl.js.gz").read_bytes()).decode())
+            locale = gzip.decompress((webui / "po.pl.js.gz").read_bytes()).decode()
+            self.assertIn("Gdy rozpocznie się restart, wyjmij USB", locale)
+            self.assertIn('"Quit":[null,"Przerwij"]', locale)
+            css = CSS.read_text()
+            self.assertIn(".pf-v6-c-action-list__item:has(#installation-quit-btn)", css)
+            self.assertIn(".pf-v6-c-action-list__item:has(#installation-next-btn)", css)
 
     def test_unknown_webui_version_is_rejected_before_changes(self):
         with tempfile.TemporaryDirectory() as directory:
