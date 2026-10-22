@@ -15,41 +15,38 @@
   display: none !important;
 }
 
-/* Music controls stay in the same corner as the installer changes steps. */
+/* The 72px installer header leaves equal space above and below 44px controls. */
 .infinityos-installer-audio {
   position: fixed;
-  top: 16px;
-  right: 18px;
+  top: 14px;
+  right: 14px;
   z-index: 10000;
   display: flex;
   align-items: center;
-  gap: 3px;
-  padding: 4px;
+  gap: 8px;
   color: #f7f3ff;
-  background: rgba(35, 28, 52, 0.84);
-  border: 1px solid rgba(201, 176, 238, 0.25);
-  border-radius: 13px;
-  box-shadow: 0 8px 24px rgba(12, 8, 20, 0.22);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
 }
 
 .infinityos-audio-button {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  padding: 7px;
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
   color: inherit;
-  background: transparent;
-  border: 0;
-  border-radius: 9px;
+  background: rgba(35, 28, 52, 0.86);
+  border: 1px solid rgba(201, 176, 238, 0.25);
+  border-radius: 50%;
+  box-shadow: 0 8px 24px rgba(12, 8, 20, 0.22);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   cursor: pointer;
 }
 
 .infinityos-audio-button:hover,
 .infinityos-audio-button[aria-expanded="true"] {
-  background: rgba(184, 137, 232, 0.24);
+  background: rgba(55, 39, 78, 0.94);
 }
 
 .infinityos-audio-button:focus-visible,
@@ -123,5 +120,12 @@
   .infinityos-installer-audio {
     top: 8px;
     right: 8px;
+    gap: 6px;
+  }
+
+  .infinityos-audio-button {
+    width: 40px;
+    height: 40px;
+    padding: 8px;
   }
 }
