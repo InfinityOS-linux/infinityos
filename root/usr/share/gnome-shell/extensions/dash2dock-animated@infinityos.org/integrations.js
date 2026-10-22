@@ -187,8 +187,7 @@ export const Integrations = class {
       return;
     }
 
-    // Blur My Shell clips this layer to a rectangle. In the overview it
-    // becomes visible outside the rounded dock, especially in the app grid.
+    // Hide the blur in the overview, where the dock has no background.
     bms.visible = dock.extension.blur_background &&
       !(Main.overview.visible || dock.extension._inOverview);
     if (!bms.visible) {
@@ -201,6 +200,25 @@ export const Integrations = class {
       dock.extension.integrations._bms &&
       dock.extension.integrations._bms.metadata.version >= 70
     ) {
+      const blurSurface = bms.first_child;
+      if (!blurSurface) return;
+
+      // Dynamic blur is painted on this actor itself. Give it the dock's
+      // bounds so its rounded shader is not clipped out of a monitor-sized
+      // rectangle (especially visible behind the light dock).
+      if (!blurSurface.first_child) {
+        bms.set_position(0, 0);
+        bms.set_size(dock.width, dock.height);
+        blurSurface.remove_clip();
+        blurSurface.set_position(dock._background.x, dock._background.y);
+        blurSurface.set_size(dock._background.width, dock._background.height);
+        for (const effect of blurSurface.get_effects()) {
+          if ('unscaled_corner_radius' in effect)
+            effect.unscaled_corner_radius = dock.extension.computed_border_radius;
+        }
+        return;
+      }
+
       let bg_offset_x = dock._background.x;
       let bg_offset_y = dock._background.y;
       let rw = dock.renderArea.width;
