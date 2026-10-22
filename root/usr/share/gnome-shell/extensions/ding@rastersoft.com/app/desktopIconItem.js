@@ -174,10 +174,7 @@ export var desktopIconItem = class desktopIconItem extends SignalManager.SignalM
             accessible_role: role,
         });
 
-        if (this._desktopManager.darkText)
-            this._label.add_css_class('file-label-dark');
-        else
-            this._label.add_css_class('file-label');
+        this.setLabelTextColor(this._desktopManager.darkText);
 
 
         this.container.append(this._icon);
@@ -252,6 +249,13 @@ export var desktopIconItem = class desktopIconItem extends SignalManager.SignalM
         this._x2 = this._x1 + this.container.get_allocated_width() - 1;
         this._y2 = this._y1 + this.container.get_allocated_height() - 1;
         return [this._x1, this._y1, this._x2, this._y2, this._grid];
+    }
+
+    setLabelTextColor(darkText) {
+        if (!this._label)
+            return;
+        this._label.remove_css_class(darkText ? 'file-label' : 'file-label-dark');
+        this._label.add_css_class(darkText ? 'file-label-dark' : 'file-label');
     }
 
     _setLabelName(text) {

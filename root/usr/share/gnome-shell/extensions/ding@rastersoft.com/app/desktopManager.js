@@ -121,9 +121,8 @@ export var DesktopManager = class {
             if (this.darkText === darkText)
                 return;
             this.darkText = darkText;
-            this._updateDesktop().catch(e => {
-                print(`Exception while updating Desktop after Label Color changed: ${e.message}\n${e.stack}`);
-            });
+            for (const item of this._fileList)
+                item.setLabelTextColor(darkText);
         };
         this.darkText = this._interfaceSettings.get_string('color-scheme') !== 'prefer-dark' ||
             Prefs.desktopSettings.get_boolean('dark-text-in-labels');
