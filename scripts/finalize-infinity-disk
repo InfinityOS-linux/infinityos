@@ -35,7 +35,7 @@ mount "${loopdev}p1" "$efi_mountpoint"
 root_uuid=$(blkid -s UUID -o value "$partition")
 [[ $root_uuid =~ ^[A-Fa-f0-9-]{36}$ ]] || { echo 'Missing Btrfs UUID' >&2; exit 1; }
 install -d "$mountpoint/etc/kernel" "$mountpoint/etc/infinityos" "$efi_mountpoint/os"
-printf 'root=UUID=%s rootflags=subvol=root rw rhgb quiet\n' "$root_uuid" > "$mountpoint/etc/kernel/cmdline"
+printf 'root=UUID=%s rootflags=subvol=root rw rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0\n' "$root_uuid" > "$mountpoint/etc/kernel/cmdline"
 
 copied=0
 for kernel in "$mountpoint"/boot/vmlinuz-*; do

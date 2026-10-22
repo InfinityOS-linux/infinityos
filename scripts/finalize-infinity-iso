@@ -62,26 +62,25 @@ cat > "$efi_mount/EFI/BOOT/refind.conf" <<EOF_CONF
 timeout 10
 default_selection "Infinity OS Live"
 scanfor manual
-showtools reboot,shutdown,firmware
 include infinity-theme/theme.conf
 
 menuentry "Infinity OS Live" {
     loader /os/linux
     icon /EFI/BOOT/infinity-theme/icons/os_infinityos_live.png
     initrd /os/initrd
-    options "quiet rhgb root=live:CDLABEL=$volid rd.live.image"
+    options "quiet rhgb loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 root=live:CDLABEL=$volid rd.live.image"
 }
 menuentry "Test media and start Infinity OS" {
     loader /os/linux
     icon /EFI/BOOT/infinity-theme/icons/os_infinityos_check.png
     initrd /os/initrd
-    options "quiet rhgb root=live:CDLABEL=$volid rd.live.image rd.live.check"
+    options "quiet rhgb loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 root=live:CDLABEL=$volid rd.live.image rd.live.check"
 }
 menuentry "Infinity OS Live (basic graphics)" {
     loader /os/linux
     icon /EFI/BOOT/infinity-theme/icons/os_infinityos_safe.png
     initrd /os/initrd
-    options "quiet rhgb root=live:CDLABEL=$volid rd.live.image nomodeset"
+    options "quiet rhgb loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 root=live:CDLABEL=$volid rd.live.image nomodeset"
 }
 EOF_CONF
 sync

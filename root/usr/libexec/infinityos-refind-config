@@ -10,6 +10,9 @@ fallback_config="$esp/EFI/BOOT/refind.conf"
 install -d "$esp/EFI/BOOT"
 options=$(<"$cmdline_file")
 [[ -n $options && $options != *'"'* && $options != *$'\n'* ]] || exit 1
+for splash_option in loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0; do
+	[[ " $options " == *" $splash_option "* ]] || options+=" $splash_option"
+done
 
 if [[ -e $ready_marker ]]; then
 	read -r -a args <<< "$options"
@@ -42,7 +45,6 @@ trap 'rm -f "$tmp" "$fallback_tmp"' EXIT
 timeout 5
 default_selection "Infinity OS"
 scanfor manual
-showtools reboot,shutdown,firmware
 include infinity-theme/theme.conf
 
 EOF
@@ -64,7 +66,7 @@ EOF
 	read -r -a args <<< "$options"
 	for arg in "${args[@]}"; do
 		case $arg in
-			rhgb|quiet|systemd.unit=*|plymouth.enable=*) ;;
+			rhgb|quiet|loglevel=*|rd.udev.log_level=*|systemd.show_status=*|vt.global_cursor_default=*|systemd.unit=*|plymouth.enable=*) ;;
 			*) backup_options+=("$arg") ;;
 		esac
 	done

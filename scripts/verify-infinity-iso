@@ -36,6 +36,25 @@ grep -qx 'IsFinal=True' "$rootpoint/.buildstamp" || {
     echo 'Installer still identifies Infinity OS as a test release' >&2
     exit 1
 }
+python3 - "$rootpoint" <<'PY'
+import gzip
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+version = (root / 'usr/share/infinityos/image-release-version').read_text().strip()
+title = 'InfinityOS_01' if version == '1.0' else f'InfinityOS_{version}'
+assert f'PRETTY_NAME="{title}"' in (root / 'etc/os-release').read_text()
+webui = root / 'usr/share/cockpit/anaconda-webui'
+assert 'infinityos-installer.css' in (webui / 'index.html').read_text()
+bundle = gzip.decompress((webui / 'index.js.gz').read_bytes()).decode()
+assert 'Y.spawn(["systemctl","reboot"],{superuser:"require"})' in bundle
+assert 'Yo("Reboot to installed system")' in bundle
+assert 'When reboot begins, remove the installation USB before the next boot.' in bundle
+assert 'Gdy rozpocznie się restart, wyjmij USB' in gzip.decompress(
+    (webui / 'po.pl.js.gz').read_bytes()).decode()
+assert '.feedback-section' in (webui / 'infinityos-installer.css').read_text()
+PY
 for required in \
     usr/libexec/infinityos-audit-install \
     usr/libexec/infinityos-liveinstall-boot-setup \
@@ -131,6 +150,12 @@ cmp "$rootpoint/usr/share/rEFInd/refind/refind_${efi_arch}.efi" "$efi_mount/EFI/
 cmp "$mountpoint/boot/$(uname -m)/loader/linux" "$efi_mount/os/linux"
 cmp "$mountpoint/boot/$(uname -m)/loader/initrd" "$efi_mount/os/initrd"
 grep -Fq 'menuentry "Infinity OS Live"' "$efi_mount/EFI/BOOT/refind.conf"
+if grep -Fq 'showtools ' "$efi_mount/EFI/BOOT/refind.conf"; then
+    echo 'Live rEFInd has duplicate second-row tools' >&2
+    exit 1
+fi
+grep -Fqx 'small_icon_size 32' "$efi_mount/EFI/BOOT/infinity-theme/theme.conf"
+grep -Fqx 'use_graphics_for linux' "$efi_mount/EFI/BOOT/infinity-theme/theme.conf"
 for icon in live check safe; do
     grep -Fq "icon /EFI/BOOT/infinity-theme/icons/os_infinityos_${icon}.png" "$efi_mount/EFI/BOOT/refind.conf"
 done
