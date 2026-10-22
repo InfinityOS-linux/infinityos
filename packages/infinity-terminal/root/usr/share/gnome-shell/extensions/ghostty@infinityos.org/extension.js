@@ -35,7 +35,7 @@ export default class InfinityTerminal extends Extension {
         click.set_recognize_on_press(true);
         click.connect('recognize', () => this._toggle());
         this._indicator.add_action(click);
-        Main.panel.addToStatusArea('ghostty', this._indicator);
+        Main.panel.addToStatusArea('ghostty', this._indicator, 2, 'left');
         this._hideRequestId = this._settings.connect('changed::hide-request', () => {
             const window = this._findWindow();
             if (window && !window.minimized)
