@@ -597,8 +597,7 @@ if (global.wackDockSnapshots) {
 
             const isDark = this._desktopSettings?.get_string('color-scheme') === 'prefer-dark';
             const style = this._settings.get_int('vibrancy-style');
-            const borrowVenturaLight = this._vibrancyManager ? this._vibrancyManager._getBorrowVenturaLight() : false;
-            const useVenturaLight = (style === 2 || borrowVenturaLight) && !isDark;
+            const useVenturaLight = style === 2 && !isDark;
             const effectiveStyle = useVenturaLight ? 2 : 1;
             const bmsConflict = this._vibrancyManager ? this._vibrancyManager._bmsHasPanelBlur() : false;
             let brightness = 1.0;

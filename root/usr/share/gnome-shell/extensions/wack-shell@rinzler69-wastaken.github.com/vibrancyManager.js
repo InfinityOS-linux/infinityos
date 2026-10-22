@@ -263,8 +263,7 @@ export default class VibrancyManager {
 
                 const blurMode = this._settings.get_int('vibrancy-blur-mode');
                 const style = this._settings.get_int('vibrancy-style');
-                const borrow = this._getBorrowVenturaLight();
-                const effectiveStyle = ((style === 2 || borrow) && !isDark) ? 2 : 1;
+                const effectiveStyle = (style === 2 && !isDark) ? 2 : 1;
                 const resolvedMode = blurMode === 3 ? (this._isWallpaperLenient() ? 2 : 1) : blurMode;
                 const blurRadius = resolvedMode === 1 ? RADIUS_LINEAR : RADIUS_LENIENT;
                 const brightness = effectiveStyle === 2 ? 0.80 : (isDark ? 0.90 : 0.95);
@@ -427,48 +426,6 @@ export default class VibrancyManager {
         }
     }
 
-    _getBorrowVenturaLight() {
-        const style = this._settings.get_int('vibrancy-style');
-        const isDark = this._isDarkColorScheme();
-        const isOverview = Main.overview.visibleTarget;
-        const isLockscreen = Main.sessionMode.currentMode === 'unlock-dialog' && !Main.sessionMode.hasWindows;
-
-        if (style === 1 && !isDark && !isOverview && !isLockscreen && this._currentColors) {
-            const leftColor = this._currentColors.left;
-            const rightColor = this._currentColors.right;
-            const centerColor = this._currentColors.center;
-
-            const leftContrast = Math.abs(this._getApca(255, 255, 255, leftColor.r, leftColor.g, leftColor.b));
-            const rightContrast = Math.abs(this._getApca(255, 255, 255, rightColor.r, rightColor.g, rightColor.b));
-            const centerContrast = Math.abs(this._getApca(255, 255, 255, centerColor.r, centerColor.g, centerColor.b));
-
-            const isWallpaperLenient = this._isWallpaperLenient();
-            const isLowContrast = (contrast) => contrast < 50;
-
-            if (isWallpaperLenient) {
-                let lowContrastRegions = 0;
-                if (isLowContrast(leftContrast)) lowContrastRegions++;
-                if (isLowContrast(centerContrast)) lowContrastRegions++;
-                if (isLowContrast(rightContrast)) lowContrastRegions++;
-                return lowContrastRegions >= 2;
-            } else {
-                const isWhiteRegion = (color, contrast) => {
-                    const maxVal = Math.max(color.r, color.g, color.b);
-                    const minVal = Math.min(color.r, color.g, color.b);
-                    const chroma = (maxVal - minVal) / 255.0;
-                    return contrast < 50 && chroma < 0.30;
-                };
-
-                let candidates = 0;
-                if (isWhiteRegion(leftColor, leftContrast)) candidates++;
-                if (isWhiteRegion(centerColor, centerContrast)) candidates++;
-                if (isWhiteRegion(rightColor, rightContrast)) candidates++;
-                return candidates >= 2;
-            }
-        }
-        return false;
-    }
-
     _isWallpaperLenient() {
         if (!this._currentColors) return false;
 
@@ -585,8 +542,7 @@ export default class VibrancyManager {
 
         const isDark = this._isDarkColorScheme();
         const style = this._settings.get_int('vibrancy-style');
-        const borrowVenturaLight = this._getBorrowVenturaLight();
-        const useVenturaLight = (style === 2 || borrowVenturaLight) && !isDark;
+        const useVenturaLight = style === 2 && !isDark;
 
         const effectiveStyle = useVenturaLight ? 2 : 1;
 
@@ -970,8 +926,7 @@ export default class VibrancyManager {
         const isOverview = Main.overview.visibleTarget;
         const isLockscreen = Main.sessionMode.currentMode === 'unlock-dialog' && !Main.sessionMode.hasWindows;
 
-        const borrowVenturaLight = this._getBorrowVenturaLight();
-        const useVenturaLight = (style === 2 || borrowVenturaLight) && !isDark;
+        const useVenturaLight = style === 2 && !isDark;
 
         if (useVenturaLight && !isOverview && !isLockscreen && !bmsConflict) {
             Main.panel.add_style_class_name('light-contrast');
@@ -985,6 +940,7 @@ export default class VibrancyManager {
 
         if (bmsConflict) {
             targetClass = 'panel-bigsur';
+            this._panelBackdropOverlayTint = isDark ? null : 'rgba(20, 14, 30, 0.68)';
         } else if (isOverview || isLockscreen) {
             targetClass = 'panel-bigsur';
         } else if (useVenturaLight) {
@@ -1014,7 +970,7 @@ export default class VibrancyManager {
         } else {
             targetClass = 'panel-bigsur';
             panelCSS = 'background-color: transparent !important;';
-            this._panelBackdropOverlayTint = null;
+            this._panelBackdropOverlayTint = isDark ? null : 'rgba(20, 14, 30, 0.68)';
         }
 
         // The static wallpaper is rendered by dedicated child actors. Make
@@ -1022,7 +978,7 @@ export default class VibrancyManager {
         // style pass can silently miss the overlay actor.
         this._ensurePanelBackdrop();
 
-        if (useVenturaLight && !isOverview && !isLockscreen && !bmsConflict) {
+        if (!isOverview && !isLockscreen && (!bmsConflict || this._panelBackdropOverlayTint)) {
             this._setPanelBackdropOverlayStyle(this._panelBackdropOverlayTint);
         } else {
             this._setPanelBackdropOverlayStyle(null);

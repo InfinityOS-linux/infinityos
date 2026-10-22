@@ -58,6 +58,11 @@
   background-color: rgba(20, 14, 30, 0.18) !important;
 }
 
+#panel.panel-bigsur,
+#panel.panel-bigsur * {
+  color: #ffffff !important;
+}
+
 /* Shortcut hint styling in Logo Menu */
 .wack-logo-menu-shortcut {
   font-weight: normal;

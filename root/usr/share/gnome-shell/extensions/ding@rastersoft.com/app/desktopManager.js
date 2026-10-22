@@ -114,13 +114,23 @@ export var DesktopManager = class {
         this.showDropPlace = Prefs.desktopSettings.get_boolean('show-drop-place');
         this.useNemo = Prefs.desktopSettings.get_boolean('use-nemo');
         this.showLinkEmblem = Prefs.desktopSettings.get_boolean('show-link-emblem');
-        this.darkText = Prefs.desktopSettings.get_boolean('dark-text-in-labels');
+        this._interfaceSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
+        this._updateLabelTextColor = () => {
+            const darkText = this._interfaceSettings.get_string('color-scheme') !== 'prefer-dark' ||
+                Prefs.desktopSettings.get_boolean('dark-text-in-labels');
+            if (this.darkText === darkText)
+                return;
+            this.darkText = darkText;
+            this._updateDesktop().catch(e => {
+                print(`Exception while updating Desktop after Label Color changed: ${e.message}\n${e.stack}`);
+            });
+        };
+        this.darkText = this._interfaceSettings.get_string('color-scheme') !== 'prefer-dark' ||
+            Prefs.desktopSettings.get_boolean('dark-text-in-labels');
+        this._interfaceSettings.connect('changed::color-scheme', this._updateLabelTextColor);
         this._settingsId = Prefs.desktopSettings.connect('changed', (obj, key) => {
             if (key === 'dark-text-in-labels') {
-                this.darkText = Prefs.desktopSettings.get_boolean('dark-text-in-labels');
-                this._updateDesktop().catch(e => {
-                    print(`Exception while updating Desktop after Dark Text changed: ${e.message}\n${e.stack}`);
-                });
+                this._updateLabelTextColor();
                 return;
             }
             if (key === 'show-link-emblem') {

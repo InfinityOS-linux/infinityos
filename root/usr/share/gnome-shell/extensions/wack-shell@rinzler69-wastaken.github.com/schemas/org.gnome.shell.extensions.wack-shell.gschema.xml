@@ -223,7 +223,7 @@
     <key type="i" name="vibrancy-style">
       <default>1</default>
       <summary>Vibrancy Panel Style</summary>
-      <description>0 = Off, 1 = On (Big Sur adaptive), 2 = Always Light Panel in Light Mode. Requires vibrancy-blur-mode to be active.</description>
+      <description>0 = Off, 1 = dark translucent panel, 2 = always light panel in light mode. Requires vibrancy-blur-mode to be active.</description>
     </key>
 
     <key type="b" name="workspaces-in-app-grid">

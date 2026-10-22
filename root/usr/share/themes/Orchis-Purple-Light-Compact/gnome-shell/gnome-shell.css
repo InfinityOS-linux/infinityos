@@ -2683,6 +2683,7 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 /* Top Bar */
 #panel {
   font-weight: bold;
+  color: white;
   font-feature-settings: "tnum";
   padding: 0 !important;
   transition-duration: 250ms;
@@ -2735,6 +2736,12 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
   border: 2px solid transparent;
   border-radius: 9999px;
   margin: 0;
+}
+
+#panel .panel-button *,
+#panel .system-status-icon,
+#panel .app-menu-icon {
+  color: white;
 }
 
 #panel .panel-button.clock-display {
