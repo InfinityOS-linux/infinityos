@@ -484,7 +484,8 @@ const CaffeineToggle = GObject.registerClass({
 }, class CaffeineToggle extends QuickSettings.QuickMenuToggle {
     _init(Me) {
         super._init({
-            'title': _('Caffeine'),
+            'title': /^pl(?:[_\-.@]|$)/.test(GLib.get_language_names()[0] ?? '')
+                ? 'Nie usypiaj' : "Don't sleep",
             toggleMode: false
         });
 
