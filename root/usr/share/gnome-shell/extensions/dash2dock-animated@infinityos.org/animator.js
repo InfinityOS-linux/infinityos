@@ -31,6 +31,9 @@ const ANIM_ICON_RAISE = 0.5;
 const ANIM_ICON_SCALE = 1.5;
 const ANIM_ICON_HIT_AREA = 2.5;
 const ANIMATE_CACHE_LOOKUP = 4;
+const ICON_ENTER_DURATION = 220;
+const ICON_EXIT_DURATION = 180;
+const ICON_TRANSITION_SCALE = 0.9;
 
 const DOT_CANVAS_SIZE = 96;
 
@@ -42,9 +45,18 @@ export let Animator = class {
       this._badges = [];
     }
     this._computed = null;
+    this._iconSnapshots = null;
+    this._exitGhosts ??= new Set();
+    this._animationSettings ??= new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
   }
 
   disable() {
+    for (const ghost of this._exitGhosts ?? []) {
+      ghost.remove_all_transitions();
+      ghost.destroy();
+    }
+    this._exitGhosts?.clear();
+    this._iconSnapshots = null;
     if (this._target) {
       this._target.remove_all_children();
     }
@@ -65,6 +77,7 @@ export let Animator = class {
       this._renderers = [];
       this._dots = [];
       this._badges = [];
+      this._iconSnapshots = null;
     }
     this._target = dock.renderArea;
 
@@ -102,6 +115,37 @@ export let Animator = class {
     }
 
     return true;
+  }
+
+  _fadeOutIcon(snapshot, dock) {
+    if (!snapshot.opacity) return;
+
+    const ghost = new St.Icon({
+      ...(snapshot.gicon
+        ? {gicon: snapshot.gicon}
+        : {icon_name: snapshot.iconName || 'application-x-executable'}),
+      icon_size: snapshot.iconSize,
+      reactive: false,
+    });
+    ghost.set_size(snapshot.width, snapshot.height);
+    ghost.set_position(snapshot.x, snapshot.y);
+    ghost.set_scale(snapshot.scale, snapshot.scale);
+    ghost.opacity = snapshot.opacity;
+    dock.renderArea.add_child(ghost);
+    this._exitGhosts.add(ghost);
+    ghost.ease({
+      x: snapshot.x + snapshot.width * snapshot.scale * (1 - ICON_TRANSITION_SCALE) / 2,
+      y: snapshot.y + snapshot.height * snapshot.scale * (1 - ICON_TRANSITION_SCALE) / 2,
+      scale_x: snapshot.scale * ICON_TRANSITION_SCALE,
+      scale_y: snapshot.scale * ICON_TRANSITION_SCALE,
+      opacity: 0,
+      duration: ICON_EXIT_DURATION,
+      mode: Clutter.AnimationMode.EASE_IN_QUAD,
+      onComplete: () => {
+        this._exitGhosts.delete(ghost);
+        ghost.destroy();
+      },
+    });
   }
 
   //! begin optimization
@@ -191,11 +235,6 @@ export let Animator = class {
       if (!icon._icon) return;
       let pos = icon.get_transformed_position();
 
-      if (icon._found && !icon._handled) {
-        icon._handled = true;
-        dock._maybeBounce(icon, true);
-      }
-
       icon._pos = [...pos];
       icon._fixedPosition = [...pos];
 
@@ -243,6 +282,25 @@ export let Animator = class {
     let didBounce = false;
     let didLaunchPulse = false;
     let now = Date.now();
+    const presentIcons = new Set(animateIcons.filter(icon => icon._icon));
+    const animationsEnabled = this._animationSettings.get_boolean('enable-animations');
+    const animateChanges = this._iconSnapshots !== null && animationsEnabled &&
+      !dock._dragging && !dock._preview;
+    if (animateChanges) {
+      for (const [icon, snapshot] of this._iconSnapshots) {
+        if (!presentIcons.has(icon))
+          this._fadeOutIcon(snapshot, dock);
+      }
+      for (const icon of presentIcons) {
+        if (!this._iconSnapshots.has(icon))
+          icon._dockEntryTime = now;
+      }
+    }
+    this._iconSnapshots ??= new Map();
+    for (const icon of this._iconSnapshots.keys()) {
+      if (!presentIcons.has(icon))
+        this._iconSnapshots.delete(icon);
+    }
     for (let [appId, launchedAt] of dock._launchingApps ?? []) {
       if (now - launchedAt >= 8000)
         dock._launchingApps.delete(appId);
@@ -630,6 +688,20 @@ export let Animator = class {
         //-------------------
         let unscaledIconSize = dock._iconSizeScaledDown * scaleFactor;
         let targetSize = unscaledIconSize * icon._targetScale;
+        let entryScale = 1;
+        let entryOpacity = 1;
+        if (!animationsEnabled)
+          delete icon._dockEntryTime;
+        if (icon._dockEntryTime !== undefined) {
+          const progress = Math.min(1, (now - icon._dockEntryTime) / ICON_ENTER_DURATION);
+          if (progress === 1) {
+            delete icon._dockEntryTime;
+          } else {
+            const eased = 1 - (1 - progress) ** 3;
+            entryScale = ICON_TRANSITION_SCALE + (1 - ICON_TRANSITION_SCALE) * eased;
+            entryOpacity = eased;
+          }
+        }
         let currentSize = renderer.icon_size * renderer.scaleX;
         {
           let dst = targetSize - currentSize;
@@ -647,6 +719,8 @@ export let Animator = class {
           icon._deltaSize = appliedSize;
           icon._targetSize = targetSize;
         }
+        if (entryOpacity < 1)
+          targetSize = unscaledIconSize * icon._targetScale;
         // compute icon scale based on size
         icon._scale = targetSize / unscaledIconSize;
 
@@ -656,7 +730,7 @@ export let Animator = class {
           renderer.set_icon_size(baseSize);
         }
         let scaleToTarget = targetSize / baseSize;
-        renderer.set_scale(scaleToTarget, scaleToTarget);
+        renderer.set_scale(scaleToTarget * entryScale, scaleToTarget * entryScale);
 
         let p = icon.get_transformed_position();
         let adjustX = icon.width / 2 - targetSize / 2;
@@ -686,8 +760,9 @@ export let Animator = class {
 
             let ry = p[1] + adjustY + icon._icon.translationY - renderOffset[1];
             renderer.set_position(
-              p[0] + adjustX + icon._icon.translationX - renderOffset[0],
-              ry
+              p[0] + adjustX + icon._icon.translationX - renderOffset[0] +
+                targetSize * (1 - entryScale) / 2,
+              ry + targetSize * (1 - entryScale) / 2
             );
 
             // renderer.ease({
@@ -796,7 +871,20 @@ export let Animator = class {
           }
         }
         renderer.opacity =
-          icon._icon == dock._dragged && dock._dragging ? 75 : launchOpacity;
+          Math.round((icon._icon == dock._dragged && dock._dragging ? 75 : launchOpacity) * entryOpacity);
+        if (renderer.visible) {
+          this._iconSnapshots.set(icon, {
+            gicon: renderer.gicon,
+            iconName: renderer.icon_name,
+            iconSize: renderer.icon_size,
+            width: renderer.width,
+            height: renderer.height,
+            x: renderer.x,
+            y: renderer.y,
+            scale: renderer.scaleX,
+            opacity: renderer.opacity,
+          });
+        }
       }
 
 
@@ -835,6 +923,7 @@ export let Animator = class {
           badge.y = icon._renderer.y;
 
           badge.set_scale(icon._scale, icon._scale);
+          badge.opacity = renderer.opacity;
           badge.show();
         }
       }
@@ -865,6 +954,7 @@ export let Animator = class {
           dots.x = icon._renderer.x;
           dots.y = icon._renderer.y;
           dots.set_scale(icon._scale, icon._scale);
+          dots.opacity = renderer.opacity;
           dots.show();
         }
       }

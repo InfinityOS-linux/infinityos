@@ -619,8 +619,6 @@ export let Dock = GObject.registerClass(
                 c.width = -1;
                 c.height = -1;
                 return false;
-              } else if (!c._found) {
-                c._found = true;
               }
             }
           }
