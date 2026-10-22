@@ -20,6 +20,10 @@ def replace_once(content, old, new, label):
 version = (WEBUI / "VERSION.txt").read_text(encoding="utf-8").strip()
 if not version.startswith("68"):
     raise RuntimeError(f"Unsupported Anaconda WebUI version: {version}")
+for asset in ("infinityos-installer.css", "infinityos-installer-audio.js",
+              "infinityos-installer-music.mp3"):
+    if not (WEBUI / asset).is_file() or not (WEBUI / asset).stat().st_size:
+        raise RuntimeError(f"Missing InfinityOS installer asset: {asset}")
 
 bundle = WEBUI / "index.js.gz"
 source = gzip.decompress(bundle.read_bytes()).decode("utf-8")
@@ -64,4 +68,8 @@ html = index.read_text(encoding="utf-8")
 if 'infinityos-installer.css' not in html:
     html = replace_once(html, '</head>',
                         '<link rel="stylesheet" href="infinityos-installer.css"></head>', "HTML head")
-    index.write_text(html, encoding="utf-8")
+if 'infinityos-installer-audio.js' not in html:
+    html = replace_once(html, '</head>',
+                        '<script src="infinityos-installer-audio.js" defer></script></head>',
+                        "audio controls")
+index.write_text(html, encoding="utf-8")

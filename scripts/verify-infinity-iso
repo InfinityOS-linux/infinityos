@@ -47,6 +47,11 @@ title = 'InfinityOS_01' if version == '1.0' else f'InfinityOS_{version}'
 assert f'PRETTY_NAME="{title}"' in (root / 'etc/os-release').read_text()
 webui = root / 'usr/share/cockpit/anaconda-webui'
 assert 'infinityos-installer.css' in (webui / 'index.html').read_text()
+assert 'infinityos-installer-audio.js' in (webui / 'index.html').read_text()
+assert (webui / 'infinityos-installer-audio.js').stat().st_size > 1000
+assert (webui / 'infinityos-installer-music.mp3').stat().st_size > 1_000_000
+firefox_live_prefs = (root / 'usr/share/anaconda/firefox-theme/live/user.js').read_text()
+assert 'user_pref("media.autoplay.default", 0);' in firefox_live_prefs
 bundle = gzip.decompress((webui / 'index.js.gz').read_bytes()).decode()
 assert 'Y.spawn(["systemctl","reboot"],{superuser:"require"})' in bundle
 assert 'Yo("Reboot to installed system")' in bundle

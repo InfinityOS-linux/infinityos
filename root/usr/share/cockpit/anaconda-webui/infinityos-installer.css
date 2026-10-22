@@ -14,3 +14,114 @@
 #about-modal-dropdown-item-report {
   display: none !important;
 }
+
+/* Music controls stay in the same corner as the installer changes steps. */
+.infinityos-installer-audio {
+  position: fixed;
+  top: 16px;
+  right: 18px;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  color: #f7f3ff;
+  background: rgba(35, 28, 52, 0.84);
+  border: 1px solid rgba(201, 176, 238, 0.25);
+  border-radius: 13px;
+  box-shadow: 0 8px 24px rgba(12, 8, 20, 0.22);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.infinityos-audio-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 7px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.infinityos-audio-button:hover,
+.infinityos-audio-button[aria-expanded="true"] {
+  background: rgba(184, 137, 232, 0.24);
+}
+
+.infinityos-audio-button:focus-visible,
+.infinityos-audio-popover input:focus-visible {
+  outline: 2px solid #d9b1f7;
+  outline-offset: 2px;
+}
+
+.infinityos-audio-button svg {
+  display: block;
+  width: 21px;
+  height: 21px;
+}
+
+.infinityos-audio-muted,
+.infinityos-installer-audio.is-muted .infinityos-audio-sound {
+  display: none !important;
+}
+
+.infinityos-installer-audio.is-muted .infinityos-audio-muted {
+  display: block !important;
+}
+
+.infinityos-audio-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 216px;
+  padding: 13px 15px;
+  color: inherit;
+  background: rgba(35, 28, 52, 0.96);
+  border: 1px solid rgba(201, 176, 238, 0.3);
+  border-radius: 13px;
+  box-shadow: 0 12px 30px rgba(12, 8, 20, 0.3);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.infinityos-audio-popover[hidden] {
+  display: none;
+}
+
+.infinityos-audio-popover label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.infinityos-audio-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.infinityos-audio-slider-row input {
+  flex: 1;
+  min-width: 0;
+  accent-color: #c783e4;
+  cursor: pointer;
+}
+
+.infinityos-audio-slider-row output {
+  min-width: 34px;
+  text-align: right;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+  .infinityos-installer-audio {
+    top: 8px;
+    right: 8px;
+  }
+}

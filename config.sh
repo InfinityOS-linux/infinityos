@@ -263,6 +263,13 @@ BOOT_POST_EOF
 				/usr/share/cockpit/anaconda-webui/index.html
 		fi
 		/usr/bin/python3 /usr/libexec/infinityos-brand-installer
+		# Anaconda opens its own temporary Firefox profile. Allow the installer
+		# music to begin when that window opens, before the first page click.
+		firefox_live_prefs=/usr/share/anaconda/firefox-theme/live/user.js
+		test -f "$firefox_live_prefs"
+		if ! grep -Fq 'user_pref("media.autoplay.default", 0);' "$firefox_live_prefs"; then
+			printf '%s\n' 'user_pref("media.autoplay.default", 0);' >> "$firefox_live_prefs"
+		fi
 		if [[ "$(uname -m)" == "x86_64" ]]; then
 			# Detect the target PC while Anaconda still has access to its PCI devices.
 			# A failed network download is retried after installation at boot.
