@@ -83,7 +83,10 @@ window.testwindow {
     outline-offset: 1px;
 }
 
-.file-item .file-label {
+.file-item .file-label,
+.file-item .file-label-dark {
+    padding-left: 8px;
+    padding-right: 8px;
     transition: background-color 140ms ease-out;
 }
 
