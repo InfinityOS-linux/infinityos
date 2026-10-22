@@ -3,6 +3,7 @@ import threading
 from datetime import datetime
 
 from checker import check_updates, read_state, save_state
+from i18n import tr, update_count
 from progress import run_update_command
 
 
@@ -21,7 +22,17 @@ window { background: #111018; color: #f4f0fa; }
 .footer { background: #17131f; border-top: 1px solid #3b3152; padding: 17px 24px; }
 .update-progress trough { min-height: 5px; background: #322941; border-radius: 999px; }
 .update-progress progress { min-height: 5px; background: #ad82e9; border-radius: 999px; }
+.state-title { font-size: 22px; font-weight: 700; color: #ffffff; }
+.state-icon { color: #ad82e9; }
 '''
+
+
+def network_is_offline(monitor, gio):
+    """Only call a connection offline when GIO has a definite answer."""
+    return (not monitor.get_network_available() or
+            monitor.get_connectivity() in (gio.NetworkConnectivity.LOCAL,
+                                           gio.NetworkConnectivity.LIMITED,
+                                           gio.NetworkConnectivity.PORTAL))
 
 
 def install_commands(updates):
@@ -49,13 +60,16 @@ def main():
     import gi
     gi.require_version('Gtk', '4.0')
     gi.require_version('Gdk', '4.0')
-    from gi.repository import Gdk, GLib, Gtk, Pango
+    from gi.repository import Gdk, Gio, GLib, Gtk, Pango
 
     class Updater(Gtk.Application):
         def __init__(self):
             super().__init__(application_id='org.infinityos.Updater')
             self.state = read_state()
             self.busy = False
+            self.checking = False
+            self.offline = False
+            self.network_monitor = Gio.NetworkMonitor.get_default()
 
         def do_activate(self):
             if getattr(self, 'window', None):
@@ -68,7 +82,7 @@ def main():
             Gtk.StyleContext.add_provider_for_display(
                 Gdk.Display.get_default(), css,
                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-            self.window = Gtk.ApplicationWindow(application=self, title='Infinity OS Updates')
+            self.window = Gtk.ApplicationWindow(application=self, title=tr('Infinity OS Updates'))
             self.window.set_default_size(700, 620)
 
             layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -76,14 +90,17 @@ def main():
 
             hero = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7)
             hero.add_css_class('hero')
-            title = Gtk.Label(label='Infinity OS Updates', xalign=0)
+            title = Gtk.Label(label=tr('Infinity OS Updates'), xalign=0)
             title.add_css_class('hero-title')
             hero.append(title)
-            subtitle = Gtk.Label(label='System packages · Flatpaks · Device firmware', xalign=0)
+            subtitle = Gtk.Label(label=tr('System packages · Flatpaks · Device firmware'), xalign=0)
             subtitle.add_css_class('hero-subtitle')
             hero.append(subtitle)
             layout.append(hero)
 
+            self.content = Gtk.Stack(vexpand=True)
+            self.content.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+            self.content.set_transition_duration(260)
             scroll = Gtk.ScrolledWindow(vexpand=True)
             self.items = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
             self.items.set_margin_top(22)
@@ -91,7 +108,35 @@ def main():
             self.items.set_margin_start(24)
             self.items.set_margin_end(24)
             scroll.set_child(self.items)
-            layout.append(scroll)
+            self.content.add_named(scroll, 'results')
+
+            checking = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14,
+                               halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+            self.spinner = Gtk.Spinner()
+            self.spinner.set_size_request(44, 44)
+            checking.append(self.spinner)
+            checking_title = Gtk.Label(label=tr('Checking for updates…'))
+            checking_title.add_css_class('state-title')
+            checking.append(checking_title)
+            detail = Gtk.Label(label=tr('Checking package repositories and other sources.'))
+            detail.add_css_class('muted')
+            checking.append(detail)
+            self.content.add_named(checking, 'checking')
+
+            offline = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14,
+                              halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+            icon = Gtk.Image.new_from_icon_name('network-wireless-offline-symbolic')
+            icon.set_pixel_size(48)
+            icon.add_css_class('state-icon')
+            offline.append(icon)
+            offline_title = Gtk.Label(label=tr('No internet connection'))
+            offline_title.add_css_class('state-title')
+            offline.append(offline_title)
+            hint = Gtk.Label(label=tr('Connect to the internet and check again.'))
+            hint.add_css_class('muted')
+            offline.append(hint)
+            self.content.add_named(offline, 'offline')
+            layout.append(self.content)
 
             footer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
             footer.add_css_class('footer')
@@ -109,25 +154,38 @@ def main():
             self.status.add_css_class('muted')
             self.status.set_ellipsize(Pango.EllipsizeMode.END)
             actions.append(self.status)
-            self.refresh = Gtk.Button(label='Check again')
+            self.refresh = Gtk.Button(label=tr('Check again'))
             self.refresh.add_css_class('secondary')
             self.refresh.connect('clicked', self.on_refresh)
             actions.append(self.refresh)
-            self.apply = Gtk.Button(label='Install updates')
+            self.apply = Gtk.Button(label=tr('Install updates'))
             self.apply.add_css_class('primary')
             self.apply.connect('clicked', self.on_apply)
             actions.append(self.apply)
-            self.release_apply = Gtk.Button(label='Upgrade Infinity OS')
+            self.release_apply = Gtk.Button(label=tr('Upgrade Infinity OS'))
             self.release_apply.add_css_class('primary')
             self.release_apply.connect('clicked', self.on_release)
             actions.append(self.release_apply)
             footer.append(actions)
             layout.append(footer)
-            self.render()
-            self.window.present()
             self.on_refresh(None)
+            self.window.present()
 
         def render(self):
+            if self.checking:
+                self.content.set_visible_child_name('checking')
+                self.apply.set_sensitive(False)
+                self.release_apply.set_visible(False)
+                self.refresh.set_sensitive(False)
+                return
+            if self.offline:
+                self.content.set_visible_child_name('offline')
+                self.apply.set_sensitive(False)
+                self.release_apply.set_visible(False)
+                self.refresh.set_sensitive(True)
+                self.status.set_text(tr('No internet connection'))
+                return
+            self.content.set_visible_child_name('results')
             while child := self.items.get_first_child():
                 self.items.remove(child)
             updates = self.state.get('updates', [])
@@ -136,25 +194,26 @@ def main():
             if release:
                 card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
                 card.add_css_class('update-card')
-                title = Gtk.Label(label=f"Infinity OS {release['version']} is available", xalign=0)
+                title = Gtk.Label(label=tr('Infinity OS {version} is available').format(
+                    version=release['version']), xalign=0)
                 title.add_css_class('update-name')
                 card.append(title)
-                message = ('First install current system packages, then download and install the new release. '
-                           'A Btrfs recovery snapshot is created before each system transaction.'
+                message = (tr('First install current system packages, then download and install the new release. '
+                              'A Btrfs recovery snapshot is created before each system transaction.')
                            if release.get('supported') else
-                           'This release changes the Fedora base and needs a dedicated migration path.')
+                           tr('This release changes the Fedora base and needs a dedicated migration path.'))
                 detail = Gtk.Label(label=message, xalign=0, wrap=True)
                 detail.add_css_class('muted')
                 card.append(detail)
                 self.items.append(card)
-            count = Gtk.Label(label=f'{len(updates)} available updates', xalign=0)
+            count = Gtk.Label(label=update_count(len(updates)), xalign=0)
             count.add_css_class('pill')
             count_row = Gtk.Box()
             count_row.append(count)
             self.items.append(count_row)
             if not updates:
-                message = ('Could not confirm whether updates are available.' if errors
-                           else 'Your system is up to date.')
+                message = (tr('Could not confirm whether updates are available.') if errors
+                           else tr('Your system is up to date.'))
                 empty = Gtk.Label(label=message, xalign=0)
                 empty.set_margin_top(24)
                 self.items.append(empty)
@@ -170,7 +229,8 @@ def main():
                 card.append(detail)
                 self.items.append(card)
             if errors:
-                warning = Gtk.Label(label='Some sources could not be checked:\n' + '\n'.join(errors), xalign=0)
+                warning = Gtk.Label(label=tr('Some sources could not be checked:\n') +
+                                    '\n'.join(errors), xalign=0)
                 warning.set_wrap(True)
                 warning.add_css_class('muted')
                 self.items.append(warning)
@@ -182,18 +242,26 @@ def main():
                 checked_at = self.state.get('checked_at')
                 if checked_at:
                     checked_at = datetime.fromisoformat(checked_at).astimezone().strftime('%d %b %Y, %H:%M')
-                self.status.set_text('Last checked: ' + (checked_at or 'never'))
+                self.status.set_text(tr('Last checked: ') + (checked_at or tr('never')))
 
         def on_refresh(self, _button):
+            if self.busy:
+                return
             self.busy = True
+            self.checking = True
+            self.offline = False
             self.hold()
-            self.status.set_text('Checking for updates…')
+            self.status.set_text(tr('Checking for updates…'))
             self.render()
+            self.spinner.start()
+
+            if network_is_offline(self.network_monitor, Gio):
+                self.finish_offline()
+                return
 
             def work():
                 try:
                     state = check_updates()
-                    save_state(state)
                 except Exception as error:
                     GLib.idle_add(self.finish_error, str(error))
                 else:
@@ -202,8 +270,18 @@ def main():
             threading.Thread(target=work, daemon=True).start()
 
         def finish_refresh(self, state, notice=None, recovery=None):
+            if self.checking and network_is_offline(self.network_monitor, Gio):
+                return self.finish_offline()
+            if self.checking:
+                try:
+                    save_state(state)
+                except OSError as error:
+                    state['errors'].append(str(error))
             self.state = state
             self.busy = False
+            self.checking = False
+            self.offline = False
+            self.spinner.stop()
             self.stop_progress()
             self.render()
             if notice:
@@ -215,9 +293,23 @@ def main():
             return GLib.SOURCE_REMOVE
 
         def finish_error(self, message):
+            if self.checking and network_is_offline(self.network_monitor, Gio):
+                return self.finish_offline()
             self.state = read_state()
             self.state['errors'] = [message] + self.state.get('errors', [])
             self.busy = False
+            self.checking = False
+            self.spinner.stop()
+            self.stop_progress()
+            self.render()
+            self.release()
+            return GLib.SOURCE_REMOVE
+
+        def finish_offline(self):
+            self.busy = False
+            self.checking = False
+            self.offline = True
+            self.spinner.stop()
             self.stop_progress()
             self.render()
             self.release()
@@ -262,9 +354,9 @@ def main():
                 except Exception as error:
                     GLib.idle_add(self.finish_error, str(error))
                 else:
-                    notice = ('Some updates could not be installed.' if errors else
-                              'System updates installed. Restart may be required.'
-                              if completed_system_updates else 'Updates installed.')
+                    notice = (tr('Some updates could not be installed.') if errors else
+                              tr('System updates installed. Restart may be required.')
+                              if completed_system_updates else tr('Updates installed.'))
                     recovery = (f'Root snapshot #{snapshot} is available in Backups (Btrfs) in rEFInd. '
                                 '/home, /var and device firmware are not part of this snapshot.'
                                 if snapshot else None)
@@ -323,7 +415,8 @@ def main():
                                 '/home, /var and device firmware are not part of this snapshot.'
                                 if snapshot else None)
                     GLib.idle_add(self.finish_refresh, state,
-                                  f'Infinity OS {version} installed. Restart to use the new release.', recovery)
+                                  tr('Infinity OS {version} installed. Restart to use the new release.').format(
+                                      version=version), recovery)
 
             threading.Thread(target=work, daemon=True).start()
 

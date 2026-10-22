@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 
@@ -19,6 +20,7 @@ def load(name):
 
 
 checker = load('checker')
+i18n = load('i18n')
 updater = load('updater')
 progress = load('progress')
 release = load('release')
@@ -55,6 +57,32 @@ class UpdaterTests(unittest.TestCase):
             path = Path(directory) / 'updates.json'
             checker.save_state(state, path)
             self.assertEqual(checker.read_state(path), state)
+
+    def test_network_monitor_distinguishes_offline_from_unknown(self):
+        connectivity = SimpleNamespace(LOCAL=1, LIMITED=2, PORTAL=3, FULL=4, UNKNOWN=0)
+        gio = SimpleNamespace(NetworkConnectivity=connectivity)
+        monitor = SimpleNamespace(get_network_available=lambda: False,
+                                  get_connectivity=lambda: connectivity.UNKNOWN)
+        self.assertTrue(updater.network_is_offline(monitor, gio))
+        monitor.get_network_available = lambda: True
+        for status in (connectivity.LOCAL, connectivity.LIMITED, connectivity.PORTAL):
+            monitor.get_connectivity = lambda status=status: status
+            self.assertTrue(updater.network_is_offline(monitor, gio))
+        for status in (connectivity.FULL, connectivity.UNKNOWN):
+            monitor.get_connectivity = lambda status=status: status
+            self.assertFalse(updater.network_is_offline(monitor, gio))
+
+    def test_updater_offline_copy_follows_system_language(self):
+        with patch.object(i18n.locale, 'getlocale', return_value=('pl_PL', 'UTF-8')):
+            self.assertEqual(i18n.tr('No internet connection'), 'Brak połączenia z internetem')
+            self.assertEqual(i18n.tr('Connect to the internet and check again.'),
+                             'Połącz się z internetem i sprawdź ponownie.')
+            self.assertEqual(i18n.update_count(1), '1 dostępna aktualizacja')
+            self.assertEqual(i18n.update_count(3), '3 dostępne aktualizacje')
+            self.assertEqual(i18n.update_count(12), '12 dostępnych aktualizacji')
+        with patch.object(i18n.locale, 'getlocale', return_value=('en_US', 'UTF-8')):
+            self.assertEqual(i18n.tr('No internet connection'), 'No internet connection')
+            self.assertEqual(i18n.update_count(1), '1 available update')
 
     def test_rpm_check_avoids_system_state_and_accepts_configured_repo_key(self):
         calls = []

@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
 Name=Infinity OS Updates
+Name[pl]=Aktualizacje Infinity OS
 Comment=Review system and Flatpak updates
+Comment[pl]=Przeglądaj aktualizacje systemu i Flatpaków
 Exec=infinity-updater
 Icon=org.infinityos.Updater
 Categories=System;Settings;
