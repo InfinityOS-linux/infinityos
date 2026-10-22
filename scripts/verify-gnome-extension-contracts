@@ -63,7 +63,7 @@ expected_vshell_defaults = {
     "ws-preview-scale": "80",
     "ws-sw-popup-v-position": "85",
     "ws-thumbnail-scale": "0",
-    "ws-thumbnail-scale-appgrid": "11",
+    "ws-thumbnail-scale-appgrid": "30",
     "ws-thumbnails-position": "5",
     "wst-position-adjust": "0",
 }

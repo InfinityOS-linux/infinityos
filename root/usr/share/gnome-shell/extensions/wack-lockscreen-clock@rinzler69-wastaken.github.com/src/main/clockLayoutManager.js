@@ -6,7 +6,7 @@ import {
     HINT_VERTICAL_FRACTION,
     HINT_NOTIF_MARGIN,
     FADE_OUT_SCALE,
-    DATE_LABEL_HEIGHT,
+    TIME_LABEL_TOP_OFFSET,
     TIME_LABEL_HEIGHT_FALLBACK,
     centerClockLabel,
 } from './constants.js';
@@ -111,7 +111,7 @@ export class ClockLayoutManager {
         const topY = monitorY + Math.floor(monitorHeight * DATETIME_TOP_FRACTION);
 
         dateLabel.set_position(0, 0);
-        timeLabel.set_position(0, DATE_LABEL_HEIGHT);
+        timeLabel.set_position(0, TIME_LABEL_TOP_OFFSET);
 
         wrapper.set_position(monitorX, topY);
         wrapper.set_width(monitorWidth);
@@ -148,9 +148,9 @@ export class ClockLayoutManager {
         const monitorY = monitor ? monitor.y : 0;
         const clockY = this.clockWrapper?.y ?? 0;
         const [, natHeight] = this.clockWrapper?.get_preferred_height(-1) ?? [0, 0];
-        const [, dateHeight] = this.dateLabel?.get_preferred_height(-1) ?? [0, DATE_LABEL_HEIGHT];
+        const [, dateHeight] = this.dateLabel?.get_preferred_height(-1) ?? [0, 24];
         const [, timeHeight] = this.timeLabel?.get_preferred_height(-1) ?? [0, TIME_LABEL_HEIGHT_FALLBACK];
-        const clockHeight = Math.max(natHeight, dateHeight + timeHeight, DATE_LABEL_HEIGHT + timeHeight);
+        const clockHeight = Math.max(natHeight, dateHeight, TIME_LABEL_TOP_OFFSET + timeHeight);
 
         return {
             fadeOutScale: FADE_OUT_SCALE,

@@ -2,6 +2,7 @@
 
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
+import GLib from 'gi://GLib';
 
 import { DockPosition } from './dock.js';
 import {
@@ -17,6 +18,7 @@ const LAUNCHER_APP_IDS = new Set([
   'org.infinityos.Launcher.desktop',
   'infinity-launcher.desktop',
 ]);
+const IS_LIVE_SESSION = GLib.get_user_name() === 'liveuser';
 
 // some codes lifted from dash-to-dock intellihide
 const handledWindowTypes = [
@@ -148,7 +150,7 @@ export let AutoHide = class {
   }
 
   show() {
-    if (!this.dock._monitor || this.dock._monitor.inFullscreen || this._launcherOpen()) {
+    if (!this.dock._monitor || (!IS_LIVE_SESSION && this.dock._monitor.inFullscreen) || this._launcherOpen()) {
       return;
     }
     this._dwell = 0;
@@ -165,10 +167,12 @@ export let AutoHide = class {
   }
 
   _launcherOpen() {
+    if (IS_LIVE_SESSION) return false;
     const tracker = Shell.WindowTracker.get_default();
     return global.get_window_actors().some((actor) => {
       const window = actor.get_meta_window();
-      if (!window) return false;
+      if (!window || !actor.visible || window.minimized || !window.showing_on_its_workspace())
+        return false;
       return window.get_gtk_application_id?.() === 'org.infinityos.Launcher' ||
         window.get_wm_class?.() === 'org.infinityos.Launcher' ||
         LAUNCHER_APP_IDS.has(tracker.get_window_app(window)?.get_id());
@@ -208,6 +212,7 @@ export let AutoHide = class {
 
   _checkOverlap() {
     // console.log("checking overlap...");
+    if (IS_LIVE_SESSION) return false;
     if (this.extension._inOverview) {
       return false;
     }
@@ -267,7 +272,7 @@ export let AutoHide = class {
       (w) =>
         workspace == w.get_workspace().index() && w.showing_on_its_workspace()
     );
-    windows = windows.filter((w) => w.get_window_type() in handledWindowTypes);
+    windows = windows.filter((w) => handledWindowTypes.includes(w.get_window_type()));
 
     let isOverlapped = false;
     let dockRect = this.dock.struts.get_transformed_position();

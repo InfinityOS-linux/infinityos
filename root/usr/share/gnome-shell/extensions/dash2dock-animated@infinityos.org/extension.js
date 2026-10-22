@@ -52,9 +52,11 @@ const ANIM_INTERVAL = 15;
 const ANIM_INTERVAL_PAD = 15;
 
 export default class Dash2DockLiteExt extends Extension {
-  createDock() {
+  createDock(monitorIndex = Main.layoutManager.primaryIndex, config = null) {
     let d = new Dock({ extension: this });
     d.extension = this;
+    d._monitorIndex = monitorIndex;
+    d._config = config;
     d.opacity = 0; // animate
     d.dock();
     this.dock = d;
@@ -67,7 +69,7 @@ export default class Dash2DockLiteExt extends Extension {
   createTheDocks() {
     this.docks = this.docks ?? [];
 
-    if (this._config.docks) {
+    if (Array.isArray(this._config.docks)) {
       let count = this._config['docks'].length;
       if (count != this.docks.length) {
         this.destroyDocks();
@@ -83,11 +85,13 @@ export default class Dash2DockLiteExt extends Extension {
           }
         }
         if (index != -1) {
-          let d = this.createDock();
-          d._monitorIndex = index;
-          d._config = dc;
+          this.createDock(index, dc);
         }
       });
+      if (this.docks.length === 0) {
+        console.warn('No configured dock monitor is available; using the primary monitor');
+        this.createDock(Main.layoutManager.primaryIndex);
+      }
       return;
     }
 
@@ -115,8 +119,7 @@ export default class Dash2DockLiteExt extends Extension {
       }
 
       for (let i = 0; i < count; i++) {
-        let d = this.createDock();
-        d._monitorIndex = i;
+        this.createDock(i);
       }
     }
   }
@@ -143,14 +146,15 @@ export default class Dash2DockLiteExt extends Extension {
   }
 
   _showMainOverviewDash(show) {
-    Main.overview.dash.opacity = show ? 255 : 0;
+    const dash = Main.overview.dash;
+    if (!dash) return;
+    dash.opacity = show ? 255 : 0;
     // Main.overview.dash._background.opacity = show ? 255 : 0;
-    Main.overview.dash._background.style = show
-      ? ''
-      : 'background: transparent !important;';
+    if (dash._background)
+      dash._background.style = show ? '' : 'background: transparent !important;';
 
-    let box = Main.overview.dash.__box || Main.overview.dash._box;
-    box.get_children().forEach((c) => {
+    const box = dash.__box || dash._box;
+    box?.get_children().forEach((c) => {
       c.opacity = show ? 255 : 0;
       c.visible = show;
       if (c.child) {
@@ -159,9 +163,13 @@ export default class Dash2DockLiteExt extends Extension {
       }
     });
 
-    Main.overview.dash._showAppsIcon.opacity = show ? 255 : 0;
-    Main.overview.dash._showAppsIcon.child.reactive = show;
-    Main.overview.dash._showAppsIcon.child.track_hover = show;
+    if (dash._showAppsIcon) {
+      dash._showAppsIcon.opacity = show ? 255 : 0;
+      if (dash._showAppsIcon.child) {
+        dash._showAppsIcon.child.reactive = show;
+        dash._showAppsIcon.child.track_hover = show;
+      }
+    }
   }
 
   enable() {
@@ -205,7 +213,6 @@ export default class Dash2DockLiteExt extends Extension {
     }
 
     Main.overview.dash.__box = Main.overview.dash._box;
-    this._showMainOverviewDash(false);
     this.docks = [];
 
     this.icon_theme = St.IconTheme.new();
@@ -221,8 +228,12 @@ export default class Dash2DockLiteExt extends Extension {
     this.services.setupFolderIcons();
 
     // todo follow animator and autohider protocol
-    this.services.enable();
-    this._onCheckServices();
+    try {
+      this.services.enable();
+      this._onCheckServices();
+    } catch (error) {
+      console.error('Infinity OS dock services failed; continuing with the dock', error);
+    }
 
     this._updateAnimationFPS();
     this._updateShrink();
@@ -317,7 +328,13 @@ export default class Dash2DockLiteExt extends Extension {
   }
 
   startUp() {
-    this.createTheDocks();
+    try {
+      this.createTheDocks();
+    } catch (error) {
+      console.error('Failed to create Infinity OS dock', error);
+    }
+    if (this.docks.length > 0)
+      this._showMainOverviewDash(false);
     this.checkHide();
     if (!global.infinityosDockEntrancePlayed && Main.sessionMode.currentMode === 'user') {
       global.infinityosDockEntrancePlayed = true;
@@ -771,8 +788,8 @@ export default class Dash2DockLiteExt extends Extension {
     Main.layoutManager.connectObject(
       'startup-complete',
       () => {
-        Main.overview.dash.last_child.visible = false;
-        Main.overview.dash.opacity = 0;
+        if (this.docks.length > 0)
+          this._showMainOverviewDash(false);
         // fix for topbar not blurring
         this._updateBlurredBackground();
       },
@@ -904,7 +921,8 @@ export default class Dash2DockLiteExt extends Extension {
   }
 
   _onOverviewShowing() {
-    this._showMainOverviewDash(false);
+    if (this.docks.length > 0)
+      this._showMainOverviewDash(false);
     //this._loTimer.runOnce(() => { Main.overview.dash.set_height(1); }, 50);
     this._inOverview = true;
     this._autohiders().forEach((autohider) => {

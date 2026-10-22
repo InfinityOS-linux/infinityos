@@ -1596,9 +1596,11 @@ const ControlsManagerLayoutHorizontal = {
         wsTmbWidth = Math.max(wsTmbWidth, 1);
         wsTmbHeight = Math.max(wsTmbHeight, 1);
 
-        let wsTmbY = opt.WS_TMB_TOP
-            ? startY + wstTopOffset
-            : startY + height - wstBottomOffset - wsTmbHeight;
+        let wsTmbY = state === ControlsState.APP_GRID
+            ? startY + Math.round((height - wsTmbHeight) / 2)
+            : opt.WS_TMB_TOP
+                ? startY + wstTopOffset
+                : startY + height - wstBottomOffset - wsTmbHeight;
 
         // Center wsTmb always to screen
         let offset = (width - wsTmbWidth) / 2;

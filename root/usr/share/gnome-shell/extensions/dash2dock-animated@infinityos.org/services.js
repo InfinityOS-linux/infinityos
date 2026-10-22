@@ -38,6 +38,14 @@ class ServiceCounter {
 }
 
 export const Services = class {
+  constructor() {
+    this._mounts = {};
+    this._downloadsDir = Gio.File.new_for_path(
+      GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) ||
+      GLib.build_filenamev([GLib.get_home_dir(), 'Downloads'])
+    );
+  }
+
   enable() {
     this._mounts = {};
     this._services = [
@@ -123,12 +131,12 @@ export const Services = class {
   }
 
   disable() {
-    this._downloadsMonitor.disconnectObject(this);
+    this._downloadsMonitor?.disconnectObject(this);
     this._downloadsMonitor = null;
     this._services = [];
-    this._volumeMonitor.disconnectObject(this);
+    this._volumeMonitor?.disconnectObject(this);
     this._volumeMonitor = null;
-    this._trashMonitor.disconnectObject(this);
+    this._trashMonitor?.disconnectObject(this);
     this._trashMonitor = null;
     this._trashDir = null;
   }

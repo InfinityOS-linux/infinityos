@@ -13,8 +13,8 @@ export const HINT_VERTICAL_FRACTION = 0.875; // Hint offset from the top
 export const HINT_NOTIF_MARGIN = 16; // Minimum vertical gap between hint and notifications
 export const FADE_OUT_SCALE = 0.3; // Scale factor when the clock shrinks during unlock transition
 
-// Date label height/gap from the clock
-export const DATE_LABEL_HEIGHT = 25;
+// Place the large time glyphs close to the date after removing theme padding.
+export const TIME_LABEL_TOP_OFFSET = 12;
 export const TIME_LABEL_HEIGHT_FALLBACK = 128; // Fallback natural height for the time label in logical px
 
 // Background blur settings when entering the password prompt

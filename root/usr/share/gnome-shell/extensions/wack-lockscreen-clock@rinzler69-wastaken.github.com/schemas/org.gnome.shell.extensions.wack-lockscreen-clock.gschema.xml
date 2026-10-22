@@ -122,7 +122,7 @@
         <choice value="bold"/>
         <choice value="heavy"/>
       </choices>
-      <default>'semibold'</default>
+      <default>'light'</default>
       <summary>Clock font weight</summary>
       <description>Font weight of the lockscreen time.</description>
     </key>

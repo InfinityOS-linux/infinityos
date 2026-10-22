@@ -23,6 +23,7 @@ name='Orchis-Purple-Dark-Compact'
 [org/gnome/shell/extensions/wack-lockscreen-clock]
 lockscreen-mode='cupertino'
 lockscreen-wallpaper-enable=true
+clock-weight='light'
 
 [org/gnome/shell/extensions/wack-shell]
 use-custom-logo=true
@@ -105,7 +106,7 @@ ws-max-spacing=10
 ws-preview-scale=80
 ws-sw-popup-v-position=85
 ws-thumbnail-scale=0
-ws-thumbnail-scale-appgrid=11
+ws-thumbnail-scale-appgrid=30
 ws-thumbnails-position=5
 wst-position-adjust=0
 
