@@ -7,13 +7,15 @@ import os
 import pwd
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tarfile
 import tempfile
 import urllib.parse
 import urllib.request
-from pathlib import Path
+import zipfile
+from pathlib import Path, PurePosixPath
 from typing import NamedTuple
 
 
@@ -81,7 +83,7 @@ APPS = (
     App("System", "OpenLogi", "github-rpm", "AprilNEA/OpenLogi", "Configure Logitech mouse buttons, DPI and SmartShift locally.", website="https://github.com/AprilNEA/OpenLogi", group="Device tools", icon="openlogi"),
     App("System", "OpenRazer", "dnf", "openrazer-meta", "Drivers and daemon for Razer devices; restart after installation.", website="https://github.com/openrazer/openrazer", group="Device tools", icon="input-gaming-symbolic"),
     App("System", "WinBoat", "winboat-rpm", "winboat-org/winboat", "Run Windows apps in a container-backed VM; requires KVM, 4 GB RAM and 32 GB free space.", True, website="https://github.com/winboat-org/winboat", group="Windows apps", icon="winboat", package="winboat"),
-    App("Gaming", "Steam", "flatpak", "com.valvesoftware.Steam", "Steam games and store.", True, group="Game launchers", icon="applications-games-symbolic"),
+    App("Gaming", "Steam", "flatpak", "com.valvesoftware.Steam", "Steam games and store.", group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Epic Games Launcher", "epic-appimage", "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncher-x86_64.AppImage", "Native Linux Preview from Epic Games.", True, website="https://launcher.epicgames.com/", group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Blizzard Battle.net", "lutris-installer", "battlenet-standard", "Windows launcher; install through Lutris and Wine.", True, website="https://download.battle.net/", group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Heroic Games Launcher", "flatpak", "com.heroicgameslauncher.hgl", "Epic, GOG and Amazon games.", True, group="Game launchers", icon="applications-games-symbolic"),
@@ -128,6 +130,8 @@ APPS = (
 
 
 def available(app, arch=None):
+    if app.source == "com.valvesoftware.Steam":
+        return (arch or os.uname().machine) in ("x86_64", "aarch64")
     return not app.x86_only or (arch or os.uname().machine) == "x86_64"
 
 
@@ -173,6 +177,9 @@ def ollama_binary():
 
 def installed(app, home=None):
     home = Path(home or Path.home())
+    if app.source == "com.valvesoftware.Steam" and os.uname().machine == "aarch64":
+        return ((home / ".local/share/Steam/steamrtarm64/steam").is_file() and
+                (home / ".local/share/applications/steam-arm64.desktop").is_file())
     if app.kind == "epic-appimage":
         return ((home / ".local/bin/EpicGamesLauncher.AppImage").is_file() and
                 (home / ".local/share/applications/epic-games-launcher.desktop").is_file())
@@ -432,7 +439,9 @@ def _install_safe_disk_cleaner(app, home):
 def install(app, home=None):
     """Install one selected app. Calling this is the only installation trigger."""
     home = Path(home or Path.home())
-    if app.kind == "local-model":
+    if app.source == "com.valvesoftware.Steam" and os.uname().machine == "aarch64":
+        _install_arm_steam(home)
+    elif app.kind == "local-model":
         _install_local_model(app, home)
     elif app.kind == "epic-appimage":
         _install_epic_appimage(app, home)
@@ -492,6 +501,113 @@ def install(app, home=None):
             )
     else:
         raise ValueError(f"No installation source for {app.name}.")
+
+
+def _steam_arm_manifest_entry(manifest):
+    section = re.search(r'"bins_linuxarm64_linuxarm64"\s*\{([^{}]+)\}', manifest)
+    if not section:
+        raise RuntimeError("Valve's ARM64 Steam client is missing from the update manifest.")
+    fields = dict(re.findall(r'^\s*"(file|size|sha2)"\s*"([^"]+)"',
+                             section.group(1), re.MULTILINE))
+    filename = fields.get("file", "")
+    digest = fields.get("sha2", "")
+    size = int(fields.get("size", "0"))
+    if (not re.fullmatch(r"bins_linuxarm64_linuxarm64\.zip\.[0-9a-f]{40}", filename)
+            or not re.fullmatch(r"[0-9a-f]{64}", digest) or not 0 < size < 500_000_000):
+        raise RuntimeError("Invalid ARM64 Steam client metadata from Valve.")
+    return filename, digest, size
+
+
+def _install_arm_steam(home):
+    """Install Valve's native ARM64 beta client from its checksummed manifest."""
+    manifest_url = "https://client-update.fastly.steamstatic.com/steam_client_publicbeta_linuxarm64"
+    with urllib.request.urlopen(manifest_url, timeout=30) as response:
+        manifest = response.read(2_000_001)
+    if len(manifest) > 2_000_000:
+        raise RuntimeError("Steam update manifest is too large.")
+    filename, digest, size = _steam_arm_manifest_entry(manifest.decode("utf-8"))
+    share = home / ".local/share"
+    share.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="infinity-steam-", dir=share) as directory:
+        staging = Path(directory)
+        archive = staging / "client.zip"
+        url = f"https://client-update.steamstatic.com/{filename}"
+        request = urllib.request.Request(url, headers={"User-Agent": "InfinityLauncher"})
+        sha = hashlib.sha256()
+        received = 0
+        with urllib.request.urlopen(request, timeout=90) as response, archive.open("wb") as output:
+            if urllib.parse.urlsplit(response.geturl()).hostname not in (
+                    "client-update.steamstatic.com", "client-update.fastly.steamstatic.com"):
+                raise RuntimeError("Unexpected Steam download host.")
+            while chunk := response.read(1024 * 1024):
+                received += len(chunk)
+                if received > size:
+                    raise RuntimeError("Steam client archive exceeds the manifest size.")
+                sha.update(chunk)
+                output.write(chunk)
+        if received != size or sha.hexdigest() != digest:
+            raise RuntimeError("Steam client archive failed size or SHA-256 verification.")
+        extracted = staging / "extracted"
+        extracted.mkdir()
+        with zipfile.ZipFile(archive) as client:
+            members = client.infolist()
+            if sum(member.file_size for member in members) > 1_000_000_000:
+                raise RuntimeError("Steam client archive expands beyond the expected size.")
+            for member in members:
+                # Valve's zip mixes Unix and Windows path separators.
+                path = PurePosixPath(member.filename.replace("\\", "/"))
+                if not path.parts or path.is_absolute() or ".." in path.parts:
+                    raise RuntimeError("Steam client archive contains an unsafe path.")
+                destination = extracted.joinpath(*path.parts)
+                if member.is_dir():
+                    destination.mkdir(parents=True, exist_ok=True)
+                elif stat.S_ISLNK(member.external_attr >> 16):
+                    if member.file_size > 4096:
+                        raise RuntimeError("Steam client archive contains an unsafe link.")
+                    target = client.read(member).decode("utf-8")
+                    link = PurePosixPath(target.replace("\\", "/"))
+                    if not link.parts or link.is_absolute() or ".." in link.parts:
+                        raise RuntimeError("Steam client archive contains an unsafe link.")
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    destination.symlink_to(str(link))
+                else:
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    with client.open(member) as source, destination.open("wb") as output:
+                        shutil.copyfileobj(source, output)
+        binary = extracted / "steamrtarm64/steam"
+        if not binary.is_file():
+            raise RuntimeError("Valve's ARM64 Steam archive has no client binary.")
+        _run(["pkexec", "dnf", "-y", "install", "libva", "libvpx", "ibus-libs"])
+        steam_root = share / "Steam"
+        for link in extracted.rglob("*"):
+            if link.is_symlink():
+                destination = steam_root / link.relative_to(extracted)
+                if destination.exists() or destination.is_symlink():
+                    destination.unlink()
+        shutil.copytree(extracted, steam_root, dirs_exist_ok=True, symlinks=True)
+    for name in ("steam", "steamwebhelper", "steamwebhelper.sh", "steam_monitor",
+                 "reaper", "gameoverlayui", "gldriverquery", "steamsysinfo",
+                 "steamerrorreporter", "streaming_client", "fossilize_replay",
+                 "vulkandriverquery", "vgui_panel_zoo"):
+        executable = steam_root / "steamrtarm64" / name
+        if executable.is_file():
+            executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
+    binary = steam_root / "steamrtarm64/steam"
+    (steam_root / "package").mkdir(exist_ok=True)
+    (steam_root / "package/beta").write_text("publicbeta\n", encoding="utf-8")
+    dot_steam = home / ".steam"
+    dot_steam.mkdir(exist_ok=True)
+    for link, target in (("steam", steam_root), ("root", steam_root),
+                         ("sdkarm64", steam_root / "linuxarm64")):
+        destination = dot_steam / link
+        if not destination.exists() and not destination.is_symlink():
+            destination.symlink_to(target)
+    desktop = share / "applications/steam-arm64.desktop"
+    desktop.parent.mkdir(exist_ok=True)
+    desktop.write_text("[Desktop Entry]\nType=Application\nName=Steam ARM64 (Beta)\n"
+                       f'Exec="{binary}"\n'
+                       "Icon=/usr/share/infinityos/launcher-icons/com.valvesoftware.Steam.png\n"
+                       "Categories=Game;\n", encoding="utf-8")
 
 
 def open_lutris_installer(app):

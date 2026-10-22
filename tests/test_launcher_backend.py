@@ -2,9 +2,11 @@ import importlib.util
 import hashlib
 import io
 import json
+import stat
 import tarfile
 import tempfile
 import unittest
+from xml.etree import ElementTree
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -58,9 +60,68 @@ class LauncherBackendTests(unittest.TestCase):
     def test_architecture_and_unavailable_sources(self):
         steam = next(app for app in backend.APPS if app.name == "Steam")
         photocraft = next(app for app in backend.APPS if app.name == "PhotoCraft")
-        self.assertFalse(backend.available(steam, "aarch64"))
+        self.assertTrue(backend.available(steam, "aarch64"))
         self.assertTrue(backend.available(steam, "x86_64"))
+        self.assertFalse(backend.available(steam, "riscv64"))
         self.assertTrue(backend.available(photocraft, "aarch64"))
+
+    def test_arm_steam_uses_valve_manifest_and_verified_archive(self):
+        steam = next(app for app in backend.APPS if app.name == "Steam")
+        archive = io.BytesIO()
+        with __import__("zipfile").ZipFile(archive, "w") as client:
+            client.writestr("steamrtarm64/steam", b"native arm client")
+            client.writestr("steamrtarm64\\libs\\libcurl.so", b"runtime library")
+            link = __import__("zipfile").ZipInfo("steamrtarm64\\libs\\libcurl.so.4")
+            link.create_system = 3
+            link.external_attr = (stat.S_IFLNK | 0o755) << 16
+            client.writestr(link, "libcurl.so")
+        payload = archive.getvalue()
+        filename = "bins_linuxarm64_linuxarm64.zip." + "a" * 40
+        digest = hashlib.sha256(payload).hexdigest()
+        manifest = (f'"bins_linuxarm64_linuxarm64"\n{{\n"file" "{filename}"\n'
+                    f'"size" "{len(payload)}"\n"sha2" "{digest}"\n}}').encode()
+        download = io.BytesIO(payload)
+        download.geturl = lambda: f"https://client-update.steamstatic.com/{filename}"
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(backend.os, "uname", return_value=SimpleNamespace(machine="aarch64")), \
+             patch.object(backend.urllib.request, "urlopen", side_effect=[io.BytesIO(manifest), download]), \
+             patch.object(backend, "_run") as run:
+            home = Path(directory)
+            self.assertFalse(backend.installed(steam, home))
+            backend.install(steam, home)
+            self.assertTrue(backend.installed(steam, home))
+            self.assertEqual((home / ".local/share/Steam/steamrtarm64/libs/libcurl.so").read_bytes(),
+                             b"runtime library")
+            self.assertTrue((home / ".local/share/Steam/steamrtarm64/libs/libcurl.so.4").is_symlink())
+            self.assertTrue((home / ".local/share/Steam/steamrtarm64/steam").stat().st_mode & stat.S_IXUSR)
+            self.assertIn("Steam ARM64", (home / ".local/share/applications/steam-arm64.desktop").read_text())
+        run.assert_called_once_with(["pkexec", "dnf", "-y", "install", "libva", "libvpx", "ibus-libs"])
+
+    def test_arm_steam_rejects_changed_archive_before_installing_packages(self):
+        steam = next(app for app in backend.APPS if app.name == "Steam")
+        payload = b"not the declared archive"
+        filename = "bins_linuxarm64_linuxarm64.zip." + "a" * 40
+        zero_digest = "0" * 64
+        manifest = (f'"bins_linuxarm64_linuxarm64"\n{{\n"file" "{filename}"\n'
+                    f'"size" "{len(payload)}"\n"sha2" "{zero_digest}"\n}}').encode()
+        download = io.BytesIO(payload)
+        download.geturl = lambda: f"https://client-update.steamstatic.com/{filename}"
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(backend.os, "uname", return_value=SimpleNamespace(machine="aarch64")), \
+             patch.object(backend.urllib.request, "urlopen", side_effect=[io.BytesIO(manifest), download]), \
+             patch.object(backend, "_run") as run:
+            home = Path(directory)
+            with self.assertRaisesRegex(RuntimeError, "SHA-256"):
+                backend.install(steam, home)
+            self.assertFalse(backend.installed(steam, home))
+        run.assert_not_called()
+
+    def test_live_image_keeps_steam_and_lutris_optional(self):
+        image = Path(__file__).resolve().parents[1] / "teams/workstation.xml"
+        root = ElementTree.parse(image).getroot()
+        packages = root.find("./packages[@profiles='Infinity-GNOME-Live,Infinity-GNOME-Disk']")
+        self.assertIsNotNone(packages)
+        self.assertFalse({"steam", "lutris"} & {item.get("name") for item in packages.findall("package")})
 
     def test_new_catalog_entries_and_order(self):
         gaming = [app.name for app in backend.APPS if app.category == "Gaming"]
