@@ -222,6 +222,37 @@ class LauncherBackendTests(unittest.TestCase):
                     backend.install(claude, directory)
             self.assertFalse((Path(directory) / ".local/share/applications/infinityos-claude.desktop").exists())
 
+    def test_user_cli_can_be_removed_without_touching_system_install(self):
+        claude = next(app for app in backend.APPS if "Claude Code CLI" in app.name)
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            binary = home / ".local/bin/claude"
+            binary.parent.mkdir(parents=True)
+            binary.touch()
+            shortcut = home / ".local/share/applications/infinityos-claude.desktop"
+            shortcut.parent.mkdir(parents=True)
+            shortcut.touch()
+            self.assertTrue(backend.removable(claude, home))
+            with patch.object(backend, "_run") as run, \
+                 patch.object(backend.shutil, "which", return_value=None):
+                backend.uninstall(claude, home)
+            self.assertEqual(run.call_args.args[0], ["npm", "uninstall", "--global",
+                                                     "--prefix", str(home / ".local"), claude.source])
+            self.assertFalse(shortcut.exists())
+            binary.unlink()
+            with self.assertRaises(ValueError):
+                backend.uninstall(claude, home)
+
+    def test_local_model_can_be_deselected_without_deleting_weights(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            config = home / ".config/infinityos/local-ai-model"
+            config.parent.mkdir(parents=True)
+            config.write_text("infinity-qwen-9b\n")
+            with patch.object(backend.shutil, "which", return_value=None):
+                backend.deactivate_local_model(home)
+            self.assertIsNone(backend.active_local_model(home))
+
     def test_latest_storytold_rpm_uses_target_arch_and_checks_size(self):
         app = next(app for app in backend.APPS if app.name == "PhotoCraft")
         release = {"assets": [{"name": "photocraft-1-linux-aarch64.rpm", "size": 3,

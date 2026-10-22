@@ -136,6 +136,36 @@ def active_local_model(home=None):
     return path.read_text(encoding="utf-8").strip() if path.exists() else None
 
 
+def deactivate_local_model(home=None):
+    """Stop selecting a local model without deleting its downloaded weights."""
+    (Path(home or Path.home()) / ".config/infinityos/local-ai-model").unlink(missing_ok=True)
+    if shutil.which("gapplication"):
+        subprocess.run(["gapplication", "action", "com.infinityos.GhosTTY",
+                        "refresh-cli-tabs"], stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL, check=False)
+
+
+def removable(app, home=None):
+    """Only user-prefix npm installations can be safely removed here."""
+    if app.kind != "npm":
+        return False
+    command = "claude" if "anthropic" in app.source else "codex"
+    return (Path(home or Path.home()) / ".local/bin" / command).exists()
+
+
+def uninstall(app, home=None):
+    if not removable(app, home):
+        raise ValueError(f"No user installation to remove for {app.name}.")
+    home = Path(home or Path.home())
+    _run(["npm", "uninstall", "--global", "--prefix", str(home / ".local"), app.source])
+    name = "claude" if "anthropic" in app.source else "codex"
+    (home / f".local/share/applications/infinityos-{name}.desktop").unlink(missing_ok=True)
+    if shutil.which("gapplication"):
+        subprocess.run(["gapplication", "action", "com.infinityos.GhosTTY",
+                        "refresh-cli-tabs"], stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL, check=False)
+
+
 def ollama_binary():
     upstream = Path("/usr/local/bin/ollama")
     return str(upstream) if upstream.exists() else shutil.which("ollama")

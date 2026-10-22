@@ -13,7 +13,8 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, GLib, Gtk
 
-from launcher_backend import APPS, active_local_model, available, install, installed, open_lutris_installer
+from launcher_backend import (APPS, active_local_model, available, deactivate_local_model,
+                              install, installed, open_lutris_installer, removable, uninstall)
 from launcher_i18n import tr
 
 
@@ -93,6 +94,7 @@ class InfinityLauncher(Gtk.Application):
         self.first_run = first_run
         self.window = None
         self.switches = {}
+        self.initial_active = {}
         self.notes = {}
         self.installer_buttons = []
         self.busy = False
@@ -197,7 +199,7 @@ class InfinityLauncher(Gtk.Application):
         footer.set_margin_end(28)
         footer.set_margin_top(10)
         footer.set_margin_bottom(22)
-        self.status = label(tr("Your changes install when you click Apply."), "infinity-muted")
+        self.status = label(tr("Your changes take effect when you click Apply."), "infinity-muted")
         self.status.set_wrap(True)
         self.status.set_hexpand(True)
         footer.append(self.status)
@@ -241,7 +243,6 @@ class InfinityLauncher(Gtk.Application):
         page_heading.append(label(tr(description), "infinity-muted"))
         body.append(page_heading)
         previous_group = None
-        local_model_group = None
         selected_model = active_local_model()
         for app in (item for item in APPS if item.category == section):
             if app.group != previous_group:
@@ -301,18 +302,17 @@ class InfinityLauncher(Gtk.Application):
                 continue
             if app.kind == "local-model":
                 switch = Gtk.CheckButton()
-                if local_model_group:
-                    switch.set_group(local_model_group)
-                else:
-                    local_model_group = switch
+                switch.connect("toggled", self._local_model_toggled, app)
             else:
                 switch = Gtk.Switch()
             switch.set_valign(Gtk.Align.CENTER)
             supported = available(app)
             already = supported and installed(app)
-            switch.set_active(already if app.kind != "local-model" else
-                              already and app.source == selected_model)
-            switch.set_sensitive(supported and (app.kind == "local-model" or not already))
+            initial = already if app.kind != "local-model" else app.source == selected_model
+            switch.set_active(initial)
+            self.initial_active[app] = initial
+            switch.set_sensitive(supported and (app.kind == "local-model" or
+                                                not already or removable(app)))
             if already and app.kind != "local-model":
                 note.set_text(tr("Installed"))
             elif not supported:
@@ -322,6 +322,13 @@ class InfinityLauncher(Gtk.Application):
             row.append(switch)
             body.append(row)
         return scroller
+
+    def _local_model_toggled(self, switch, app):
+        if not switch.get_active():
+            return
+        for other, widget in self.switches.items():
+            if other.kind == "local-model" and other != app and widget.get_active():
+                widget.set_active(False)
 
     def _open_lutris_installer(self, button, app, note):
         self.opening_installers += 1
@@ -349,11 +356,11 @@ class InfinityLauncher(Gtk.Application):
         return False
 
     def _save(self, _button):
-        selected = [app for app, switch in self.switches.items()
-                    if switch.get_sensitive() and switch.get_active() and
-                    (app.kind != "local-model" or
-                     app.source != active_local_model() or not installed(app))]
-        if not selected:
+        changes = [(app, switch.get_active()) for app, switch in self.switches.items()
+                   if switch.get_sensitive() and
+                   switch.get_active() != self.initial_active[app]]
+        changes.sort(key=lambda change: 0 if change[0].kind == "local-model" and not change[1] else 1)
+        if not changes:
             self._complete()
             return
         self.busy = True
@@ -364,29 +371,34 @@ class InfinityLauncher(Gtk.Application):
             switch.set_sensitive(False)
         for button, _app in self.installer_buttons:
             button.set_sensitive(False)
-        threading.Thread(target=self._install, args=(selected,), daemon=True).start()
+        threading.Thread(target=self._install, args=(changes,), daemon=True).start()
 
     def _pulse_progress(self):
         self.progress.pulse()
         return True
 
-    def _install(self, selected):
+    def _install(self, changes):
         errors = []
-        for index, app in enumerate(selected, 1):
-            GLib.idle_add(self.status.set_text, tr("Installing {index}/{total}: {name}…").format(
-                index=index, total=len(selected), name=app.name))
+        for index, (app, enabled) in enumerate(changes, 1):
+            GLib.idle_add(self.status.set_text, tr("Applying {index}/{total}: {name}…").format(
+                index=index, total=len(changes), name=app.name))
             try:
-                install(app)
+                if enabled:
+                    install(app)
+                elif app.kind == "local-model":
+                    deactivate_local_model()
+                else:
+                    uninstall(app)
             except Exception as exc:
                 errors.append(f"{app.name}: {exc}")
             else:
-                GLib.idle_add(self._installed, app)
+                GLib.idle_add(self._installed, app, enabled)
         GLib.idle_add(self._finished, errors)
 
-    def _installed(self, app):
-        self.notes[app].set_text(tr("Active local model") if app.kind == "local-model"
-                                 else tr("Installed"))
-        self.switches[app].set_active(True)
+    def _installed(self, app, enabled):
+        self.notes[app].set_text(tr("Active local model") if enabled and app.kind == "local-model"
+                                 else tr("Installed") if enabled else tr(app.description))
+        self.initial_active[app] = enabled
         return False
 
     def _finished(self, errors):
@@ -396,13 +408,10 @@ class InfinityLauncher(Gtk.Application):
             self.progress_source = 0
         self.progress.set_visible(False)
         if errors:
-            self.status.set_text(tr("Could not install:\n") + "\n".join(errors))
-            active_model = active_local_model()
+            self.status.set_text(tr("Could not apply changes:\n") + "\n".join(errors))
             for app, switch in self.switches.items():
-                if (app.kind == "local-model" or self.notes[app].get_text() != tr("Installed")) and available(app):
-                    switch.set_sensitive(True)
-                if app.kind == "local-model":
-                    switch.set_active(app.source == active_model)
+                switch.set_sensitive(available(app) and
+                                     (app.kind == "local-model" or not installed(app) or removable(app)))
             for button, app in self.installer_buttons:
                 button.set_sensitive(available(app))
             self.save_button.set_sensitive(True)

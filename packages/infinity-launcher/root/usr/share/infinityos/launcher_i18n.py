@@ -18,6 +18,8 @@ POLISH = {
     "Close": "Zamknij", "Apply": "Zastosuj",
     "Your changes install when you click Apply.":
         "Wybrane aplikacje zainstalują się po kliknięciu Zastosuj.",
+    "Your changes take effect when you click Apply.":
+        "Zmiany zostaną wprowadzone po kliknięciu Zastosuj.",
     "Run at next startup": "Uruchom przy następnym starcie",
     "View source and releases": "Kod źródłowy i wydania",
     "Official website": "Oficjalna strona",
@@ -27,8 +29,10 @@ POLISH = {
     "Could not open installer:": "Nie udało się otworzyć instalatora:",
     "Installed": "Zainstalowano", "Available on x86_64": "Dostępne na x86_64",
     "Could not install:\n": "Nie udało się zainstalować:\n",
+    "Could not apply changes:\n": "Nie udało się wprowadzić zmian:\n",
     "Wait for installation to finish.": "Poczekaj na zakończenie instalacji.",
     "Installing {index}/{total}: {name}…": "Instalowanie {index}/{total}: {name}…",
+    "Applying {index}/{total}: {name}…": "Wprowadzanie zmian {index}/{total}: {name}…",
     "Web browsers": "Przeglądarki internetowe", "Media players": "Odtwarzacze multimedialne",
     "Download managers": "Menedżery pobierania", "Email clients": "Klienci poczty",
     "System maintenance": "Konserwacja systemu",
