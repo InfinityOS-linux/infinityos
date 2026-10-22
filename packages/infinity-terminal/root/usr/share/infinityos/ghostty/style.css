@@ -1,3 +1,16 @@
+/* Leave the top edge flush with the panel; soften only the hanging corners. */
+window.ssd.no-border-radius,
+window.ssd.no-border-radius tabbar {
+  border-radius: 0 0 9px 9px;
+}
+
+window.ssd.no-border-radius.maximized,
+window.ssd.no-border-radius.maximized tabbar,
+window.ssd.no-border-radius.fullscreen,
+window.ssd.no-border-radius.fullscreen tabbar {
+  border-radius: 0;
+}
+
 tabbar {
   background-color: #17151d;
   color: #eeeaf6;

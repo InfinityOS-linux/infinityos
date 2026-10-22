@@ -11,10 +11,12 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as Workspace from 'resource:///org/gnome/shell/ui/workspace.js';
+import {clampTerminalHeight, isFullHeight} from './resize.mjs';
 
 const APP_ID = 'com.infinityos.GhosTTY';
 const KEYBINDING = 'infinity-terminal-toggle';
 const SWIPE_DISTANCE = 8;
+const RESIZE_EDGE = 10;
 export default class InfinityTerminal extends Extension {
     enable() {
         this._settings = this.getSettings();
@@ -23,6 +25,9 @@ export default class InfinityTerminal extends Extension {
         this._pendingShow = false;
         this._sourceId = 0;
         this._pendingWindows = new Map();
+        this._resize = null;
+        this._resizeCursor = false;
+        this._fullHeight = false;
         this._indicator = new PanelMenu.Button(0.0, 'Show or hide InfinityTerminal', true);
         this._indicator.accessible_role = Atk.Role.PUSH_BUTTON;
         this._icon = new St.Icon({
@@ -66,6 +71,8 @@ export default class InfinityTerminal extends Extension {
         this._overviewHiddenId = 0;
         this._gestureEventId = global.stage.connect('captured-event',
             (_stage, event) => this._handleGesture(event));
+        this._resizeEventId = global.stage.connect('captured-event',
+            (_stage, event) => this._handleResize(event));
         this._workspaceSwipe = Main.wm._workspaceAnimation?._swipeTracker;
         this._workspaceTouchpad = this._workspaceSwipe?._touchpadGesture;
         this._workspaceUpdateId = this._workspaceTouchpad
@@ -144,6 +151,9 @@ export default class InfinityTerminal extends Extension {
             Main.overview.disconnect(this._overviewHiddenId);
         this._overviewHiddenId = 0;
         global.stage.disconnect(this._gestureEventId);
+        global.stage.disconnect(this._resizeEventId);
+        this._resize = null;
+        this._setResizeCursor(false);
         if (this._reversedWorkspaceUpdateId)
             this._workspaceTouchpad.disconnect(this._reversedWorkspaceUpdateId);
         if (this._workspaceUpdateId)
@@ -183,6 +193,71 @@ export default class InfinityTerminal extends Extension {
     _isGhosTTY(window) {
         return window.get_gtk_application_id?.() === APP_ID ||
             window.get_wm_class?.() === APP_ID;
+    }
+
+    _setResizeCursor(active) {
+        if (this._resizeCursor === active)
+            return;
+        this._resizeCursor = active;
+        global.display.set_cursor(active
+            ? (Meta.Cursor.SOUTH_RESIZE ?? Meta.Cursor.S_RESIZE)
+            : Meta.Cursor.DEFAULT);
+    }
+
+    _handleResize(event) {
+        const type = event.type();
+        if (this._resize) {
+            if (type === Clutter.EventType.MOTION) {
+                this._resizeTo(event.get_coords()[1]);
+                return Clutter.EVENT_STOP;
+            }
+            if (type === Clutter.EventType.BUTTON_RELEASE && event.get_button() === 1) {
+                const monitor = Main.layoutManager.primaryMonitor;
+                if (monitor) {
+                    const height = this._fullHeight
+                        ? monitor.height - Main.panel.height
+                        : this._resize.window.get_frame_rect().height;
+                    this._settings.set_double('height-ratio', height / monitor.height);
+                }
+                this._resize = null;
+                this._setResizeCursor(false);
+                return Clutter.EVENT_STOP;
+            }
+            return Clutter.EVENT_PROPAGATE;
+        }
+
+        if (type !== Clutter.EventType.MOTION && type !== Clutter.EventType.BUTTON_PRESS)
+            return Clutter.EVENT_PROPAGATE;
+        const window = this._findWindow();
+        const [x, y] = event.get_coords();
+        const rect = window && !window.minimized ? window.get_frame_rect() : null;
+        const edge = rect && x >= rect.x && x < rect.x + rect.width &&
+            y >= rect.y + rect.height - RESIZE_EDGE && y < rect.y + rect.height;
+        this._setResizeCursor(!!edge);
+        if (!edge || type !== Clutter.EventType.BUTTON_PRESS || event.get_button() !== 1)
+            return Clutter.EVENT_PROPAGATE;
+        this._resize = {window, offset: rect.y + rect.height - y};
+        return Clutter.EVENT_STOP;
+    }
+
+    _resizeTo(pointerY) {
+        const monitor = Main.layoutManager.primaryMonitor;
+        if (!monitor || !this._resize)
+            return;
+        const top = monitor.y + Main.panel.height;
+        const height = clampTerminalHeight(monitor.height, Main.panel.height,
+            pointerY + this._resize.offset - top);
+        const full = isFullHeight(monitor.height, Main.panel.height, height);
+        if (full) {
+            if (!this._fullHeight)
+                this._resize.window.maximize(Meta.MaximizeFlags.BOTH);
+        } else {
+            if (this._fullHeight)
+                this._resize.window.unmaximize(Meta.MaximizeFlags.BOTH);
+            this._resize.window.move_resize_frame(true, monitor.x, top, monitor.width, height);
+            this._resize.window.move_frame(true, monitor.x, top);
+        }
+        this._fullHeight = full;
     }
 
     _handleGesture(event) {
@@ -282,6 +357,8 @@ export default class InfinityTerminal extends Extension {
         });
         this._unmanagedId = window.connect('unmanaged', () => {
             this._window = null;
+            this._resize = null;
+            this._setResizeCursor(false);
             this._icon.opacity = 112;
             this._unmanagedId = 0;
             this._minimizedId = 0;
@@ -307,9 +384,14 @@ export default class InfinityTerminal extends Extension {
         if (!monitor)
             return;
         const y = monitor.y + Main.panel.height;
-        window.move_resize_frame(true, monitor.x, y,
-            monitor.width, Math.round(monitor.height / 2));
+        const height = clampTerminalHeight(monitor.height, Main.panel.height,
+            monitor.height * this._settings.get_double('height-ratio'));
+        window.unmaximize(Meta.MaximizeFlags.BOTH);
+        window.move_resize_frame(true, monitor.x, y, monitor.width, height);
         window.move_frame(true, monitor.x, y);
+        this._fullHeight = isFullHeight(monitor.height, Main.panel.height, height);
+        if (this._fullHeight)
+            window.maximize(Meta.MaximizeFlags.BOTH);
     }
 
     _toggle() {

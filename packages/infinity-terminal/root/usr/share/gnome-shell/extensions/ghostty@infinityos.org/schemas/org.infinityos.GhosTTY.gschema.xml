@@ -9,6 +9,10 @@
       <default>false</default>
       <summary>Keep InfinityTerminal visible when focus changes</summary>
     </key>
+    <key name="height-ratio" type="d">
+      <default>0.5</default>
+      <summary>Drop-down height as a fraction of the screen height</summary>
+    </key>
     <key name="hide-request" type="x">
       <default>0</default>
       <summary>Request animated hiding from the GNOME Shell controller</summary>

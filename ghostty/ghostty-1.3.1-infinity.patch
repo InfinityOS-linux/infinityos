@@ -112,7 +112,7 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +            tab_view.insertPinned(tab.as(gtk.Widget), pin_position)
 +        else
 +            tab_view.insert(tab.as(gtk.Widget), position);
-@@ -468,0 +487,21 @@
+@@ -468,0 +487,22 @@
 +
 +        if (self.isInfinity()) {
 +            if (overrides.title) |title| {
@@ -127,6 +127,7 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +                    break :icon "infinity-claude";
 +                } else if (std.mem.endsWith(u8, title, "YOLO")) "infinity-yolo-red" else null;
 +                if (icon_name) |name| {
++                    tab.as(gtk.Widget).addCssClass("infinity-ai-tab");
 +                    const icon = gio.ThemedIcon.new(name);
 +                    defer icon.unref();
 +                    page.setIcon(icon.as(gio.Icon));
@@ -134,9 +135,9 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +                if (std.mem.endsWith(u8, title, "YOLO") or std.mem.endsWith(u8, title, "EDIT")) page.setNeedsAttention(1);
 +            }
 +        }
-@@ -584,0 +624 @@
+@@ -584,0 +625 @@
 +        if (self.isInfinity() and page.getPinned() != 0) return false;
-@@ -614,0 +655,31 @@
+@@ -614,0 +656,31 @@
 +    }
 +
 +    fn isInfinity(self: *Self) bool {
@@ -168,17 +169,17 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +                .pinned = true,
 +            });
 +        }
-@@ -1366,0 +1438,4 @@
+@@ -1366,0 +1439,4 @@
 +        if (self.isInfinity()) {
 +            self.as(gtk.Window).minimize();
 +            return @intFromBool(true);
 +        }
-@@ -1427,0 +1503,4 @@
+@@ -1427,0 +1504,4 @@
 +        if (self.isInfinity() and page.getPinned() != 0) {
 +            priv.tab_view.closePageFinish(page, @intFromBool(false));
 +            return @intFromBool(true);
 +        }
-@@ -1605 +1684,10 @@
+@@ -1605 +1685,14 @@
 -        self.private().context_menu_page = page;
 +        const priv = self.private();
 +        priv.context_menu_page = page;
@@ -190,7 +191,11 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +        const local_action = gobject.ext.cast(gio.SimpleAction,
 +            action_map.lookupAction("local-ai-edit") orelse return) orelse return;
 +        local_action.setEnabled(@intFromBool(page != null and page == priv.local_ai_page));
-@@ -1859,0 +1948,42 @@
++        const close_action = gobject.ext.cast(gio.SimpleAction,
++            action_map.lookupAction("close-context-tab") orelse return) orelse return;
++        close_action.setEnabled(@intFromBool(page != null and page.?.getPinned() == 0 and
++            page.?.getChild().hasCssClass("infinity-ai-tab") == 0));
+@@ -1859,0 +1953,43 @@
 +    }
 +
 +    fn actionCloseContextTab(
@@ -200,6 +205,7 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +    ) callconv(.c) void {
 +        const priv = self.private();
 +        const page = priv.context_menu_page orelse return;
++        if (page.getPinned() != 0 or page.getChild().hasCssClass("infinity-ai-tab") != 0) return;
 +        priv.tab_view.closePage(page);
 +    }
 +
@@ -244,7 +250,7 @@ diff --git a/src/apprt/gtk/ui/1.5/window.blp b/src/apprt/gtk/ui/1.5/window.blp
 +            visible: false;
 @@ -144,0 +148 @@
 +            visible: false;
-@@ -319,0 +324,15 @@
+@@ -319,0 +324,16 @@
 +    label: _("Enable disk editing in a new tab");
 +    action: "win.local-ai-edit";
 +  }
@@ -257,6 +263,7 @@ diff --git a/src/apprt/gtk/ui/1.5/window.blp b/src/apprt/gtk/ui/1.5/window.blp
 +  item {
 +    label: _("Close Tab");
 +    action: "win.close-context-tab";
++    hidden-when: "action-disabled";
 +  }
 +
 +  item {
