@@ -392,7 +392,7 @@ _updateThumbnailsBox(animate) {
                     t._bgManager?.backgroundActor.set_opacity(0);
                 });
             }
-            this._updateThumbnailsBoxDefault(animate);
+            this._updateThumbnailsBoxDefault(animate, show);
         } else {
             this._thumbnailsBox.scale_x = 1;
             this._thumbnailsBox.scale_y = 1;
@@ -412,12 +412,11 @@ _updateThumbnailsBox(animate) {
         this._updateOverview();
     },
 
-    _updateThumbnailsBoxDefault(animate = false) {
-        const { shouldShow } = this._thumbnailsBox;
+    _updateThumbnailsBoxDefault(animate = false, show = this._thumbnailsBox.shouldShow) {
         const { searchActive } = this._searchController;
         const [opacity, scale, translationY] = this._getThumbnailsBoxParams();
 
-        const thumbnailsBoxVisible = shouldShow && !searchActive && opacity !== 0;
+        const thumbnailsBoxVisible = show && !searchActive && opacity !== 0;
         if (thumbnailsBoxVisible) {
             this._thumbnailsBox.opacity = 0;
             this._thumbnailsBox.visible = thumbnailsBoxVisible;

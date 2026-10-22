@@ -36,9 +36,12 @@ elif [[ "$package" == infinity-updater ]]; then
 elif [[ "$package" == infinityos-wallpapers ]]; then
   install -d "$work/source/$package-$version/usr/share/backgrounds/infinityos" \
     "$work/source/$package-$version/usr/share/gnome-background-properties" \
-    "$work/source/$package-$version/usr/share/licenses/infinityos-wallpapers"
+    "$work/source/$package-$version/usr/share/licenses/infinityos-wallpapers" \
+    "$work/source/$package-$version/etc/dconf/db/gdm.d"
   cp -a "$repo/root/usr/share/backgrounds/infinityos/." \
     "$work/source/$package-$version/usr/share/backgrounds/infinityos/"
+  install -m 0644 "$repo/root/etc/dconf/db/gdm.d/00-infinityos" \
+    "$work/source/$package-$version/etc/dconf/db/gdm.d/00-infinityos"
   install -m 0644 "$repo/root/usr/share/infinityos/background-catalog.xml" \
     "$work/source/$package-$version/usr/share/gnome-background-properties/00-infinityos.xml"
   install -m 0644 "$repo/COPYING" \

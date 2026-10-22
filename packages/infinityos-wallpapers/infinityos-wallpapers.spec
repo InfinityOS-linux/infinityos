@@ -6,6 +6,7 @@ License:        GPL-3.0-or-later
 URL:            https://github.com/InfinityOS-linux/infinityos
 Source0:        infinityos-wallpapers-%{version}.tar.gz
 BuildArch:      noarch
+Requires:       dconf
 
 %description
 Infinity OS wallpapers and their GNOME Backgrounds catalog.
@@ -16,7 +17,10 @@ Infinity OS wallpapers and their GNOME Backgrounds catalog.
 %build
 
 %install
-cp -a usr %{buildroot}/
+cp -a usr etc %{buildroot}/
+
+%posttrans
+dconf update || :
 
 %transfiletriggerin -- /usr/share/gnome-background-properties/adwaita.xml
 # Keep only the blue Adwaita tile hidden, including after gnome-backgrounds updates.
@@ -27,6 +31,7 @@ rm -f /usr/share/gnome-background-properties/adwaita.xml
 /usr/share/infinityos/build-revisions/infinityos-wallpapers
 /usr/share/backgrounds/infinityos/
 /usr/share/gnome-background-properties/00-infinityos.xml
+/etc/dconf/db/gdm.d/00-infinityos
 
 %changelog
 * Tue Oct 20 2026 Infinity OS Contributors <noreply@infinityos.eu> - 1.1.0-1

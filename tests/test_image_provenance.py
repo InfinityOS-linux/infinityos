@@ -61,8 +61,8 @@ class ImageProvenanceTests(unittest.TestCase):
             gdm_defaults = root / "etc/dconf/db/gdm.d/00-infinityos"
             gdm_defaults.parent.mkdir(parents=True)
             gdm_defaults.write_text(
-                "picture-uri='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'\n"
-                "picture-uri-dark='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'\n"
+                "picture-uri='file:///usr/share/backgrounds/infinityos/infinityos-login.png'\n"
+                "picture-uri-dark='file:///usr/share/backgrounds/infinityos/infinityos-login.png'\n"
                 "picture-options='zoom'\n"
             )
             expected_files = (
@@ -71,6 +71,7 @@ class ImageProvenanceTests(unittest.TestCase):
                 "usr/bin/infinity-terminal",
                 "usr/bin/infinity-updater",
                 "usr/share/backgrounds/infinityos/infinityos-dark.png",
+                "usr/share/backgrounds/infinityos/infinityos-login.png",
                 "usr/share/gnome-shell/extensions/ghostty@infinityos.org/extension.js",
                 "usr/share/gnome-shell/extensions/infinity-updater@infinityos.org/extension.js",
             )
@@ -80,6 +81,14 @@ class ImageProvenanceTests(unittest.TestCase):
                 path.touch()
             result = subprocess.run([str(VERIFY_ROOT), str(root), revision], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
+
+            login_background = root / "usr/share/backgrounds/infinityos/infinityos-login.png"
+            login_background.unlink()
+            missing_background = subprocess.run(
+                [str(VERIFY_ROOT), str(root), revision], capture_output=True, text=True)
+            self.assertNotEqual(missing_background.returncode, 0)
+            self.assertIn("infinityos-login.png", missing_background.stderr)
+            login_background.touch()
 
             (markers / "infinity-updater").write_text("b" * 40 + "\n")
             stale = subprocess.run([str(VERIFY_ROOT), str(root), revision], capture_output=True, text=True)
