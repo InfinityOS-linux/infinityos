@@ -585,6 +585,14 @@ body .pf-v6-c-modal-box :is(.pf-v6-c-button, .pf-v6-c-form-control,
   accent-color: var(--infinity-accent);
 }
 
+#installation-wizard.anaconda-wizard-step-anaconda-screen-review
+  .pf-v6-c-wizard__footer .pf-v6-c-check:has(#anaconda-screen-review-next-confirmation-checkbox) {
+  align-self: center;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
 /* Anaconda renders the final progress page outside #installation-wizard. */
 #app:has(.anaconda-screen-progress-status) .pf-v6-c-page__main {
   background: radial-gradient(ellipse at 88% 5%, rgba(112, 69, 167, 0.2), transparent 45%),
