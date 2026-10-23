@@ -60,7 +60,7 @@ class TVModeTests(unittest.TestCase):
              patch.object(launcher_tv.urllib.request, "urlopen", return_value=io.BytesIO(payload)):
             with self.assertRaisesRegex(RuntimeError, "SHA-256"):
                 _install_esde(Path(directory))
-            self.assertFalse((Path(directory) / ".local/bin/ES-DE.AppImage").exists())
+            self.assertFalse((Path(directory) / ".local/share/infinityos/tv/ES-DE.AppImage").exists())
 
     def test_disable_removes_integration_and_preserves_roms(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -84,6 +84,34 @@ class TVModeTests(unittest.TestCase):
                 self.assertFalse(control.dropin("esde").exists())
                 self.assertEqual(rom.read_bytes(), b"user ROM")
                 self.assertEqual(bios.read_bytes(), b"user BIOS")
+
+    def test_esde_uninstall_removes_only_managed_appimage(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(launcher_tv, "_run"):
+            home = Path(directory)
+            binary = home / ".local/share/infinityos/tv/ES-DE.AppImage"
+            binary.parent.mkdir(parents=True)
+            binary.write_bytes(b"managed application")
+            saved = home / "ES-DE/gamelists/nes/gamelist.xml"
+            saved.parent.mkdir(parents=True)
+            saved.write_text("user metadata")
+            launcher_tv.set_enabled("esde", False, home)
+            self.assertFalse(binary.exists())
+            self.assertEqual(saved.read_text(), "user metadata")
+
+    def test_failed_boot_menu_update_restores_enabled_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state = root / "state"
+            state.mkdir()
+            (state / "esde").write_text("1000\n")
+            with patch.object(control, "STATE", state), \
+                 patch.object(control, "NEXT", root / "next"), \
+                 patch.object(control, "DROPINS", root / "dropins"), \
+                 patch.object(control, "refresh_boot_menu", side_effect=RuntimeError("EFI failed")), \
+                 patch.object(control.subprocess, "run"):
+                with self.assertRaisesRegex(RuntimeError, "EFI failed"):
+                    control.disable("esde")
+                self.assertEqual((state / "esde").read_text(), "1000\n")
 
     def test_next_mode_is_one_shot_and_owned_by_user(self):
         with tempfile.TemporaryDirectory() as directory:

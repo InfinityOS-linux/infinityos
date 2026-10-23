@@ -3,7 +3,7 @@ set -euo pipefail
 
 case ${1:-} in
     esde)
-        app="$HOME/.local/bin/ES-DE.AppImage"
+        app="$HOME/.local/share/infinityos/tv/ES-DE.AppImage"
         [[ -x $app ]] || { echo "ES-DE is not installed for $USER" >&2; exit 1; }
         exec cage -- "$app"
         ;;

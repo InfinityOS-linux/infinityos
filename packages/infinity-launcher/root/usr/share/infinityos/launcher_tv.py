@@ -35,7 +35,7 @@ def _install_esde(home):
     if arch not in ESDE:
         raise RuntimeError("ES-DE is available only on x64 and ARM64")
     package_id, size, expected = ESDE[arch]
-    binary = home / ".local/bin/ES-DE.AppImage"
+    binary = home / ".local/share/infinityos/tv/ES-DE.AppImage"
     if binary.is_file() and hashlib.sha256(binary.read_bytes()).hexdigest() == expected:
         return binary
     binary.parent.mkdir(parents=True, exist_ok=True)
@@ -136,10 +136,7 @@ def set_enabled(mode, active, home=None):
     if not active:
         _run(["pkexec", CONTROL, "disable", mode])
         if mode == "esde":
-            binary = home / ".local/bin/ES-DE.AppImage"
-            expected = ESDE.get(os.uname().machine, (None, None, None))[2]
-            if binary.is_file() and hashlib.sha256(binary.read_bytes()).hexdigest() == expected:
-                binary.unlink()
+            (home / ".local/share/infinityos/tv/ES-DE.AppImage").unlink(missing_ok=True)
         return
     if mode == "esde":
         binary = _install_esde(home)
