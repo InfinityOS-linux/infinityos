@@ -172,6 +172,25 @@ Exec=/usr/libexec/infinityos-live-power
 NoDisplay=true
 X-GNOME-Autostart-enabled=true
 EOF
+		# Apply these defaults before GNOME starts. Autostart remains a fallback
+		# for an existing liveuser account with stale per-user settings.
+		install -d /etc/dconf/db/infinityos-live.d
+		cat > /etc/dconf/db/infinityos-live.d/00-power << 'EOF'
+[org/gnome/desktop/session]
+idle-delay=uint32 0
+
+[org/gnome/desktop/screensaver]
+idle-activation-enabled=false
+lock-enabled=false
+
+[org/gnome/settings-daemon/plugins/power]
+idle-dim=false
+sleep-inactive-ac-type='nothing'
+sleep-inactive-battery-type='nothing'
+EOF
+		printf 'user-db:user\nsystem-db:infinityos-live\nsystem-db:local\n' > /etc/dconf/profile/user
+		dconf update
+		chmod 0644 /etc/dconf/db/infinityos-live
 	fi
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Disk"* ]]; then
 		# The build host's storage controller differs from the target VM or PC.

@@ -79,6 +79,15 @@ class LiveBootContractTests(unittest.TestCase):
         setup = (REPO / "config.sh").read_text()
         self.assertIn("/etc/skel/.config/autostart/infinityos-live-power.desktop", setup)
         self.assertNotIn("/home/liveuser/.config/autostart/infinityos-live-power.desktop", setup)
+        self.assertIn("system-db:infinityos-live", setup)
+        self.assertIn("idle-delay=uint32 0", setup)
+        self.assertIn("idle-activation-enabled=false", setup)
+        self.assertIn("sleep-inactive-ac-type='nothing'", setup)
+        self.assertIn("sleep-inactive-battery-type='nothing'", setup)
+        target_setup = (REPO / "root/usr/libexec/infinityos-liveinstall-boot-setup").read_text()
+        self.assertIn("printf 'user-db:user\\nsystem-db:local\\n' > /etc/dconf/profile/user", target_setup)
+        self.assertIn("rm -f /etc/dconf/db/infinityos-live", target_setup)
+        self.assertIn("rm -f /etc/skel/.config/autostart/infinityos-live-power.desktop", target_setup)
 
     def test_release_has_an_installed_system_audit(self):
         audit = (REPO / "root/usr/libexec/infinityos-audit-install").read_text()

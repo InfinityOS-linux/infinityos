@@ -624,11 +624,15 @@ body .pf-v6-c-modal-box :is(.pf-v6-c-button, .pf-v6-c-form-control,
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   min-width: 0;
+  min-height: 190px;
   padding: 20px;
   background: rgba(11, 9, 18, 0.55);
   border: 1px solid var(--infinity-border);
   border-radius: 12px;
+  text-align: center;
 }
 
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step.pf-m-current {
@@ -637,7 +641,8 @@ body .pf-v6-c-modal-box :is(.pf-v6-c-button, .pf-v6-c-form-control,
 }
 
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-connector {
-  display: block;
+  display: flex;
+  justify-content: center;
   min-width: 0;
   padding: 0;
   margin-bottom: 14px;
@@ -670,13 +675,14 @@ body .pf-v6-c-modal-box :is(.pf-v6-c-button, .pf-v6-c-form-control,
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-main {
   min-width: 0;
   margin: 0;
+  text-align: center;
 }
 
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-title {
   color: var(--infinity-text);
   font-size: 0.95rem;
   font-weight: 600;
-  text-align: start;
+  text-align: center;
 }
 
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-description {
@@ -685,6 +691,7 @@ body .pf-v6-c-modal-box :is(.pf-v6-c-button, .pf-v6-c-form-control,
   color: var(--infinity-muted);
   font-size: 0.8125rem;
   line-height: 1.4;
+  text-align: center;
 }
 
 .anaconda-screen-progress-status .pf-v6-c-empty-state__footer .pf-v6-c-button {

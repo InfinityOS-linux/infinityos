@@ -74,5 +74,12 @@ release_version=$(</usr/share/infinityos/image-release-version)
 [[ $release_version =~ ^[1-9][0-9]*\.[0-9]+(\.[0-9]+)?$ ]] || exit 1
 sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"Infinity OS $release_version (Fedora 44)\"/" /etc/os-release
 grep -Fqx "PRETTY_NAME=\"Infinity OS $release_version (Fedora 44)\"" /etc/os-release
+# The live-only dconf database is copied with the payload. Installed accounts
+# must use their normal GNOME idle and power defaults.
+printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
+rm -f /etc/dconf/db/infinityos-live /etc/dconf/db/infinityos-live.d/00-power
+rmdir /etc/dconf/db/infinityos-live.d 2>/dev/null || :
+rm -f /etc/skel/.config/autostart/infinityos-live-power.desktop
+dconf update
 touch /etc/infinityos/liveinstall-refind /etc/infinityos/refind-installed
 rm -f /etc/infinityos/liveinstall-boot-pending
