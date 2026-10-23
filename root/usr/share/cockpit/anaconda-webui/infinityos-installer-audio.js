@@ -2,11 +2,15 @@
 (() => {
     'use strict';
 
+    if (window.infinityosInstallerAudio)
+        return;
+    window.infinityosInstallerAudio = true;
+
     const fadeSeconds = 14;
     const track = new URL('infinityos-installer-music.mp3', document.currentScript.src);
     const audio = document.createElement('audio');
     audio.src = track.href;
-    audio.preload = 'auto';
+    audio.preload = 'none';
     audio.loop = true;
     audio.volume = 0;
     audio.hidden = true;
@@ -14,6 +18,7 @@
 
     const controls = document.createElement('div');
     controls.className = 'infinityos-installer-audio';
+    controls.hidden = true;
     controls.innerHTML = `
         <button class="infinityos-audio-button infinityos-audio-mute" type="button" aria-pressed="false">
             <svg class="infinityos-audio-sound" viewBox="0 0 24 24" aria-hidden="true">
@@ -49,6 +54,7 @@
     let level = 45;
     let lastNonZeroLevel = level;
     let muted = false;
+    let welcomeReady = false;
     let volumeTimer;
 
     function updateLabels() {
@@ -83,6 +89,8 @@
     }
 
     function startMusic() {
+        if (!welcomeReady || muted || !audio.paused)
+            return;
         const attempt = audio.play();
         if (attempt && typeof attempt.then === 'function') {
             attempt.then(() => {
@@ -136,6 +144,20 @@
 
     document.addEventListener('pointerdown', startMusic, true);
     document.addEventListener('keydown', startMusic, true);
+    function activateOnWelcome() {
+        if (!document.querySelector('#installation-wizard.anaconda-wizard-step-anaconda-screen-language'))
+            return;
+        welcomeReady = true;
+        controls.hidden = false;
+        audio.preload = 'auto';
+        welcomeObserver.disconnect();
+        startMusic();
+    }
+    const welcomeObserver = new MutationObserver(activateOnWelcome);
+    welcomeObserver.observe(document.body, {
+        childList: true, subtree: true, attributes: true, attributeFilter: ['class'],
+    });
+    activateOnWelcome();
     new MutationObserver(updateLabels).observe(document.documentElement, {
         attributes: true, attributeFilter: ['lang'],
     });
@@ -149,5 +171,4 @@
         audio.pause();
     });
     updateControls();
-    startMusic();
 })();
