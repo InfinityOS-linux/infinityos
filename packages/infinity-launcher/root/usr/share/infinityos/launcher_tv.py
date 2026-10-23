@@ -143,7 +143,8 @@ def set_enabled(mode, active, home=None):
         return
     if mode == "esde":
         binary = _install_esde(home)
-        _run(["pkexec", "dnf", "-y", "install", "cage", "retroarch", "fuse-libs", "git"])
+        _run(["pkexec", "dnf", "-y", "install", "cage", "retroarch", "fuse-libs", "git",
+              "libretro-gambatte", "libretro-mgba", "libretro-nestopia"])
         _run(["pkexec", CONTROL, "prepare", "esde", str(os.getuid())])
         _install_theme(home)
         _configure_esde(home)
