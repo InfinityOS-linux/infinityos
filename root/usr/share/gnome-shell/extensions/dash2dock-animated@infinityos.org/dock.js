@@ -49,6 +49,15 @@ const ANIM_DEBOUNCE_END_DELAY = 750;
 const MIN_SCROLL_RESOLUTION = 4;
 const MAX_SCROLL_RESOLUTION = 10;
 
+function toggleInfinityTerminal() {
+  Main.overview.hide();
+  try {
+    Gio.Subprocess.new(['/usr/bin/infinity-terminal', '--toggle'], Gio.SubprocessFlags.NONE);
+  } catch (error) {
+    console.error(`Could not toggle InfinityTerminal: ${error}`);
+  }
+}
+
 export let Dock = GObject.registerClass(
   {},
   class DashToDock extends St.Widget {
@@ -376,6 +385,8 @@ export let Dock = GObject.registerClass(
       dash._createAppItem = function (app) {
         let item = orig.call(this, app);
         item.child.visible = false;
+        if (app.get_id?.() === 'com.infinityos.GhosTTY.desktop')
+          item.child.activate = toggleInfinityTerminal;
         return item;
       };
 
@@ -811,12 +822,7 @@ export let Dock = GObject.registerClass(
           c._appwell._activate = c._appwell.activate;
           c._appwell.activate = () => {
             if (c._appwell.app?.get_id?.() === 'com.infinityos.GhosTTY.desktop') {
-              Main.overview.hide();
-              try {
-                Gio.Subprocess.new(['/usr/bin/infinity-terminal', '--toggle'], Gio.SubprocessFlags.NONE);
-              } catch (error) {
-                console.error(`Could not toggle InfinityTerminal: ${error}`);
-              }
+              toggleInfinityTerminal();
               return;
             }
             try {

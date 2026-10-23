@@ -61,6 +61,9 @@ class TerminalToggleTests(unittest.TestCase):
         dock = DOCK.read_text()
         self.assertIn("c._appwell.app?.get_id?.() === 'com.infinityos.GhosTTY.desktop'", dock)
         self.assertIn("Gio.Subprocess.new(['/usr/bin/infinity-terminal', '--toggle']", dock)
+        create = dock.split("dash._createAppItem = function (app) {", 1)[1].split(
+            "this.dash = dash;", 1)[0]
+        self.assertIn("item.child.activate = toggleInfinityTerminal", create)
 
 
 if __name__ == "__main__":
