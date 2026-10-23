@@ -36,6 +36,12 @@
                 <circle cx="5" cy="10" r="2" fill="currentColor"/><circle cx="12" cy="7" r="2" fill="currentColor"/><circle cx="19" cy="13" r="2" fill="currentColor"/>
             </svg>
         </button>
+        <button class="infinityos-audio-button infinityos-installer-exit" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3v9m-6.4-6.4a9 9 0 1 0 12.8 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <span></span>
+        </button>
         <div class="infinityos-audio-popover" id="infinityos-audio-popover" hidden>
             <label for="infinityos-audio-level"></label>
             <div class="infinityos-audio-slider-row">
@@ -47,6 +53,7 @@
 
     const muteButton = controls.querySelector('.infinityos-audio-mute');
     const volumeButton = controls.querySelector('.infinityos-audio-volume');
+    const exitButton = controls.querySelector('.infinityos-installer-exit');
     const popover = controls.querySelector('.infinityos-audio-popover');
     const slider = controls.querySelector('input');
     const output = controls.querySelector('output');
@@ -67,6 +74,11 @@
         muteButton.title = muteText;
         volumeButton.setAttribute('aria-label', volumeText);
         volumeButton.title = volumeText;
+        const exitText = document.querySelector('#installation-quit-btn')?.textContent?.trim()
+            || (polish ? 'Zakończ' : 'Quit');
+        exitButton.setAttribute('aria-label', exitText);
+        exitButton.title = exitText;
+        exitButton.querySelector('span').textContent = exitText;
         label.textContent = volumeText;
     }
 
@@ -118,6 +130,12 @@
             slider.focus();
     });
 
+    exitButton.addEventListener('click', () => {
+        const quitButton = document.querySelector('#installation-quit-btn');
+        if (quitButton && !quitButton.disabled && quitButton.getAttribute('aria-disabled') !== 'true')
+            quitButton.click();
+    });
+
     slider.addEventListener('input', () => {
         level = Number(slider.value);
         if (level > 0)
@@ -149,6 +167,7 @@
             return;
         welcomeReady = true;
         controls.hidden = false;
+        updateLabels();
         audio.preload = 'auto';
         welcomeObserver.disconnect();
         startMusic();

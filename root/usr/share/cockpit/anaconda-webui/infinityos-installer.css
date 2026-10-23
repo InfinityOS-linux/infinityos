@@ -74,6 +74,29 @@ textarea {
   color: var(--infinity-text);
 }
 
+/* Match the first loading frame to the wizard before its header appears. */
+#app:has(.installation-page--loading),
+.installation-page--loading,
+.installation-page--loading .pf-v6-c-page__main,
+.installation-page--loading .pf-v6-c-empty-state {
+  background: radial-gradient(ellipse at 92% 2%, rgba(112, 69, 167, 0.16), transparent 42%),
+    var(--infinity-ink) !important;
+  color: var(--infinity-text);
+}
+
+.installation-page--loading {
+  min-height: 100vh;
+}
+
+.installation-page--loading :is(.pf-v6-c-title, .pf-v6-c-empty-state__body) {
+  color: var(--infinity-text);
+}
+
+.pf-v6-c-dropdown:has(#toggle-kebab),
+#toggle-kebab {
+  display: none !important;
+}
+
 #installation-wizard .pf-v6-c-wizard__nav {
   background: var(--infinity-panel);
   border-right: 1px solid var(--infinity-border);
@@ -272,7 +295,7 @@ textarea {
   display: none !important;
 }
 
-/* Keep Back on the left; put Abort immediately before Next at the far right. */
+/* Keep Back on the left and Next at the far right. The header owns Quit. */
 #installation-wizard .pf-v6-c-wizard__footer .pf-v6-c-action-list:has(#installation-quit-btn) {
   width: 100%;
 }
@@ -282,19 +305,68 @@ textarea {
 }
 
 #installation-wizard .pf-v6-c-wizard__footer .pf-v6-c-action-list__item:has(#installation-quit-btn) {
+  display: none;
+}
+
+#installation-wizard .pf-v6-c-wizard__footer .pf-v6-c-action-list__item:has(#installation-next-btn) {
   order: 1;
   margin-inline-start: auto;
 }
 
-#installation-wizard .pf-v6-c-wizard__footer .pf-v6-c-action-list__item:has(#installation-next-btn) {
-  order: 2;
+/* Style the existing Anaconda confirmation dialog. */
+body:has(#installation-quit-confirm-dialog) .pf-v6-c-backdrop {
+  background: rgba(8, 5, 15, 0.76);
+  backdrop-filter: blur(8px);
+}
+
+#installation-quit-confirm-dialog {
+  --pf-v6-c-modal-box--BackgroundColor: var(--infinity-panel);
+  color: var(--infinity-text);
+  background: linear-gradient(145deg, #251936, var(--infinity-panel) 68%);
+  border: 1px solid var(--infinity-border);
+  border-radius: 18px;
+  box-shadow: 0 28px 80px rgba(4, 2, 10, 0.52);
+  font-family: "Infinity Plex", "IBM Plex Sans", sans-serif;
+}
+
+#installation-quit-confirm-dialog :is(.pf-v6-c-modal-box__title,
+  .pf-v6-c-modal-box__title-text) {
+  color: var(--infinity-text);
+}
+
+#installation-quit-confirm-dialog .pf-v6-c-modal-box__body {
+  color: var(--infinity-muted);
+}
+
+#installation-quit-confirm-dialog .pf-v6-c-modal-box__footer {
+  border-top: 1px solid var(--infinity-border);
+}
+
+#installation-quit-confirm-dialog .pf-v6-c-button {
+  border-radius: 999px;
+}
+
+#installation-quit-confirm-btn {
+  background: var(--infinity-accent) !important;
+  border-color: var(--infinity-accent) !important;
+  color: #170d27 !important;
+}
+
+#installation-quit-confirm-btn:hover {
+  background: #dfc9ff !important;
+}
+
+#installation-quit-confirm-cancel-btn {
+  background: var(--infinity-field);
+  border: 1px solid var(--infinity-border);
+  color: var(--infinity-text);
 }
 
 /* The 72px installer header leaves equal space above and below 44px controls. */
 .infinityos-installer-audio {
   position: fixed;
   top: 14px;
-  right: 64px;
+  right: 24px;
   z-index: 10000;
   display: flex;
   align-items: center;
@@ -338,6 +410,27 @@ textarea {
   display: block;
   width: 21px;
   height: 21px;
+}
+
+.infinityos-installer-exit {
+  display: inline-flex;
+  gap: 8px;
+  width: auto;
+  min-width: 44px;
+  padding-inline: 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+body:not(:has(#installation-quit-btn)) .infinityos-installer-exit,
+.infinityos-installer-exit[hidden] {
+  display: none !important;
+}
+
+body:has(#installation-quit-btn[aria-disabled="true"]) .infinityos-installer-exit {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .infinityos-audio-muted,
@@ -398,7 +491,7 @@ textarea {
 @media (max-width: 600px) {
   .infinityos-installer-audio {
     top: 8px;
-    right: 52px;
+    right: 12px;
     gap: 6px;
   }
 

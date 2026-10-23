@@ -112,9 +112,14 @@ if missing:
         for key in missing
     ) + tail
 quit_translation = re.compile(r'("Quit"\s*:\s*\[\s*null,\s*")(?:\\.|[^"\\])*("\s*\])')
-locale, count = quit_translation.subn(r'\1Przerwij\2', locale)
+locale, count = quit_translation.subn(r'\1Zakończ\2', locale)
 if count != 1:
     raise RuntimeError(f"Anaconda WebUI Polish Quit translation changed: expected one match, got {count}")
+quit_title_translation = re.compile(
+    r'("Quit installer\?"\s*:\s*\[\s*null,\s*")(?:\\.|[^"\\])*("\s*\])')
+locale, count = quit_title_translation.subn(r'\1Zakończyć instalację?\2', locale)
+if count != 1:
+    raise RuntimeError(f"Anaconda WebUI Polish quit title changed: expected one match, got {count}")
 bundle.write_bytes(gzip.compress(source.encode("utf-8"), compresslevel=9, mtime=0))
 polish.write_bytes(gzip.compress(locale.encode("utf-8"), compresslevel=9, mtime=0))
 

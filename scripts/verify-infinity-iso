@@ -49,8 +49,9 @@ webui = root / 'usr/share/cockpit/anaconda-webui'
 assert 'infinityos-installer.css' in (webui / 'index.html').read_text()
 assert 'infinityos-installer-audio.js' in (webui / 'index.html').read_text()
 assert (webui / 'infinityos-installer-audio.js').stat().st_size > 1000
-assert 'anaconda-wizard-step-anaconda-screen-language' in (
-    webui / 'infinityos-installer-audio.js').read_text()
+installer_controls = (webui / 'infinityos-installer-audio.js').read_text()
+assert 'anaconda-wizard-step-anaconda-screen-language' in installer_controls
+assert 'infinityos-installer-exit' in installer_controls
 assert (webui / 'infinityos-installer-music.mp3').stat().st_size > 1_000_000
 for asset in ('infinityos-installer-mark.svg',
               *(f'infinityos-plex-{weight}.woff2' for weight in (
@@ -83,6 +84,9 @@ css = (webui / 'infinityos-installer.css').read_text()
 assert '.feedback-section' in css
 assert 'padding-block: 18px' in css
 assert ':has(#installation-back-btn)' in css
+assert '#installation-quit-confirm-dialog' in css
+assert '#toggle-kebab' in css
+assert '.installation-page--loading' in css
 PY
 for required in \
     usr/libexec/infinityos-audit-install \

@@ -8,6 +8,7 @@ const source = readFileSync(new URL('../root/usr/share/cockpit/anaconda-webui/in
 test('installer music starts once when Welcome appears and survives later steps', () => {
   let welcomeVisible = false;
   let playCount = 0;
+  let quitRequests = 0;
   const observers = [];
   const appended = [];
 
@@ -18,14 +19,21 @@ test('installer music starts once when Welcome appears and survives later steps'
       this.paused = true;
       this.currentTime = 0;
       this.listeners = {};
+      this.attributes = {};
+      this.children = new Map();
       this.classList = { toggle() {} };
     }
     addEventListener(type, callback) {
       (this.listeners[type] ??= []).push(callback);
     }
-    setAttribute() {}
+    setAttribute(name, value) { this.attributes[name] = value; }
+    getAttribute(name) { return this.attributes[name]; }
     contains() { return false; }
-    querySelector() { return new Element('control'); }
+    querySelector(selector) {
+      if (!this.children.has(selector))
+        this.children.set(selector, new Element('control'));
+      return this.children.get(selector);
+    }
     play() {
       playCount++;
       this.paused = false;
@@ -34,12 +42,16 @@ test('installer music starts once when Welcome appears and survives later steps'
     pause() { this.paused = true; }
   }
 
+  const quitButton = new Element('button');
+  quitButton.click = () => { quitRequests++; };
+
   const document = {
     currentScript: { src: 'https://installer.test/infinityos-installer-audio.js' },
     body: { append: element => appended.push(element) },
     listeners: {},
     createElement: tag => new Element(tag),
-    querySelector: () => welcomeVisible ? {} : null,
+    querySelector: selector => selector === '#installation-quit-btn'
+      ? quitButton : (welcomeVisible ? {} : null),
     addEventListener(type, callback) {
       (this.listeners[type] ??= []).push(callback);
     },
@@ -71,6 +83,14 @@ test('installer music starts once when Welcome appears and survives later steps'
   assert.equal(audio.preload, 'auto');
   assert.equal(controls.hidden, false);
   assert.equal(observers[0].disconnected, true);
+
+  const exitButton = controls.querySelector('.infinityos-installer-exit');
+  assert.equal(exitButton.querySelector('span').textContent, 'Zakończ');
+  exitButton.listeners.click[0]();
+  assert.equal(quitRequests, 1);
+  quitButton.setAttribute('aria-disabled', 'true');
+  exitButton.listeners.click[0]();
+  assert.equal(quitRequests, 1);
 
   welcomeVisible = false;
   document.listeners.pointerdown.at(-1)();
