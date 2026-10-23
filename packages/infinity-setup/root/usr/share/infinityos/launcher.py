@@ -51,7 +51,6 @@ box.infinity-row:hover { background: #292136; border-color: #65517d; }
 label.infinity-section { color: #bea7df; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
 label.infinity-app-name { color: #f3eef8; font-weight: 700; }
 label.infinity-app-status { color: #c9a8ed; font-size: 11px; font-weight: 600; }
-box.infinity-app-icon { background: linear-gradient(135deg, #533778, #34234d); border: 1px solid #785998; border-radius: 11px; }
 button.infinity-save { background: #745aa4; border: 1px solid #9478c4; color: white; border-radius: 10px; min-width: 124px; min-height: 42px; font-weight: 700; }
 button.infinity-save:hover { background: #8569b8; }
 button.infinity-save:disabled { background: #413451; color: #a99cb8; }
@@ -89,6 +88,17 @@ def catalog_icon(path):
                                           max(y for _, y in visible) - top + 1)
     _success, encoded = pixbuf.save_to_bufferv("png", [], [])
     return Gio.BytesIcon.new(GLib.Bytes.new(encoded))
+
+
+def app_icon_cell(icon):
+    icon.set_pixel_size(44)
+    icon.set_halign(Gtk.Align.CENTER)
+    icon.set_valign(Gtk.Align.START)
+    cell = Gtk.Box()
+    cell.set_size_request(44, 44)
+    cell.set_valign(Gtk.Align.START)
+    cell.append(icon)
+    return cell
 
 
 class InfinitySetup(Gtk.Application):
@@ -268,16 +278,10 @@ class InfinitySetup(Gtk.Application):
                 if not Gtk.IconTheme.get_for_display(self.window.get_display()).has_icon(icon_name):
                     icon_name = app.icon
                 icon = Gtk.Image.new_from_icon_name(icon_name)
-            icon.set_pixel_size(32)
-            icon_cell = Gtk.Box()
-            icon_cell.add_css_class("infinity-app-icon")
-            icon_cell.set_size_request(44, 44)
-            icon.set_halign(Gtk.Align.CENTER)
-            icon.set_valign(Gtk.Align.CENTER)
-            icon_cell.append(icon)
-            row.append(icon_cell)
+            row.append(app_icon_cell(icon))
             details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
             details.set_hexpand(True)
+            details.set_valign(Gtk.Align.START)
             details.append(label(app.name, "infinity-app-name"))
             note = label(tr(app.description), "infinity-muted")
             note.set_wrap(True)
@@ -340,10 +344,10 @@ class InfinitySetup(Gtk.Application):
                 row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
                 row.add_css_class("infinity-row")
                 icon = Gtk.Image.new_from_icon_name(icon_name)
-                icon.set_pixel_size(32)
-                row.append(icon)
+                row.append(app_icon_cell(icon))
                 details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
                 details.set_hexpand(True)
+                details.set_valign(Gtk.Align.START)
                 details.append(label(tr(name), "infinity-app-name"))
                 note = label(tr(description), "infinity-muted")
                 note.set_wrap(True)
