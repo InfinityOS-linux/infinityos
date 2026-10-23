@@ -2356,12 +2356,22 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 .prompt-dialog-info-label,
 .prompt-dialog-null-label {
   text-align: center;
-  font-size: 15pt;
+  font-size: 11pt;
   font-weight: 500;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
 }
 
-.prompt-dialog-error-label {
-  color: #FFD600;
+.prompt-dialog-null-label {
+  color: transparent;
+}
+
+.prompt-dialog .prompt-dialog-error-label {
+  font-weight: 600;
+  color: #74405f;
+  background-color: rgba(156, 88, 134, 0.1);
+  border-color: rgba(156, 88, 134, 0.25);
 }
 
 /* Polkit Dialog */

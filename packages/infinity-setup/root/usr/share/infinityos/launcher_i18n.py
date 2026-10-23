@@ -20,7 +20,6 @@ POLISH = {
         "Wybrane aplikacje zainstalują się po kliknięciu Zastosuj.",
     "Your changes take effect when you click Apply.":
         "Zmiany zostaną wprowadzone po kliknięciu Zastosuj.",
-    "Run at next startup": "Uruchom przy następnym starcie",
     "View source and releases": "Kod źródłowy i wydania",
     "Official website": "Oficjalna strona",
     "Open installer": "Otwórz instalator",

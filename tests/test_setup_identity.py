@@ -20,6 +20,11 @@ class SetupIdentityTests(unittest.TestCase):
         self.assertIn("Icon=infinity-setup\n", desktop)
         self.assertIn("Exec=infinity-setup --first-run\n", autostart)
         self.assertTrue((PACKAGE / "root/usr/share/infinityos/launcher-icons/infinity-setup.svg").is_file())
+        self.assertNotIn("NEXT_START", app)
+        self.assertNotIn("Run at next startup", app)
+        self.assertIn("MARKER.exists()", app)
+        self.assertIn("MARKER.touch()", app)
+        self.assertNotIn("self.applied", app)
 
     def test_upgrade_keeps_first_run_state_and_old_favorites(self):
         app = (PACKAGE / "root/usr/share/infinityos/launcher.py").read_text()

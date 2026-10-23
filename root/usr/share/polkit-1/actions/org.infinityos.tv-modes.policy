@@ -4,7 +4,9 @@
 <policyconfig>
   <action id="org.infinityos.tv-modes.manage">
     <description>Manage Infinity OS TV modes</description>
-    <message>Authentication is required to manage Infinity OS TV modes</message>
+    <description xml:lang="pl">Zarządzaj trybami TV w Infinity OS</description>
+    <message>Authenticate to change Infinity OS TV modes</message>
+    <message xml:lang="pl">Uwierzytelnij się, aby zmienić tryby TV w Infinity OS</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>

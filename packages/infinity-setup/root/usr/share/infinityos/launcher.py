@@ -21,7 +21,6 @@ from launcher_tv import enabled as tv_enabled, set_enabled as set_tv_enabled
 
 
 MARKER = Path.home() / ".config/infinityos/launcher-complete"
-NEXT_START = Path.home() / ".config/infinityos/launcher-next-start"
 ICON_DIR = Path("/usr/share/infinityos/launcher-icons")
 SECTIONS = (
     ("AI", "utilities-terminal-symbolic", "Assistants and command-line tools"),
@@ -93,9 +92,8 @@ def catalog_icon(path):
 
 
 class InfinitySetup(Gtk.Application):
-    def __init__(self, first_run=False):
+    def __init__(self):
         super().__init__(application_id="org.infinityos.Setup")
-        self.first_run = first_run
         self.window = None
         self.switches = {}
         self.initial_active = {}
@@ -107,7 +105,6 @@ class InfinitySetup(Gtk.Application):
         self.busy = False
         self.opening_installers = 0
         self.closing = False
-        self.applied = False
         self.progress_source = 0
 
     def do_activate(self):
@@ -211,9 +208,6 @@ class InfinitySetup(Gtk.Application):
         self.status.set_wrap(True)
         self.status.set_hexpand(True)
         footer.append(self.status)
-        self.next_start = Gtk.CheckButton(label=tr("Run at next startup"))
-        self.next_start.set_active(NEXT_START.exists() and not self.first_run)
-        footer.append(self.next_start)
         self.save_button = Gtk.Button(label=tr("Apply"))
         self.save_button.add_css_class("infinity-save")
         self.save_button.connect("clicked", self._save)
@@ -490,7 +484,6 @@ class InfinitySetup(Gtk.Application):
         return False
 
     def _complete(self):
-        self.applied = True
         self._begin_close()
 
     def _animate(self, opening):
@@ -526,16 +519,10 @@ class InfinitySetup(Gtk.Application):
         self._animate(opening=False)
 
     def _finish_close(self):
-        NEXT_START.parent.mkdir(parents=True, exist_ok=True)
-        if self.next_start.get_active():
-            NEXT_START.touch()
-        else:
-            NEXT_START.unlink(missing_ok=True)
         self.window.destroy()
         self.window = None
-        if self.first_run or self.applied:
-            MARKER.parent.mkdir(parents=True, exist_ok=True)
-            MARKER.touch()
+        MARKER.parent.mkdir(parents=True, exist_ok=True)
+        MARKER.touch()
 
     def _close_requested(self, _window):
         if self.busy or self.opening_installers:
@@ -548,6 +535,6 @@ class InfinitySetup(Gtk.Application):
 if __name__ == "__main__":
     first_run = "--first-run" in sys.argv
     if first_run and (getpass.getuser() in ("gnome-initial-setup", "liveuser") or
-                      (MARKER.exists() and not NEXT_START.exists())):
+                      MARKER.exists()):
         raise SystemExit(0)
-    raise SystemExit(InfinitySetup(first_run=first_run).run([sys.argv[0]]))
+    raise SystemExit(InfinitySetup().run([sys.argv[0]]))
