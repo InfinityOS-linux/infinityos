@@ -1,3 +1,254 @@
+@font-face {
+  font-family: "Infinity Plex";
+  src: url("infinityos-plex-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Infinity Plex";
+  src: url("infinityos-plex-medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Infinity Plex";
+  src: url("infinityos-plex-semibold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Infinity Plex";
+  src: url("infinityos-plex-bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* InfinityOS colors follow the dark site: ink surfaces, lilac accents, and restrained glow. */
+:root {
+  --infinity-ink: #0b0912;
+  --infinity-panel: #171321;
+  --infinity-field: #241d31;
+  --infinity-border: rgba(202, 178, 238, 0.23);
+  --infinity-text: #f7f2ff;
+  --infinity-muted: #c0b5d0;
+  --infinity-accent: #c7a8f2;
+}
+
+body,
+.pf-v6-c-page,
+.pf-v6-c-page__main {
+  background: var(--infinity-ink);
+  color: var(--infinity-text);
+  font-family: "Infinity Plex", "IBM Plex Sans", sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+.pf-v6-c-page__header,
+.pf-v6-c-masthead {
+  background: linear-gradient(100deg, #171025, #251536 54%, #171025) !important;
+  border-bottom: 1px solid var(--infinity-border);
+  color: var(--infinity-text);
+  font-weight: 600;
+}
+
+.pf-v6-c-page__header img,
+.pf-v6-c-masthead img {
+  filter: drop-shadow(0 0 9px rgba(199, 168, 242, 0.55));
+}
+
+#installation-wizard {
+  background: var(--infinity-ink);
+  color: var(--infinity-text);
+}
+
+#installation-wizard .pf-v6-c-wizard__nav {
+  background: var(--infinity-panel);
+  border-right: 1px solid var(--infinity-border);
+}
+
+#installation-wizard .pf-v6-c-wizard__nav-link {
+  color: var(--infinity-muted);
+  border-radius: 9px;
+  min-height: 42px;
+}
+
+#installation-wizard .pf-v6-c-wizard__nav-link-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#installation-wizard :is(#anaconda-screen-language, #anaconda-screen-date-time,
+  #anaconda-screen-method, #anaconda-screen-storage-configuration,
+  #anaconda-screen-accounts, #anaconda-screen-review)
+  .pf-v6-c-wizard__nav-link-main::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  flex: none;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.75;
+}
+
+#installation-wizard #anaconda-screen-language .pf-v6-c-wizard__nav-link-main::before {
+  background-image: url("infinityos-step-language.svg");
+}
+
+#installation-wizard #anaconda-screen-date-time .pf-v6-c-wizard__nav-link-main::before {
+  background-image: url("infinityos-step-time.svg");
+}
+
+#installation-wizard #anaconda-screen-method .pf-v6-c-wizard__nav-link-main::before {
+  background-image: url("infinityos-step-method.svg");
+}
+
+#installation-wizard #anaconda-screen-storage-configuration .pf-v6-c-wizard__nav-link-main::before {
+  background-image: url("infinityos-step-storage.svg");
+}
+
+#installation-wizard #anaconda-screen-accounts .pf-v6-c-wizard__nav-link-main::before {
+  background-image: url("infinityos-step-accounts.svg");
+}
+
+#installation-wizard #anaconda-screen-review .pf-v6-c-wizard__nav-link-main::before {
+  background-image: url("infinityos-step-review.svg");
+}
+
+#installation-wizard .pf-v6-c-wizard__nav-link:hover,
+#installation-wizard .pf-v6-c-wizard__nav-link[aria-current="page"] {
+  background: rgba(174, 137, 225, 0.17);
+  color: var(--infinity-text);
+}
+
+#installation-wizard .pf-v6-c-wizard__nav-link[aria-current="page"] {
+  box-shadow: inset 3px 0 var(--infinity-accent);
+}
+
+#installation-wizard .pf-v6-c-wizard__main,
+#installation-wizard .pf-v6-c-wizard__main-body {
+  background: radial-gradient(ellipse at 92% 2%, rgba(112, 69, 167, 0.16), transparent 42%),
+    var(--infinity-ink);
+  color: var(--infinity-text);
+}
+
+#installation-wizard .pf-v6-c-wizard__main-body {
+  position: relative;
+}
+
+#installation-wizard .pf-v6-c-title,
+#installation-wizard h1,
+#installation-wizard h2,
+#installation-wizard h3 {
+  color: var(--infinity-text);
+}
+
+#installation-wizard a,
+#installation-wizard .pf-v6-c-button.pf-m-link {
+  color: var(--infinity-accent);
+}
+
+#installation-wizard a:hover,
+#installation-wizard .pf-v6-c-button.pf-m-link:hover {
+  color: #e4d3ff;
+}
+
+#installation-wizard .pf-v6-c-wizard__footer {
+  background: var(--infinity-panel);
+  border-top: 1px solid var(--infinity-border);
+  box-shadow: 0 -10px 35px rgba(6, 4, 12, 0.2);
+}
+
+#installation-wizard .pf-v6-c-button.pf-m-primary {
+  background: var(--infinity-accent) !important;
+  color: #170d27 !important;
+  border-radius: 999px;
+  box-shadow: 0 0 24px rgba(169, 116, 233, 0.16);
+}
+
+#installation-wizard .pf-v6-c-button.pf-m-primary:hover {
+  background: #dfc9ff !important;
+}
+
+#installation-wizard .pf-v6-c-button.pf-m-secondary,
+#installation-wizard .pf-v6-c-button.pf-m-tertiary {
+  background: var(--infinity-field);
+  color: var(--infinity-text);
+  border: 1px solid var(--infinity-border);
+  border-radius: 999px;
+}
+
+#installation-wizard .pf-v6-c-button:focus-visible,
+#installation-wizard .pf-v6-c-wizard__nav-link:focus-visible {
+  outline: 2px solid var(--infinity-accent);
+  outline-offset: 2px;
+}
+
+#installation-wizard .pf-v6-c-form-control,
+#installation-wizard .pf-v6-c-text-input-group,
+#installation-wizard .pf-v6-c-select__toggle,
+#installation-wizard .pf-v6-c-menu,
+#installation-wizard .pf-v6-c-card {
+  background: var(--infinity-field);
+  color: var(--infinity-text);
+  border-color: var(--infinity-border);
+  border-radius: 10px;
+}
+
+#installation-wizard .pf-v6-c-form-control input,
+#installation-wizard .pf-v6-c-text-input-group__text-input {
+  color: var(--infinity-text);
+}
+
+#installation-wizard .pf-v6-c-menu__item:hover,
+#installation-wizard .pf-v6-c-menu__item.pf-m-selected {
+  background: rgba(174, 137, 225, 0.2);
+}
+
+#installation-wizard .pf-v6-c-progress__indicator {
+  background: var(--infinity-accent);
+}
+
+@media (min-width: 1200px) {
+  #installation-wizard.anaconda-wizard-step-anaconda-screen-language .pf-v6-c-wizard__main-body::before {
+    content: "INFINITYOS / SETUP";
+    position: absolute;
+    top: 2.5rem;
+    right: 3rem;
+    color: var(--infinity-accent);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    pointer-events: none;
+  }
+
+  #installation-wizard.anaconda-wizard-step-anaconda-screen-language .pf-v6-c-wizard__main-body::after {
+    content: "";
+    position: absolute;
+    top: 4rem;
+    right: 3rem;
+    width: 220px;
+    height: 220px;
+    background: url("infinityos-installer-mark.svg") center / contain no-repeat;
+    opacity: 0.32;
+    pointer-events: none;
+  }
+}
+
 /* Keep the final installer state centered and remove Fedora feedback links. */
 #installation-wizard .pf-v6-c-wizard__main-body:has(.anaconda-screen-progress-status) {
   display: flex;
@@ -37,12 +288,16 @@
 .infinityos-installer-audio {
   position: fixed;
   top: 14px;
-  right: 14px;
+  right: 64px;
   z-index: 10000;
   display: flex;
   align-items: center;
   gap: 8px;
   color: #f7f3ff;
+}
+
+.infinityos-installer-audio[hidden] {
+  display: none;
 }
 
 .infinityos-audio-button {
@@ -137,7 +392,7 @@
 @media (max-width: 600px) {
   .infinityos-installer-audio {
     top: 8px;
-    right: 8px;
+    right: 52px;
     gap: 6px;
   }
 

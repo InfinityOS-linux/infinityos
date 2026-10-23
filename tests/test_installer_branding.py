@@ -25,7 +25,11 @@ class InstallerBrandingTests(unittest.TestCase):
                 b'cockpit.locale({"undo":[null,"cofnij"],"Quit": [\n  null,\n  "Zako\xc5\x84cz"\n ]\n});\n'))
             (webui / "index.html").write_text("<html><head></head></html>")
             for asset in ("infinityos-installer.css", "infinityos-installer-audio.js",
-                          "infinityos-installer-music.mp3"):
+                          "infinityos-installer-mark.svg", "infinityos-installer-music.mp3",
+                          *(f"infinityos-plex-{weight}.woff2" for weight in (
+                              "regular", "medium", "semibold", "bold")),
+                          *(f"infinityos-step-{name}.svg" for name in (
+                              "language", "time", "method", "storage", "accounts", "review"))):
                 (webui / asset).write_bytes(b"test asset")
             for _ in range(2):
                 subprocess.run([sys.executable, str(SCRIPT), str(webui)], check=True)
@@ -56,6 +60,7 @@ class InstallerBrandingTests(unittest.TestCase):
             (webui / "VERSION.txt").write_text("68\n")
             (webui / "infinityos-installer.css").write_text("/* style */")
             (webui / "infinityos-installer-audio.js").write_text("// controls")
+            (webui / "infinityos-installer-mark.svg").write_text("<svg/>")
             (webui / "index.html").write_text("<html><head></head></html>")
             result = subprocess.run([sys.executable, str(SCRIPT), str(webui)],
                                     capture_output=True, text=True, check=False)
