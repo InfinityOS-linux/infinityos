@@ -455,11 +455,11 @@ def _install_safe_disk_cleaner(app, home):
     )
 
 
-def install(app, home=None):
+def install(app, home=None, *, defer_system_dependencies=False):
     """Install one selected app. Calling this is the only installation trigger."""
     home = Path(home or Path.home())
     if app.source == "com.valvesoftware.Steam" and os.uname().machine == "aarch64":
-        _install_arm_steam(home)
+        _install_arm_steam(home, install_dependencies=not defer_system_dependencies)
     elif app.kind == "local-model":
         _install_local_model(app, home)
     elif app.kind == "epic-appimage":
@@ -537,7 +537,7 @@ def _steam_arm_manifest_entry(manifest):
     return filename, digest, size
 
 
-def _install_arm_steam(home):
+def _install_arm_steam(home, install_dependencies=True):
     """Install Valve's native ARM64 beta client from its checksummed manifest."""
     manifest_url = "https://client-update.fastly.steamstatic.com/steam_client_publicbeta_linuxarm64"
     with urllib.request.urlopen(manifest_url, timeout=30) as response:
@@ -596,7 +596,8 @@ def _install_arm_steam(home):
         binary = extracted / "steamrtarm64/steam"
         if not binary.is_file():
             raise RuntimeError("Valve's ARM64 Steam archive has no client binary.")
-        _run(["pkexec", "dnf", "-y", "install", "libva", "libvpx", "ibus-libs"])
+        if install_dependencies:
+            _run(["pkexec", "dnf", "-y", "install", "libva", "libvpx", "ibus-libs"])
         steam_root = share / "Steam"
         for link in extracted.rglob("*"):
             if link.is_symlink():

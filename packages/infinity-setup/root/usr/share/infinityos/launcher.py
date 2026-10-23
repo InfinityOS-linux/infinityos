@@ -428,12 +428,16 @@ class InfinitySetup(Gtk.Application):
     def _install(self, changes, tv_changes):
         errors = []
         total = len(changes) + len(tv_changes)
+        steam_tv_selected = ("steam", True) in tv_changes
         for index, (app, enabled) in enumerate(changes, 1):
             GLib.idle_add(self.status.set_text, tr("Applying {index}/{total}: {name}…").format(
                 index=index, total=total, name=app.name))
             try:
                 if enabled:
-                    install(app)
+                    if steam_tv_selected and app.source == "com.valvesoftware.Steam":
+                        install(app, defer_system_dependencies=True)
+                    else:
+                        install(app)
                 elif app.kind == "local-model":
                     deactivate_local_model()
                 else:

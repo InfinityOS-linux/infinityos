@@ -3,9 +3,11 @@
 import hashlib
 import json
 import os
+import pwd
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import urllib.request
 from pathlib import Path
@@ -58,16 +60,22 @@ def _save_manifest(home, mode, details):
     _replace_text(_manifest(home, mode), json.dumps(details, sort_keys=True) + "\n")
 
 
+def _managed_packages(home, mode):
+    path = _manifest(home, mode)
+    if not path.is_file():
+        return []
+    details = json.loads(path.read_text(encoding="utf-8"))
+    allowed = ESDE_PACKAGES if mode == "esde" else ("gamescope", "libva", "libvpx", "ibus-libs")
+    return [package for package in details.get("packages", [])
+            if package in allowed and
+            package not in _missing_packages((package,))]
+
+
 def _remove_managed(home, mode):
     path = _manifest(home, mode)
     if not path.is_file():
         return
     details = json.loads(path.read_text(encoding="utf-8"))
-    packages = [package for package in details.get("packages", [])
-                if package in (*ESDE_PACKAGES, "gamescope") and
-                package not in _missing_packages((package,))]
-    if packages:
-        _run(["pkexec", "dnf", "-y", "remove", *packages])
     if mode == "esde":
         theme = home / "ES-DE/themes/canvas-es-de"
         if details.get("theme_hash") and theme.is_dir() and _tree_hash(theme) == details["theme_hash"]:
@@ -126,7 +134,8 @@ def _install_theme(home):
     if target.exists():
         return
     target.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="infinity-esde-theme-") as directory:
+    with tempfile.TemporaryDirectory(prefix=".infinity-esde-theme-",
+                                     dir=target.parent) as directory:
         source = Path(directory) / "canvas"
         _run(["git", "init", "-q", str(source)])
         _run(["git", "-C", str(source), "fetch", "-q", "--depth", "1",
@@ -196,12 +205,20 @@ def _configure_esde(home):
                 '</gameList>\n')
 
 
+def _finish_esde(home):
+    _install_theme(home)
+    _configure_esde(home)
+    binary = home / ".local/share/infinityos/tv/ES-DE.AppImage"
+    _run([str(binary), "--create-system-dirs"])
+
+
 def set_enabled(mode, active, home=None):
     if mode not in ("esde", "steam"):
         raise ValueError("Unknown TV mode")
     home = Path(home or Path.home())
     if not active:
-        _run(["pkexec", CONTROL, "disable", mode])
+        packages = _managed_packages(home, mode)
+        _run(["pkexec", CONTROL, "deactivate", mode, *packages])
         if mode == "esde":
             (home / ".local/share/infinityos/tv/ES-DE.AppImage").unlink(missing_ok=True)
         _remove_managed(home, mode)
@@ -214,28 +231,46 @@ def set_enabled(mode, active, home=None):
                              if (home / relative).is_file() else None
                              for relative in settings_paths}
         theme = home / "ES-DE/themes/canvas-es-de"
-        theme_created = not theme.exists()
-        binary = _install_esde(home)
-        packages = _missing_packages(ESDE_PACKAGES)
-        _run(["pkexec", "dnf", "-y", "install", *ESDE_PACKAGES])
-        details = {"packages": packages, "settings": {}}
+        existing = (_manifest(home, mode).read_text(encoding="utf-8")
+                    if _manifest(home, mode).is_file() else None)
+        details = json.loads(existing) if existing else {"packages": [], "settings": {}}
+        previous_settings = details.get("previous_settings", previous_settings)
+        theme_created = details.get("theme_created",
+                                    not theme.exists() and not details.get("theme_hash"))
+        _install_esde(home)
+        details["packages"] = list(dict.fromkeys(
+            details.get("packages", []) + _missing_packages(ESDE_PACKAGES)))
+        details["previous_settings"] = previous_settings
+        details["theme_created"] = theme_created
         _save_manifest(home, mode, details)
-        _run(["pkexec", CONTROL, "prepare", "esde", str(os.getuid())])
-        _install_theme(home)
-        _configure_esde(home)
-        _run([str(binary), "--create-system-dirs"])
-        details["theme_hash"] = _tree_hash(theme) if theme_created else None
+        _run(["pkexec", CONTROL, "activate", "esde", str(os.getuid())])
+        details["theme_hash"] = (_tree_hash(theme) if theme_created
+                                 else details.get("theme_hash"))
         details["settings"] = {
             relative: {"previous": previous_settings[relative],
                        "applied": hashlib.sha256((home / relative).read_bytes()).hexdigest()}
             for relative in settings_paths if (home / relative).is_file()
         }
+        details.pop("previous_settings")
+        details.pop("theme_created")
         _save_manifest(home, mode, details)
     else:
         steam = next(app for app in APPS if app.name == "Steam")
-        packages = _missing_packages(("gamescope",))
+        existing = (_manifest(home, mode).read_text(encoding="utf-8")
+                    if _manifest(home, mode).is_file() else None)
+        details = json.loads(existing) if existing else {"packages": []}
         if not installed(steam, home):
-            install(steam, home)
-        _run(["pkexec", "dnf", "-y", "install", "gamescope"])
-        _save_manifest(home, mode, {"packages": packages})
-    _run(["pkexec", CONTROL, "enable", mode, str(os.getuid())])
+            install(steam, home, defer_system_dependencies=True)
+        dependencies = ["gamescope"]
+        if os.uname().machine == "aarch64":
+            dependencies.extend(("libva", "libvpx", "ibus-libs"))
+        details["packages"] = list(dict.fromkeys(
+            details.get("packages", []) + _missing_packages(dependencies)))
+        _save_manifest(home, mode, details)
+        _run(["pkexec", CONTROL, "activate", "steam", str(os.getuid())])
+
+
+if __name__ == "__main__":
+    if sys.argv[1:] != ["--finish-esde"]:
+        raise SystemExit("Usage: launcher_tv.py --finish-esde")
+    _finish_esde(Path(pwd.getpwuid(os.getuid()).pw_dir))

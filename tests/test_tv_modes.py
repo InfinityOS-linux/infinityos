@@ -1,7 +1,9 @@
 import hashlib
 import importlib.util
 import io
+import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -24,6 +26,9 @@ exec(compile(CONTROL.read_text(), str(CONTROL), "exec"), control.__dict__)
 
 
 class TVModeTests(unittest.TestCase):
+    def test_privileged_and_user_esde_package_lists_match(self):
+        self.assertEqual(control.ESDE_PACKAGES, launcher_tv.ESDE_PACKAGES)
+
     def test_esde_configuration_keeps_other_user_settings(self):
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
@@ -78,6 +83,149 @@ class TVModeTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "SHA-256"):
                 _install_esde(Path(directory))
             self.assertFalse((Path(directory) / ".local/share/infinityos/tv/ES-DE.AppImage").exists())
+
+    def test_theme_is_staged_beside_its_destination(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            target = home / "ES-DE/themes/canvas-es-de"
+
+            def git(command):
+                if command[:3] == ["git", "init", "-q"]:
+                    source = Path(command[3])
+                    self.assertEqual(source.parent.parent, target.parent)
+                    (source / ".git").mkdir(parents=True)
+                    (source / "theme.xml").write_text("theme")
+
+            with patch.object(launcher_tv, "_run", side_effect=git), \
+                 patch.object(launcher_tv.subprocess, "run",
+                              return_value=SimpleNamespace(stdout=launcher_tv.THEME_REVISION)):
+                launcher_tv._install_theme(home)
+            self.assertEqual((target / "theme.xml").read_text(), "theme")
+
+    def test_esde_enable_uses_one_privileged_command(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            binary = home / ".local/share/infinityos/tv/ES-DE.AppImage"
+            with patch.object(launcher_tv, "_install_esde", return_value=binary), \
+                 patch.object(launcher_tv, "_missing_packages", return_value=["cage"]), \
+                 patch.object(launcher_tv, "_tree_hash", return_value="theme-hash"), \
+                 patch.object(launcher_tv, "_run") as run:
+                launcher_tv.set_enabled("esde", True, home)
+            run.assert_called_once_with(
+                ["pkexec", launcher_tv.CONTROL, "activate", "esde", str(os.getuid())])
+            details = json.loads(launcher_tv._manifest(home, "esde").read_text())
+            self.assertEqual(details["packages"], ["cage"])
+
+    def test_esde_retry_keeps_packages_recorded_before_previous_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            launcher_tv._save_manifest(home, "esde", {"packages": ["cage"], "settings": {}})
+            with patch.object(launcher_tv, "_install_esde"), \
+                 patch.object(launcher_tv, "_missing_packages", return_value=[]), \
+                 patch.object(launcher_tv, "_tree_hash", return_value="theme-hash"), \
+                 patch.object(launcher_tv, "_run"):
+                launcher_tv.set_enabled("esde", True, home)
+            details = json.loads(launcher_tv._manifest(home, "esde").read_text())
+            self.assertEqual(details["packages"], ["cage"])
+
+    def test_esde_retry_preserves_original_settings_and_theme_ownership(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            settings = home / "ES-DE/settings/es_settings.xml"
+            settings.parent.mkdir(parents=True)
+            settings.write_text("original setting")
+            theme = home / "ES-DE/themes/canvas-es-de"
+
+            def failed_activation(_command):
+                settings.write_text("new setting")
+                theme.mkdir(parents=True)
+                (theme / "theme.xml").write_text("managed theme")
+                raise RuntimeError("system setup failed")
+
+            with patch.object(launcher_tv, "_install_esde"), \
+                 patch.object(launcher_tv, "_missing_packages", return_value=[]), \
+                 patch.object(launcher_tv, "_run", side_effect=failed_activation):
+                with self.assertRaisesRegex(RuntimeError, "system setup failed"):
+                    launcher_tv.set_enabled("esde", True, home)
+            with patch.object(launcher_tv, "_install_esde"), \
+                 patch.object(launcher_tv, "_missing_packages", return_value=[]), \
+                 patch.object(launcher_tv, "_run"):
+                launcher_tv.set_enabled("esde", True, home)
+            details = json.loads(launcher_tv._manifest(home, "esde").read_text())
+            self.assertEqual(details["settings"]["ES-DE/settings/es_settings.xml"]["previous"],
+                             "original setting")
+            self.assertEqual(details["theme_hash"], launcher_tv._tree_hash(theme))
+
+    def test_steam_enable_uses_one_privileged_command(self):
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(launcher_tv, "installed", return_value=True), \
+             patch.object(launcher_tv, "_missing_packages", return_value=["gamescope"]), \
+             patch.object(launcher_tv, "_run") as run:
+            launcher_tv.set_enabled("steam", True, Path(directory))
+            run.assert_called_once_with(
+                ["pkexec", launcher_tv.CONTROL, "activate", "steam", str(os.getuid())])
+
+    def test_privileged_esde_activation_finishes_as_selected_user(self):
+        events = []
+        account = SimpleNamespace(pw_name="gamer")
+        with patch.object(control, "account", return_value=account), \
+             patch.object(control, "prepare_emulation",
+                          side_effect=lambda uid: events.append(("prepare", uid))), \
+             patch.object(control, "enable",
+                          side_effect=lambda mode, uid: events.append(("enable", mode, uid))), \
+             patch.object(control.subprocess, "run",
+                          side_effect=lambda command, check: events.append(("run", command))):
+            control.activate("esde", "1000")
+        self.assertEqual(events, [
+            ("run", ["dnf", "-y", "install", *control.ESDE_PACKAGES]),
+            ("prepare", "1000"),
+            ("run", ["runuser", "-u", "gamer", "--", "/usr/bin/python3",
+                     control.USER_SETUP, "--finish-esde"]),
+            ("enable", "esde", "1000"),
+        ])
+
+    def test_privileged_arm_steam_activation_installs_all_dependencies(self):
+        with patch.object(control, "account", return_value=SimpleNamespace(pw_name="gamer")), \
+             patch.object(control.os, "uname", return_value=SimpleNamespace(machine="aarch64")), \
+             patch.object(control.subprocess, "run") as run, \
+             patch.object(control, "enable") as enable:
+            control.activate("steam", "1000")
+        run.assert_called_once_with(
+            ["dnf", "-y", "install", *control.STEAM_PACKAGES,
+             *control.STEAM_ARM_PACKAGES], check=True)
+        enable.assert_called_once_with("steam", "1000")
+
+    def test_failed_esde_user_setup_does_not_enable_boot_mode(self):
+        with patch.object(control, "account", return_value=SimpleNamespace(pw_name="gamer")), \
+             patch.object(control, "prepare_emulation"), \
+             patch.object(control.subprocess, "run",
+                          side_effect=[None, subprocess.CalledProcessError(1, "runuser")]), \
+             patch.object(control, "enable") as enable:
+            with self.assertRaises(subprocess.CalledProcessError):
+                control.activate("esde", "1000")
+        enable.assert_not_called()
+
+    def test_arm_steam_client_defers_root_dependencies_to_tv_control(self):
+        steam = next(app for app in launcher_tv.APPS if app.name == "Steam")
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(launcher_tv.os, "uname", return_value=SimpleNamespace(machine="aarch64")), \
+             patch.object(launcher_tv, "installed", return_value=False), \
+             patch.object(launcher_tv, "install") as install_client, \
+             patch.object(launcher_tv, "_missing_packages", return_value=["gamescope"]), \
+             patch.object(launcher_tv, "_run") as run:
+            home = Path(directory)
+            launcher_tv.set_enabled("steam", True, home)
+        install_client.assert_called_once_with(steam, home, defer_system_dependencies=True)
+        run.assert_called_once_with(
+            ["pkexec", launcher_tv.CONTROL, "activate", "steam", str(os.getuid())])
+
+    def test_privileged_deactivation_rejects_unmanaged_packages(self):
+        with patch.object(control, "disable") as disable, \
+             patch.object(control.subprocess, "run") as run:
+            with self.assertRaisesRegex(ValueError, "Unknown TV mode package"):
+                control.deactivate("esde", ["kernel"])
+            disable.assert_not_called()
+            run.assert_not_called()
 
     def test_disable_removes_integration_and_preserves_roms(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -150,8 +298,8 @@ class TVModeTests(unittest.TestCase):
             self.assertEqual(retroarch.read_text(), "user changed this after setup")
             self.assertEqual(rom.read_bytes(), b"my ROM")
             self.assertFalse(launcher_tv._manifest(home, "esde").exists())
-            self.assertEqual(run.call_args_list[-1].args[0],
-                             ["pkexec", "dnf", "-y", "remove", "cage"])
+            run.assert_called_once_with(
+                ["pkexec", launcher_tv.CONTROL, "deactivate", "esde", "cage"])
 
     def test_failed_boot_menu_update_restores_enabled_mode(self):
         with tempfile.TemporaryDirectory() as directory:

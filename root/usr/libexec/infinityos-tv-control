@@ -13,6 +13,11 @@ STATE = Path("/etc/infinityos/tv-modes")
 NEXT = Path("/etc/infinityos/tv-next-mode")
 DROPINS = Path("/etc/systemd/system")
 MODES = {"esde", "steam"}
+ESDE_PACKAGES = ("cage", "retroarch", "fuse-libs", "git", "libretro-gambatte",
+                 "libretro-mgba", "libretro-nestopia", "libretro-pcsx-rearmed")
+STEAM_PACKAGES = ("gamescope",)
+STEAM_ARM_PACKAGES = ("libva", "libvpx", "ibus-libs")
+USER_SETUP = "/usr/share/infinityos/launcher_tv.py"
 
 
 def atomic_write(path, content, mode=0o644):
@@ -103,6 +108,29 @@ def prepare_emulation(uid, root=Path("/emulation")):
             raise ValueError(f"{path} must belong to {selected.pw_name}")
 
 
+def activate(mode, uid):
+    selected = account(uid)
+    if mode == "esde":
+        subprocess.run(["dnf", "-y", "install", *ESDE_PACKAGES], check=True)
+        prepare_emulation(uid)
+        subprocess.run(["runuser", "-u", selected.pw_name, "--", "/usr/bin/python3",
+                        USER_SETUP, "--finish-esde"], check=True)
+    else:
+        packages = STEAM_PACKAGES + (STEAM_ARM_PACKAGES if os.uname().machine == "aarch64" else ())
+        subprocess.run(["dnf", "-y", "install", *packages], check=True)
+    enable(mode, uid)
+
+
+def deactivate(mode, packages):
+    allowed = set(ESDE_PACKAGES if mode == "esde" else
+                  STEAM_PACKAGES + STEAM_ARM_PACKAGES)
+    if any(package not in allowed for package in packages):
+        raise ValueError("Unknown TV mode package")
+    disable(mode)
+    if packages:
+        subprocess.run(["dnf", "-y", "remove", *packages], check=True)
+
+
 def disable(mode):
     state = STATE / mode
     previous = state.read_bytes() if state.exists() else None
@@ -153,14 +181,18 @@ def consume(mode):
 
 def main():
     if os.geteuid() != 0 or len(sys.argv) < 3 or sys.argv[2] not in MODES:
-        raise SystemExit("Usage: infinityos-tv-control enable|disable|next|consume esde|steam [uid]")
+        raise SystemExit("Usage: infinityos-tv-control activate|deactivate|enable|disable|prepare|next|consume esde|steam [uid|packages]")
     action, mode = sys.argv[1:3]
     if action == "enable" and len(sys.argv) == 4:
         enable(mode, sys.argv[3])
+    elif action == "activate" and len(sys.argv) == 4:
+        activate(mode, sys.argv[3])
     elif action == "prepare" and mode == "esde" and len(sys.argv) == 4:
         prepare_emulation(sys.argv[3])
     elif action == "disable" and len(sys.argv) == 3:
         disable(mode)
+    elif action == "deactivate" and len(sys.argv) >= 3:
+        deactivate(mode, sys.argv[3:])
     elif action == "next" and len(sys.argv) == 3:
         request_next(mode)
     elif action == "consume" and len(sys.argv) == 3:

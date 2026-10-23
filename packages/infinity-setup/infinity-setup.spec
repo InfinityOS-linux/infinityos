@@ -11,6 +11,7 @@ Obsoletes:      infinity-launcher < 1.0.1
 Requires:       python3-gobject
 Requires:       gtk4
 Requires:       gdk-pixbuf2
+Requires:       util-linux
 
 %description
 InfinitySetup offers first-login application choices for Infinity OS.
