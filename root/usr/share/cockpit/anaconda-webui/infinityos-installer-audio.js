@@ -40,7 +40,6 @@
             <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 3v9m-6.4-6.4a9 9 0 1 0 12.8 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
             </svg>
-            <span></span>
         </button>
         <div class="infinityos-audio-popover" id="infinityos-audio-popover" hidden>
             <label for="infinityos-audio-level"></label>
@@ -78,7 +77,6 @@
             || (polish ? 'Zakończ' : 'Quit');
         exitButton.setAttribute('aria-label', exitText);
         exitButton.title = exitText;
-        exitButton.querySelector('span').textContent = exitText;
         label.textContent = volumeText;
     }
 

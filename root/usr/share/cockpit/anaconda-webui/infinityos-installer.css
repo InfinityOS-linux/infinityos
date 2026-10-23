@@ -282,16 +282,192 @@ textarea {
   }
 }
 
-/* Keep the final installer state centered and remove Fedora feedback links. */
-#installation-wizard .pf-v6-c-wizard__main-body:has(.anaconda-screen-progress-status) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* The review screen uses the same quiet panels and lilac hierarchy as setup. */
+#installation-wizard.anaconda-wizard-step-anaconda-screen-review .pf-v6-c-wizard__main-body {
+  padding: clamp(24px, 4vw, 56px);
+}
+
+#installation-wizard.anaconda-wizard-step-anaconda-screen-review .pf-v6-c-wizard__main-body h1 {
+  margin-bottom: 24px;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+#installation-wizard.anaconda-wizard-step-anaconda-screen-review .pf-v6-c-description-list__group {
+  min-width: 0;
+  padding: 18px 22px;
+  background: linear-gradient(120deg, rgba(43, 31, 61, 0.9), var(--infinity-panel));
+  border: 1px solid var(--infinity-border);
+  border-radius: 12px;
+}
+
+#installation-wizard.anaconda-wizard-step-anaconda-screen-review .pf-v6-c-description-list__term {
+  color: var(--infinity-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+#installation-wizard.anaconda-wizard-step-anaconda-screen-review .pf-v6-c-description-list__description {
+  min-width: 0;
+  color: var(--infinity-text);
+  font-size: 1rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+#installation-wizard.anaconda-wizard-step-anaconda-screen-review #anaconda-screen-review-next-confirmation-checkbox {
+  accent-color: var(--infinity-accent);
+}
+
+/* Anaconda renders the final progress page outside #installation-wizard. */
+#app:has(.anaconda-screen-progress-status) .pf-v6-c-page__main {
+  background: radial-gradient(ellipse at 88% 5%, rgba(112, 69, 167, 0.2), transparent 45%),
+    var(--infinity-ink) !important;
 }
 
 .anaconda-screen-progress-status {
   width: 100%;
+  min-height: calc(100vh - 72px);
+  align-items: center;
+  justify-content: center;
+  color: var(--infinity-text);
+  background: transparent;
   gap: 0 !important;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-empty-state {
+  width: min(100%, 1120px);
+  height: auto;
+  margin: auto;
+  padding: clamp(24px, 5vw, 64px);
+  color: var(--infinity-text);
+  background: linear-gradient(135deg, rgba(39, 27, 57, 0.98), var(--infinity-panel) 64%);
+  border: 1px solid var(--infinity-border);
+  border-radius: 20px;
+  box-shadow: 0 26px 75px rgba(4, 2, 10, 0.3);
+}
+
+.anaconda-screen-progress-status .pf-v6-c-empty-state__content {
+  max-width: none;
+  width: 100%;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-empty-state__icon {
+  color: var(--infinity-accent);
+  font-size: 2.5rem;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-empty-state__title-text {
+  color: var(--infinity-text);
+  font-family: "Infinity Plex", "IBM Plex Sans", sans-serif;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 700;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-empty-state__body {
+  color: var(--infinity-muted);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper {
+  display: grid;
+  grid-auto-flow: row;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  margin-top: 20px;
+  text-align: start;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 20px;
+  background: rgba(11, 9, 18, 0.55);
+  border: 1px solid var(--infinity-border);
+  border-radius: 12px;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step.pf-m-current {
+  background: rgba(113, 73, 159, 0.22);
+  border-color: var(--infinity-accent);
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-connector {
+  display: block;
+  min-width: 0;
+  padding: 0;
+  margin-bottom: 14px;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-connector::before,
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-connector::after {
+  display: none;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--infinity-accent);
+  background: var(--infinity-field);
+  border: 1px solid var(--infinity-border);
+  border-radius: 50%;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step.pf-m-success .pf-v6-c-progress-stepper__step-icon {
+  color: #a8e0bd;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step.pf-m-danger .pf-v6-c-progress-stepper__step-icon {
+  color: #ffb3bd;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-main {
+  min-width: 0;
+  margin: 0;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-title {
+  color: var(--infinity-text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: start;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-description {
+  display: block;
+  margin-top: 8px;
+  color: var(--infinity-muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-empty-state__footer .pf-v6-c-button {
+  padding-inline: 22px;
+  color: #170d27;
+  background: var(--infinity-accent);
+  border-radius: 999px;
+}
+
+@media (max-width: 900px) {
+  .anaconda-screen-progress-status .pf-v6-c-progress-stepper {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .anaconda-screen-progress-status .pf-v6-c-progress-stepper {
+    grid-template-columns: 1fr;
+  }
+
+  .anaconda-screen-progress-status .pf-v6-c-empty-state {
+    border-radius: 0;
+  }
 }
 
 .feedback-section,
@@ -417,14 +593,8 @@ body:has(#installation-quit-confirm-dialog) .pf-v6-c-backdrop {
 }
 
 .infinityos-installer-exit {
-  display: inline-flex;
-  gap: 8px;
-  width: auto;
+  width: 44px;
   min-width: 44px;
-  padding-inline: 12px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
 }
 
 body:not(:has(#installation-quit-btn)) .infinityos-installer-exit,
