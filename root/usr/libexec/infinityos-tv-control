@@ -132,8 +132,21 @@ def request_next(mode):
     caller = os.environ.get("PKEXEC_UID")
     if caller is not None and caller != owner:
         raise PermissionError("This mode belongs to another account")
+    previous = NEXT.read_bytes() if NEXT.exists() else None
     atomic_write(NEXT, f"{mode}\n", 0o600)
-    subprocess.run(["systemctl", "reboot"], check=True)
+    try:
+        subprocess.run(["systemctl", "reboot"], check=True)
+    except Exception:
+        if previous is None:
+            NEXT.unlink(missing_ok=True)
+        else:
+            atomic_write(NEXT, previous.decode("ascii"), 0o600)
+        raise
+
+
+def consume(mode):
+    if NEXT.is_file() and NEXT.read_text(encoding="ascii").strip() == mode:
+        NEXT.unlink()
 
 
 def main():
@@ -149,7 +162,7 @@ def main():
     elif action == "next" and len(sys.argv) == 3:
         request_next(mode)
     elif action == "consume" and len(sys.argv) == 3:
-        NEXT.unlink(missing_ok=True)
+        consume(mode)
     else:
         raise SystemExit("Invalid TV mode command")
 

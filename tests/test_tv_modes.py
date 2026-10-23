@@ -140,6 +140,35 @@ class TVModeTests(unittest.TestCase):
                 self.assertEqual((root / "next").read_text(), "steam\n")
                 run.assert_called_once_with(["systemctl", "reboot"], check=True)
 
+    def test_explicit_boot_only_consumes_matching_one_shot_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            next_mode = Path(directory) / "next"
+            next_mode.write_text("steam\n")
+            with patch.object(control, "NEXT", next_mode):
+                control.consume("esde")
+                self.assertEqual(next_mode.read_text(), "steam\n")
+                control.consume("steam")
+                self.assertFalse(next_mode.exists())
+
+    def test_failed_reboot_does_not_leave_new_one_shot_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state = root / "state"
+            state.mkdir()
+            (state / "steam").write_text("1000\n")
+            dropins = root / "dropins"
+            configuration = dropins / "infinityos-tv@steam.service.d/account.conf"
+            configuration.parent.mkdir(parents=True)
+            configuration.write_text("[Service]\nUser=gamer\n")
+            with patch.object(control, "STATE", state), \
+                 patch.object(control, "NEXT", root / "next"), \
+                 patch.object(control, "DROPINS", dropins), \
+                 patch.dict(os.environ, {"PKEXEC_UID": "1000"}), \
+                 patch.object(control.subprocess, "run", side_effect=RuntimeError("reboot failed")):
+                with self.assertRaisesRegex(RuntimeError, "reboot failed"):
+                    control.request_next("steam")
+                self.assertFalse((root / "next").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
