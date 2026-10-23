@@ -91,8 +91,13 @@ class TVModeTests(unittest.TestCase):
             state = root / "state"
             state.mkdir()
             (state / "steam").write_text("1000\n")
+            dropins = root / "dropins"
+            configuration = dropins / "infinityos-tv@steam.service.d/account.conf"
+            configuration.parent.mkdir(parents=True)
+            configuration.write_text("[Service]\nUser=gamer\n")
             with patch.object(control, "STATE", state), \
                  patch.object(control, "NEXT", root / "next"), \
+                 patch.object(control, "DROPINS", dropins), \
                  patch.dict(os.environ, {"PKEXEC_UID": "1001"}), \
                  patch.object(control.subprocess, "run"):
                 with self.assertRaises(PermissionError):
@@ -100,6 +105,7 @@ class TVModeTests(unittest.TestCase):
                 self.assertFalse((root / "next").exists())
             with patch.object(control, "STATE", state), \
                  patch.object(control, "NEXT", root / "next"), \
+                 patch.object(control, "DROPINS", dropins), \
                  patch.dict(os.environ, {"PKEXEC_UID": "1000"}), \
                  patch.object(control.subprocess, "run") as run:
                 control.request_next("steam")

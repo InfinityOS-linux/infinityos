@@ -126,7 +126,7 @@ def disable(mode):
 
 def request_next(mode):
     state = STATE / mode
-    if not state.is_file():
+    if not state.is_file() or not dropin(mode).is_file():
         raise ValueError("This TV mode is not enabled")
     owner = state.read_text(encoding="ascii").strip()
     caller = os.environ.get("PKEXEC_UID")
@@ -149,8 +149,7 @@ def main():
     elif action == "next" and len(sys.argv) == 3:
         request_next(mode)
     elif action == "consume" and len(sys.argv) == 3:
-        if NEXT.exists() and NEXT.read_text(encoding="ascii").strip() == mode:
-            NEXT.unlink()
+        NEXT.unlink(missing_ok=True)
     else:
         raise SystemExit("Invalid TV mode command")
 
