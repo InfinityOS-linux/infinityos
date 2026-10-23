@@ -36,6 +36,18 @@ function isDarkTheme() {
     }
 }
 
+function tvModeEnabledForCurrentUser(mode) {
+    const runtime = GLib.get_user_runtime_dir();
+    if (!runtime)
+        return false;
+    try {
+        const [ok, contents] = GLib.file_get_contents(`/etc/infinityos/tv-modes/${mode}`);
+        return ok && String.fromCharCode(...contents).trim() === GLib.path_get_basename(runtime);
+    } catch (_error) {
+        return false;
+    }
+}
+
 export const LogoMenuItem = GObject.registerClass(
     class WackLogoMenuItem extends PopupMenu.PopupMenuItem {
         _init(name, activateFunction, shortcut = null, isDark = null) {
@@ -757,7 +769,7 @@ export const WackLogoButton = GObject.registerClass(
                     ['esde', 'Enter emulation mode', 'Przejdź do trybu emulacji'],
                     ['steam', 'Enter Steam mode', 'Przejdź do trybu Steam'],
                 ]) {
-                    if (GLib.file_test(`/etc/infinityos/tv-modes/${mode}`, GLib.FileTest.EXISTS)) {
+                    if (tvModeEnabledForCurrentUser(mode)) {
                         this.menu.addMenuItem(new LogoMenuItem(isPolish ? polish : english, () => {
                             Util.spawn(['pkexec', '/usr/libexec/infinityos-tv-control', 'next', mode]);
                         }));
@@ -1439,7 +1451,7 @@ export class QuickSettingsPowerManager {
             ['esde', 'Enter emulation mode', 'Przejdź do trybu emulacji'],
             ['steam', 'Enter Steam mode', 'Przejdź do trybu Steam'],
         ]) {
-            if (!GLib.file_test(`/etc/infinityos/tv-modes/${mode}`, GLib.FileTest.EXISTS))
+            if (!tvModeEnabledForCurrentUser(mode))
                 continue;
             const item = new PopupMenu.PopupMenuItem(isPolish ? polish : english);
             item.connect('activate', () => {
