@@ -22,7 +22,7 @@ class InstallerBrandingTests(unittest.TestCase):
             )
             (webui / "index.js.gz").write_bytes(gzip.compress(source.encode()))
             (webui / "po.pl.js.gz").write_bytes(gzip.compress(
-                b'cockpit.locale({"undo":[null,"cofnij"],"Quit":[null,"Zako\xc5\x84cz"]\n});\n'))
+                b'cockpit.locale({"undo":[null,"cofnij"],"Quit": [\n  null,\n  "Zako\xc5\x84cz"\n ]\n});\n'))
             (webui / "index.html").write_text("<html><head></head></html>")
             for asset in ("infinityos-installer.css", "infinityos-installer-audio.js",
                           "infinityos-installer-music.mp3"):
@@ -36,7 +36,7 @@ class InstallerBrandingTests(unittest.TestCase):
             self.assertEqual((webui / "index.html").read_text().count("infinityos-installer-audio.js"), 1)
             locale = gzip.decompress((webui / "po.pl.js.gz").read_bytes()).decode()
             self.assertIn("Gdy rozpocznie się restart, wyjmij USB", locale)
-            self.assertIn('"Quit":[null,"Przerwij"]', locale)
+            self.assertIn('"Quit": [\n  null,\n  "Przerwij"\n ]', locale)
             css = CSS.read_text()
             self.assertIn(".pf-v6-c-action-list__item:has(#installation-quit-btn)", css)
             self.assertIn(".pf-v6-c-action-list__item:has(#installation-next-btn)", css)

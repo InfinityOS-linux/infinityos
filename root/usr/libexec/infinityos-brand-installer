@@ -62,7 +62,7 @@ if MESSAGE not in locale:
         raise RuntimeError("Anaconda WebUI Polish catalog is incomplete")
     locale += (',\n "' + MESSAGE + '": [null, '
                '"Gdy rozpocznie się restart, wyjmij USB przed ponownym uruchomieniem systemu."]' + tail + '\n')
-quit_translation = re.compile(r'("Quit"\s*:\s*\[null,\s*")(?:\\.|[^"\\])*("\s*\])')
+quit_translation = re.compile(r'("Quit"\s*:\s*\[\s*null,\s*")(?:\\.|[^"\\])*("\s*\])')
 locale, count = quit_translation.subn(r'\1Przerwij\2', locale)
 if count != 1:
     raise RuntimeError(f"Anaconda WebUI Polish Quit translation changed: expected one match, got {count}")
