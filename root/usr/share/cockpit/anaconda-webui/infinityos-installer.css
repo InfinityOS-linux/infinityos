@@ -75,17 +75,21 @@ textarea {
 }
 
 /* Match the first loading frame to the wizard before its header appears. */
-#app:has(.installation-page--loading),
-.installation-page--loading,
-.installation-page--loading .pf-v6-c-page__main,
-.installation-page--loading .pf-v6-c-empty-state {
-  background: radial-gradient(ellipse at 92% 2%, rgba(112, 69, 167, 0.16), transparent 42%),
-    var(--infinity-ink) !important;
-  color: var(--infinity-text);
+#app:has(.installation-page--loading) {
+  background: var(--infinity-ink);
 }
 
 .installation-page--loading {
+  background: radial-gradient(ellipse at 92% 2%, rgba(112, 69, 167, 0.16), transparent 42%),
+    var(--infinity-ink) !important;
+  color: var(--infinity-text);
   min-height: 100vh;
+}
+
+.installation-page--loading .pf-v6-c-page__main,
+.installation-page--loading .pf-v6-c-empty-state {
+  background: transparent !important;
+  color: var(--infinity-text);
 }
 
 .installation-page--loading :is(.pf-v6-c-title, .pf-v6-c-empty-state__body) {
