@@ -85,7 +85,8 @@ test('installer music starts once when Welcome appears and survives later steps'
   assert.equal(observers[0].disconnected, true);
 
   const exitButton = controls.querySelector('.infinityos-installer-exit');
-  assert.equal(exitButton.querySelector('span').textContent, 'Zakończ');
+  assert.equal(exitButton.getAttribute('aria-label'), 'Zakończ');
+  assert.equal(exitButton.title, 'Zakończ');
   exitButton.listeners.click[0]();
   assert.equal(quitRequests, 1);
   quitButton.setAttribute('aria-disabled', 'true');
