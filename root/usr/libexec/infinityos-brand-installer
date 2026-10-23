@@ -2,6 +2,7 @@
 """Apply the InfinityOS live installer changes to Fedora Anaconda WebUI 68."""
 
 import gzip
+import json
 import re
 import sys
 from pathlib import Path
@@ -16,6 +17,19 @@ def replace_once(content, old, new, label):
     if count != 1:
         raise RuntimeError(f"Anaconda WebUI 68 {label} changed: expected one match, got {count}")
     return content.replace(old, new)
+
+
+def replace_once_or_present(content, old, new, label):
+    old_count = content.count(old)
+    new_count = content.count(new)
+    if old_count == 1 and new_count == 0:
+        return content.replace(old, new)
+    if old_count == 0 and new_count == 1:
+        return content
+    raise RuntimeError(
+        f"Anaconda WebUI 68 {label} changed: expected one original or branded match, "
+        f"got {old_count} original and {new_count} branded"
+    )
 
 
 version = (WEBUI / "VERSION.txt").read_text(encoding="utf-8").strip()
@@ -53,28 +67,55 @@ if MESSAGE not in source:
         'Y.spawn(["systemctl","reboot"],{superuser:"require"})}',
         "success action",
     )
-    bundle.write_bytes(gzip.compress(source.encode("utf-8"), compresslevel=9, mtime=0))
+
+step_labels = (
+    ('this.id="anaconda-screen-language",this.label=tO("Welcome")',
+     'this.id="anaconda-screen-language",this.label=tO("Language and layout")'),
+    ('this.id="anaconda-screen-date-time",this.label=rq("Date and time")',
+     'this.id="anaconda-screen-date-time",this.label=rq("Time and region")'),
+    ('this.id="anaconda-screen-method",this.label=W$("Installation method")',
+     'this.id="anaconda-screen-method",this.label=W$("Installation destination")'),
+    ('this.id="anaconda-screen-storage-configuration",this.label=QO("Storage configuration")',
+     'this.id="anaconda-screen-storage-configuration",this.label=QO("Security")'),
+    ('this.id="anaconda-screen-accounts",this.label=q$("Create Account")',
+     'this.id="anaconda-screen-accounts",this.label=q$("User")'),
+    ('this.id="anaconda-screen-review",this.label=iO("Review and install")',
+     'this.id="anaconda-screen-review",this.label=iO("Summary")'),
+    ('label:$$("Storage configuration"),steps:[o]',
+     'label:$$("Security"),steps:[o]'),
+)
+for original, branded in step_labels:
+    source = replace_once_or_present(source, original, branded, "step label")
 
 polish = WEBUI / "po.pl.js.gz"
 locale = gzip.decompress(polish.read_bytes()).decode("utf-8").rstrip()
-if MESSAGE not in locale:
+translations = {
+    MESSAGE: "Gdy rozpocznie się restart, wyjmij USB przed ponownym uruchomieniem systemu.",
+    "Language and layout": "Język i układ",
+    "Time and region": "Czas i region",
+    "Installation destination": "Miejsce instalacji",
+    "Security": "Bezpieczeństwo",
+    "User": "Użytkownik",
+    "Summary": "Podsumowanie",
+}
+missing = [key for key in translations if not re.search(r'"' + re.escape(key) + r'"\s*:', locale)]
+if missing:
     tail = '\n});'
     if not locale.endswith(tail):
         raise RuntimeError("Anaconda WebUI Polish catalog format changed")
     locale = locale[:-len(tail)].rstrip()
     if not locale.endswith(']'):
         raise RuntimeError("Anaconda WebUI Polish catalog is incomplete")
-    locale += (',\n "' + MESSAGE + '": [null, '
-               '"Gdy rozpocznie się restart, wyjmij USB przed ponownym uruchomieniem systemu."]' + tail + '\n')
+    locale += ''.join(
+        ',\n ' + json.dumps(key, ensure_ascii=False) + ': [null, '
+        + json.dumps(translations[key], ensure_ascii=False) + ']'
+        for key in missing
+    ) + tail
 quit_translation = re.compile(r'("Quit"\s*:\s*\[\s*null,\s*")(?:\\.|[^"\\])*("\s*\])')
 locale, count = quit_translation.subn(r'\1Przerwij\2', locale)
 if count != 1:
     raise RuntimeError(f"Anaconda WebUI Polish Quit translation changed: expected one match, got {count}")
-storage_translation = re.compile(
-    r'("Storage configuration"\s*:\s*\[\s*null,\s*")(?:\\.|[^"\\])*("\s*\])')
-locale, count = storage_translation.subn(r'\1Miejsce instalacji\2', locale)
-if count != 1:
-    raise RuntimeError(f"Anaconda WebUI Polish storage translation changed: expected one match, got {count}")
+bundle.write_bytes(gzip.compress(source.encode("utf-8"), compresslevel=9, mtime=0))
 polish.write_bytes(gzip.compress(locale.encode("utf-8"), compresslevel=9, mtime=0))
 
 index = WEBUI / "index.html"

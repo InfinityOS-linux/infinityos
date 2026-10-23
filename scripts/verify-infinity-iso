@@ -60,13 +60,29 @@ for asset in ('infinityos-installer-mark.svg',
     assert (webui / asset).stat().st_size > 100
 firefox_live_prefs = (root / 'usr/share/anaconda/firefox-theme/live/user.js').read_text()
 assert 'user_pref("media.autoplay.default", 0);' in firefox_live_prefs
+assert 'user_pref("browser.tabs.inTitlebar", 0);' in firefox_live_prefs
+assert 'MOZ_GTK_TITLEBAR_DECORATION=system' in (
+    root / 'usr/libexec/anaconda/webui-desktop').read_text()
 bundle = gzip.decompress((webui / 'index.js.gz').read_bytes()).decode()
 assert 'Y.spawn(["systemctl","reboot"],{superuser:"require"})' in bundle
 assert 'Yo("Reboot to installed system")' in bundle
 assert 'When reboot begins, remove the installation USB before the next boot.' in bundle
-assert 'Gdy rozpocznie się restart, wyjmij USB' in gzip.decompress(
-    (webui / 'po.pl.js.gz').read_bytes()).decode()
-assert '.feedback-section' in (webui / 'infinityos-installer.css').read_text()
+locale = gzip.decompress((webui / 'po.pl.js.gz').read_bytes()).decode()
+assert 'Gdy rozpocznie się restart, wyjmij USB' in locale
+for english, polish in (
+    ('Language and layout', 'Język i układ'),
+    ('Time and region', 'Czas i region'),
+    ('Installation destination', 'Miejsce instalacji'),
+    ('Security', 'Bezpieczeństwo'),
+    ('User', 'Użytkownik'),
+    ('Summary', 'Podsumowanie'),
+):
+    assert f'("{english}")' in bundle
+    assert f'"{english}": [null, "{polish}"]' in locale
+css = (webui / 'infinityos-installer.css').read_text()
+assert '.feedback-section' in css
+assert 'padding-block: 18px' in css
+assert ':has(#installation-back-btn)' in css
 PY
 for required in \
     usr/libexec/infinityos-audit-install \

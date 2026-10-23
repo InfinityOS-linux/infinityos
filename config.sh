@@ -159,7 +159,7 @@ EOF
 			rpm -e systemd-boot-unsigned
 		fi
 		# livesys creates liveuser on first boot and copies /etc/skel then.
-		# Keep the GNOME session and dock running while Anaconda is open.
+		# Keep GNOME running while Anaconda is open; the dock hides for its window.
 		installer_desktop=/usr/share/applications/liveinst.desktop
 		test -f "$installer_desktop"
 		grep -qx 'Exec=liveinst' "$installer_desktop"
@@ -269,6 +269,14 @@ BOOT_POST_EOF
 		test -f "$firefox_live_prefs"
 		if ! grep -Fq 'user_pref("media.autoplay.default", 0);' "$firefox_live_prefs"; then
 			printf '%s\n' 'user_pref("media.autoplay.default", 0);' >> "$firefox_live_prefs"
+		fi
+		# Fedora hides Firefox chrome for Anaconda. Use the native window title
+		# bar so the installer can be moved by dragging it.
+		webui_desktop=/usr/libexec/anaconda/webui-desktop
+		grep -Fq 'MOZ_GTK_TITLEBAR_DECORATION=client' "$webui_desktop"
+		sed -i 's/MOZ_GTK_TITLEBAR_DECORATION=client/MOZ_GTK_TITLEBAR_DECORATION=system/' "$webui_desktop"
+		if ! grep -Fq 'user_pref("browser.tabs.inTitlebar", 0);' "$firefox_live_prefs"; then
+			printf '%s\n' 'user_pref("browser.tabs.inTitlebar", 0);' >> "$firefox_live_prefs"
 		fi
 		if [[ "$(uname -m)" == "x86_64" ]]; then
 			# Detect the target PC while Anaconda still has access to its PCI devices.

@@ -19,6 +19,13 @@ class InstallerBrandingTests(unittest.TestCase):
                 'Y.format(Yo("To begin using $0, reboot your system."),p.PRETTY_NAME)'
                 'Yo(d?"Reboot to installed system":"Exit to live desktop")'
                 'secondary:e==="success"&&Le.default.createElement(it,{onClick:Qp}'
+                'this.id="anaconda-screen-language",this.label=tO("Welcome"),this.title=tO("Welcome to Fedora Linux")'
+                'this.id="anaconda-screen-date-time",this.label=rq("Date and time")'
+                'this.id="anaconda-screen-method",this.label=W$("Installation method")'
+                'this.id="anaconda-screen-storage-configuration",this.label=QO("Storage configuration"),this.title=QO("Storage configuration")'
+                'this.id="anaconda-screen-accounts",this.label=q$("Create Account")'
+                'this.id="anaconda-screen-review",this.label=iO("Review and install"),this.title=iO("Review and install")'
+                'label:$$("Storage configuration"),steps:[o]'
             )
             (webui / "index.js.gz").write_bytes(gzip.compress(source.encode()))
             (webui / "po.pl.js.gz").write_bytes(gzip.compress(
@@ -37,12 +44,27 @@ class InstallerBrandingTests(unittest.TestCase):
             result = gzip.decompress((webui / "index.js.gz").read_bytes()).decode()
             self.assertIn('Y.spawn(["systemctl","reboot"],{superuser:"require"})', result)
             self.assertIn('Yo("Reboot to installed system")+" · "+Yo("Remove")+" USB"', result)
+            for label in ("Language and layout", "Time and region", "Installation destination",
+                          "Security", "User", "Summary"):
+                self.assertIn(f'("{label}")', result)
+            self.assertIn('label:$$("Security"),steps:[o]', result)
+            self.assertIn('this.title=QO("Storage configuration")', result)
+            self.assertIn('this.title=iO("Review and install")', result)
             self.assertEqual((webui / "index.html").read_text().count("infinityos-installer.css"), 1)
             self.assertEqual((webui / "index.html").read_text().count("infinityos-installer-audio.js"), 1)
             locale = gzip.decompress((webui / "po.pl.js.gz").read_bytes()).decode()
             self.assertIn("Gdy rozpocznie się restart, wyjmij USB", locale)
             self.assertIn('"Quit": [\n  null,\n  "Przerwij"\n ]', locale)
-            self.assertIn('"Storage configuration": [\n  null,\n  "Miejsce instalacji"\n ]', locale)
+            self.assertIn('"Storage configuration": [\n  null,\n  "Konfiguracja"\n ]', locale)
+            for english, polish in (
+                ("Language and layout", "Język i układ"),
+                ("Time and region", "Czas i region"),
+                ("Installation destination", "Miejsce instalacji"),
+                ("Security", "Bezpieczeństwo"),
+                ("User", "Użytkownik"),
+                ("Summary", "Podsumowanie"),
+            ):
+                self.assertEqual(locale.count(f'"{english}": [null, "{polish}"]'), 1)
             css = CSS.read_text()
             self.assertIn(".pf-v6-c-action-list__item:has(#installation-quit-btn)", css)
             self.assertIn(".pf-v6-c-action-list__item:has(#installation-next-btn)", css)

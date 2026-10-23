@@ -171,7 +171,12 @@ textarea {
   background: var(--infinity-panel);
   border-top: 1px solid var(--infinity-border);
   box-shadow: 0 -10px 35px rgba(6, 4, 12, 0.2);
-  padding-block-end: 88px;
+  padding-block: 18px;
+}
+
+#installation-wizard.anaconda-wizard-step-anaconda-screen-language
+  .pf-v6-c-wizard__footer .pf-v6-c-action-list__item:has(#installation-back-btn) {
+  display: none;
 }
 
 #installation-wizard .pf-v6-c-button.pf-m-primary {
