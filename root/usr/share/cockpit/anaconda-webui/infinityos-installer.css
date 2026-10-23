@@ -35,10 +35,58 @@
   --infinity-ink: #0b0912;
   --infinity-panel: #171321;
   --infinity-field: #241d31;
+  --infinity-raised: #21192e;
+  --infinity-hover: #322541;
   --infinity-border: rgba(202, 178, 238, 0.23);
   --infinity-text: #f7f2ff;
   --infinity-muted: #c0b5d0;
   --infinity-accent: #c7a8f2;
+}
+
+/* PatternFly uses tokens for many nested surfaces. Brand the tokens as well as
+   the wizard shell so dialogs, disk tables and controls cannot fall back to gray. */
+body,
+#app,
+.pf-v6-c-modal-box {
+  color-scheme: dark;
+  --pf-t--global--background--color--primary--default: var(--infinity-panel);
+  --pf-t--global--background--color--primary--hover: var(--infinity-hover);
+  --pf-t--global--background--color--primary--clicked: #3c2c50;
+  --pf-t--global--background--color--secondary--default: var(--infinity-ink);
+  --pf-t--global--background--color--secondary--hover: var(--infinity-raised);
+  --pf-t--global--background--color--tertiary--default: var(--infinity-raised);
+  --pf-t--global--background--color--floating--default: var(--infinity-raised);
+  --pf-t--global--background--color--floating--hover: var(--infinity-hover);
+  --pf-t--global--background--color--control--default: var(--infinity-field);
+  --pf-t--global--background--color--control--read-only: var(--infinity-panel);
+  --pf-t--global--background--color--disabled--default: #211c2b;
+  --pf-t--global--background--color--action--plain--default: transparent;
+  --pf-t--global--background--color--action--plain--hover: var(--infinity-hover);
+  --pf-t--global--background--color--action--plain--clicked: #49345e;
+  --pf-t--global--background--color--highlight--default: #49345e;
+  --pf-t--global--border--color--default: var(--infinity-border);
+  --pf-t--global--border--color--hover: rgba(211, 181, 249, 0.55);
+  --pf-t--global--border--color--clicked: var(--infinity-accent);
+  --pf-t--global--border--color--high-contrast: var(--infinity-border);
+  --pf-t--global--border--color--brand--default: var(--infinity-border);
+  --pf-t--global--border--color--brand--hover: var(--infinity-accent);
+  --pf-t--global--border--color--brand--clicked: #dfc9ff;
+  --pf-t--global--text--color--regular: var(--infinity-text);
+  --pf-t--global--text--color--subtle: var(--infinity-muted);
+  --pf-t--global--text--color--placeholder: #a99ab9;
+  --pf-t--global--text--color--brand--default: var(--infinity-accent);
+  --pf-t--global--text--color--brand--hover: #e4d3ff;
+  --pf-t--global--text--color--brand--clicked: #dfc9ff;
+  --pf-t--global--text--color--link--default: var(--infinity-accent);
+  --pf-t--global--text--color--link--hover: #e4d3ff;
+  --pf-t--global--color--brand--default: var(--infinity-accent);
+  --pf-t--global--color--brand--hover: #dfc9ff;
+  --pf-t--global--color--brand--clicked: #af83df;
+  --pf-t--global--text--color--on-brand--default: #170d27;
+  --pf-t--global--text--color--on-brand--hover: #170d27;
+  --pf-t--global--icon--color--regular: var(--infinity-text);
+  --pf-t--global--icon--color--subtle: var(--infinity-muted);
+  --pf-t--global--icon--color--brand--default: var(--infinity-accent);
 }
 
 body,
@@ -70,6 +118,7 @@ textarea {
 }
 
 #installation-wizard {
+  --pf-v6-c-wizard__nav--lg--Width: 18.5rem;
   background: var(--infinity-ink);
   color: var(--infinity-text);
 }
@@ -104,6 +153,12 @@ textarea {
 #installation-wizard .pf-v6-c-wizard__nav {
   background: var(--infinity-panel);
   border-right: 1px solid var(--infinity-border);
+}
+
+@media (min-width: 62rem) {
+  #installation-wizard .pf-v6-c-wizard__nav-link-text {
+    white-space: nowrap;
+  }
 }
 
 #installation-wizard .pf-v6-c-wizard__nav-link {
@@ -175,6 +230,13 @@ textarea {
 
 #installation-wizard .pf-v6-c-wizard__main-body {
   position: relative;
+}
+
+#installation-wizard .pf-v6-c-wizard__main-body h1 {
+  font-size: clamp(1.6rem, 2.3vw, 2.15rem);
+  line-height: 1.18;
+  letter-spacing: -0.025em;
+  margin-bottom: 1rem;
 }
 
 #installation-wizard .pf-v6-c-title,
@@ -256,6 +318,179 @@ textarea {
   background: var(--infinity-accent);
 }
 
+/* Every step uses the same surface hierarchy, including the storage review
+   table and the controls Anaconda renders in dialogs outside the wizard. */
+#installation-wizard :is(.pf-v6-c-panel, .pf-v6-c-card, .pf-v6-c-empty-state),
+body .pf-v6-c-modal-box {
+  color: var(--infinity-text);
+  background: linear-gradient(135deg, var(--infinity-raised), var(--infinity-panel));
+  border: 1px solid var(--infinity-border);
+  border-radius: 14px;
+  box-shadow: 0 14px 36px rgba(4, 2, 10, 0.16);
+}
+
+#installation-wizard :is(.pf-v6-c-panel, .pf-v6-c-card) :is(.pf-v6-c-card__title,
+  .pf-v6-c-panel__header, .pf-v6-c-card__body, .pf-v6-c-panel__main-body),
+body .pf-v6-c-modal-box :is(.pf-v6-c-modal-box__title,
+  .pf-v6-c-modal-box__body) {
+  color: var(--infinity-text);
+}
+
+#installation-wizard :is(.pf-v6-c-form__section-title, .pf-v6-c-form__label,
+  .pf-v6-c-check__label, .pf-v6-c-radio__label, .pf-v6-c-description-list__description),
+body .pf-v6-c-modal-box :is(.pf-v6-c-form__label, .pf-v6-c-check__label,
+  .pf-v6-c-radio__label, .pf-v6-c-description-list__description) {
+  color: var(--infinity-text);
+}
+
+#installation-wizard :is(.pf-v6-c-form__helper-text, .pf-v6-c-check__description,
+  .pf-v6-c-radio__description, .pf-v6-c-description-list__term),
+body .pf-v6-c-modal-box :is(.pf-v6-c-form__helper-text,
+  .pf-v6-c-check__description, .pf-v6-c-radio__description,
+  .pf-v6-c-description-list__term) {
+  color: var(--infinity-muted);
+}
+
+#app :is(.pf-v6-c-form-control, .pf-v6-c-menu-toggle,
+  .pf-v6-c-text-input-group, .pf-v6-c-input-group),
+body .pf-v6-c-modal-box :is(.pf-v6-c-form-control, .pf-v6-c-menu-toggle,
+  .pf-v6-c-text-input-group, .pf-v6-c-input-group) {
+  --pf-v6-c-form-control--BackgroundColor: var(--infinity-field);
+  --pf-v6-c-form-control--Color: var(--infinity-text);
+  --pf-v6-c-form-control--before--BorderColor: var(--infinity-border);
+  color: var(--infinity-text);
+  background: var(--infinity-field);
+  border: 1px solid var(--infinity-border);
+  border-radius: 10px;
+}
+
+#app :is(.pf-v6-c-form-control, .pf-v6-c-text-input-group__text-input,
+  .pf-v6-c-menu-toggle__text, .pf-v6-c-input-group input),
+body .pf-v6-c-modal-box :is(.pf-v6-c-form-control,
+  .pf-v6-c-text-input-group__text-input, .pf-v6-c-menu-toggle__text,
+  .pf-v6-c-input-group input) {
+  color: var(--infinity-text);
+}
+
+#app input::placeholder,
+#app textarea::placeholder,
+body .pf-v6-c-modal-box input::placeholder {
+  color: #a99ab9;
+  opacity: 1;
+}
+
+#app :is(.pf-v6-c-menu, .pf-v6-c-popover),
+body :is(.pf-v6-c-menu, .pf-v6-c-popover) {
+  color: var(--infinity-text);
+  background: var(--infinity-raised);
+  border: 1px solid var(--infinity-border);
+  border-radius: 12px;
+  box-shadow: 0 20px 48px rgba(4, 2, 10, 0.35);
+}
+
+#app .pf-v6-c-menu__item,
+body .pf-v6-c-menu__item {
+  color: var(--infinity-text);
+}
+
+#app .pf-v6-c-menu__item:hover,
+#app .pf-v6-c-menu__item.pf-m-selected,
+body .pf-v6-c-menu__item:hover,
+body .pf-v6-c-menu__item.pf-m-selected {
+  background: var(--infinity-hover);
+}
+
+#app :is(.pf-v6-c-table, .storage-review-table),
+body .pf-v6-c-modal-box :is(.pf-v6-c-table, .storage-review-table) {
+  --pf-v6-c-table--BackgroundColor: var(--infinity-panel);
+  --pf-v6-c-table--BorderColor: var(--infinity-border);
+  width: 100%;
+  color: var(--infinity-text);
+  background: var(--infinity-panel);
+  border: 1px solid var(--infinity-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#app .pf-v6-c-table :is(th, td),
+body .pf-v6-c-modal-box .pf-v6-c-table :is(th, td) {
+  color: var(--infinity-text);
+  border-color: var(--infinity-border);
+}
+
+#app .pf-v6-c-table thead,
+body .pf-v6-c-modal-box .pf-v6-c-table thead {
+  background: var(--infinity-raised);
+}
+
+#app .pf-v6-c-table tbody tr:hover,
+body .pf-v6-c-modal-box .pf-v6-c-table tbody tr:hover {
+  background: var(--infinity-hover);
+}
+
+#app :is(.pf-v6-c-alert, .pf-v6-c-banner),
+body .pf-v6-c-modal-box :is(.pf-v6-c-alert, .pf-v6-c-banner) {
+  color: var(--infinity-text);
+  background: var(--infinity-raised);
+  border: 1px solid var(--infinity-border);
+  border-radius: 10px;
+}
+
+#app :is(.pf-v6-c-check__input, .pf-v6-c-radio__input,
+  .pf-v6-c-switch__input),
+body .pf-v6-c-modal-box :is(.pf-v6-c-check__input,
+  .pf-v6-c-radio__input, .pf-v6-c-switch__input) {
+  accent-color: var(--infinity-accent);
+}
+
+#app .pf-v6-c-button,
+body .pf-v6-c-modal-box .pf-v6-c-button {
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+#app .pf-v6-c-button.pf-m-primary,
+body .pf-v6-c-modal-box .pf-v6-c-button.pf-m-primary {
+  color: #170d27;
+  background: var(--infinity-accent);
+  border-color: var(--infinity-accent);
+}
+
+#app .pf-v6-c-button.pf-m-primary:hover,
+body .pf-v6-c-modal-box .pf-v6-c-button.pf-m-primary:hover {
+  background: #dfc9ff;
+  border-color: #dfc9ff;
+}
+
+#app .pf-v6-c-button:is(.pf-m-secondary, .pf-m-tertiary, .pf-m-control),
+body .pf-v6-c-modal-box .pf-v6-c-button:is(.pf-m-secondary,
+  .pf-m-tertiary, .pf-m-control) {
+  color: var(--infinity-text);
+  background: var(--infinity-field);
+  border-color: var(--infinity-border);
+}
+
+#app .pf-v6-c-button:is(.pf-m-secondary, .pf-m-tertiary, .pf-m-control):hover,
+body .pf-v6-c-modal-box .pf-v6-c-button:is(.pf-m-secondary,
+  .pf-m-tertiary, .pf-m-control):hover {
+  background: var(--infinity-hover);
+  border-color: var(--infinity-accent);
+}
+
+#app .pf-v6-c-button.pf-m-link,
+body .pf-v6-c-modal-box .pf-v6-c-button.pf-m-link {
+  color: var(--infinity-accent);
+}
+
+#app :is(.pf-v6-c-button, .pf-v6-c-form-control,
+  .pf-v6-c-menu-toggle, .pf-v6-c-check__input, .pf-v6-c-radio__input):focus-visible,
+body .pf-v6-c-modal-box :is(.pf-v6-c-button, .pf-v6-c-form-control,
+  .pf-v6-c-menu-toggle, .pf-v6-c-check__input,
+  .pf-v6-c-radio__input):focus-visible {
+  outline: 2px solid var(--infinity-accent);
+  outline-offset: 2px;
+}
+
 @media (min-width: 1200px) {
   #installation-wizard.anaconda-wizard-step-anaconda-screen-language .pf-v6-c-wizard__main-body::before {
     content: "INFINITYOS / SETUP";
@@ -324,6 +559,11 @@ textarea {
 #app:has(.anaconda-screen-progress-status) .pf-v6-c-page__main {
   background: radial-gradient(ellipse at 88% 5%, rgba(112, 69, 167, 0.2), transparent 45%),
     var(--infinity-ink) !important;
+}
+
+#app:has(.anaconda-screen-progress-status) :is(.pf-v6-c-page__main-container,
+  .pf-v6-c-page__main-section) {
+  background: transparent;
 }
 
 .anaconda-screen-progress-status {
