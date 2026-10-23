@@ -1,0 +1,8 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+case $(systemctl is-system-running || true) in
+    starting|running|degraded)
+        systemctl --no-block isolate graphical.target
+        ;;
+esac

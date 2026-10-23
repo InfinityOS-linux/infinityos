@@ -32,6 +32,39 @@ class RefindConfigTests(unittest.TestCase):
             self.assertIn("small_icon_size 32", THEME.read_text())
             self.assertIn("use_graphics_for linux", THEME.read_text())
 
+    def test_tv_entries_only_exist_for_enabled_modes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            esp = root / "esp"
+            icons = esp / "EFI/refind/infinity-theme/icons"
+            icons.mkdir(parents=True)
+            (esp / "os").mkdir()
+            (esp / "os/vmlinuz-6.0.test").write_bytes(b"kernel")
+            (esp / "os/initramfs-6.0.test.img").write_bytes(b"initrd")
+            for mode in ("esde", "steam"):
+                (icons / f"os_infinityos_{mode}.png").write_bytes(b"icon")
+            modes = root / "tv-modes"
+            modes.mkdir()
+            (modes / "esde").write_text("1000\n")
+            cmdline = root / "cmdline"
+            cmdline.write_text("root=UUID=test rw quiet\n")
+            command = ["bash", str(CONFIG), str(esp), str(cmdline),
+                       str(root / "no-backups-marker"), str(modes)]
+            subprocess.run(command, check=True)
+            menu = (esp / "EFI/refind/refind.conf").read_text()
+            self.assertIn('menuentry "EmulationStation"', menu)
+            self.assertIn('systemd.unit=infinityos-tv@esde.target', menu)
+            self.assertNotIn('menuentry "Steam Big Picture"', menu)
+            (modes / "steam").write_text("1000\n")
+            subprocess.run(command, check=True)
+            menu = (esp / "EFI/refind/refind.conf").read_text()
+            self.assertIn('systemd.unit=infinityos-tv@steam.target', menu)
+            self.assertEqual(menu, (esp / "EFI/BOOT/refind.conf").read_text())
+            (modes / "esde").unlink()
+            subprocess.run(command, check=True)
+            self.assertNotIn('menuentry "EmulationStation"',
+                             (esp / "EFI/refind/refind.conf").read_text())
+
 
 if __name__ == "__main__":
     unittest.main()

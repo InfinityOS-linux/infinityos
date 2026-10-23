@@ -1,0 +1,6 @@
+[Unit]
+Description=Infinity OS %i TV session
+Requires=multi-user.target
+After=multi-user.target
+Wants=infinityos-tv@%i.service
+AllowIsolate=yes

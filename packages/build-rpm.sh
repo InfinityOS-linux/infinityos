@@ -120,6 +120,11 @@ elif [[ "$package" == infinity-launcher ]]; then
   install -d "$work/source/$package-$version/usr/bin" \
     "$work/source/$package-$version/usr/share/applications" \
     "$work/source/$package-$version/usr/share/icons/hicolor/scalable/apps" \
+    "$work/source/$package-$version/usr/share/infinityos/refind-theme/icons" \
+    "$work/source/$package-$version/usr/libexec" \
+    "$work/source/$package-$version/usr/lib/systemd/system" \
+    "$work/source/$package-$version/usr/lib/systemd/system-generators" \
+    "$work/source/$package-$version/usr/share/polkit-1/actions" \
     "$work/source/$package-$version/etc/xdg/autostart" \
     "$work/source/$package-$version/usr/share/licenses/infinity-launcher"
   # App catalog artwork stays private so a future RPM can own its real icon.
@@ -136,6 +141,22 @@ elif [[ "$package" == infinity-launcher ]]; then
     "$work/source/$package-$version/etc/xdg/autostart/infinity-launcher.desktop"
   install -m 0644 "$repo/COPYING" \
     "$work/source/$package-$version/usr/share/licenses/infinity-launcher/COPYING"
+  install -m 0755 "$repo/root/usr/libexec/infinityos-tv-control" \
+    "$repo/root/usr/libexec/infinityos-tv-run" \
+    "$repo/root/usr/libexec/infinityos-tv-return-desktop" \
+    "$repo/root/usr/libexec/infinityos-refind-config" \
+    "$repo/root/usr/libexec/infinityos-refind-install" \
+    "$work/source/$package-$version/usr/libexec/"
+  install -m 0755 "$repo/root/usr/lib/systemd/system-generators/infinityos-tv-mode-generator" \
+    "$work/source/$package-$version/usr/lib/systemd/system-generators/"
+  install -m 0644 "$repo/root/usr/lib/systemd/system/infinityos-tv@.service" \
+    "$repo/root/usr/lib/systemd/system/infinityos-tv@.target" \
+    "$work/source/$package-$version/usr/lib/systemd/system/"
+  install -m 0644 "$repo/root/usr/share/infinityos/refind-theme/icons/os_infinityos_esde.png" \
+    "$repo/root/usr/share/infinityos/refind-theme/icons/os_infinityos_steam.png" \
+    "$work/source/$package-$version/usr/share/infinityos/refind-theme/icons/"
+  install -m 0644 "$repo/root/usr/share/polkit-1/actions/org.infinityos.tv-modes.policy" \
+    "$work/source/$package-$version/usr/share/polkit-1/actions/"
 else
   if [[ -n ${INFINITY_GHOSTTY_INSTALL_DIR:-} ]]; then
     [[ -x "$INFINITY_GHOSTTY_INSTALL_DIR/usr/bin/ghostty" ]] || {

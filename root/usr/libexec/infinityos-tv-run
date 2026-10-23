@@ -1,0 +1,27 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+case ${1:-} in
+    esde)
+        app="$HOME/.local/bin/ES-DE.AppImage"
+        [[ -x $app ]] || { echo "ES-DE is not installed for $USER" >&2; exit 1; }
+        exec cage -- "$app"
+        ;;
+    steam)
+        if [[ $(uname -m) == aarch64 ]]; then
+            client="$HOME/.local/share/Steam/steamrtarm64/steam"
+            [[ -x $client ]] || { echo 'Steam ARM64 is missing' >&2; exit 1; }
+            exec gamescope -e -f -- "$client" -gamepadui
+        fi
+        if flatpak info --user com.valvesoftware.Steam >/dev/null 2>&1; then
+            scope=--user
+        elif flatpak info --system com.valvesoftware.Steam >/dev/null 2>&1; then
+            scope=--system
+        else
+            echo 'Steam Flatpak is missing' >&2
+            exit 1
+        fi
+        exec gamescope -e -f -- flatpak run "$scope" com.valvesoftware.Steam -gamepadui
+        ;;
+    *) echo 'Unknown TV mode' >&2; exit 2 ;;
+esac

@@ -1,0 +1,19 @@
+[Unit]
+Description=Infinity OS %i TV session
+After=multi-user.target systemd-logind.service
+Requires=systemd-logind.service
+Conflicts=display-manager.service getty@tty1.service
+
+[Service]
+Type=simple
+PAMName=login
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal+console
+StandardError=journal+console
+UtmpIdentifier=tty1
+UtmpMode=user
+Environment=XDG_SESSION_TYPE=wayland
+ExecStartPre=+/usr/libexec/infinityos-tv-control consume %i
+ExecStart=/usr/libexec/infinityos-tv-run %i
+ExecStopPost=+/usr/libexec/infinityos-tv-return-desktop
