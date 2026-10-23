@@ -59,6 +59,8 @@ def enable(mode, uid):
     selected = account(uid)
     state = STATE / mode
     configuration = dropin(mode)
+    if state.exists() and state.read_text(encoding="ascii").strip() != str(selected.pw_uid):
+        raise PermissionError("This mode belongs to another account")
     previous_state = state.read_bytes() if state.exists() else None
     previous_config = configuration.read_bytes() if configuration.exists() else None
     try:

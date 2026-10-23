@@ -21,6 +21,11 @@ ESDE = {
 }
 THEME_URL = "https://github.com/Siddy212/canvas-es-de.git"
 THEME_REVISION = "c615aa94313646199f1b0e6c5478b7fe6839e8c4"
+# ES-DE stores system-wide emulator selections in each system's gamelist.xml.
+# https://gitlab.com/es-de/emulationstation-de/-/blob/master/es-app/src/GamelistFileParser.cpp
+# Labels match the bundled system definitions; Fedora ships these cores.
+# https://gitlab.com/es-de/emulationstation-de/-/blob/master/resources/systems/linuxarm/es_systems.xml
+FEDORA_EMULATORS = {"nes": "Nestopia UE", "psx": "PCSX ReARMed"}
 
 
 def enabled(mode, uid=None):
@@ -127,6 +132,14 @@ def _configure_esde(home):
             updated = content.rstrip() + "\n" + setting + "\n"
         if updated != content:
             _replace_text(retroarch, updated)
+    for system, emulator in FEDORA_EMULATORS.items():
+        gamelist = home / f"ES-DE/gamelists/{system}/gamelist.xml"
+        if not gamelist.exists():
+            _replace_text(gamelist,
+                '<?xml version="1.0"?>\n'
+                '<gameList>\n'
+                f'  <alternativeEmulator><label>{emulator}</label></alternativeEmulator>\n'
+                '</gameList>\n')
 
 
 def set_enabled(mode, active, home=None):
@@ -141,7 +154,8 @@ def set_enabled(mode, active, home=None):
     if mode == "esde":
         binary = _install_esde(home)
         _run(["pkexec", "dnf", "-y", "install", "cage", "retroarch", "fuse-libs", "git",
-              "libretro-gambatte", "libretro-mgba", "libretro-nestopia"])
+              "libretro-gambatte", "libretro-mgba", "libretro-nestopia",
+              "libretro-pcsx-rearmed"])
         _run(["pkexec", CONTROL, "prepare", "esde", str(os.getuid())])
         _install_theme(home)
         _configure_esde(home)

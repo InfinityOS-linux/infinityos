@@ -195,7 +195,7 @@ def installed_flatpaks():
 def installed(app, home=None, flatpak_ids=None):
     home = Path(home or Path.home())
     if app.source == "com.valvesoftware.Steam" and os.uname().machine == "aarch64":
-        return ((home / ".local/share/Steam/steamrtarm64/steam").is_file() and
+        return (os.access(home / ".local/share/Steam/steamrtarm64/steam", os.X_OK) and
                 (home / ".local/share/applications/steam-arm64.desktop").is_file())
     if app.kind == "epic-appimage":
         return ((home / ".local/bin/EpicGamesLauncher.AppImage").is_file() and

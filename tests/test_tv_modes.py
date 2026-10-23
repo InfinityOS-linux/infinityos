@@ -5,6 +5,7 @@ import os
 import sys
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -39,6 +40,22 @@ class TVModeTests(unittest.TestCase):
             self.assertIn('value="user-theme"', settings.read_text())
             self.assertIn('video_fullscreen = "true"', retroarch.read_text())
             self.assertIn('system_directory = "/emulation/bios"', retroarch.read_text())
+            self.assertEqual(
+                ET.parse(home / "ES-DE/gamelists/nes/gamelist.xml")
+                  .findtext("./alternativeEmulator/label"), "Nestopia UE")
+            self.assertEqual(
+                ET.parse(home / "ES-DE/gamelists/psx/gamelist.xml")
+                  .findtext("./alternativeEmulator/label"), "PCSX ReARMed")
+
+    def test_esde_configuration_preserves_existing_gamelist(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            gamelist = home / "ES-DE/gamelists/nes/gamelist.xml"
+            gamelist.parent.mkdir(parents=True)
+            original = '<gameList><game><name>My game</name></game></gameList>\n'
+            gamelist.write_text(original)
+            launcher_tv._configure_esde(home)
+            self.assertEqual(gamelist.read_text(), original)
 
     def test_pinned_esde_download_is_verified_before_install(self):
         payload = b"AppImage test content"
@@ -112,6 +129,22 @@ class TVModeTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "EFI failed"):
                     control.disable("esde")
                 self.assertEqual((state / "esde").read_text(), "1000\n")
+
+    def test_second_account_cannot_take_over_tv_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state = root / "state"
+            state.mkdir()
+            (state / "steam").write_text("1000\n")
+            account = SimpleNamespace(pw_uid=1001, pw_gid=1001, pw_name="second", pw_dir=str(root))
+            with patch.object(control, "STATE", state), \
+                 patch.object(control, "DROPINS", root / "dropins"), \
+                 patch.object(control, "account", return_value=account), \
+                 patch.object(control, "refresh_boot_menu") as refresh:
+                with self.assertRaises(PermissionError):
+                    control.enable("steam", "1001")
+                self.assertEqual((state / "steam").read_text(), "1000\n")
+                refresh.assert_not_called()
 
     def test_next_mode_is_one_shot_and_owned_by_user(self):
         with tempfile.TemporaryDirectory() as directory:
