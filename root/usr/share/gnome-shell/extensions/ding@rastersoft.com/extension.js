@@ -293,7 +293,7 @@ export default class DING extends Extension {
      * debug it.
      */
     launchDesktop() {
-        // On the first user session, let InfinityLauncher cover the wallpaper
+        // On the first user session, let InfinitySetup cover the wallpaper
         // before DING creates desktop icons. The timeout recovers from a failed
         // welcome autostart without leaving the desktop empty indefinitely.
         const user = GLib.get_user_name();

@@ -10,7 +10,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 
-SOURCE = Path(__file__).resolve().parents[1] / "packages/infinity-launcher/root/usr/bin/infinity-local-ai"
+SOURCE = Path(__file__).resolve().parents[1] / "packages/infinity-setup/root/usr/bin/infinity-local-ai"
 LOADER = importlib.machinery.SourceFileLoader("infinity_local_ai", str(SOURCE))
 SPEC = importlib.util.spec_from_loader(LOADER.name, LOADER)
 wrapper = importlib.util.module_from_spec(SPEC)

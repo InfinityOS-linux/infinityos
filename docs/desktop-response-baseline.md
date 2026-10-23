@@ -29,12 +29,13 @@ From a shell for the logged-in user, time the launch request with:
 ```sh
 time env XDG_RUNTIME_DIR=/run/user/$(id -u) \
   DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus \
-  WAYLAND_DISPLAY=wayland-0 gtk-launch org.infinityos.Launcher
+  WAYLAND_DISPLAY=wayland-0 gtk-launch org.infinityos.Setup
 ```
 
-It returned after **0.08 s** on the fresh VM (about **0.095 s** on the earlier
-VM). This measures only the launch request;
-the Launcher window was subsequently confirmed on screen, without measuring
+The earlier application ID returned after **0.08 s** on the fresh VM (about
+**0.095 s** on the earlier VM). The command above uses the current InfinitySetup
+ID and has not been timed. The figures measure only the launch request; the
+application window was subsequently confirmed on screen, without measuring
 the time to first paint.
 
 The dock was present and the Terminal icon was visible after login. The
@@ -51,4 +52,4 @@ latencies. The menu was visibly populated.
 
 No reproducible delay in these checks established a code optimization. A
 future performance change should first measure input-to-paint latency for the
-dock and Launcher directly, then compare it with this session baseline.
+dock and InfinitySetup directly, then compare it with this session baseline.

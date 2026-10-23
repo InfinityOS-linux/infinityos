@@ -4,7 +4,7 @@
 
 **InfinityOS_01 is an independent Fedora Remix built for a polished, personal desktop.** Infinity OS pairs a writable GNOME system with a distinctive purple design, a fast drop-down terminal, a first-run application chooser, and integrated updates. It uses Fedora's familiar DNF package model, so the desktop remains easy to customize and maintain.
 
-This repository is the source for the Infinity OS KIWI images, desktop configuration, InfinityLauncher, InfinityTerminal, InfinityUpdater, RPM packages, and build pipeline.
+This repository is the source for the Infinity OS KIWI images, desktop configuration, InfinitySetup, InfinityTerminal, InfinityUpdater, RPM packages, and build pipeline.
 
 **InfinityOS_01 is out.** The first release includes `x86_64` and `aarch64` ISO images. Visit [infinityos.eu](https://infinityos.eu/) or get the images from the [download folder](https://mega.nz/folder/vx50XZrT#wjqKyqmFacFjPK8I4vNcxw).
 
@@ -26,9 +26,9 @@ This repository is the source for the Infinity OS KIWI images, desktop configura
 | Base | Fedora 44 packages, DNF, Fedora Updates, RPM Fusion Free and Nonfree |
 | Desktop | GNOME with Orchis Purple Dark Compact by default and an optional Light mode, Kora icons, Bibata cursor, Infinity OS artwork, IBM Plex Sans, and a dark lock screen |
 | Storage | Writable Btrfs root, rEFInd, Snapper timeline and cleanup |
-| Applications | Firefox, GNOME Software, Flatpak with Flathub, mpv, InfinityLauncher, and InfinityTerminal |
+| Applications | Firefox, GNOME Software, Flatpak with Flathub, mpv, InfinitySetup, and InfinityTerminal |
 | Development | Zsh with Oh My Zsh and a compact purple Powerlevel10k prompt, Iosevka Term in InfinityTerminal |
-| Gaming | GameMode, MangoHud, Gamescope, gamepad support; Steam and Lutris available through InfinityLauncher |
+| Gaming | GameMode, MangoHud, Gamescope, gamepad support; Steam and Lutris available through InfinitySetup |
 | Hardware | Fedora Intel and AMD graphics support; NVIDIA driver branch selected from the GPU's PCI ID during `x86_64` live installation |
 
 ## Performance defaults
@@ -37,10 +37,10 @@ Infinity OS uses compressed zram swap sized to half of RAM, capped at 16 GiB, wi
 
 GameMode, MangoHud, Gamescope, TLP, and the existing bounded `vm.max_map_count` setting remain in place. No OSTree or immutable root is used.
 
-**InfinityLauncher** opens on first login. It groups optional software under AI, System, Gaming, Creative, Office, and Programming. You choose applications and press **Apply** before installation starts. The choices include Steam, Epic Games Launcher Preview, Heroic, Lutris, Prism Launcher, creative tools, EuroOffice, OpenRazer, VS Code, Docker CE, Codex, Claude, and three local coding models. Epic's native Linux AppImage is downloaded from Epic when selected. The Battle.net row opens its interactive installer in Lutris. Selecting a local model installs Ollama and OpenCode, downloads the model, and configures the terminal agent. A progress strip appears while apps install. Its source and RPM specification live in [`packages/infinity-launcher`](packages/infinity-launcher).
+**InfinitySetup** opens on first login. It groups optional software under AI, System, Gaming, Creative, Office, and Programming. You choose applications and press **Apply** before installation starts. The choices include Steam, Epic Games Launcher Preview, Heroic, Lutris, Prism Launcher, creative tools, EuroOffice, OpenRazer, VS Code, Docker CE, Codex, Claude, and three local coding models. Epic's native Linux AppImage is downloaded from Epic when selected. The Battle.net row opens its interactive installer in Lutris. Selecting a local model installs Ollama and OpenCode, downloads the model, and configures the terminal agent. A progress strip appears while apps install. Its source and RPM specification live in [`packages/infinity-setup`](packages/infinity-setup).
 On ARM64, the Steam choice installs Valve's native public beta client; game compatibility depends on the machine's graphics stack and any needed FEX or Proton setup.
 
-**Infinity Config** opens from the application grid when needed. Its Desktop and Dock tabs resize the system cursor and animated dock from 20% to 200%, with the shipped sizes at 100%; Tweaks is reserved for future controls. It uses the same visual language as InfinityLauncher and is packaged in [`packages/infinity-config`](packages/infinity-config).
+**Infinity Config** opens from the application grid when needed. Its Desktop and Dock tabs resize the system cursor and animated dock from 20% to 200%, with the shipped sizes at 100%; Tweaks is reserved for future controls. It uses the same visual language as InfinitySetup and is packaged in [`packages/infinity-config`](packages/infinity-config).
 
 Its footer can schedule one more launch at the next login. The interface follows the session language (Polish and English are bundled). RAMDrive warns through GNOME's shutdown confirmation when it contains files; canceling keeps the session and files, while continuing the shutdown clears the folder. A crash or hard reset leaves its contents intact.
 
@@ -64,9 +64,9 @@ Infinity Config's Tweaks tab opens Extensions, system settings and Updates. It c
 
 Before an RPM upgrade, InfinityUpdater creates a numbered Snapper snapshot of the Btrfs root. If backups are not ready or snapshot creation fails, the RPM upgrade stops and explains why. The update window shows the snapshot number and points to the rEFInd Backups (Btrfs) entry. `/home`, `/var` and device firmware are outside that root snapshot.
 
-Fedora and Fedora Updates provide the base system. RPM Fusion provides multimedia codecs and nonfree hardware packages. The desktop includes GNOME Software for applications, mpv as the default video player, Proview as the default PDF and image viewer, and InfinityUpdater for periodic RPM and Flatpak update checks. GNOME Software's own update checks are disabled to avoid duplicate notifications. It also includes FFmpeg, GNOME Files archive integration, UnRAR, 7-Zip, TLP, and purple folder icons. IBM Plex Sans is the default from the installer and login screen through the desktop. Microsoft Core Fonts are downloaded and checksum-verified on the installed machine after network access is available; their font files are not distributed in the image. Infinity OS builds `infinity-launcher` and `infinity-terminal` as signed RPMs and publishes them through its own DNF repository. See [`packages/README.md`](packages/README.md) for the build, signing, and release flow. Docker CE uses Docker's official Fedora repository when selected in InfinityLauncher.
+Fedora and Fedora Updates provide the base system. RPM Fusion provides multimedia codecs and nonfree hardware packages. The desktop includes GNOME Software for applications, mpv as the default video player, Proview as the default PDF and image viewer, and InfinityUpdater for periodic RPM and Flatpak update checks. GNOME Software's own update checks are disabled to avoid duplicate notifications. It also includes FFmpeg, GNOME Files archive integration, UnRAR, 7-Zip, TLP, and purple folder icons. IBM Plex Sans is the default from the installer and login screen through the desktop. Microsoft Core Fonts are downloaded and checksum-verified on the installed machine after network access is available; their font files are not distributed in the image. Infinity OS builds `infinity-setup` and `infinity-terminal` as signed RPMs and publishes them through its own DNF repository. See [`packages/README.md`](packages/README.md) for the build, signing, and release flow. Docker CE uses Docker's official Fedora repository when selected in InfinitySetup.
 
-Firefox enables Encrypted Media Extensions through an unlocked system policy and obtains supported Widevine modules from Mozilla/Google on compatible platforms. Firefox remains the default browser. Chrome is available as an optional InfinityLauncher selection and is not installed automatically. Infinity OS does not redistribute CDM binaries. PlayReady and FairPlay are not provided as general-purpose Linux desktop browser modules. Streaming services can impose their own browser, resolution, or hardware requirements.
+Firefox enables Encrypted Media Extensions through an unlocked system policy and obtains supported Widevine modules from Mozilla/Google on compatible platforms. Firefox remains the default browser. Chrome is available as an optional InfinitySetup selection and is not installed automatically. Infinity OS does not redistribute CDM binaries. PlayReady and FairPlay are not provided as general-purpose Linux desktop browser modules. Streaming services can impose their own browser, resolution, or hardware requirements.
 
 The image build requires the Infinity OS RPM repository to be published and reachable. GitHub Actions publishes it after a successful build on `main`. Applications installed directly from third-party GitHub releases do not receive updates from the Infinity OS repository.
 
@@ -125,7 +125,7 @@ Published x86_64 and aarch64 live ISOs boot through rEFInd. The ISO finalizer en
 - [`InfinityOS.kiwi`](InfinityOS.kiwi), [`repositories/`](repositories), and [`teams/`](teams) define image profiles and package sources.
 - [`root/`](root) contains files placed in the image, including GNOME defaults, themes, extensions, and artwork.
 - [`config.sh`](config.sh) applies image configuration and enables system services.
-- [`packages/`](packages) contains the InfinityLauncher and InfinityTerminal RPMs.
+- [`packages/`](packages) contains the InfinitySetup and InfinityTerminal RPMs.
 - [`tests/`](tests) contains focused checks for application selection and RAMDrive cleanup.
 
 ## Sources and licensing

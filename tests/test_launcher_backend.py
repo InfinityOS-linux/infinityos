@@ -12,7 +12,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 
-SOURCE = Path(__file__).resolve().parents[1] / "packages/infinity-launcher/root/usr/share/infinityos/launcher_backend.py"
+SOURCE = Path(__file__).resolve().parents[1] / "packages/infinity-setup/root/usr/share/infinityos/launcher_backend.py"
 SPEC = importlib.util.spec_from_file_location("launcher_backend", SOURCE)
 backend = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(backend)

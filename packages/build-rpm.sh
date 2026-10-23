@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-package=${1:?Usage: packages/build-rpm.sh infinity-config|infinity-launcher|infinity-terminal|infinity-updater|infinityos-repos|infinityos-wallpapers|infinityos-ramdrive|infinityos-shell-extensions}
+package=${1:?Usage: packages/build-rpm.sh infinity-config|infinity-setup|infinity-terminal|infinity-updater|infinityos-repos|infinityos-wallpapers|infinityos-ramdrive|infinityos-shell-extensions}
 case "$package" in
   infinity-config) version=1.0.0 ;;
-  infinity-launcher) version=1.0.0 ;;
+  infinity-setup) version=1.0.0 ;;
   infinity-terminal) version=1.3.1 ;;
   infinity-updater) version=1.1.0 ;;
   infinityos-repos) version=1.0.0 ;;
@@ -116,7 +116,7 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
     "$source_root/usr/share/licenses/infinityos-shell-extensions/VerticalWorkspaces-GPL-3.0"
   install -m 0644 "$repo/COPYING" \
     "$source_root/usr/share/licenses/infinityos-shell-extensions/InfinityOS-GPL-3.0"
-elif [[ "$package" == infinity-launcher ]]; then
+elif [[ "$package" == infinity-setup ]]; then
   install -d "$work/source/$package-$version/usr/bin" \
     "$work/source/$package-$version/usr/share/applications" \
     "$work/source/$package-$version/usr/share/icons/hicolor/scalable/apps" \
@@ -126,21 +126,26 @@ elif [[ "$package" == infinity-launcher ]]; then
     "$work/source/$package-$version/usr/lib/systemd/system-generators" \
     "$work/source/$package-$version/usr/share/polkit-1/actions" \
     "$work/source/$package-$version/etc/xdg/autostart" \
-    "$work/source/$package-$version/usr/share/licenses/infinity-launcher"
+    "$work/source/$package-$version/usr/share/licenses/infinity-setup"
   # App catalog artwork stays private so a future RPM can own its real icon.
   # Only Infinity OS icons used by desktop files or terminal tabs are global.
-  install -m 0644 "$repo/packages/infinity-launcher/root/usr/share/infinityos/launcher-icons/"infinity-*.svg \
+  install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/launcher-icons/"infinity-*.svg \
     "$work/source/$package-$version/usr/share/icons/hicolor/scalable/apps/"
-  install -m 0755 "$repo/packages/infinity-launcher/root/usr/bin/infinity-launcher" \
-    "$work/source/$package-$version/usr/bin/infinity-launcher"
-  install -m 0644 "$repo/packages/infinity-launcher/root/usr/share/infinityos/launcher.desktop" \
+  install -m 0755 "$repo/packages/infinity-setup/root/usr/bin/infinity-setup" \
+    "$work/source/$package-$version/usr/bin/infinity-setup"
+  install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/launcher.desktop" \
+    "$work/source/$package-$version/usr/share/applications/infinity-setup.desktop"
+  install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/launcher-appid.desktop" \
+    "$work/source/$package-$version/usr/share/applications/org.infinityos.Setup.desktop"
+  # Existing user favorites may still point to either previous desktop ID.
+  install -m 0644 "$repo/packages/infinity-setup/legacy.desktop" \
     "$work/source/$package-$version/usr/share/applications/infinity-launcher.desktop"
-  install -m 0644 "$repo/packages/infinity-launcher/root/usr/share/infinityos/launcher-appid.desktop" \
+  install -m 0644 "$repo/packages/infinity-setup/legacy.desktop" \
     "$work/source/$package-$version/usr/share/applications/org.infinityos.Launcher.desktop"
-  install -m 0644 "$repo/packages/infinity-launcher/root/usr/share/infinityos/launcher-autostart.desktop" \
-    "$work/source/$package-$version/etc/xdg/autostart/infinity-launcher.desktop"
+  install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/launcher-autostart.desktop" \
+    "$work/source/$package-$version/etc/xdg/autostart/infinity-setup.desktop"
   install -m 0644 "$repo/COPYING" \
-    "$work/source/$package-$version/usr/share/licenses/infinity-launcher/COPYING"
+    "$work/source/$package-$version/usr/share/licenses/infinity-setup/COPYING"
   install -m 0755 "$repo/root/usr/libexec/infinityos-tv-control" \
     "$repo/root/usr/libexec/infinityos-tv-run" \
     "$repo/root/usr/libexec/infinityos-tv-return-desktop" \

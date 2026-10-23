@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 
 
-PACKAGES = ("infinity-config", "infinity-launcher", "infinity-terminal",
+PACKAGES = ("infinity-config", "infinity-setup", "infinity-terminal",
             "infinity-updater", "infinityos-shell-extensions")
 
 

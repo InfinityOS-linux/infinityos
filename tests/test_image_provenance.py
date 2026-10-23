@@ -11,7 +11,7 @@ SOURCE_REVISION = REPO / "scripts/infinityos-source-revision"
 VERIFY_ROOT = REPO / "root/usr/libexec/infinityos-verify-build-root"
 PACKAGES = (
     "infinity-config",
-    "infinity-launcher",
+    "infinity-setup",
     "infinity-terminal",
     "infinity-updater",
     "infinityos-repos",
@@ -67,7 +67,7 @@ class ImageProvenanceTests(unittest.TestCase):
             )
             expected_files = (
                 "usr/bin/infinity-config",
-                "usr/bin/infinity-launcher",
+                "usr/bin/infinity-setup",
                 "usr/bin/infinity-terminal",
                 "usr/bin/infinity-updater",
                 "usr/share/backgrounds/infinityos/infinityos-dark.png",

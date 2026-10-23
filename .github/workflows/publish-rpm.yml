@@ -33,7 +33,7 @@ jobs:
       matrix:
         package:
           - infinity-config
-          - infinity-launcher
+          - infinity-setup
           - infinity-updater
           - infinityos-repos
           - infinityos-wallpapers

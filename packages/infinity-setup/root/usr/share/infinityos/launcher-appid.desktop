@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=InfinitySetup
+Comment=Choose applications for Infinity OS
+Exec=infinity-setup
+Icon=infinity-setup
+Terminal=false
+NoDisplay=true
+Categories=System;Settings;

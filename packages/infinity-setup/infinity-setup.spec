@@ -1,17 +1,19 @@
-Name:           infinity-launcher
+Name:           infinity-setup
 Version:        1.0.0
 Release:        %{?infinity_release}%{!?infinity_release:1}%{?dist}
 Summary:        Infinity OS welcome and application chooser
 License:        GPL-3.0-or-later
 URL:            https://github.com/InfinityOS-linux/infinityos
-Source0:        infinity-launcher-%{version}.tar.gz
+Source0:        infinity-setup-%{version}.tar.gz
 BuildArch:      noarch
+Provides:       infinity-launcher = %{version}-%{release}
+Obsoletes:      infinity-launcher < 1.0.1
 Requires:       python3-gobject
 Requires:       gtk4
 Requires:       gdk-pixbuf2
 
 %description
-InfinityLauncher offers first-login application choices for Infinity OS.
+InfinitySetup offers first-login application choices for Infinity OS.
 
 %prep
 %setup -q
@@ -22,9 +24,9 @@ InfinityLauncher offers first-login application choices for Infinity OS.
 cp -a usr etc %{buildroot}/
 
 %files
-%license /usr/share/licenses/infinity-launcher/COPYING
-/usr/share/infinityos/build-revisions/infinity-launcher
-/usr/bin/infinity-launcher
+%license /usr/share/licenses/infinity-setup/COPYING
+/usr/share/infinityos/build-revisions/infinity-setup
+/usr/bin/infinity-setup
 /usr/bin/infinity-local-ai
 /usr/share/infinityos/launcher.py
 /usr/share/infinityos/launcher_i18n.py
@@ -46,9 +48,11 @@ cp -a usr etc %{buildroot}/
 /usr/share/infinityos/launcher.desktop
 /usr/share/infinityos/launcher-appid.desktop
 /usr/share/infinityos/launcher-autostart.desktop
+/usr/share/applications/infinity-setup.desktop
+/usr/share/applications/org.infinityos.Setup.desktop
 /usr/share/applications/infinity-launcher.desktop
 /usr/share/applications/org.infinityos.Launcher.desktop
-/etc/xdg/autostart/infinity-launcher.desktop
+/etc/xdg/autostart/infinity-setup.desktop
 
 %changelog
 * Mon Oct 12 2026 Infinity OS Contributors <noreply@gitlab.com> - 1.0.0-1

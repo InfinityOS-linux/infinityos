@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
-Name=InfinityLauncher first run
-Exec=infinity-launcher --first-run
+Name=InfinitySetup first run
+Exec=infinity-setup --first-run
 Icon=applications-system
 Terminal=false
 OnlyShowIn=GNOME;

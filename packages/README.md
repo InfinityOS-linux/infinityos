@@ -1,6 +1,6 @@
 # Infinity OS RPM packages
 
-`infinity-config`, `infinity-launcher`, `infinity-updater`, `infinityos-repos`, `infinityos-wallpapers`, `infinityos-ramdrive`, and `infinityos-shell-extensions` are `noarch` RPMs. `infinity-terminal` includes the patched Ghostty binary and is built separately for `aarch64` and `x86_64`. The existing GNOME extension UUID, terminal application ID, desktop file ID, and launcher first-run marker remain stable so an RPM can adopt files from older images without losing shortcuts or first-run state. The visible names and launch commands are **InfinityLauncher** and **InfinityTerminal**.
+`infinity-config`, `infinity-setup`, `infinity-updater`, `infinityos-repos`, `infinityos-wallpapers`, `infinityos-ramdrive`, and `infinityos-shell-extensions` are `noarch` RPMs. `infinity-terminal` includes the patched Ghostty binary and is built separately for `aarch64` and `x86_64`. InfinitySetup replaces the previous application RPM through RPM Obsoletes/Provides. Hidden desktop aliases keep existing user favorites working, while the first-run marker stays in place so an update does not repeat onboarding. The visible application and command are **InfinitySetup** and `infinity-setup`.
 
 Each RPM contains the source commit in `/usr/share/infinityos/build-revisions/`.
 Commit changes before packaging and publish all eight RPMs from the same commit.
@@ -8,11 +8,11 @@ The image build refuses an RPM from a different commit, including an older
 published package with the same version number. Build a new image from the
 repository's `kiwi-build` wrapper, which uses a fresh source archive.
 
-Edit the app files under `packages/infinity-config/root/`, `packages/infinity-launcher/root/`, `packages/infinity-terminal/root/`, or `packages/infinity-updater/root/`. Terminal engine changes belong in `ghostty/ghostty-1.3.1-infinity.patch`. `packages/build-rpm.sh` builds one package locally with Docker. For example:
+Edit the app files under `packages/infinity-config/root/`, `packages/infinity-setup/root/`, `packages/infinity-terminal/root/`, or `packages/infinity-updater/root/`. Terminal engine changes belong in `ghostty/ghostty-1.3.1-infinity.patch`. `packages/build-rpm.sh` builds one package locally with Docker. For example:
 
 ```sh
 packages/build-rpm.sh infinity-config
-packages/build-rpm.sh infinity-launcher
+packages/build-rpm.sh infinity-setup
 packages/build-rpm.sh infinity-updater
 packages/build-rpm.sh infinityos-repos
 packages/build-rpm.sh infinityos-wallpapers
@@ -39,8 +39,8 @@ Infinity OS installs `infinityos-repos`, which owns the DNF configuration and pu
 
 ```sh
 sudo dnf -y --refresh makecache --repo infinityos
-sudo dnf install infinityos-repos infinity-config infinity-launcher infinity-terminal infinityos-ramdrive infinity-updater infinityos-shell-extensions
+sudo dnf install infinityos-repos infinity-config infinity-setup infinity-terminal infinityos-ramdrive infinity-updater infinityos-shell-extensions
 sudo dnf upgrade
 ```
 
-InfinityLauncher downloads the latest GitHub release RPMs for Storytold apps and OpenGamepadUI when selected. These third-party RPMs are installed directly, so their future upgrades do not come from the Infinity OS repository. Docker CE is installed from Docker's official Fedora repository, which stays disabled until Docker is selected.
+InfinitySetup downloads the latest GitHub release RPMs for Storytold apps and OpenGamepadUI when selected. These third-party RPMs are installed directly, so their future upgrades do not come from the Infinity OS repository. Docker CE is installed from Docker's official Fedora repository, which stays disabled until Docker is selected.

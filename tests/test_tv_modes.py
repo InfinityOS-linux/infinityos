@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CATALOG = ROOT / "packages/infinity-launcher/root/usr/share/infinityos"
+CATALOG = ROOT / "packages/infinity-setup/root/usr/share/infinityos"
 sys.path.insert(0, str(CATALOG))
 from launcher_tv import _install_esde
 import launcher_tv

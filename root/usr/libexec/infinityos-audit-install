@@ -56,7 +56,7 @@ check 'Btrfs Backups rEFInd entry' grep -Fq 'menuentry "Backups (Btrfs)"' /boot/
 check 'obsolete EFI loaders absent' bash -c '[[ ! -e /boot/efi/EFI/infinityos && ! -e /boot/efi/EFI/systemd && ! -e /boot/efi/loader && ! -e /boot/grub2 ]]'
 check 'obsolete loader maintenance masked' bash -c 'for unit in systemd-boot-update.service systemd-boot-clear-sysfail.service systemd-boot-random-seed.service systemd-bootctl.socket grub-boot-indeterminate.service; do [[ $(systemctl is-enabled "$unit") == masked ]] || exit 1; done'
 check 'obsolete EFI loader packages absent' bash -c '! rpm -qa --qf "%{NAME}\n" | grep -Eq "^(grub2-efi-|grub2-pc($|-)|grub2-tools-efi$|shim-(aa64|ia32|x64)$|systemd-boot-unsigned$)"'
-check 'Infinity OS desktop RPMs' rpm -q infinity-config infinity-launcher infinity-terminal infinity-updater infinityos-shell-extensions
+check 'Infinity OS desktop RPMs' rpm -q infinity-config infinity-setup infinity-terminal infinity-updater infinityos-shell-extensions
 check 'Infinity OS GNOME defaults' test -f /usr/share/infinityos/gnome-defaults
 check 'Infinity OS desktop wallpaper' test -s /usr/share/backgrounds/infinityos/infinityos-dark.png
 

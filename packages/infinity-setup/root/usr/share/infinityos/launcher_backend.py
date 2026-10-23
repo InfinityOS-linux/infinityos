@@ -1,4 +1,4 @@
-"""Application catalog and deferred installation for InfinityLauncher."""
+"""Application catalog and deferred installation for InfinitySetup."""
 
 import hashlib
 import io
@@ -262,7 +262,7 @@ def _xone_firmware_valid(firmware_dir=Path("/lib/firmware")):
 def _verified_driver_source(driver, directory):
     repository, commit, expected, _, _ = DRIVERS[driver]
     url = f"https://codeload.github.com/{repository}/tar.gz/{commit}"
-    request = urllib.request.Request(url, headers={"User-Agent": "InfinityLauncher"})
+    request = urllib.request.Request(url, headers={"User-Agent": "InfinitySetup"})
     with urllib.request.urlopen(request, timeout=60) as response:
         archive = response.read(20_000_001)
     if len(archive) > 20_000_000 or hashlib.sha256(archive).hexdigest() != expected:
@@ -372,7 +372,7 @@ def _install_driver_as_root(driver):
 
 def _latest_rpm(app, arch, directory):
     request = urllib.request.Request(f"https://api.github.com/repos/{app.source}/releases/latest",
-                                     headers={"User-Agent": "InfinityLauncher"})
+                                     headers={"User-Agent": "InfinitySetup"})
     with urllib.request.urlopen(request, timeout=30) as response:
         release = json.load(response)
     release_arch = {"aarch64": "arm64", "x86_64": "amd64"}.get(arch, arch)
@@ -385,7 +385,7 @@ def _latest_rpm(app, arch, directory):
     if not url.startswith(f"https://github.com/{app.source}/releases/download/"):
         raise RuntimeError("Unexpected release download URL.")
     destination = Path(directory) / asset["name"]
-    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "InfinityLauncher"}), timeout=60) as response, destination.open("wb") as output:
+    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "InfinitySetup"}), timeout=60) as response, destination.open("wb") as output:
         shutil.copyfileobj(response, output)
     if destination.stat().st_size != asset["size"]:
         raise RuntimeError("Release download size did not match GitHub metadata.")
@@ -402,7 +402,7 @@ def _latest_rpm(app, arch, directory):
 
 def _latest_appimage(app, arch, directory):
     request = urllib.request.Request(f"https://api.github.com/repos/{app.source}/releases/latest",
-                                     headers={"User-Agent": "InfinityLauncher"})
+                                     headers={"User-Agent": "InfinitySetup"})
     with urllib.request.urlopen(request, timeout=30) as response:
         release = json.load(response)
     assets = [asset for asset in release.get("assets", ())
@@ -419,7 +419,7 @@ def _latest_appimage(app, arch, directory):
     if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
         raise RuntimeError("Release is missing a SHA256 digest for the AppImage.")
     destination = Path(directory) / asset["name"]
-    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "InfinityLauncher"}), timeout=60) as response, destination.open("wb") as output:
+    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "InfinitySetup"}), timeout=60) as response, destination.open("wb") as output:
         shutil.copyfileobj(response, output)
     if destination.stat().st_size != asset["size"]:
         raise RuntimeError("AppImage download size did not match GitHub metadata.")
@@ -473,11 +473,11 @@ def install(app, home=None):
               "https://dl.flathub.org/repo/flathub.flatpakrepo"])
         _run(["flatpak", "install", "--user", "--noninteractive", "--assumeyes", "flathub", app.source])
     elif app.kind == "github-rpm":
-        with tempfile.TemporaryDirectory(prefix="infinity-launcher-") as directory:
+        with tempfile.TemporaryDirectory(prefix="infinity-setup-") as directory:
             package = _latest_rpm(app, os.uname().machine, directory)
             _run(["pkexec", "dnf", "-y", "install", str(package)])
     elif app.kind == "winboat-rpm":
-        with tempfile.TemporaryDirectory(prefix="infinity-launcher-") as directory:
+        with tempfile.TemporaryDirectory(prefix="infinity-setup-") as directory:
             package = _latest_rpm(app, os.uname().machine, directory)
             _run(["pkexec", "dnf", "-y", "install", "podman", "podman-compose",
                   "freerdp", str(package)])
@@ -551,7 +551,7 @@ def _install_arm_steam(home):
         staging = Path(directory)
         archive = staging / "client.zip"
         url = f"https://client-update.steamstatic.com/{filename}"
-        request = urllib.request.Request(url, headers={"User-Agent": "InfinityLauncher"})
+        request = urllib.request.Request(url, headers={"User-Agent": "InfinitySetup"})
         sha = hashlib.sha256()
         received = 0
         with urllib.request.urlopen(request, timeout=90) as response, archive.open("wb") as output:
@@ -655,7 +655,7 @@ def _install_epic_appimage(app, home):
     with tempfile.NamedTemporaryFile(dir=binary.parent, delete=False) as output:
         temporary = Path(output.name)
         try:
-            request = urllib.request.Request(app.source, headers={"User-Agent": "InfinityLauncher"})
+            request = urllib.request.Request(app.source, headers={"User-Agent": "InfinitySetup"})
             with urllib.request.urlopen(request, timeout=60) as response:
                 url = urllib.parse.urlsplit(response.geturl())
                 if url.scheme != "https" or not (url.hostname or "").endswith(".epicgames.com"):

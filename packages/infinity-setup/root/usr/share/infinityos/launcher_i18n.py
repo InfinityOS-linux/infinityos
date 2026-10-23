@@ -1,4 +1,4 @@
-"""Small, bundled InfinityLauncher catalog; English is the fallback language."""
+"""Small, bundled InfinitySetup catalog; English is the fallback language."""
 
 import locale
 

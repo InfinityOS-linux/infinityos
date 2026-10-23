@@ -27,10 +27,10 @@ default:
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
-build-launcher:
+build-setup:
   extends: .docker-build
   script:
-    - INFINITY_PACKAGE_RELEASE="$CI_PIPELINE_IID" packages/build-rpm.sh infinity-launcher
+    - INFINITY_PACKAGE_RELEASE="$CI_PIPELINE_IID" packages/build-rpm.sh infinity-setup
 
 build-updater:
   extends: .docker-build
@@ -68,7 +68,7 @@ pages:
   stage: publish
   image: fedora:44
   needs:
-    - job: build-launcher
+    - job: build-setup
       artifacts: true
     - job: build-updater
       artifacts: true

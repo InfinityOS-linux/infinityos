@@ -1,4 +1,4 @@
-InfinityLauncher bundles these additional brand marks for its app catalog:
+InfinitySetup bundles these additional brand marks for its app catalog:
 
 - Epic Games: https://cdn.simpleicons.org/epicgames/white
 - Battle.net: https://cdn.simpleicons.org/battle.net/white

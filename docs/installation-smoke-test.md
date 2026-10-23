@@ -12,7 +12,7 @@ an installed Infinity OS disk: it can hide a broken installer.
 4. Run `sudo /usr/libexec/infinityos-audit-install` in the installed system.
    Every line must be `PASS` and the command must exit 0. Save its output and
    `/var/log/infinityos-boot-install.log` with the release evidence.
-5. Open Infinity Config, Launcher, Terminal and Updater; check the wallpaper,
+5. Open Infinity Config, InfinitySetup, Terminal and Updater; check the wallpaper,
    dock and enabled desktop extensions. Perform one reboot from the installed
    system and run the audit again.
 
@@ -37,7 +37,7 @@ not validate x86_64 hardware, NVIDIA detection or firmware updates.
   generic hard-disk NVRAM boot option after reboot. The audit therefore checks
   the active loader and selected entry from `bootctl`, rather than requiring a
   named `BootCurrent` option from `efibootmgr`.
-- The wallpaper, dock, first-run Launcher, Infinity Config and Updater were
+- The wallpaper, dock, first-run application chooser, Infinity Config and Updater were
   visible. The bundled Terminal extension hid a later `gtk-launch` window.
   After copying the revised `extension.js` into the installed VM and restarting
   its graphical session, the initial terminal stayed hidden and a later

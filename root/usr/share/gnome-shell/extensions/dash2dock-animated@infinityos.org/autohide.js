@@ -15,8 +15,8 @@ import {
 const DEBOUNCE_HIDE_TIMEOUT = 120;
 const PRESSURE_SENSE_DISTANCE = 40;
 const LAUNCHER_APP_IDS = new Set([
-  'org.infinityos.Launcher.desktop',
-  'infinity-launcher.desktop',
+  'org.infinityos.Setup.desktop',
+  'infinity-setup.desktop',
 ]);
 const IS_LIVE_SESSION = GLib.get_user_name() === 'liveuser';
 
@@ -174,8 +174,8 @@ export let AutoHide = class {
       const window = actor.get_meta_window();
       if (!window || !actor.visible || window.minimized || !window.showing_on_its_workspace())
         return false;
-      return window.get_gtk_application_id?.() === 'org.infinityos.Launcher' ||
-        window.get_wm_class?.() === 'org.infinityos.Launcher' ||
+      return window.get_gtk_application_id?.() === 'org.infinityos.Setup' ||
+        window.get_wm_class?.() === 'org.infinityos.Setup' ||
         LAUNCHER_APP_IDS.has(tracker.get_window_app(window)?.get_id());
     });
   }

@@ -28,7 +28,7 @@
 		<package name="infinityos-repos"/>
 		<package name="infinityos-ramdrive"/>
 		<package name="infinity-terminal"/>
-		<package name="infinity-launcher"/>
+		<package name="infinity-setup"/>
 		<package name="infinity-config"/>
 		<package name="infinity-updater"/>
 		<package name="generic-logos"/>

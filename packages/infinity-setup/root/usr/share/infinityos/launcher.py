@@ -92,9 +92,9 @@ def catalog_icon(path):
     return Gio.BytesIcon.new(GLib.Bytes.new(encoded))
 
 
-class InfinityLauncher(Gtk.Application):
+class InfinitySetup(Gtk.Application):
     def __init__(self, first_run=False):
-        super().__init__(application_id="org.infinityos.Launcher")
+        super().__init__(application_id="org.infinityos.Setup")
         self.first_run = first_run
         self.window = None
         self.switches = {}
@@ -115,7 +115,7 @@ class InfinityLauncher(Gtk.Application):
             self.window.present()
             return
 
-        self.window = Gtk.ApplicationWindow(application=self, title="InfinityLauncher")
+        self.window = Gtk.ApplicationWindow(application=self, title="InfinitySetup")
         self.window.set_decorated(False)
         self.window.add_css_class("infinity-window")
         self.window.connect("close-request", self._close_requested)
@@ -152,7 +152,7 @@ class InfinityLauncher(Gtk.Application):
         eyebrow = label(tr("WELCOME TO INFINITY OS"), "infinity-eyebrow")
         eyebrow.set_xalign(0.5)
         title_box.append(eyebrow)
-        title = label("InfinityLauncher", "infinity-title")
+        title = label("InfinitySetup", "infinity-title")
         title.set_xalign(0.5)
         title_box.append(title)
         subtitle = label(tr("Make it yours. Pick the apps you want, then add more anytime."), "infinity-subtitle")
@@ -550,4 +550,4 @@ if __name__ == "__main__":
     if first_run and (getpass.getuser() in ("gnome-initial-setup", "liveuser") or
                       (MARKER.exists() and not NEXT_START.exists())):
         raise SystemExit(0)
-    raise SystemExit(InfinityLauncher(first_run=first_run).run([sys.argv[0]]))
+    raise SystemExit(InfinitySetup(first_run=first_run).run([sys.argv[0]]))
