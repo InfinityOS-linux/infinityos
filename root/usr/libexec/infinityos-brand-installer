@@ -70,6 +70,11 @@ quit_translation = re.compile(r'("Quit"\s*:\s*\[\s*null,\s*")(?:\\.|[^"\\])*("\s
 locale, count = quit_translation.subn(r'\1Przerwij\2', locale)
 if count != 1:
     raise RuntimeError(f"Anaconda WebUI Polish Quit translation changed: expected one match, got {count}")
+storage_translation = re.compile(
+    r'("Storage configuration"\s*:\s*\[\s*null,\s*")(?:\\.|[^"\\])*("\s*\])')
+locale, count = storage_translation.subn(r'\1Miejsce instalacji\2', locale)
+if count != 1:
+    raise RuntimeError(f"Anaconda WebUI Polish storage translation changed: expected one match, got {count}")
 polish.write_bytes(gzip.compress(locale.encode("utf-8"), compresslevel=9, mtime=0))
 
 index = WEBUI / "index.html"
