@@ -10,6 +10,14 @@ THEME = ROOT / "root/usr/share/infinityos/refind-theme/theme.conf"
 
 
 class RefindConfigTests(unittest.TestCase):
+    def test_shared_theme_hides_optional_firmware_tool_row(self):
+        theme = THEME.read_text()
+        self.assertEqual([line for line in theme.splitlines() if line.startswith("showtools")],
+                         ["showtools"])
+        self.assertIn("include infinity-theme/theme.conf", CONFIG.read_text())
+        self.assertIn("include infinity-theme/theme.conf",
+                      (ROOT / "scripts/finalize-infinity-iso").read_text())
+
     def test_installed_menu_has_single_tool_set_and_diagnostic_recovery(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
