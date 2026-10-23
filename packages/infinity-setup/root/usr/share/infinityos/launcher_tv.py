@@ -29,7 +29,7 @@ THEME_REVISION = "c615aa94313646199f1b0e6c5478b7fe6839e8c4"
 # Labels match the bundled system definitions; Fedora ships these cores.
 # https://gitlab.com/es-de/emulationstation-de/-/blob/master/resources/systems/linuxarm/es_systems.xml
 FEDORA_EMULATORS = {"nes": "Nestopia UE", "psx": "PCSX ReARMed"}
-ESDE_PACKAGES = ("cage", "retroarch", "fuse-libs", "git", "libretro-gambatte",
+ESDE_PACKAGES = ("retroarch", "fuse-libs", "git", "libretro-gambatte",
                  "libretro-mgba", "libretro-nestopia", "libretro-pcsx-rearmed")
 
 

@@ -771,7 +771,7 @@ export const WackLogoButton = GObject.registerClass(
                 ]) {
                     if (tvModeEnabledForCurrentUser(mode)) {
                         this.menu.addMenuItem(new LogoMenuItem(isPolish ? polish : english, () => {
-                            Util.spawn(['pkexec', '/usr/libexec/infinityos-tv-control', 'next', mode]);
+                            Util.spawn(['pkexec', '/usr/libexec/infinityos-tv-enter', mode]);
                         }));
                     }
                 }
@@ -1456,7 +1456,7 @@ export class QuickSettingsPowerManager {
             const item = new PopupMenu.PopupMenuItem(isPolish ? polish : english);
             item.connect('activate', () => {
                 Main.panel.closeQuickSettings();
-                Util.spawn(['pkexec', '/usr/libexec/infinityos-tv-control', 'next', mode]);
+                Util.spawn(['pkexec', '/usr/libexec/infinityos-tv-enter', mode]);
             });
             menu.addMenuItem(item, 3 + this._tvItems.length);
             this._tvItems.push(item);

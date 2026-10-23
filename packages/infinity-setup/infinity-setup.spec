@@ -12,6 +12,7 @@ Requires:       python3-gobject
 Requires:       gtk4
 Requires:       gdk-pixbuf2
 Requires:       util-linux
+Requires:       cage
 
 %description
 InfinitySetup offers first-login application choices for Infinity OS.
@@ -24,6 +25,15 @@ InfinitySetup offers first-login application choices for Infinity OS.
 %install
 cp -a usr etc %{buildroot}/
 
+%posttrans
+if [ -f /etc/infinityos/refind-installed ] && mountpoint -q /boot/efi; then
+    for destination in /boot/efi/EFI/refind/infinity-theme /boot/efi/EFI/BOOT/infinity-theme; do
+        [ -d "$destination/icons" ] || continue
+        install -m 0644 /usr/share/infinityos/refind-theme/theme.conf "$destination/theme.conf" || :
+        install -m 0644 /usr/share/infinityos/refind-theme/icons/os_infinityos*.png "$destination/icons/" || :
+    done
+fi
+
 %files
 %license /usr/share/licenses/infinity-setup/COPYING
 /usr/share/infinityos/build-revisions/infinity-setup
@@ -34,9 +44,16 @@ cp -a usr etc %{buildroot}/
 /usr/share/infinityos/launcher_backend.py
 /usr/share/infinityos/launcher_tv.py
 /usr/share/infinityos/launcher-icons/
+/usr/share/infinityos/refind-theme/theme.conf
+/usr/share/infinityos/refind-theme/icons/os_infinityos.png
+/usr/share/infinityos/refind-theme/icons/os_infinityos_check.png
 /usr/share/infinityos/refind-theme/icons/os_infinityos_esde.png
+/usr/share/infinityos/refind-theme/icons/os_infinityos_live.png
+/usr/share/infinityos/refind-theme/icons/os_infinityos_recovery.png
+/usr/share/infinityos/refind-theme/icons/os_infinityos_safe.png
 /usr/share/infinityos/refind-theme/icons/os_infinityos_steam.png
 /usr/libexec/infinityos-tv-control
+/usr/libexec/infinityos-tv-enter
 /usr/libexec/infinityos-tv-run
 /usr/libexec/infinityos-tv-return-desktop
 /usr/libexec/infinityos-refind-config
@@ -45,6 +62,7 @@ cp -a usr etc %{buildroot}/
 /usr/lib/systemd/system/infinityos-tv@.service
 /usr/lib/systemd/system/infinityos-tv@.target
 /usr/share/polkit-1/actions/org.infinityos.tv-modes.policy
+/usr/share/polkit-1/actions/org.infinityos.tv-enter.policy
 /usr/share/icons/hicolor/scalable/apps/infinity-*.svg
 /usr/share/infinityos/launcher.desktop
 /usr/share/infinityos/launcher-appid.desktop

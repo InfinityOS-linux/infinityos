@@ -147,6 +147,7 @@ elif [[ "$package" == infinity-setup ]]; then
   install -m 0644 "$repo/COPYING" \
     "$work/source/$package-$version/usr/share/licenses/infinity-setup/COPYING"
   install -m 0755 "$repo/root/usr/libexec/infinityos-tv-control" \
+    "$repo/root/usr/libexec/infinityos-tv-enter" \
     "$repo/root/usr/libexec/infinityos-tv-run" \
     "$repo/root/usr/libexec/infinityos-tv-return-desktop" \
     "$repo/root/usr/libexec/infinityos-refind-config" \
@@ -157,10 +158,12 @@ elif [[ "$package" == infinity-setup ]]; then
   install -m 0644 "$repo/root/usr/lib/systemd/system/infinityos-tv@.service" \
     "$repo/root/usr/lib/systemd/system/infinityos-tv@.target" \
     "$work/source/$package-$version/usr/lib/systemd/system/"
-  install -m 0644 "$repo/root/usr/share/infinityos/refind-theme/icons/os_infinityos_esde.png" \
-    "$repo/root/usr/share/infinityos/refind-theme/icons/os_infinityos_steam.png" \
+  install -m 0644 "$repo/root/usr/share/infinityos/refind-theme/icons/"os_infinityos*.png \
     "$work/source/$package-$version/usr/share/infinityos/refind-theme/icons/"
+  install -m 0644 "$repo/root/usr/share/infinityos/refind-theme/theme.conf" \
+    "$work/source/$package-$version/usr/share/infinityos/refind-theme/theme.conf"
   install -m 0644 "$repo/root/usr/share/polkit-1/actions/org.infinityos.tv-modes.policy" \
+    "$repo/root/usr/share/polkit-1/actions/org.infinityos.tv-enter.policy" \
     "$work/source/$package-$version/usr/share/polkit-1/actions/"
 else
   if [[ -n ${INFINITY_GHOSTTY_INSTALL_DIR:-} ]]; then

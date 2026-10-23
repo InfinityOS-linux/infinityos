@@ -1,0 +1,23 @@
+#!/usr/bin/python3
+"""Enter an already configured TV mode from its owning desktop session."""
+
+import os
+import runpy
+import sys
+
+
+CONTROL = "/usr/libexec/infinityos-tv-control"
+
+
+def main():
+    if (os.geteuid() != 0 or len(sys.argv) != 2 or
+            sys.argv[1] not in ("esde", "steam")):
+        raise SystemExit("Usage: infinityos-tv-enter esde|steam")
+    caller = os.environ.get("PKEXEC_UID", "")
+    if not caller.isdecimal() or int(caller) < 1000:
+        raise PermissionError("A regular desktop user must request TV mode")
+    runpy.run_path(CONTROL)["request_next"](sys.argv[1])
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+  "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <action id="org.infinityos.tv-modes.enter">
+    <description>Enter an enabled Infinity OS TV mode</description>
+    <description xml:lang="pl">Przejdź do włączonego trybu TV w Infinity OS</description>
+    <message>Switch to your Infinity OS TV mode</message>
+    <message xml:lang="pl">Przejdź do swojego trybu TV w Infinity OS</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/infinityos-tv-enter</annotate>
+  </action>
+</policyconfig>

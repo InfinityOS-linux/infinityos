@@ -10,7 +10,7 @@ import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,9 +23,33 @@ CONTROL = ROOT / "root/usr/libexec/infinityos-tv-control"
 SPEC = importlib.util.spec_from_loader("infinityos_tv_control", loader=None)
 control = importlib.util.module_from_spec(SPEC)
 exec(compile(CONTROL.read_text(), str(CONTROL), "exec"), control.__dict__)
+ENTER = ROOT / "root/usr/libexec/infinityos-tv-enter"
+ENTER_SPEC = importlib.util.spec_from_loader("infinityos_tv_enter", loader=None)
+enter = importlib.util.module_from_spec(ENTER_SPEC)
+exec(compile(ENTER.read_text(), str(ENTER), "exec"), enter.__dict__)
 
 
 class TVModeTests(unittest.TestCase):
+    def test_enter_policy_is_passwordless_only_for_active_sessions(self):
+        policy = ET.parse(ROOT / "root/usr/share/polkit-1/actions/org.infinityos.tv-enter.policy")
+        action = policy.find("./action[@id='org.infinityos.tv-modes.enter']")
+        self.assertIsNotNone(action)
+        self.assertEqual(action.findtext("./defaults/allow_active"), "yes")
+        self.assertEqual(action.findtext("./defaults/allow_inactive"), "no")
+        self.assertEqual(action.findtext("./defaults/allow_any"), "no")
+
+    def test_enter_requires_pkexec_caller_and_uses_owner_check(self):
+        request = Mock()
+        with patch.object(enter.os, "geteuid", return_value=0), \
+             patch.object(enter.sys, "argv", [str(ENTER), "steam"]), \
+             patch.object(enter.runpy, "run_path", return_value={"request_next": request}):
+            with patch.dict(os.environ, {}, clear=True):
+                with self.assertRaises(PermissionError):
+                    enter.main()
+            with patch.dict(os.environ, {"PKEXEC_UID": "1000"}):
+                enter.main()
+        request.assert_called_once_with("steam")
+
     def test_privileged_and_user_esde_package_lists_match(self):
         self.assertEqual(control.ESDE_PACKAGES, launcher_tv.ESDE_PACKAGES)
 
@@ -299,7 +323,7 @@ class TVModeTests(unittest.TestCase):
             self.assertEqual(rom.read_bytes(), b"my ROM")
             self.assertFalse(launcher_tv._manifest(home, "esde").exists())
             run.assert_called_once_with(
-                ["pkexec", launcher_tv.CONTROL, "deactivate", "esde", "cage"])
+                ["pkexec", launcher_tv.CONTROL, "deactivate", "esde"])
 
     def test_failed_boot_menu_update_restores_enabled_mode(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -13,7 +13,7 @@ STATE = Path("/etc/infinityos/tv-modes")
 NEXT = Path("/etc/infinityos/tv-next-mode")
 DROPINS = Path("/etc/systemd/system")
 MODES = {"esde", "steam"}
-ESDE_PACKAGES = ("cage", "retroarch", "fuse-libs", "git", "libretro-gambatte",
+ESDE_PACKAGES = ("retroarch", "fuse-libs", "git", "libretro-gambatte",
                  "libretro-mgba", "libretro-nestopia", "libretro-pcsx-rearmed")
 STEAM_PACKAGES = ("gamescope",)
 STEAM_ARM_PACKAGES = ("libva", "libvpx", "ibus-libs")

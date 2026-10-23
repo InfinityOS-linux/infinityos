@@ -1,4 +1,5 @@
 import subprocess
+import struct
 import tempfile
 import unittest
 from pathlib import Path
@@ -38,7 +39,25 @@ class RefindConfigTests(unittest.TestCase):
             self.assertNotIn("loglevel=3", recovery)
             self.assertIn("plymouth.enable=0", recovery)
             self.assertIn("small_icon_size 32", THEME.read_text())
+            self.assertIn("big_icon_size 256", THEME.read_text())
             self.assertIn("use_graphics_for linux", THEME.read_text())
+
+    def test_infinity_boot_icons_match_their_native_menu_size(self):
+        icons = ROOT / "root/usr/share/infinityos/refind-theme/icons"
+        spec = (ROOT / "packages/infinity-setup/infinity-setup.spec").read_text()
+        staging = (ROOT / "packages/build-rpm.sh").read_text()
+        self.assertIn("/usr/share/infinityos/refind-theme/theme.conf", spec)
+        self.assertIn("os_infinityos*.png", staging)
+        self.assertIn("%posttrans", spec)
+        self.assertIn("/boot/efi/EFI/refind/infinity-theme", spec)
+        self.assertIn("/boot/efi/EFI/BOOT/infinity-theme", spec)
+        for suffix in ("", "_check", "_live", "_recovery", "_safe", "_esde", "_steam"):
+            with self.subTest(suffix=suffix):
+                self.assertIn(f"/usr/share/infinityos/refind-theme/icons/os_infinityos{suffix}.png", spec)
+                data = (icons / f"os_infinityos{suffix}.png").read_bytes()
+                self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
+                self.assertEqual(struct.unpack(">II", data[16:24]), (256, 256))
+                self.assertEqual(data[25], 6)
 
     def test_tv_entries_only_exist_for_enabled_modes(self):
         with tempfile.TemporaryDirectory() as directory:
