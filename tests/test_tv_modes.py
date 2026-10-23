@@ -115,6 +115,44 @@ class TVModeTests(unittest.TestCase):
             self.assertFalse(binary.exists())
             self.assertEqual(saved.read_text(), "user metadata")
 
+    def test_esde_uninstall_restores_unchanged_settings_and_keeps_user_changes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            theme = home / "ES-DE/themes/canvas-es-de"
+            theme.mkdir(parents=True)
+            (theme / "theme.xml").write_text("managed theme")
+            settings = home / "ES-DE/settings/es_settings.xml"
+            settings.parent.mkdir(parents=True)
+            settings.write_text("managed setting")
+            retroarch = home / ".config/retroarch/retroarch.cfg"
+            retroarch.parent.mkdir(parents=True)
+            retroarch.write_text("user changed this after setup")
+            rom = home / "emulation/roms/nes/game.rom"
+            rom.parent.mkdir(parents=True)
+            rom.write_bytes(b"my ROM")
+            launcher_tv._save_manifest(home, "esde", {
+                "packages": ["cage"],
+                "theme_hash": launcher_tv._tree_hash(theme),
+                "settings": {
+                    "ES-DE/settings/es_settings.xml": {
+                        "previous": "original setting",
+                        "applied": hashlib.sha256(settings.read_bytes()).hexdigest()},
+                    ".config/retroarch/retroarch.cfg": {
+                        "previous": "original config",
+                        "applied": hashlib.sha256(b"managed config").hexdigest()},
+                },
+            })
+            with patch.object(launcher_tv, "_run") as run, \
+                 patch.object(launcher_tv, "_missing_packages", return_value=[]):
+                launcher_tv.set_enabled("esde", False, home)
+            self.assertFalse(theme.exists())
+            self.assertEqual(settings.read_text(), "original setting")
+            self.assertEqual(retroarch.read_text(), "user changed this after setup")
+            self.assertEqual(rom.read_bytes(), b"my ROM")
+            self.assertFalse(launcher_tv._manifest(home, "esde").exists())
+            self.assertEqual(run.call_args_list[-1].args[0],
+                             ["pkexec", "dnf", "-y", "remove", "cage"])
+
     def test_failed_boot_menu_update_restores_enabled_mode(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

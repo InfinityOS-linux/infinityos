@@ -1,6 +1,7 @@
 """Optional, one-account TV sessions for InfinityLauncher."""
 
 import hashlib
+import json
 import os
 import re
 import shutil
@@ -26,6 +27,59 @@ THEME_REVISION = "c615aa94313646199f1b0e6c5478b7fe6839e8c4"
 # Labels match the bundled system definitions; Fedora ships these cores.
 # https://gitlab.com/es-de/emulationstation-de/-/blob/master/resources/systems/linuxarm/es_systems.xml
 FEDORA_EMULATORS = {"nes": "Nestopia UE", "psx": "PCSX ReARMed"}
+ESDE_PACKAGES = ("cage", "retroarch", "fuse-libs", "git", "libretro-gambatte",
+                 "libretro-mgba", "libretro-nestopia", "libretro-pcsx-rearmed")
+
+
+def _manifest(home, mode):
+    return home / f".local/share/infinityos/tv/{mode}-installed.json"
+
+
+def _missing_packages(packages):
+    return [package for package in packages if subprocess.run(
+        ["rpm", "-q", "--quiet", package], check=False).returncode != 0]
+
+
+def _tree_hash(path):
+    digest = hashlib.sha256()
+    for file in sorted(path.rglob("*")):
+        if file.is_symlink():
+            return None
+        if file.is_dir():
+            continue
+        if not file.is_file():
+            return None
+        digest.update(str(file.relative_to(path)).encode())
+        digest.update(hashlib.sha256(file.read_bytes()).digest())
+    return digest.hexdigest()
+
+
+def _save_manifest(home, mode, details):
+    _replace_text(_manifest(home, mode), json.dumps(details, sort_keys=True) + "\n")
+
+
+def _remove_managed(home, mode):
+    path = _manifest(home, mode)
+    if not path.is_file():
+        return
+    details = json.loads(path.read_text(encoding="utf-8"))
+    packages = [package for package in details.get("packages", [])
+                if package in (*ESDE_PACKAGES, "gamescope") and
+                package not in _missing_packages((package,))]
+    if packages:
+        _run(["pkexec", "dnf", "-y", "remove", *packages])
+    if mode == "esde":
+        theme = home / "ES-DE/themes/canvas-es-de"
+        if details.get("theme_hash") and theme.is_dir() and _tree_hash(theme) == details["theme_hash"]:
+            shutil.rmtree(theme)
+        for relative, entry in details.get("settings", {}).items():
+            setting = home / relative
+            if setting.is_file() and hashlib.sha256(setting.read_bytes()).hexdigest() == entry["applied"]:
+                if entry["previous"] is None:
+                    setting.unlink()
+                else:
+                    _replace_text(setting, entry["previous"])
+    path.unlink()
 
 
 def enabled(mode, uid=None):
@@ -150,19 +204,38 @@ def set_enabled(mode, active, home=None):
         _run(["pkexec", CONTROL, "disable", mode])
         if mode == "esde":
             (home / ".local/share/infinityos/tv/ES-DE.AppImage").unlink(missing_ok=True)
+        _remove_managed(home, mode)
         return
     if mode == "esde":
+        settings_paths = ("ES-DE/settings/es_settings.xml", ".config/retroarch/retroarch.cfg",
+                          "ES-DE/gamelists/nes/gamelist.xml",
+                          "ES-DE/gamelists/psx/gamelist.xml")
+        previous_settings = {relative: (home / relative).read_text(encoding="utf-8")
+                             if (home / relative).is_file() else None
+                             for relative in settings_paths}
+        theme = home / "ES-DE/themes/canvas-es-de"
+        theme_created = not theme.exists()
         binary = _install_esde(home)
-        _run(["pkexec", "dnf", "-y", "install", "cage", "retroarch", "fuse-libs", "git",
-              "libretro-gambatte", "libretro-mgba", "libretro-nestopia",
-              "libretro-pcsx-rearmed"])
+        packages = _missing_packages(ESDE_PACKAGES)
+        _run(["pkexec", "dnf", "-y", "install", *ESDE_PACKAGES])
+        details = {"packages": packages, "settings": {}}
+        _save_manifest(home, mode, details)
         _run(["pkexec", CONTROL, "prepare", "esde", str(os.getuid())])
         _install_theme(home)
         _configure_esde(home)
         _run([str(binary), "--create-system-dirs"])
+        details["theme_hash"] = _tree_hash(theme) if theme_created else None
+        details["settings"] = {
+            relative: {"previous": previous_settings[relative],
+                       "applied": hashlib.sha256((home / relative).read_bytes()).hexdigest()}
+            for relative in settings_paths if (home / relative).is_file()
+        }
+        _save_manifest(home, mode, details)
     else:
         steam = next(app for app in APPS if app.name == "Steam")
+        packages = _missing_packages(("gamescope",))
         if not installed(steam, home):
             install(steam, home)
         _run(["pkexec", "dnf", "-y", "install", "gamescope"])
+        _save_manifest(home, mode, {"packages": packages})
     _run(["pkexec", CONTROL, "enable", mode, str(os.getuid())])
