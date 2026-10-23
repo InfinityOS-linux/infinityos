@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+
+output=${1:?Systemd generator directory required}
+next=/etc/infinityos/tv-next-mode
+[ -f "$next" ] || exit 0
+IFS= read -r mode < "$next" || true
+case "$mode" in
+    esde|steam) ;;
+    *) exit 0 ;;
+esac
+[ -s "/etc/infinityos/tv-modes/$mode" ] || exit 0
+[ -s "/etc/systemd/system/infinityos-tv@$mode.service.d/account.conf" ] || exit 0
+cat > "$output/default.target" <<EOF
+[Unit]
+Description=Infinity OS one-time $mode TV mode
+Requires=infinityos-tv@$mode.target
+After=infinityos-tv@$mode.target
+AllowIsolate=yes
+EOF

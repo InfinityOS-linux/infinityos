@@ -4,6 +4,7 @@ set -euo pipefail
 esp=${1:-/boot/efi}
 cmdline_file=${2:-/etc/kernel/cmdline}
 ready_marker=${3:-/var/lib/infinityos/backups-ready}
+tv_modes=${4:-/etc/infinityos/tv-modes}
 config="$esp/EFI/refind/refind.conf"
 fallback_config="$esp/EFI/BOOT/refind.conf"
 [[ -d $esp/EFI/refind && -s $cmdline_file ]] || exit 1
@@ -62,6 +63,20 @@ EOF
 		printf '}\n\n'
 	done
 	version=${versions[0]}
+	for mode in esde steam; do
+		[[ -s $tv_modes/$mode ]] || continue
+		case $mode in
+			esde) title='EmulationStation'; icon=os_infinityos_esde.png ;;
+			steam) title='Steam Big Picture'; icon=os_infinityos_steam.png ;;
+		esac
+		[[ -s $esp/EFI/refind/infinity-theme/icons/$icon ]] || continue
+		printf 'menuentry "%s" {\n' "$title"
+		printf '    loader /os/vmlinuz-%s\n' "$version"
+		printf '    icon /EFI/refind/infinity-theme/icons/%s\n' "$icon"
+		printf '    initrd /os/initramfs-%s.img\n' "$version"
+		printf '    options "%s systemd.unit=infinityos-tv@%s.target"\n' "$options" "$mode"
+		printf '}\n\n'
+	done
 	backup_options=()
 	read -r -a args <<< "$options"
 	for arg in "${args[@]}"; do

@@ -36,6 +36,18 @@ function isDarkTheme() {
     }
 }
 
+function tvModeEnabledForCurrentUser(mode) {
+    const runtime = GLib.get_user_runtime_dir();
+    if (!runtime)
+        return false;
+    try {
+        const [ok, contents] = GLib.file_get_contents(`/etc/infinityos/tv-modes/${mode}`);
+        return ok && String.fromCharCode(...contents).trim() === GLib.path_get_basename(runtime);
+    } catch (_error) {
+        return false;
+    }
+}
+
 export const LogoMenuItem = GObject.registerClass(
     class WackLogoMenuItem extends PopupMenu.PopupMenuItem {
         _init(name, activateFunction, shortcut = null, isDark = null) {
@@ -752,6 +764,17 @@ export const WackLogoButton = GObject.registerClass(
                 this.menu.addMenuItem(new LogoMenuItem(_('Restart...'), () => {
                     SystemActions.getDefault().activateRestart();
                 }, getShortcut('restart'), isDark));
+                const isPolish = GLib.get_language_names().some(language => language.startsWith('pl'));
+                for (const [mode, english, polish] of [
+                    ['esde', 'Enter emulation mode', 'Przejdź do trybu emulacji'],
+                    ['steam', 'Enter Steam mode', 'Przejdź do trybu Steam'],
+                ]) {
+                    if (tvModeEnabledForCurrentUser(mode)) {
+                        this.menu.addMenuItem(new LogoMenuItem(isPolish ? polish : english, () => {
+                            Util.spawn(['pkexec', '/usr/libexec/infinityos-tv-control', 'next', mode]);
+                        }));
+                    }
+                }
                 this.menu.addMenuItem(new LogoMenuItem(_('Shut Down...'), () => {
                     SystemActions.getDefault().activatePowerOff();
                 }, getShortcut('shutdown'), isDark));
@@ -1333,6 +1356,9 @@ export class QuickSettingsPowerManager {
     constructor(extension) {
         this._extension = extension;
         this._settings = extension._settings;
+        this._tvMenu = null;
+        this._tvMenuSignal = 0;
+        this._tvItems = [];
 
         this._settings.connectObject(
             'changed::show-logo-menu', () => this.sync(),
@@ -1403,7 +1429,42 @@ export class QuickSettingsPowerManager {
         }
     }
 
+    _syncTvItems() {
+        const menu = Main.panel.statusArea.quickSettings?._system?._systemItem?.menu;
+        if (!menu)
+            return;
+        if (this._tvMenu !== menu) {
+            if (this._tvMenu && this._tvMenuSignal)
+                this._tvMenu.disconnect(this._tvMenuSignal);
+            this._tvMenu = menu;
+            this._tvMenuSignal = menu.connect('open-state-changed', (_source, isOpen) => {
+                if (isOpen)
+                    this._syncTvItems();
+            });
+        }
+        this._tvItems.forEach(item => item.destroy());
+        this._tvItems = [];
+        if (this._isLockscreen())
+            return;
+        const isPolish = GLib.get_language_names().some(language => language.startsWith('pl'));
+        for (const [mode, english, polish] of [
+            ['esde', 'Enter emulation mode', 'Przejdź do trybu emulacji'],
+            ['steam', 'Enter Steam mode', 'Przejdź do trybu Steam'],
+        ]) {
+            if (!tvModeEnabledForCurrentUser(mode))
+                continue;
+            const item = new PopupMenu.PopupMenuItem(isPolish ? polish : english);
+            item.connect('activate', () => {
+                Main.panel.closeQuickSettings();
+                Util.spawn(['pkexec', '/usr/libexec/infinityos-tv-control', 'next', mode]);
+            });
+            menu.addMenuItem(item, 3 + this._tvItems.length);
+            this._tvItems.push(item);
+        }
+    }
+
     sync() {
+        this._syncTvItems();
         const isLockscreen = this._isLockscreen();
         const showLogoMenu = this._settings.get_boolean('show-logo-menu');
         const showPowerOptions = this._settings.get_boolean('show-power-options');
@@ -1457,6 +1518,12 @@ export class QuickSettingsPowerManager {
     }
 
     destroy() {
+        this._tvItems.forEach(item => item.destroy());
+        this._tvItems = [];
+        if (this._tvMenu && this._tvMenuSignal)
+            this._tvMenu.disconnect(this._tvMenuSignal);
+        this._tvMenu = null;
+        this._tvMenuSignal = 0;
         this._settings?.disconnectObject(this);
         Main.sessionMode?.disconnectObject(this);
         Main.screenShield?.disconnectObject(this);

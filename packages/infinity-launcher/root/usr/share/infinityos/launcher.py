@@ -17,6 +17,7 @@ from launcher_backend import (APPS, active_local_model, available, deactivate_lo
                               install, installed, installed_flatpaks,
                               open_lutris_installer, removable, uninstall)
 from launcher_i18n import tr
+from launcher_tv import enabled as tv_enabled, set_enabled as set_tv_enabled
 
 
 MARKER = Path.home() / ".config/infinityos/launcher-complete"
@@ -97,6 +98,9 @@ class InfinityLauncher(Gtk.Application):
         self.switches = {}
         self.initial_active = {}
         self.notes = {}
+        self.tv_switches = {}
+        self.tv_initial = {}
+        self.tv_notes = {}
         self.installer_buttons = []
         self.busy = False
         self.opening_installers = 0
@@ -329,6 +333,43 @@ class InfinityLauncher(Gtk.Application):
             self.notes[app] = status
             row.append(switch)
             body.append(row)
+        if section == "Gaming":
+            body.append(Gtk.Separator())
+            heading = label(tr("Fullscreen/TV mode on boot").upper(), "infinity-section")
+            heading.set_margin_top(10)
+            body.append(heading)
+            body.append(label(tr("Selecting a TV boot entry signs in to your account automatically."),
+                              "infinity-muted"))
+            for mode, name, description, icon_name in (
+                    ("esde", "EmulationStation (ES-DE)",
+                     "Browse your own ROMs in /emulation/roms; place BIOS files in /emulation/bios.",
+                     "input-gaming-symbolic"),
+                    ("steam", "Steam Big Picture",
+                     "Start Steam fullscreen without the GNOME desktop.",
+                     "applications-games-symbolic")):
+                row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
+                row.add_css_class("infinity-row")
+                icon = Gtk.Image.new_from_icon_name(icon_name)
+                icon.set_pixel_size(32)
+                row.append(icon)
+                details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+                details.set_hexpand(True)
+                details.append(label(tr(name), "infinity-app-name"))
+                note = label(tr(description), "infinity-muted")
+                note.set_wrap(True)
+                details.append(note)
+                status = label(tr("Enabled") if tv_enabled(mode) else "", "infinity-app-status")
+                details.append(status)
+                row.append(details)
+                switch = Gtk.Switch()
+                switch.set_valign(Gtk.Align.CENTER)
+                active = tv_enabled(mode)
+                switch.set_active(active)
+                self.tv_initial[mode] = active
+                self.tv_switches[mode] = switch
+                self.tv_notes[mode] = status
+                row.append(switch)
+                body.append(row)
         return scroller
 
     def _local_model_toggled(self, switch, app):
@@ -368,8 +409,10 @@ class InfinityLauncher(Gtk.Application):
         changes = [(app, switch.get_active()) for app, switch in self.switches.items()
                    if switch.get_sensitive() and
                    switch.get_active() != self.initial_active[app]]
+        tv_changes = [(mode, switch.get_active()) for mode, switch in self.tv_switches.items()
+                      if switch.get_active() != self.tv_initial[mode]]
         changes.sort(key=lambda change: 0 if change[0].kind == "local-model" and not change[1] else 1)
-        if not changes:
+        if not changes and not tv_changes:
             self._complete()
             return
         self.busy = True
@@ -378,19 +421,22 @@ class InfinityLauncher(Gtk.Application):
         self.progress_source = GLib.timeout_add(80, self._pulse_progress)
         for switch in self.switches.values():
             switch.set_sensitive(False)
+        for switch in self.tv_switches.values():
+            switch.set_sensitive(False)
         for button, _app in self.installer_buttons:
             button.set_sensitive(False)
-        threading.Thread(target=self._install, args=(changes,), daemon=True).start()
+        threading.Thread(target=self._install, args=(changes, tv_changes), daemon=True).start()
 
     def _pulse_progress(self):
         self.progress.pulse()
         return True
 
-    def _install(self, changes):
+    def _install(self, changes, tv_changes):
         errors = []
+        total = len(changes) + len(tv_changes)
         for index, (app, enabled) in enumerate(changes, 1):
             GLib.idle_add(self.status.set_text, tr("Applying {index}/{total}: {name}…").format(
-                index=index, total=len(changes), name=app.name))
+                index=index, total=total, name=app.name))
             try:
                 if enabled:
                     install(app)
@@ -402,7 +448,22 @@ class InfinityLauncher(Gtk.Application):
                 errors.append(f"{app.name}: {exc}")
             else:
                 GLib.idle_add(self._installed, app, enabled)
+        for index, (mode, enabled) in enumerate(tv_changes, len(changes) + 1):
+            name = "EmulationStation (ES-DE)" if mode == "esde" else "Steam Big Picture"
+            GLib.idle_add(self.status.set_text, tr("Applying {index}/{total}: {name}…").format(
+                index=index, total=total, name=name))
+            try:
+                set_tv_enabled(mode, enabled)
+            except Exception as exc:
+                errors.append(f"{name}: {exc}")
+            else:
+                GLib.idle_add(self._tv_applied, mode, enabled)
         GLib.idle_add(self._finished, errors)
+
+    def _tv_applied(self, mode, enabled):
+        self.tv_notes[mode].set_text(tr("Enabled") if enabled else "")
+        self.tv_initial[mode] = enabled
+        return False
 
     def _installed(self, app, enabled):
         status = self.notes[app]
@@ -423,6 +484,8 @@ class InfinityLauncher(Gtk.Application):
             for app, switch in self.switches.items():
                 switch.set_sensitive(available(app) and
                                      (app.kind == "local-model" or not installed(app) or removable(app)))
+            for switch in self.tv_switches.values():
+                switch.set_sensitive(True)
             for button, app in self.installer_buttons:
                 button.set_sensitive(available(app))
             self.save_button.set_sensitive(True)

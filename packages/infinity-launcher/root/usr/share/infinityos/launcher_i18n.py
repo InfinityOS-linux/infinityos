@@ -38,6 +38,16 @@ POLISH = {
     "System maintenance": "Konserwacja systemu",
     "Device tools": "Narzędzia urządzeń", "Windows apps": "Aplikacje Windows",
     "Game launchers": "Launchery gier",
+    "Fullscreen/TV mode on boot": "Tryb pełnoekranowy / TV przy starcie",
+    "Selecting a TV boot entry signs in to your account automatically.":
+        "Wybranie trybu TV przy starcie automatycznie loguje na Twoje konto.",
+    "EmulationStation (ES-DE)": "EmulationStation (ES-DE)",
+    "Steam Big Picture": "Steam Big Picture",
+    "Browse your own ROMs in /emulation/roms; place BIOS files in /emulation/bios.":
+        "Przeglądaj własne ROM-y w /emulation/roms; pliki BIOS umieść w /emulation/bios.",
+    "Start Steam fullscreen without the GNOME desktop.":
+        "Uruchamiaj Steam na pełnym ekranie bez pulpitu GNOME.",
+    "Enabled": "Włączono",
     "Xbox Controller": "Kontroler Xbox", "Audio": "Dźwięk",
     "Communication": "Komunikacja", "Other": "Inne", "Image": "Obraz",
     "Video": "Wideo", "Design": "Projektowanie", "More tools": "Więcej narzędzi",

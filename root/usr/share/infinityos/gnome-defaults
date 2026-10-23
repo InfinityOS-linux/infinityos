@@ -39,7 +39,7 @@ enable-panel-proximity=false
 
 [org/gnome/shell/extensions/dash2dock-lite]
 adaptive-background=true
-blur-background=true
+blur-background=false
 hide-labels=true
 preferred-monitor=0
 dock-location=0

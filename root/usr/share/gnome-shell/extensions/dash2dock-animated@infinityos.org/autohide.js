@@ -150,7 +150,8 @@ export let AutoHide = class {
   }
 
   show() {
-    if (!this.dock._monitor || (!IS_LIVE_SESSION && this.dock._monitor.inFullscreen) || this._launcherOpen()) {
+    if (!this.dock._monitor || (!IS_LIVE_SESSION && this.dock._monitor.inFullscreen) ||
+        this._launcherOpen() || this._installerOpen()) {
       return;
     }
     this._dwell = 0;
@@ -176,6 +177,19 @@ export let AutoHide = class {
       return window.get_gtk_application_id?.() === 'org.infinityos.Launcher' ||
         window.get_wm_class?.() === 'org.infinityos.Launcher' ||
         LAUNCHER_APP_IDS.has(tracker.get_window_app(window)?.get_id());
+    });
+  }
+
+  _installerOpen() {
+    if (!IS_LIVE_SESSION) return false;
+    const tracker = Shell.WindowTracker.get_default();
+    return global.get_window_actors().some((actor) => {
+      const window = actor.get_meta_window();
+      if (!window) return false;
+      const wmClass = window.get_wm_class?.()?.toLowerCase();
+      const appId = tracker.get_window_app(window)?.get_id();
+      return wmClass === 'liveinst' || appId === 'anaconda.desktop' ||
+        appId === 'liveinst.desktop' || window.get_title?.() === 'Install to Hard Drive';
     });
   }
 
@@ -314,6 +328,15 @@ export let AutoHide = class {
   }
 
   _checkHide() {
+    if (this._installerOpen()) {
+      this._installerForcedHidden = true;
+      this.dock.visible = false;
+      return;
+    }
+    if (this._installerForcedHidden) {
+      this._installerForcedHidden = false;
+      this.dock.visible = true;
+    }
     if (this._launcherOpen()) {
       this._launcherForcedHidden = true;
       this.hide();

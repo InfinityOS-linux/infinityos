@@ -111,6 +111,10 @@ class LauncherBackendTests(unittest.TestCase):
             self.assertFalse(backend.installed(steam, home))
             backend.install(steam, home)
             self.assertTrue(backend.installed(steam, home))
+            client = home / ".local/share/Steam/steamrtarm64/steam"
+            client.chmod(0o644)
+            self.assertFalse(backend.installed(steam, home))
+            client.chmod(0o755)
             self.assertEqual((home / ".local/share/Steam/steamrtarm64/libs/libcurl.so").read_bytes(),
                              b"runtime library")
             self.assertTrue((home / ".local/share/Steam/steamrtarm64/libs/libcurl.so.4").is_symlink())
