@@ -347,7 +347,7 @@ export default class Dash2DockLiteExt extends Extension {
           this._entranceSourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 690, () => {
             this._entranceSourceId = 0;
             entranceDocks.forEach(dock => {
-              if (!dock.is_destroyed())
+              if (dock.get_parent())
                 dock.ease({ translation_y: 0, duration: 480,
                   mode: Clutter.AnimationMode.EASE_OUT_CUBIC });
             });

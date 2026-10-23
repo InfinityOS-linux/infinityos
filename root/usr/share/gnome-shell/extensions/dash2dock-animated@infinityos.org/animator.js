@@ -923,7 +923,7 @@ export let Animator = class {
           badge.y = icon._renderer.y;
 
           badge.set_scale(icon._scale, icon._scale);
-          badge.opacity = renderer.opacity;
+          badge.opacity = icon._renderer.opacity;
           badge.show();
         }
       }
@@ -954,7 +954,7 @@ export let Animator = class {
           dots.x = icon._renderer.x;
           dots.y = icon._renderer.y;
           dots.set_scale(icon._scale, icon._scale);
-          dots.opacity = renderer.opacity;
+          dots.opacity = icon._renderer.opacity;
           dots.show();
         }
       }
