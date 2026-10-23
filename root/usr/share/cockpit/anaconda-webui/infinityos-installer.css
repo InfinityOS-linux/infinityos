@@ -594,14 +594,12 @@ body .pf-v6-c-modal-box :is(.pf-v6-c-button, .pf-v6-c-form-control,
 }
 
 /* Anaconda renders the final progress page outside #installation-wizard. */
-#app:has(.anaconda-screen-progress-status) .pf-v6-c-page__main {
-  background: radial-gradient(ellipse at 88% 5%, rgba(112, 69, 167, 0.2), transparent 45%),
-    var(--infinity-ink) !important;
-}
-
-#app:has(.anaconda-screen-progress-status) :is(.pf-v6-c-page__main-container,
-  .pf-v6-c-page__main-section) {
-  background: transparent;
+body:has(.anaconda-screen-progress-status),
+#app:has(.anaconda-screen-progress-status),
+#app:has(.anaconda-screen-progress-status) :is(.pf-v6-c-page,
+  .pf-v6-c-page__main, .pf-v6-c-page__main-container,
+  .pf-v6-c-page__main-section, .pf-v6-c-page__main-body) {
+  background: var(--infinity-ink) !important;
 }
 
 .anaconda-screen-progress-status {
@@ -656,7 +654,7 @@ body .pf-v6-c-modal-box :is(.pf-v6-c-button, .pf-v6-c-form-control,
   gap: 12px;
   width: 100%;
   margin-top: 20px;
-  text-align: start;
+  text-align: center;
 }
 
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step {
@@ -711,6 +709,10 @@ body .pf-v6-c-modal-box :is(.pf-v6-c-button, .pf-v6-c-form-control,
 }
 
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-main {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  width: 100%;
   min-width: 0;
   margin: 0;
   text-align: center;
@@ -725,11 +727,17 @@ body .pf-v6-c-modal-box :is(.pf-v6-c-button, .pf-v6-c-form-control,
 
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-description {
   display: block;
+  width: 100%;
   margin-top: 8px;
   color: var(--infinity-muted);
   font-size: 0.8125rem;
   line-height: 1.4;
   text-align: center;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-description .pf-v6-l-flex {
+  align-items: center;
+  justify-content: center;
 }
 
 .anaconda-screen-progress-status .pf-v6-c-empty-state__footer .pf-v6-c-button {
