@@ -428,6 +428,36 @@ body .pf-v6-c-modal-box .pf-v6-c-table tbody tr:hover {
   background: var(--infinity-hover);
 }
 
+/* StorageReview is a compact ListingTable inside the purple summary card.
+   Let the card's surface show through instead of drawing a gray rectangle. */
+#installation-wizard.anaconda-wizard-step-anaconda-screen-review .storage-review-table {
+  --pf-v6-c-table--BackgroundColor: transparent;
+  --pf-v6-c-table--BorderColor: transparent;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+#installation-wizard.anaconda-wizard-step-anaconda-screen-review
+  .storage-review-table :is(thead, tbody, tr, th, td),
+#installation-wizard.anaconda-wizard-step-anaconda-screen-review
+  .storage-review-table tbody tr:hover {
+  background: transparent;
+  border-color: transparent;
+}
+
+#installation-wizard.anaconda-wizard-step-anaconda-screen-review
+  .storage-review-table td.storage-review-table-column-action-destroy {
+  color: #ffb36a;
+}
+
+#installation-wizard.anaconda-wizard-step-anaconda-screen-review
+  .storage-review-table td.storage-review-table-column-action-resize {
+  color: #f0ca83;
+}
+
 #app :is(.pf-v6-c-alert, .pf-v6-c-banner),
 body .pf-v6-c-modal-box :is(.pf-v6-c-alert, .pf-v6-c-banner) {
   color: var(--infinity-text);
