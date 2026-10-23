@@ -113,6 +113,15 @@ grep -Fqx 'Exec=liveinst' \
     echo 'Live installer does not keep the GNOME dock active' >&2
     exit 1
 }
+grep -Fqx 'Icon=infinity-installer' \
+    "$rootpoint/usr/share/applications/liveinst.desktop" || {
+    echo 'Live installer is missing its Infinity OS icon' >&2
+    exit 1
+}
+[[ -s "$rootpoint/usr/share/icons/hicolor/scalable/apps/infinity-installer.svg" ]] || {
+    echo 'Infinity OS installer icon is missing from ISO' >&2
+    exit 1
+}
 [[ -f "$rootpoint/etc/infinityos/liveinstall-boot-pending" ]] || {
     echo 'Installed boot retry marker missing from ISO' >&2
     exit 1

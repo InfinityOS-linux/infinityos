@@ -72,6 +72,10 @@ class LiveBootContractTests(unittest.TestCase):
         setup = (REPO / "config.sh").read_text()
         self.assertIn("installer_desktop=/usr/share/applications/liveinst.desktop", setup)
         self.assertIn("grep -qx 'Exec=liveinst'", setup)
+        self.assertIn("Icon=infinity-installer", setup)
+        icon = REPO / "root/usr/share/icons/hicolor/scalable/apps/infinity-installer.svg"
+        self.assertTrue(icon.is_file())
+        self.assertIn('viewBox="0 0 512 512"', icon.read_text())
         self.assertNotIn("disable-user-extensions", setup)
         self.assertFalse((REPO / "root/usr/libexec/infinityos-liveinst").exists())
 

@@ -163,6 +163,9 @@ EOF
 		installer_desktop=/usr/share/applications/liveinst.desktop
 		test -f "$installer_desktop"
 		grep -qx 'Exec=liveinst' "$installer_desktop"
+		grep -q '^Icon=' "$installer_desktop"
+		sed -i 's/^Icon=.*/Icon=infinity-installer/' "$installer_desktop"
+		grep -qx 'Icon=infinity-installer' "$installer_desktop"
 		install -d /etc/skel/.config/autostart
 		cat > /etc/skel/.config/autostart/infinityos-live-power.desktop << 'EOF'
 [Desktop Entry]
