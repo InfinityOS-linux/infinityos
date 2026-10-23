@@ -38,7 +38,6 @@ POLISH = {
     "System maintenance": "Konserwacja systemu",
     "Device tools": "Narzędzia urządzeń", "Windows apps": "Aplikacje Windows",
     "Game launchers": "Launchery gier",
-    "Fullscreen/TV mode on boot": "Tryb pełnoekranowy / TV przy starcie",
     "Selecting a TV boot entry signs in to your account automatically.":
         "Wybranie trybu TV przy starcie automatycznie loguje na Twoje konto.",
     "EmulationStation (ES-DE)": "EmulationStation (ES-DE)",

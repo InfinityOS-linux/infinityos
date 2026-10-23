@@ -27,6 +27,8 @@ SECTIONS = (
     ("AI", "utilities-terminal-symbolic", "Assistants and command-line tools"),
     ("System", "preferences-system-symbolic", "Everyday essentials"),
     ("Gaming", "applications-games-symbolic", "Games, launchers and friends"),
+    ("TV Mode", "video-display-symbolic",
+     "Selecting a TV boot entry signs in to your account automatically."),
     ("Creative", "applications-graphics-symbolic", "Tools for making things"),
     ("Office", "applications-office-symbolic", "Documents and productivity"),
     ("Programming", "applications-development-symbolic", "Build your workspace"),
@@ -333,13 +335,7 @@ class InfinityLauncher(Gtk.Application):
             self.notes[app] = status
             row.append(switch)
             body.append(row)
-        if section == "Gaming":
-            body.append(Gtk.Separator())
-            heading = label(tr("Fullscreen/TV mode on boot").upper(), "infinity-section")
-            heading.set_margin_top(10)
-            body.append(heading)
-            body.append(label(tr("Selecting a TV boot entry signs in to your account automatically."),
-                              "infinity-muted"))
+        if section == "TV Mode":
             for mode, name, description, icon_name in (
                     ("esde", "EmulationStation (ES-DE)",
                      "Browse your own ROMs in /emulation/roms; place BIOS files in /emulation/bios.",
