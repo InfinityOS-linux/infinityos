@@ -1,3 +1,5 @@
+import hashlib
+import os
 import subprocess
 import struct
 import tempfile
@@ -7,10 +9,72 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "root/usr/libexec/infinityos-refind-config"
+INSTALL = ROOT / "root/usr/libexec/infinityos-refind-install"
 THEME = ROOT / "root/usr/share/infinityos/refind-theme/theme.conf"
 
 
 class RefindConfigTests(unittest.TestCase):
+    def test_usb_gamepad_driver_and_default_controls(self):
+        driver = ROOT / "root/usr/share/infinityos/efi-drivers/x64/UsbXbox360Dxe.efi"
+        data = driver.read_bytes()
+        self.assertEqual(data[:2], b"MZ")
+        pe_offset = struct.unpack_from("<I", data, 0x3c)[0]
+        self.assertEqual(data[pe_offset:pe_offset + 4], b"PE\0\0")
+        self.assertEqual(struct.unpack_from("<H", data, pe_offset + 4)[0], 0x8664)
+        self.assertEqual(struct.unpack_from("<H", data, pe_offset + 24 + 68)[0], 11)
+        self.assertEqual(
+            hashlib.sha256(data).hexdigest(),
+            "9651e547d2842369e69776ce5fd51e5a2562268af91ca3ccfb80bf3f492d14a2",
+        )
+        config = (driver.parent / "config.ini").read_text()
+        for mapping in ("ButtonDpadUp=KeyUp", "ButtonDpadDown=KeyDown",
+                        "ButtonDpadLeft=KeyLeft", "ButtonDpadRight=KeyRight",
+                        "LeftStickMode=Keys", "ButtonA=KeyEnter"):
+            self.assertIn(mapping, config)
+
+    def test_usb_gamepad_driver_is_installed_for_both_x64_boot_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            esp = root / "esp"
+            (source / "usr/share/rEFInd/refind").mkdir(parents=True)
+            (source / "usr/share/rEFInd/refind/refind_x64.efi").write_bytes(b"refind")
+            theme = source / "usr/share/infinityos/refind-theme"
+            (theme / "icons").mkdir(parents=True)
+            for name in ("", "_recovery", "_esde", "_steam"):
+                (theme / "icons" / f"os_infinityos{name}.png").write_bytes(b"icon")
+            (theme / "theme.conf").write_text("big_icon_size 128\n")
+            driver = source / "usr/share/infinityos/efi-drivers/x64/UsbXbox360Dxe.efi"
+            driver.parent.mkdir(parents=True)
+            driver.write_bytes(b"MZtest-driver")
+            (driver.parent / "config.ini").write_text(
+                "LeftStickMode=Keys\nButtonA=KeyEnter\n")
+            (esp / "EFI").mkdir(parents=True)
+            bindir = root / "bin"
+            bindir.mkdir()
+            uname = bindir / "uname"
+            uname.write_text("#!/bin/sh\necho x86_64\n")
+            uname.chmod(0o755)
+            env = {**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}",
+                   "INFINITYOS_ROOT": str(source)}
+            subprocess.run(["bash", str(INSTALL), str(esp)], check=True, env=env)
+            for path in ("refind", "BOOT"):
+                target = esp / "EFI" / path / "drivers_x64/UsbXbox360Dxe.efi"
+                self.assertEqual(target.read_bytes(), driver.read_bytes())
+            config = esp / "EFI/Xbox360/config.ini"
+            content = config.read_text()
+            self.assertIn("LeftStickMode=Keys", content)
+            self.assertIn("ButtonA=KeyEnter", content)
+            config.write_text("# custom mapping\n")
+            subprocess.run(["bash", str(INSTALL), str(esp)], check=True, env=env)
+            self.assertEqual(config.read_text(), "# custom mapping\n")
+            (source / "usr/share/rEFInd/refind/refind_aa64.efi").write_bytes(b"refind-arm")
+            uname.write_text("#!/bin/sh\necho aarch64\n")
+            arm_esp = root / "arm-esp"
+            (arm_esp / "EFI").mkdir(parents=True)
+            subprocess.run(["bash", str(INSTALL), str(arm_esp)], check=True, env=env)
+            self.assertFalse((arm_esp / "EFI/BOOT/drivers_x64").exists())
+
     def test_shared_theme_hides_optional_firmware_tool_row(self):
         theme = THEME.read_text()
         self.assertEqual([line for line in theme.splitlines() if line.startswith("showtools")],

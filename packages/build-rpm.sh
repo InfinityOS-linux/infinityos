@@ -121,6 +121,7 @@ elif [[ "$package" == infinity-setup ]]; then
     "$work/source/$package-$version/usr/share/applications" \
     "$work/source/$package-$version/usr/share/icons/hicolor/scalable/apps" \
     "$work/source/$package-$version/usr/share/infinityos/refind-theme/icons" \
+    "$work/source/$package-$version/usr/share/infinityos/efi-drivers/x64" \
     "$work/source/$package-$version/usr/libexec" \
     "$work/source/$package-$version/usr/lib/systemd/system" \
     "$work/source/$package-$version/usr/lib/systemd/system-generators" \
@@ -146,6 +147,8 @@ elif [[ "$package" == infinity-setup ]]; then
     "$work/source/$package-$version/etc/xdg/autostart/infinity-setup.desktop"
   install -m 0644 "$repo/COPYING" \
     "$work/source/$package-$version/usr/share/licenses/infinity-setup/COPYING"
+  install -m 0644 "$repo/root/usr/share/licenses/infinity-setup/UsbXbox360Dxe-LICENSE" \
+    "$work/source/$package-$version/usr/share/licenses/infinity-setup/UsbXbox360Dxe-LICENSE"
   install -m 0755 "$repo/root/usr/libexec/infinityos-tv-control" \
     "$repo/root/usr/libexec/infinityos-tv-enter" \
     "$repo/root/usr/libexec/infinityos-tv-run" \
@@ -162,6 +165,9 @@ elif [[ "$package" == infinity-setup ]]; then
     "$work/source/$package-$version/usr/share/infinityos/refind-theme/icons/"
   install -m 0644 "$repo/root/usr/share/infinityos/refind-theme/theme.conf" \
     "$work/source/$package-$version/usr/share/infinityos/refind-theme/theme.conf"
+  install -m 0644 "$repo/root/usr/share/infinityos/efi-drivers/x64/UsbXbox360Dxe.efi" \
+    "$repo/root/usr/share/infinityos/efi-drivers/x64/config.ini" \
+    "$work/source/$package-$version/usr/share/infinityos/efi-drivers/x64/"
   install -m 0644 "$repo/root/usr/share/polkit-1/actions/org.infinityos.tv-modes.policy" \
     "$repo/root/usr/share/polkit-1/actions/org.infinityos.tv-enter.policy" \
     "$work/source/$package-$version/usr/share/polkit-1/actions/"

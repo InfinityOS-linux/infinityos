@@ -18,6 +18,19 @@ install -m 0644 "$source/refind_$arch.efi" "$esp/EFI/refind/.refind_$arch.efi.tm
 mv -f "$esp/EFI/refind/.refind_$arch.efi.tmp" "$esp/EFI/refind/refind_$arch.efi"
 install -m 0644 "$source/refind_$arch.efi" "$esp/EFI/BOOT/.$fallback.tmp"
 mv -f "$esp/EFI/BOOT/.$fallback.tmp" "$esp/EFI/BOOT/$fallback"
+if [[ $arch == x64 ]]; then
+	gamepad=$root/usr/share/infinityos/efi-drivers/x64
+	[[ -s $gamepad/UsbXbox360Dxe.efi && -s $gamepad/config.ini ]] || {
+		echo 'Infinity OS UEFI gamepad driver is missing' >&2
+		exit 1
+	}
+	install -d "$esp/EFI/refind/drivers_x64" "$esp/EFI/BOOT/drivers_x64" "$esp/EFI/Xbox360"
+	for destination in "$esp/EFI/refind/drivers_x64" "$esp/EFI/BOOT/drivers_x64"; do
+		install -m 0644 "$gamepad/UsbXbox360Dxe.efi" "$destination/UsbXbox360Dxe.efi"
+	done
+	[[ -e $esp/EFI/Xbox360/config.ini ]] ||
+		install -m 0644 "$gamepad/config.ini" "$esp/EFI/Xbox360/config.ini"
+fi
 
 # EFI firmware sees the fallback path even when it forgets NVRAM entries.
 [[ -s $esp/EFI/refind/refind_$arch.efi && -s $esp/EFI/BOOT/$fallback &&

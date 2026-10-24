@@ -189,6 +189,12 @@ for icon in live check safe; do
     }
 done
 cmp "$rootpoint/usr/share/rEFInd/refind/refind_${efi_arch}.efi" "$efi_mount/EFI/BOOT/$fallback"
+if [[ $efi_arch == x64 ]]; then
+    gamepad="$rootpoint/usr/share/infinityos/efi-drivers/x64"
+    cmp "$gamepad/UsbXbox360Dxe.efi" \
+        "$efi_mount/EFI/BOOT/drivers_x64/UsbXbox360Dxe.efi"
+    cmp "$gamepad/config.ini" "$efi_mount/EFI/Xbox360/config.ini"
+fi
 cmp "$mountpoint/boot/$(uname -m)/loader/linux" "$efi_mount/os/linux"
 cmp "$mountpoint/boot/$(uname -m)/loader/initrd" "$efi_mount/os/initrd"
 grep -Fq 'menuentry "Infinity OS Live"' "$efi_mount/EFI/BOOT/refind.conf"

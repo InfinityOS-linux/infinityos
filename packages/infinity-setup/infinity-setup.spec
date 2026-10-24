@@ -32,10 +32,23 @@ if [ -f /etc/infinityos/refind-installed ] && mountpoint -q /boot/efi; then
         install -m 0644 /usr/share/infinityos/refind-theme/theme.conf "$destination/theme.conf" || :
         install -m 0644 /usr/share/infinityos/refind-theme/icons/os_infinityos*.png "$destination/icons/" || :
     done
+    if [ "$(uname -m)" = x86_64 ]; then
+        for destination in /boot/efi/EFI/refind /boot/efi/EFI/BOOT; do
+            install -d "$destination/drivers_x64" || :
+            install -m 0644 /usr/share/infinityos/efi-drivers/x64/UsbXbox360Dxe.efi \
+                "$destination/drivers_x64/UsbXbox360Dxe.efi" || :
+        done
+        install -d /boot/efi/EFI/Xbox360 || :
+        if [ ! -e /boot/efi/EFI/Xbox360/config.ini ]; then
+            install -m 0644 /usr/share/infinityos/efi-drivers/x64/config.ini \
+                /boot/efi/EFI/Xbox360/config.ini || :
+        fi
+    fi
 fi
 
 %files
 %license /usr/share/licenses/infinity-setup/COPYING
+%license /usr/share/licenses/infinity-setup/UsbXbox360Dxe-LICENSE
 /usr/share/infinityos/build-revisions/infinity-setup
 /usr/bin/infinity-setup
 /usr/bin/infinity-local-ai
@@ -52,6 +65,8 @@ fi
 /usr/share/infinityos/refind-theme/icons/os_infinityos_recovery.png
 /usr/share/infinityos/refind-theme/icons/os_infinityos_safe.png
 /usr/share/infinityos/refind-theme/icons/os_infinityos_steam.png
+/usr/share/infinityos/efi-drivers/x64/UsbXbox360Dxe.efi
+/usr/share/infinityos/efi-drivers/x64/config.ini
 /usr/libexec/infinityos-tv-control
 /usr/libexec/infinityos-tv-enter
 /usr/libexec/infinityos-tv-run
