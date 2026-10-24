@@ -36,7 +36,8 @@ version = (WEBUI / "VERSION.txt").read_text(encoding="utf-8").strip()
 if not version.startswith("68"):
     raise RuntimeError(f"Unsupported Anaconda WebUI version: {version}")
 for asset in ("infinityos-installer.css", "infinityos-installer-audio.js",
-              "infinityos-installer-mark.svg", "infinityos-installer-music.mp3",
+              "infinityos-installer-mark.svg", "infinityos-installer-mascot.png",
+              "infinityos-installer-music.mp3",
               "infinityos-plex-regular.woff2", "infinityos-plex-medium.woff2",
               "infinityos-plex-semibold.woff2", "infinityos-plex-bold.woff2",
               *(f"infinityos-step-{name}.svg" for name in (

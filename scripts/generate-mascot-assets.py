@@ -29,6 +29,9 @@ for size in (32, 48, 64, 128, 256):
     destination.parent.mkdir(parents=True, exist_ok=True)
     centered_icon(size, max(2, round(size * 0.07))).save(destination, optimize=True)
 
+webui_mascot = repo / "root/usr/share/cockpit/anaconda-webui/infinityos-installer-mascot.png"
+centered_icon(256, round(256 * 0.07)).save(webui_mascot, optimize=True)
+
 theme = repo / "root/usr/share/plymouth/themes/infinityos"
 mascot = ImageOps.contain(source, (205, 175), Image.Resampling.LANCZOS)
 frame_size = (280, 210)

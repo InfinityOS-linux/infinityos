@@ -34,7 +34,8 @@ class InstallerBrandingTests(unittest.TestCase):
                 b'"Storage configuration": [\n  null,\n  "Konfiguracja"\n ]\n});\n'))
             (webui / "index.html").write_text("<html><head></head></html>")
             for asset in ("infinityos-installer.css", "infinityos-installer-audio.js",
-                          "infinityos-installer-mark.svg", "infinityos-installer-music.mp3",
+                          "infinityos-installer-mark.svg", "infinityos-installer-mascot.png",
+                          "infinityos-installer-music.mp3",
                           *(f"infinityos-plex-{weight}.woff2" for weight in (
                               "regular", "medium", "semibold", "bold")),
                           *(f"infinityos-step-{name}.svg" for name in (
@@ -87,6 +88,7 @@ class InstallerBrandingTests(unittest.TestCase):
             (webui / "infinityos-installer.css").write_text("/* style */")
             (webui / "infinityos-installer-audio.js").write_text("// controls")
             (webui / "infinityos-installer-mark.svg").write_text("<svg/>")
+            (webui / "infinityos-installer-mascot.png").write_bytes(b"test asset")
             (webui / "index.html").write_text("<html><head></head></html>")
             result = subprocess.run([sys.executable, str(SCRIPT), str(webui)],
                                     capture_output=True, text=True, check=False)

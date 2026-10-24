@@ -53,7 +53,7 @@ installer_controls = (webui / 'infinityos-installer-audio.js').read_text()
 assert 'anaconda-wizard-step-anaconda-screen-language' in installer_controls
 assert 'infinityos-installer-exit' in installer_controls
 assert (webui / 'infinityos-installer-music.mp3').stat().st_size > 1_000_000
-for asset in ('infinityos-installer-mark.svg',
+for asset in ('infinityos-installer-mark.svg', 'infinityos-installer-mascot.png',
               *(f'infinityos-plex-{weight}.woff2' for weight in (
                   'regular', 'medium', 'semibold', 'bold')),
               *(f'infinityos-step-{name}.svg' for name in (

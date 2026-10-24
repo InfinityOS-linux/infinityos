@@ -633,6 +633,17 @@ body:has(.anaconda-screen-progress-status),
   font-size: 2.5rem;
 }
 
+.anaconda-screen-progress-status-success .pf-v6-c-empty-state__icon {
+  width: clamp(112px, 12vw, 160px);
+  height: clamp(112px, 12vw, 160px);
+  margin-inline: auto;
+  background: url("infinityos-installer-mascot.png") center / contain no-repeat;
+}
+
+.anaconda-screen-progress-status-success .pf-v6-c-empty-state__icon svg {
+  display: none;
+}
+
 .anaconda-screen-progress-status .pf-v6-c-empty-state__title-text {
   color: var(--infinity-text);
   font-family: "Infinity Plex", "IBM Plex Sans", sans-serif;
