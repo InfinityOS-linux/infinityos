@@ -137,7 +137,7 @@ export default class InfinityTerminal extends Extension {
         const existing = this._findWindow();
         if (existing)
             this._track(existing, true);
-        else
+        else if (GLib.get_user_name() !== 'liveuser')
             this._spawn();
     }
 
