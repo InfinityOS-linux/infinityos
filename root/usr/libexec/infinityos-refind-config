@@ -5,6 +5,7 @@ esp=${1:-/boot/efi}
 cmdline_file=${2:-/etc/kernel/cmdline}
 ready_marker=${3:-/var/lib/infinityos/backups-ready}
 tv_modes=${4:-/etc/infinityos/tv-modes}
+next_mode=${5:-/etc/infinityos/tv-next-mode}
 config="$esp/EFI/refind/refind.conf"
 fallback_config="$esp/EFI/BOOT/refind.conf"
 [[ -d $esp/EFI/refind && -s $cmdline_file ]] || exit 1
@@ -38,17 +39,26 @@ done
 IFS=$'\n' versions=($(printf '%s\n' "${versions[@]}" | sort -Vr))
 unset IFS
 
+default='Infinity OS'
+if [[ -s $next_mode ]]; then
+	requested=
+	read -r requested < "$next_mode" || true
+	case $requested in
+		esde) title='EmulationStation'; icon=os_infinityos_esde.png ;;
+		steam) title='Steam Big Picture'; icon=os_infinityos_steam.png ;;
+		*) title=; icon= ;;
+	esac
+	if [[ -n $title && -s $tv_modes/$requested &&
+	      -s $esp/EFI/refind/infinity-theme/icons/$icon ]]; then
+		default=$title
+	fi
+fi
+
 tmp=$(mktemp "$esp/EFI/refind/.refind.conf.XXXXXX")
 fallback_tmp=$(mktemp "$esp/EFI/BOOT/.refind.conf.XXXXXX")
 trap 'rm -f "$tmp" "$fallback_tmp"' EXIT
 {
-	cat <<'EOF'
-timeout 5
-default_selection "Infinity OS"
-scanfor manual
-include infinity-theme/theme.conf
-
-EOF
+	printf 'timeout 5\ndefault_selection "%s"\nscanfor manual\ninclude infinity-theme/theme.conf\n\n' "$default"
 	for version in "${versions[@]}"; do
 		if [[ $version == "${versions[0]}" ]]; then
 			title='Infinity OS'

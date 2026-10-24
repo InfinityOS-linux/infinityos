@@ -56,6 +56,11 @@ def refresh_boot_menu():
         subprocess.run(["/usr/libexec/infinityos-refind-config"], check=True)
 
 
+def refresh_next_boot_selection():
+    if installed_refind():
+        subprocess.run(["/usr/libexec/infinityos-refind-config"], check=True)
+
+
 def dropin(mode):
     return DROPINS / f"infinityos-tv@{mode}.service.d/account.conf"
 
@@ -165,18 +170,29 @@ def request_next(mode):
     previous = NEXT.read_bytes() if NEXT.exists() else None
     atomic_write(NEXT, f"{mode}\n", 0o600)
     try:
+        refresh_next_boot_selection()
         subprocess.run(["systemctl", "reboot"], check=True)
     except Exception:
         if previous is None:
             NEXT.unlink(missing_ok=True)
         else:
             atomic_write(NEXT, previous.decode("ascii"), 0o600)
+        try:
+            refresh_next_boot_selection()
+        except Exception:
+            pass
         raise
 
 
 def consume(mode):
     if NEXT.is_file() and NEXT.read_text(encoding="ascii").strip() == mode:
+        previous = NEXT.read_text(encoding="ascii")
         NEXT.unlink()
+        try:
+            refresh_next_boot_selection()
+        except Exception:
+            atomic_write(NEXT, previous, 0o600)
+            raise
 
 
 def main():

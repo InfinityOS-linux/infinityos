@@ -10,7 +10,7 @@ import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -407,21 +407,30 @@ class TVModeTests(unittest.TestCase):
             with patch.object(control, "STATE", state), \
                  patch.object(control, "NEXT", root / "next"), \
                  patch.object(control, "DROPINS", dropins), \
+                 patch.object(control, "installed_refind", return_value=True), \
                  patch.dict(os.environ, {"PKEXEC_UID": "1000"}), \
                  patch.object(control.subprocess, "run") as run:
                 control.request_next("steam")
                 self.assertEqual((root / "next").read_text(), "steam\n")
-                run.assert_called_once_with(["systemctl", "reboot"], check=True)
+                self.assertEqual(run.call_args_list, [
+                    call(["/usr/libexec/infinityos-refind-config"], check=True),
+                    call(["systemctl", "reboot"], check=True),
+                ])
 
     def test_explicit_boot_only_consumes_matching_one_shot_mode(self):
         with tempfile.TemporaryDirectory() as directory:
             next_mode = Path(directory) / "next"
             next_mode.write_text("steam\n")
-            with patch.object(control, "NEXT", next_mode):
+            with patch.object(control, "NEXT", next_mode), \
+                 patch.object(control, "installed_refind", return_value=True), \
+                 patch.object(control.subprocess, "run") as run:
                 control.consume("esde")
                 self.assertEqual(next_mode.read_text(), "steam\n")
+                run.assert_not_called()
                 control.consume("steam")
                 self.assertFalse(next_mode.exists())
+                run.assert_called_once_with(
+                    ["/usr/libexec/infinityos-refind-config"], check=True)
 
     def test_failed_reboot_does_not_leave_new_one_shot_mode(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -436,11 +445,29 @@ class TVModeTests(unittest.TestCase):
             with patch.object(control, "STATE", state), \
                  patch.object(control, "NEXT", root / "next"), \
                  patch.object(control, "DROPINS", dropins), \
+                 patch.object(control, "installed_refind", return_value=True), \
                  patch.dict(os.environ, {"PKEXEC_UID": "1000"}), \
-                 patch.object(control.subprocess, "run", side_effect=RuntimeError("reboot failed")):
+                 patch.object(control.subprocess, "run",
+                              side_effect=[None, RuntimeError("reboot failed"), None]) as run:
                 with self.assertRaisesRegex(RuntimeError, "reboot failed"):
                     control.request_next("steam")
                 self.assertFalse((root / "next").exists())
+                self.assertEqual(run.call_args_list, [
+                    call(["/usr/libexec/infinityos-refind-config"], check=True),
+                    call(["systemctl", "reboot"], check=True),
+                    call(["/usr/libexec/infinityos-refind-config"], check=True),
+                ])
+
+    def test_failed_default_restore_keeps_pending_tv_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            next_mode = Path(directory) / "next"
+            next_mode.write_text("esde\n")
+            with patch.object(control, "NEXT", next_mode), \
+                 patch.object(control, "installed_refind", return_value=True), \
+                 patch.object(control.subprocess, "run", side_effect=RuntimeError("ESP unavailable")):
+                with self.assertRaisesRegex(RuntimeError, "ESP unavailable"):
+                    control.consume("esde")
+            self.assertEqual(next_mode.read_text(), "esde\n")
 
 
 if __name__ == "__main__":

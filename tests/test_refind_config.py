@@ -147,18 +147,29 @@ class RefindConfigTests(unittest.TestCase):
             modes = root / "tv-modes"
             modes.mkdir()
             (modes / "esde").write_text("1000\n")
+            next_mode = root / "next-mode"
             cmdline = root / "cmdline"
             cmdline.write_text("root=UUID=test rw quiet\n")
             command = ["bash", str(CONFIG), str(esp), str(cmdline),
-                       str(root / "no-backups-marker"), str(modes)]
+                       str(root / "no-backups-marker"), str(modes), str(next_mode)]
             subprocess.run(command, check=True)
             menu = (esp / "EFI/refind/refind.conf").read_text()
+            self.assertIn('default_selection "Infinity OS"', menu)
             self.assertIn('menuentry "EmulationStation"', menu)
             self.assertIn('systemd.unit=infinityos-tv@esde.target', menu)
             self.assertNotIn('menuentry "Steam Big Picture"', menu)
+            next_mode.write_text("esde\n")
+            subprocess.run(command, check=True)
+            self.assertIn('default_selection "EmulationStation"',
+                          (esp / "EFI/refind/refind.conf").read_text())
+            next_mode.write_text("steam\n")
+            subprocess.run(command, check=True)
+            self.assertIn('default_selection "Infinity OS"',
+                          (esp / "EFI/refind/refind.conf").read_text())
             (modes / "steam").write_text("1000\n")
             subprocess.run(command, check=True)
             menu = (esp / "EFI/refind/refind.conf").read_text()
+            self.assertIn('default_selection "Steam Big Picture"', menu)
             self.assertIn('systemd.unit=infinityos-tv@steam.target', menu)
             self.assertEqual(
                 [line for line in menu.splitlines() if line.startswith("menuentry ")],
@@ -166,6 +177,10 @@ class RefindConfigTests(unittest.TestCase):
                  'menuentry "Steam Big Picture" {', 'menuentry "Backups (Btrfs)" {'],
             )
             self.assertEqual(menu, (esp / "EFI/BOOT/refind.conf").read_text())
+            next_mode.unlink()
+            subprocess.run(command, check=True)
+            self.assertIn('default_selection "Infinity OS"',
+                          (esp / "EFI/refind/refind.conf").read_text())
             (modes / "esde").unlink()
             subprocess.run(command, check=True)
             self.assertNotIn('menuentry "EmulationStation"',
