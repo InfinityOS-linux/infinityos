@@ -1,3 +1,5 @@
-These vector masters generate the seven Infinity OS boot icons. Run
-`scripts/generate-refind-icons.sh` after editing them. Steam is a trademark of
-Valve Corporation; the Steam symbol here is original Infinity OS artwork.
+These vector masters generate the five special-purpose Infinity OS boot icons.
+The installed and live OS icons come from `assets/infinityos-mascot.png` via
+`scripts/generate-mascot-assets.py`. Run `scripts/generate-refind-icons.sh`
+after editing the special-purpose icons. Steam is a trademark of Valve
+Corporation; the Steam symbol here is original Infinity OS artwork.

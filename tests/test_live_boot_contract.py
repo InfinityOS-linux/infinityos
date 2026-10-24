@@ -3,6 +3,7 @@
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from struct import unpack
 
 
 REPO = Path(__file__).resolve().parents[1]
@@ -73,11 +74,24 @@ class LiveBootContractTests(unittest.TestCase):
         self.assertIn("installer_desktop=/usr/share/applications/liveinst.desktop", setup)
         self.assertIn("grep -qx 'Exec=liveinst'", setup)
         self.assertIn("Icon=infinity-installer", setup)
-        icon = REPO / "root/usr/share/icons/hicolor/scalable/apps/infinity-installer.svg"
+        icon = REPO / "root/usr/share/icons/hicolor/256x256/apps/infinity-installer.png"
         self.assertTrue(icon.is_file())
-        self.assertIn('viewBox="0 0 512 512"', icon.read_text())
+        data = icon.read_bytes()
+        self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
+        self.assertEqual(unpack(">II", data[16:24]), (256, 256))
+        self.assertEqual(data[25], 6)  # RGBA
         self.assertNotIn("disable-user-extensions", setup)
         self.assertFalse((REPO / "root/usr/libexec/infinityos-liveinst").exists())
+
+    def test_boot_mascot_is_scoped_to_boot_and_installer(self):
+        source = REPO / "assets/infinityos-mascot.png"
+        refind = REPO / "root/usr/share/infinityos/refind-theme/icons/os_infinityos.png"
+        frame = REPO / "root/usr/share/plymouth/themes/infinityos/throbber-0001.png"
+        for path in (source, refind, frame):
+            data = path.read_bytes()
+            self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
+            self.assertEqual(data[25], 6)  # RGBA
+        self.assertFalse((REPO / "root/usr/share/icons/hicolor/scalable/apps/infinity-installer.svg").exists())
 
     def test_live_power_settings_reach_account_created_on_first_boot(self):
         setup = (REPO / "config.sh").read_text()

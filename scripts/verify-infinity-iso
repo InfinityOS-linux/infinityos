@@ -118,7 +118,7 @@ grep -Fqx 'Icon=infinity-installer' \
     echo 'Live installer is missing its Infinity OS icon' >&2
     exit 1
 }
-[[ -s "$rootpoint/usr/share/icons/hicolor/scalable/apps/infinity-installer.svg" ]] || {
+[[ -s "$rootpoint/usr/share/icons/hicolor/256x256/apps/infinity-installer.png" ]] || {
     echo 'Infinity OS installer icon is missing from ISO' >&2
     exit 1
 }
