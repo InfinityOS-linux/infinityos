@@ -39,7 +39,8 @@ class RefindConfigTests(unittest.TestCase):
             self.assertNotIn("loglevel=3", recovery)
             self.assertIn("plymouth.enable=0", recovery)
             self.assertIn("small_icon_size 32", THEME.read_text())
-            self.assertIn("big_icon_size 256", THEME.read_text())
+            self.assertIn("big_icon_size 128", THEME.read_text())
+            self.assertIn("max_tags 3", THEME.read_text())
             self.assertIn("use_graphics_for linux", THEME.read_text())
 
     def test_infinity_boot_icons_match_their_native_menu_size(self):
@@ -56,7 +57,7 @@ class RefindConfigTests(unittest.TestCase):
                 self.assertIn(f"/usr/share/infinityos/refind-theme/icons/os_infinityos{suffix}.png", spec)
                 data = (icons / f"os_infinityos{suffix}.png").read_bytes()
                 self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
-                self.assertEqual(struct.unpack(">II", data[16:24]), (256, 256))
+                self.assertEqual(struct.unpack(">II", data[16:24]), (128, 128))
                 self.assertEqual(data[25], 6)
 
     def test_tv_entries_only_exist_for_enabled_modes(self):
@@ -86,6 +87,11 @@ class RefindConfigTests(unittest.TestCase):
             subprocess.run(command, check=True)
             menu = (esp / "EFI/refind/refind.conf").read_text()
             self.assertIn('systemd.unit=infinityos-tv@steam.target', menu)
+            self.assertEqual(
+                [line for line in menu.splitlines() if line.startswith("menuentry ")],
+                ['menuentry "Infinity OS" {', 'menuentry "EmulationStation" {',
+                 'menuentry "Steam Big Picture" {', 'menuentry "Backups (Btrfs)" {'],
+            )
             self.assertEqual(menu, (esp / "EFI/BOOT/refind.conf").read_text())
             (modes / "esde").unlink()
             subprocess.run(command, check=True)
