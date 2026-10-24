@@ -122,6 +122,11 @@ grep -Fqx 'Icon=infinity-installer' \
     echo 'Infinity OS installer icon is missing from ISO' >&2
     exit 1
 }
+grep -Fq "iconName: 'infinity-installer'" \
+    "$rootpoint/usr/share/anaconda/gnome/fedora-welcome" || {
+    echo 'Live welcome dialog does not use the Infinity mascot' >&2
+    exit 1
+}
 [[ -f "$rootpoint/etc/infinityos/liveinstall-boot-pending" ]] || {
     echo 'Installed boot retry marker missing from ISO' >&2
     exit 1

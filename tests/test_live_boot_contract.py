@@ -83,15 +83,28 @@ class LiveBootContractTests(unittest.TestCase):
         self.assertNotIn("disable-user-extensions", setup)
         self.assertFalse((REPO / "root/usr/libexec/infinityos-liveinst").exists())
 
-    def test_boot_mascot_is_scoped_to_boot_and_installer(self):
+    def test_mascot_is_used_by_installer_and_boot_animation(self):
         source = REPO / "assets/infinityos-mascot.png"
-        refind = REPO / "root/usr/share/infinityos/refind-theme/icons/os_infinityos.png"
         frame = REPO / "root/usr/share/plymouth/themes/infinityos/throbber-0001.png"
-        for path in (source, refind, frame):
+        for path in (source, frame):
             data = path.read_bytes()
             self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
             self.assertEqual(data[25], 6)  # RGBA
         self.assertFalse((REPO / "root/usr/share/icons/hicolor/scalable/apps/infinity-installer.svg").exists())
+
+    def test_welcome_uses_mascot_and_refind_uses_original_symbol(self):
+        setup = (REPO / "config.sh").read_text()
+        self.assertIn("iconName: 'infinity-installer'", setup)
+        self.assertIn("Icon=infinityos-logo", setup)
+        verifier = (REPO / "scripts/verify-infinity-iso").read_text()
+        self.assertIn("iconName: 'infinity-installer'", verifier)
+        generator = (REPO / "scripts/generate-mascot-assets.py").read_text()
+        self.assertNotIn("refind-theme", generator)
+        refind_generator = (REPO / "scripts/generate-refind-icons.sh").read_text()
+        generated_names = refind_generator.split("for name in ", 1)[1].split("; do", 1)[0].split()
+        for name in ("infinityos", "infinityos-live"):
+            self.assertTrue((REPO / f"assets/refind-icons/{name}.svg").is_file())
+            self.assertIn(name, generated_names)
 
     def test_live_power_settings_reach_account_created_on_first_boot(self):
         setup = (REPO / "config.sh").read_text()

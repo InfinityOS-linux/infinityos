@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the boot animation, rEFInd icon and installer icon from one mascot."""
+"""Render the boot animation and installer icon from the mascot."""
 
 from pathlib import Path
 import math
@@ -28,10 +28,6 @@ for size in (32, 48, 64, 128, 256):
     destination = installer_icons / f"{size}x{size}/apps/infinity-installer.png"
     destination.parent.mkdir(parents=True, exist_ok=True)
     centered_icon(size, max(2, round(size * 0.07))).save(destination, optimize=True)
-
-refind_icons = repo / "root/usr/share/infinityos/refind-theme/icons"
-for name in ("os_infinityos.png", "os_infinityos_live.png"):
-    centered_icon(128, 5).save(refind_icons / name, optimize=True)
 
 theme = repo / "root/usr/share/plymouth/themes/infinityos"
 mascot = ImageOps.contain(source, (205, 175), Image.Resampling.LANCZOS)

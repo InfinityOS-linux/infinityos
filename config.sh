@@ -244,10 +244,10 @@ EOF
 		welcome=/usr/share/anaconda/gnome/fedora-welcome
 		welcome_desktop=/usr/share/anaconda/gnome/org.fedoraproject.welcome-screen.desktop
 		test -f "$welcome" && test -f "$welcome_desktop"
-		if ! grep -q "iconName: 'infinityos-logo'" "$welcome"; then
-			grep -q "iconName: 'fedora-logo-icon'" "$welcome"
-			sed -i "s/iconName: 'fedora-logo-icon'/iconName: 'infinityos-logo'/" "$welcome"
-		fi
+		grep -Eq "iconName: '(fedora-logo-icon|infinityos-logo|infinity-installer)'" "$welcome"
+		sed -i -e "s/iconName: 'fedora-logo-icon'/iconName: 'infinity-installer'/" \
+			-e "s/iconName: 'infinityos-logo'/iconName: 'infinity-installer'/" "$welcome"
+		grep -Fq "iconName: 'infinity-installer'" "$welcome"
 		sed -i -e 's/^Name=Welcome to Fedora$/Name=Welcome to Infinity OS/' \
 			-e 's/^Icon=fedora-logo-icon$/Icon=infinityos-logo/' \
 			-e '/^Name\[/d' "$welcome_desktop"
