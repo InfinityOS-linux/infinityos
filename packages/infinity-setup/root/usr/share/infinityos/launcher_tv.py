@@ -205,11 +205,20 @@ def _configure_esde(home):
                 '<gameList />\n')
 
 
+def _hide_esde_from_home(home):
+    hidden = home / ".hidden"
+    content = hidden.read_text(encoding="utf-8") if hidden.is_file() else ""
+    if "ES-DE" not in content.splitlines():
+        _replace_text(hidden, content + ("\n" if content and not content.endswith("\n") else "")
+                      + "ES-DE\n")
+
+
 def _finish_esde(home):
     _install_theme(home)
     _configure_esde(home)
     binary = home / ".local/share/infinityos/tv/ES-DE.AppImage"
     _run([str(binary), "--create-system-dirs"])
+    _hide_esde_from_home(home)
 
 
 def set_enabled(mode, active, home=None):

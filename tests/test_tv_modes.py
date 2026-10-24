@@ -87,6 +87,20 @@ class TVModeTests(unittest.TestCase):
             launcher_tv._configure_esde(home)
             self.assertEqual(gamelist.read_text(), original)
 
+    def test_esde_finish_hides_data_folder_without_changing_other_home_entries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            hidden = home / ".hidden"
+            hidden.write_text("Documents")
+            binary = home / ".local/share/infinityos/tv/ES-DE.AppImage"
+            with patch.object(launcher_tv, "_install_theme"), \
+                 patch.object(launcher_tv, "_configure_esde"), \
+                 patch.object(launcher_tv, "_run") as run:
+                launcher_tv._finish_esde(home)
+                launcher_tv._finish_esde(home)
+            self.assertEqual(hidden.read_text(), "Documents\nES-DE\n")
+            run.assert_any_call([str(binary), "--create-system-dirs"])
+
     def test_pinned_esde_download_is_verified_before_install(self):
         payload = b"AppImage test content"
         metadata = ("123", len(payload), hashlib.sha256(payload).hexdigest())
