@@ -139,6 +139,20 @@ class TVModeTests(unittest.TestCase):
                 ["pkexec", launcher_tv.CONTROL, "activate", "esde", str(os.getuid())])
             details = json.loads(launcher_tv._manifest(home, "esde").read_text())
             self.assertEqual(details["packages"], ["cage"])
+            self.assertEqual((home / "Emulation").readlink(), Path("/emulation"))
+
+    def test_esde_enable_preserves_existing_home_emulation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            shortcut = home / "Emulation"
+            shortcut.mkdir()
+            (shortcut / "keep.txt").write_text("user data")
+            with patch.object(launcher_tv, "_install_esde"), \
+                 patch.object(launcher_tv, "_missing_packages", return_value=[]), \
+                 patch.object(launcher_tv, "_run"):
+                launcher_tv.set_enabled("esde", True, home)
+            self.assertFalse(shortcut.is_symlink())
+            self.assertEqual((shortcut / "keep.txt").read_text(), "user data")
 
     def test_esde_retry_keeps_packages_recorded_before_previous_failure(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -171,6 +185,7 @@ class TVModeTests(unittest.TestCase):
                  patch.object(launcher_tv, "_run", side_effect=failed_activation):
                 with self.assertRaisesRegex(RuntimeError, "system setup failed"):
                     launcher_tv.set_enabled("esde", True, home)
+            self.assertFalse((home / "Emulation").exists())
             with patch.object(launcher_tv, "_install_esde"), \
                  patch.object(launcher_tv, "_missing_packages", return_value=[]), \
                  patch.object(launcher_tv, "_run"):

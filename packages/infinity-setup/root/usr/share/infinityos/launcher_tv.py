@@ -254,6 +254,9 @@ def set_enabled(mode, active, home=None):
         details.pop("previous_settings")
         details.pop("theme_created")
         _save_manifest(home, mode, details)
+        shortcut = home / "Emulation"
+        if not shortcut.exists() and not shortcut.is_symlink():
+            shortcut.symlink_to("/emulation", target_is_directory=True)
     else:
         steam = next(app for app in APPS if app.name == "Steam")
         existing = (_manifest(home, mode).read_text(encoding="utf-8")
