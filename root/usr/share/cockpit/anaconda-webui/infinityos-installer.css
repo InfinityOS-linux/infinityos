@@ -618,10 +618,9 @@ body:has(.anaconda-screen-progress-status),
   margin: auto;
   padding: clamp(24px, 5vw, 64px);
   color: var(--infinity-text);
-  background: linear-gradient(135deg, rgba(39, 27, 57, 0.98), var(--infinity-panel) 64%);
-  border: 1px solid var(--infinity-border);
-  border-radius: 20px;
-  box-shadow: 0 26px 75px rgba(4, 2, 10, 0.3);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 .anaconda-screen-progress-status .pf-v6-c-empty-state__content {
@@ -756,10 +755,6 @@ body:has(.anaconda-screen-progress-status),
 @media (max-width: 560px) {
   .anaconda-screen-progress-status .pf-v6-c-progress-stepper {
     grid-template-columns: 1fr;
-  }
-
-  .anaconda-screen-progress-status .pf-v6-c-empty-state {
-    border-radius: 0;
   }
 }
 
