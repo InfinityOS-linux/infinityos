@@ -53,16 +53,14 @@ mkfs.vfat -F 32 -n BOOT "$fat" >/dev/null
 mount -o loop "$fat" "$efi_mount"
 install -d "$efi_mount/EFI/BOOT/infinity-theme" "$efi_mount/os"
 install -m 0644 "$source/refind_$efi_arch.efi" "$efi_mount/EFI/BOOT/$fallback"
-if [[ $efi_arch == x64 ]]; then
-    gamepad="$root_mount/usr/share/infinityos/efi-drivers/x64"
-    [[ -s $gamepad/UsbXbox360Dxe.efi && -s $gamepad/config.ini ]] || {
-        echo 'Infinity OS UEFI gamepad driver is missing' >&2; exit 1;
-    }
-    install -d "$efi_mount/EFI/BOOT/drivers_x64" "$efi_mount/EFI/Xbox360"
-    install -m 0644 "$gamepad/UsbXbox360Dxe.efi" \
-        "$efi_mount/EFI/BOOT/drivers_x64/UsbXbox360Dxe.efi"
-    install -m 0644 "$gamepad/config.ini" "$efi_mount/EFI/Xbox360/config.ini"
-fi
+gamepad="$root_mount/usr/share/infinityos/efi-drivers"
+[[ -s $gamepad/$efi_arch/UsbXbox360Dxe.efi && -s $gamepad/config.ini ]] || {
+    echo 'Infinity OS UEFI gamepad driver is missing' >&2; exit 1;
+}
+install -d "$efi_mount/EFI/BOOT/drivers_$efi_arch" "$efi_mount/EFI/Xbox360"
+install -m 0644 "$gamepad/$efi_arch/UsbXbox360Dxe.efi" \
+    "$efi_mount/EFI/BOOT/drivers_$efi_arch/UsbXbox360Dxe.efi"
+install -m 0644 "$gamepad/config.ini" "$efi_mount/EFI/Xbox360/config.ini"
 install -m 0644 "$kernel" "$efi_mount/os/linux"
 install -m 0644 "$initrd" "$efi_mount/os/initrd"
 cmp "$kernel" "$efi_mount/os/linux"

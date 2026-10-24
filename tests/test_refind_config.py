@@ -15,18 +15,20 @@ THEME = ROOT / "root/usr/share/infinityos/refind-theme/theme.conf"
 
 class RefindConfigTests(unittest.TestCase):
     def test_usb_gamepad_driver_and_default_controls(self):
-        driver = ROOT / "root/usr/share/infinityos/efi-drivers/x64/UsbXbox360Dxe.efi"
-        data = driver.read_bytes()
-        self.assertEqual(data[:2], b"MZ")
-        pe_offset = struct.unpack_from("<I", data, 0x3c)[0]
-        self.assertEqual(data[pe_offset:pe_offset + 4], b"PE\0\0")
-        self.assertEqual(struct.unpack_from("<H", data, pe_offset + 4)[0], 0x8664)
-        self.assertEqual(struct.unpack_from("<H", data, pe_offset + 24 + 68)[0], 11)
-        self.assertEqual(
-            hashlib.sha256(data).hexdigest(),
-            "9651e547d2842369e69776ce5fd51e5a2562268af91ca3ccfb80bf3f492d14a2",
-        )
-        config = (driver.parent / "config.ini").read_text()
+        drivers = ROOT / "root/usr/share/infinityos/efi-drivers"
+        for arch, machine, digest in (
+            ("x64", 0x8664, "9651e547d2842369e69776ce5fd51e5a2562268af91ca3ccfb80bf3f492d14a2"),
+            ("aa64", 0xaa64, "1f8b022b610889160e2b6f475c22d95e50e71a836e228fc1f7c132720377c93d"),
+        ):
+            with self.subTest(arch=arch):
+                data = (drivers / arch / "UsbXbox360Dxe.efi").read_bytes()
+                self.assertEqual(data[:2], b"MZ")
+                pe_offset = struct.unpack_from("<I", data, 0x3c)[0]
+                self.assertEqual(data[pe_offset:pe_offset + 4], b"PE\0\0")
+                self.assertEqual(struct.unpack_from("<H", data, pe_offset + 4)[0], machine)
+                self.assertEqual(struct.unpack_from("<H", data, pe_offset + 24 + 68)[0], 11)
+                self.assertEqual(hashlib.sha256(data).hexdigest(), digest)
+        config = (drivers / "config.ini").read_text()
         for mapping in ("ButtonDpadUp=KeyUp", "ButtonDpadDown=KeyDown",
                         "ButtonDpadLeft=KeyLeft", "ButtonDpadRight=KeyRight",
                         "LeftStickMode=Keys", "ButtonA=KeyEnter"):
@@ -44,10 +46,12 @@ class RefindConfigTests(unittest.TestCase):
             for name in ("", "_recovery", "_esde", "_steam"):
                 (theme / "icons" / f"os_infinityos{name}.png").write_bytes(b"icon")
             (theme / "theme.conf").write_text("big_icon_size 128\n")
-            driver = source / "usr/share/infinityos/efi-drivers/x64/UsbXbox360Dxe.efi"
-            driver.parent.mkdir(parents=True)
-            driver.write_bytes(b"MZtest-driver")
-            (driver.parent / "config.ini").write_text(
+            drivers = source / "usr/share/infinityos/efi-drivers"
+            for arch in ("x64", "aa64"):
+                driver = drivers / arch / "UsbXbox360Dxe.efi"
+                driver.parent.mkdir(parents=True)
+                driver.write_bytes(f"MZtest-driver-{arch}".encode())
+            (drivers / "config.ini").write_text(
                 "LeftStickMode=Keys\nButtonA=KeyEnter\n")
             (esp / "EFI").mkdir(parents=True)
             bindir = root / "bin"
@@ -60,7 +64,8 @@ class RefindConfigTests(unittest.TestCase):
             subprocess.run(["bash", str(INSTALL), str(esp)], check=True, env=env)
             for path in ("refind", "BOOT"):
                 target = esp / "EFI" / path / "drivers_x64/UsbXbox360Dxe.efi"
-                self.assertEqual(target.read_bytes(), driver.read_bytes())
+                self.assertEqual(target.read_bytes(),
+                                 (drivers / "x64/UsbXbox360Dxe.efi").read_bytes())
             config = esp / "EFI/Xbox360/config.ini"
             content = config.read_text()
             self.assertIn("LeftStickMode=Keys", content)
@@ -73,6 +78,10 @@ class RefindConfigTests(unittest.TestCase):
             arm_esp = root / "arm-esp"
             (arm_esp / "EFI").mkdir(parents=True)
             subprocess.run(["bash", str(INSTALL), str(arm_esp)], check=True, env=env)
+            for path in ("refind", "BOOT"):
+                target = arm_esp / "EFI" / path / "drivers_aa64/UsbXbox360Dxe.efi"
+                self.assertEqual(target.read_bytes(),
+                                 (drivers / "aa64/UsbXbox360Dxe.efi").read_bytes())
             self.assertFalse((arm_esp / "EFI/BOOT/drivers_x64").exists())
 
     def test_shared_theme_hides_optional_firmware_tool_row(self):

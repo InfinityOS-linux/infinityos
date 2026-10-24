@@ -122,6 +122,7 @@ elif [[ "$package" == infinity-setup ]]; then
     "$work/source/$package-$version/usr/share/icons/hicolor/scalable/apps" \
     "$work/source/$package-$version/usr/share/infinityos/refind-theme/icons" \
     "$work/source/$package-$version/usr/share/infinityos/efi-drivers/x64" \
+    "$work/source/$package-$version/usr/share/infinityos/efi-drivers/aa64" \
     "$work/source/$package-$version/usr/libexec" \
     "$work/source/$package-$version/usr/lib/systemd/system" \
     "$work/source/$package-$version/usr/lib/systemd/system-generators" \
@@ -165,9 +166,12 @@ elif [[ "$package" == infinity-setup ]]; then
     "$work/source/$package-$version/usr/share/infinityos/refind-theme/icons/"
   install -m 0644 "$repo/root/usr/share/infinityos/refind-theme/theme.conf" \
     "$work/source/$package-$version/usr/share/infinityos/refind-theme/theme.conf"
-  install -m 0644 "$repo/root/usr/share/infinityos/efi-drivers/x64/UsbXbox360Dxe.efi" \
-    "$repo/root/usr/share/infinityos/efi-drivers/x64/config.ini" \
-    "$work/source/$package-$version/usr/share/infinityos/efi-drivers/x64/"
+  install -m 0644 "$repo/root/usr/share/infinityos/efi-drivers/config.ini" \
+    "$work/source/$package-$version/usr/share/infinityos/efi-drivers/config.ini"
+  for arch in x64 aa64; do
+    install -m 0644 "$repo/root/usr/share/infinityos/efi-drivers/$arch/UsbXbox360Dxe.efi" \
+      "$work/source/$package-$version/usr/share/infinityos/efi-drivers/$arch/UsbXbox360Dxe.efi"
+  done
   install -m 0644 "$repo/root/usr/share/polkit-1/actions/org.infinityos.tv-modes.policy" \
     "$repo/root/usr/share/polkit-1/actions/org.infinityos.tv-enter.policy" \
     "$work/source/$package-$version/usr/share/polkit-1/actions/"
