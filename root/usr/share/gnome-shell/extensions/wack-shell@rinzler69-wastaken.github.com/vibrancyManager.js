@@ -940,7 +940,7 @@ export default class VibrancyManager {
 
         if (bmsConflict) {
             targetClass = 'panel-bigsur';
-            this._panelBackdropOverlayTint = isDark ? null : 'rgba(20, 14, 30, 0.68)';
+            this._panelBackdropOverlayTint = isDark ? null : 'rgba(44, 30, 64, 0.82)';
         } else if (isOverview || isLockscreen) {
             targetClass = 'panel-bigsur';
         } else if (useVenturaLight) {
@@ -969,8 +969,9 @@ export default class VibrancyManager {
             this._panelBackdropOverlayTint = `rgba(255, 255, 255, ${alpha.toFixed(3)})`;
         } else {
             targetClass = 'panel-bigsur';
-            panelCSS = 'background-color: transparent !important;';
-            this._panelBackdropOverlayTint = isDark ? null : 'rgba(20, 14, 30, 0.68)';
+            panelCSS = isDark ? 'background-color: transparent !important;' :
+                'background-color: rgba(44, 30, 64, 0.82) !important;';
+            this._panelBackdropOverlayTint = isDark ? null : 'rgba(44, 30, 64, 0.82)';
         }
 
         // The static wallpaper is rendered by dedicated child actors. Make
