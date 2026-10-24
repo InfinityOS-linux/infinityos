@@ -2068,6 +2068,9 @@ const AppFolderDialog = {
 
     after__onDestroy() {
         Main.overview.disconnectObject(this);
+        // GNOME Shell 50 leaves a changed::name handler connected to this dialog.
+        // Its callback calls _syncFolderName() after the labels are disposed.
+        this._syncFolderName = () => {};
     },
 };
 

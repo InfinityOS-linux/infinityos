@@ -21,7 +21,7 @@ jobs:
       - name: Test source and GNOME extension contracts
         run: |
           python3 -m unittest discover -s tests -p 'test_*.py' -q
-          node --test tests/folder-click.test.mjs tests/terminal-resize.test.mjs
+          node --test tests/app-folder-dialog-lifecycle.test.mjs tests/folder-click.test.mjs tests/terminal-resize.test.mjs
           scripts/verify-gnome-extension-contracts
 
   build-noarch:
