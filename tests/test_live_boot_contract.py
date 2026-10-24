@@ -106,7 +106,7 @@ class LiveBootContractTests(unittest.TestCase):
             self.assertTrue((REPO / f"assets/refind-icons/{name}.svg").is_file())
             self.assertIn(name, generated_names)
 
-    def test_live_power_settings_reach_account_created_on_first_boot(self):
+    def test_live_session_settings_reach_account_created_on_first_boot(self):
         setup = (REPO / "config.sh").read_text()
         self.assertIn("/etc/skel/.config/autostart/infinityos-live-power.desktop", setup)
         self.assertNotIn("/home/liveuser/.config/autostart/infinityos-live-power.desktop", setup)
@@ -115,6 +115,7 @@ class LiveBootContractTests(unittest.TestCase):
         self.assertIn("idle-activation-enabled=false", setup)
         self.assertIn("sleep-inactive-ac-type='nothing'", setup)
         self.assertIn("sleep-inactive-battery-type='nothing'", setup)
+        self.assertIn("disabled-extensions=['ghostty@infinityos.org']", setup)
         target_setup = (REPO / "root/usr/libexec/infinityos-liveinstall-boot-setup").read_text()
         self.assertIn("printf 'user-db:user\\nsystem-db:local\\n' > /etc/dconf/profile/user", target_setup)
         self.assertIn("rm -f /etc/dconf/db/infinityos-live", target_setup)

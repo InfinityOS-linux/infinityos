@@ -175,10 +175,14 @@ Exec=/usr/libexec/infinityos-live-power
 NoDisplay=true
 X-GNOME-Autostart-enabled=true
 EOF
-		# Apply these defaults before GNOME starts. Autostart remains a fallback
-		# for an existing liveuser account with stale per-user settings.
+		# Apply live-session defaults before GNOME starts. Keep the terminal
+		# controller inactive while Anaconda runs; installed accounts use local.
+		# Autostart remains a fallback for stale liveuser power settings.
 		install -d /etc/dconf/db/infinityos-live.d
 		cat > /etc/dconf/db/infinityos-live.d/00-power << 'EOF'
+[org/gnome/shell]
+disabled-extensions=['ghostty@infinityos.org']
+
 [org/gnome/desktop/session]
 idle-delay=uint32 0
 
