@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# GDM draws #lockDialogGroup from GNOME Shell's theme resource. Its dconf
+# desktop background keys do not change the greeter's plain grey backdrop.
+theme=${1:-/usr/share/gnome-shell/gnome-shell-theme.gresource}
+[[ -f "$theme" ]] || { echo "Missing GNOME Shell theme: $theme" >&2; exit 1; }
+command -v gresource >/dev/null
+command -v glib-compile-resources >/dev/null
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+list="$work/resources.list"
+gresource list "$theme" > "$list"
+[[ -s "$list" ]] || { echo 'Empty GNOME Shell theme resource' >&2; exit 1; }
+
+{
+    printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' '<gresources><gresource prefix="/">'
+    while IFS= read -r resource; do
+        [[ "$resource" =~ ^/org/gnome/shell/[a-zA-Z0-9._/-]+$ && "$resource" != *..* ]] || {
+            echo "Unexpected GNOME Shell resource: $resource" >&2
+            exit 1
+        }
+        relative=${resource#/}
+        mkdir -p "$work/$(dirname "$relative")"
+        gresource extract "$theme" "$resource" > "$work/$relative"
+        printf '  <file compressed="true">%s</file>\n' "$relative"
+    done < "$list"
+    printf '%s\n' '</gresource></gresources>'
+} > "$work/theme.xml"
+
+patched=0
+changed=0
+for css in "$work"/org/gnome/shell/theme/gnome-shell-{dark,light}.css; do
+    [[ -f "$css" ]] || continue
+    grep -Fq '#lockDialogGroup' "$css" || {
+        echo "Missing GDM backdrop selector: $css" >&2
+        exit 1
+    }
+    if ! grep -Fq 'Infinity OS GDM background' "$css"; then
+        cat >> "$css" <<'EOF'
+
+/* Infinity OS GDM background: nearly black, with a subtle violet lower edge. */
+#lockDialogGroup {
+  background-color: #050407;
+  background-gradient-direction: vertical;
+  background-gradient-start: #050407;
+  background-gradient-end: #190d23;
+}
+EOF
+        changed=1
+    fi
+    patched=$((patched + 1))
+done
+[[ $patched -gt 0 ]] || { echo 'No supported GNOME Shell theme CSS found' >&2; exit 1; }
+[[ $changed -eq 1 ]] || exit 0
+
+glib-compile-resources "$work/theme.xml" --sourcedir="$work" --target="$work/theme.gresource"
+while IFS= read -r resource; do
+    gresource extract "$work/theme.gresource" "$resource" >/dev/null
+done < "$list"
+
+install -m 0644 "$work/theme.gresource" "$theme.infinityos-new"
+mv -f "$theme.infinityos-new" "$theme"
+if command -v restorecon >/dev/null; then restorecon "$theme"; fi

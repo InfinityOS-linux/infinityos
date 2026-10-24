@@ -70,6 +70,7 @@ class ImageProvenanceTests(unittest.TestCase):
                 "usr/bin/infinity-setup",
                 "usr/bin/infinity-terminal",
                 "usr/bin/infinity-updater",
+                "usr/libexec/infinityos-style-gdm",
                 "usr/share/backgrounds/infinityos/infinityos-dark.png",
                 "usr/share/backgrounds/infinityos/infinityos-login.png",
                 "usr/share/gnome-shell/extensions/ghostty@infinityos.org/extension.js",
