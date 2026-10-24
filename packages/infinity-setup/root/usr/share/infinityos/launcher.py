@@ -42,8 +42,11 @@ label.infinity-title { color: #f8f5fc; font-size: 29px; font-weight: 700; }
 label.infinity-subtitle { color: #ada1bd; font-size: 13px; }
 box.infinity-nav { background: #211a2c; border: 1px solid #3c304e; border-radius: 14px; padding: 5px; }
 button.infinity-tab { background: transparent; border: 1px solid transparent; border-radius: 10px; color: #b8abc9; min-height: 42px; padding: 0 8px; font-size: 13px; font-weight: 600; box-shadow: none; }
+button.infinity-tab label, button.infinity-tab image { color: #b8abc9; }
 button.infinity-tab:hover { background: #332940; color: #f4ecff; }
+button.infinity-tab:hover label, button.infinity-tab:hover image { color: #f4ecff; }
 button.infinity-tab:checked { background: #66518f; border-color: #9275bd; color: #fff; box-shadow: 0 2px 9px rgba(0,0,0,0.25); }
+button.infinity-tab:checked label, button.infinity-tab:checked image { color: #fff; }
 button.infinity-tab:focus-visible { outline: 2px solid #c3a2ef; outline-offset: -2px; }
 label.infinity-page-title { color: #f0eaf6; font-size: 19px; font-weight: 700; }
 box.infinity-row { background: #211b2b; border: 1px solid #3d314e; border-radius: 12px; padding: 11px 14px; }
@@ -52,14 +55,54 @@ label.infinity-section { color: #bea7df; font-size: 11px; font-weight: 700; lett
 label.infinity-app-name { color: #f3eef8; font-weight: 700; }
 label.infinity-app-status { color: #c9a8ed; font-size: 11px; font-weight: 600; }
 button.infinity-save { background: #745aa4; border: 1px solid #9478c4; color: white; border-radius: 10px; min-width: 124px; min-height: 42px; font-weight: 700; }
+button.infinity-save label { color: white; }
 button.infinity-save:hover { background: #8569b8; }
 button.infinity-save:disabled { background: #413451; color: #a99cb8; }
+button.infinity-save:disabled label { color: #a99cb8; }
 button.infinity-close { background: #251d30; border: 1px solid #40334f; border-radius: 20px; color: #d6c9e6; min-width: 34px; min-height: 34px; }
+button.infinity-close image { color: #d6c9e6; }
 button.infinity-close:hover { background: #403250; color: white; }
 box.infinity-footer { border-top: 1px solid #392d49; padding-top: 16px; }
 label.infinity-muted { color: #a99db8; }
 progressbar.infinity-install-progress trough { min-height: 5px; background: #2d233b; border-radius: 0 0 22px 22px; }
 progressbar.infinity-install-progress progress { min-height: 5px; background: #ad82e9; border-radius: 0 0 22px 22px; }
+button.infinity-link { color: #d7b6ff; }
+button.infinity-link label { color: #d7b6ff; }
+window.infinity-window.light-mode box.infinity-shade { background: rgba(32, 24, 45, 0.28); }
+window.infinity-window.light-mode box.infinity-card { background: #ffffff; border-color: #d5c6e6; color: #291f36; box-shadow: 0 24px 72px rgba(30, 19, 44, 0.22); }
+window.infinity-window.light-mode label.infinity-eyebrow { color: #654287; }
+window.infinity-window.light-mode label.infinity-title,
+window.infinity-window.light-mode label.infinity-page-title,
+window.infinity-window.light-mode label.infinity-app-name { color: #291f36; }
+window.infinity-window.light-mode label.infinity-subtitle,
+window.infinity-window.light-mode label.infinity-muted { color: #5c5269; }
+window.infinity-window.light-mode box.infinity-nav { background: #f2edf8; border-color: #ddd1e9; }
+window.infinity-window.light-mode button.infinity-tab,
+window.infinity-window.light-mode button.infinity-tab label,
+window.infinity-window.light-mode button.infinity-tab image { color: #51445f; }
+window.infinity-window.light-mode button.infinity-tab:hover { background: #e5d9f2; }
+window.infinity-window.light-mode button.infinity-tab:checked { background: #604583; border-color: #604583; }
+window.infinity-window.light-mode button.infinity-tab:checked label,
+window.infinity-window.light-mode button.infinity-tab:checked image { color: #ffffff; }
+window.infinity-window.light-mode box.infinity-row { background: #f8f5fb; border-color: #e0d6ea; }
+window.infinity-window.light-mode box.infinity-row:hover { background: #f0e9f7; border-color: #baa4cf; }
+window.infinity-window.light-mode label.infinity-section,
+window.infinity-window.light-mode label.infinity-app-status { color: #654287; }
+window.infinity-window.light-mode button.infinity-save { background: #604583; border-color: #604583; }
+window.infinity-window.light-mode button.infinity-save:hover { background: #4d356e; }
+window.infinity-window.light-mode button.infinity-save:disabled { background: #d8cce4; border-color: #d8cce4; color: #554866; }
+window.infinity-window.light-mode button.infinity-save:disabled label { color: #554866; }
+window.infinity-window.light-mode button.infinity-close { background: #eee8f5; border-color: #d8cce4; color: #453651; }
+window.infinity-window.light-mode button.infinity-close image { color: #453651; }
+window.infinity-window.light-mode button.infinity-close:hover { background: #e3d8ef; color: #291f36; }
+window.infinity-window.light-mode button.infinity-tab:focus-visible,
+window.infinity-window.light-mode button.infinity-save:focus-visible,
+window.infinity-window.light-mode button.infinity-close:focus-visible { outline: 2px solid #604583; }
+window.infinity-window.light-mode box.infinity-footer { border-color: #e0d6ea; }
+window.infinity-window.light-mode progressbar.infinity-install-progress trough { background: #e4d9ed; }
+window.infinity-window.light-mode progressbar.infinity-install-progress progress { background: #604583; }
+window.infinity-window.light-mode button.infinity-link,
+window.infinity-window.light-mode button.infinity-link label { color: #58347d; }
 """
 
 
@@ -125,6 +168,9 @@ class InfinitySetup(Gtk.Application):
         self.window = Gtk.ApplicationWindow(application=self, title="InfinitySetup")
         self.window.set_decorated(False)
         self.window.add_css_class("infinity-window")
+        self.color_settings = Gio.Settings.new("org.gnome.desktop.interface")
+        self.color_settings.connect("changed::color-scheme", self._sync_color_scheme)
+        self._sync_color_scheme()
         self.window.connect("close-request", self._close_requested)
         self.window.maximize()
 
@@ -237,6 +283,12 @@ class InfinitySetup(Gtk.Application):
         self.window.present()
         self._animate(opening=True)
 
+    def _sync_color_scheme(self, *_args):
+        if self.color_settings.get_string("color-scheme") == "prefer-dark":
+            self.window.remove_css_class("light-mode")
+        else:
+            self.window.add_css_class("light-mode")
+
     def _select_tab(self, button, name):
         if button.get_active():
             self.stack.set_visible_child_name(name)
@@ -291,10 +343,12 @@ class InfinitySetup(Gtk.Application):
             details.append(status)
             if app.website.startswith("https://github.com/storytold/"):
                 link = Gtk.LinkButton(uri=app.website, label=tr("View source and releases"))
+                link.add_css_class("infinity-link")
                 link.set_halign(Gtk.Align.START)
                 details.append(link)
             elif app.website:
                 link = Gtk.LinkButton(uri=app.website, label=tr("Official website"))
+                link.add_css_class("infinity-link")
                 link.set_halign(Gtk.Align.START)
                 details.append(link)
             row.append(details)

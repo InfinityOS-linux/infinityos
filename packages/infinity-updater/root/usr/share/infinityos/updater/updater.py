@@ -8,7 +8,8 @@ from progress import run_update_command
 
 
 STYLE = b'''
-window { background: #111018; color: #f4f0fa; }
+window.infinity-updater { background: #111018; color: #f4f0fa; }
+.infinity-results, .infinity-results viewport { background: #111018; }
 .hero { background: #1b1727; border-bottom: 1px solid #3b3152; padding: 28px; }
 .hero-title { font-size: 27px; font-weight: 800; color: #ffffff; }
 .hero-subtitle { color: #b9adcf; }
@@ -16,14 +17,43 @@ window { background: #111018; color: #f4f0fa; }
 .update-card { background: #201b2b; border: 1px solid #3a304d; border-radius: 13px; padding: 13px 16px; }
 .update-name { font-weight: 700; color: #ffffff; }
 .muted { color: #b4a9c7; }
-.primary { background: #765caa; color: #ffffff; border-radius: 9px; padding: 9px 18px; font-weight: 700; }
-.primary:hover { background: #8e71c6; }
-.secondary { background: #322941; color: #f4edff; border-radius: 9px; padding: 9px 16px; }
+button.primary { background: #765caa; color: #ffffff; border-radius: 9px; padding: 9px 18px; font-weight: 700; }
+button.primary label { color: #ffffff; }
+button.primary:hover { background: #8e71c6; }
+button.secondary { background: #322941; color: #f4edff; border-radius: 9px; padding: 9px 16px; }
+button.secondary label { color: #f4edff; }
 .footer { background: #17131f; border-top: 1px solid #3b3152; padding: 17px 24px; }
 .update-progress trough { min-height: 5px; background: #322941; border-radius: 999px; }
 .update-progress progress { min-height: 5px; background: #ad82e9; border-radius: 999px; }
 .state-title { font-size: 22px; font-weight: 700; color: #ffffff; }
 .state-icon { color: #ad82e9; }
+window.infinity-updater.light-mode { background: #f6f3fa; color: #241b31; }
+window.infinity-updater.light-mode .infinity-results,
+window.infinity-updater.light-mode .infinity-results viewport { background: #f6f3fa; }
+window.infinity-updater.light-mode .hero { background: #eee8f6; border-color: #d7c9e7; }
+window.infinity-updater.light-mode .hero-title,
+window.infinity-updater.light-mode .state-title { color: #241b31; }
+window.infinity-updater.light-mode .hero-subtitle,
+window.infinity-updater.light-mode .muted { color: #574c67; }
+window.infinity-updater.light-mode .pill { background: #e5d9f3; color: #41275c; }
+window.infinity-updater.light-mode .update-card { background: #ffffff; border-color: #d7c9e7; }
+window.infinity-updater.light-mode .update-name { color: #241b31; }
+window.infinity-updater.light-mode button.primary { background: #604583; color: #ffffff; }
+window.infinity-updater.light-mode button.primary label { color: #ffffff; }
+window.infinity-updater.light-mode button.primary:hover { background: #4d356e; }
+window.infinity-updater.light-mode button.primary:disabled { background: #d8cce4; color: #554866; }
+window.infinity-updater.light-mode button.primary:disabled label { color: #554866; }
+window.infinity-updater.light-mode button.secondary { background: #e8e0f0; color: #2b203d; }
+window.infinity-updater.light-mode button.secondary label { color: #2b203d; }
+window.infinity-updater.light-mode button.secondary:hover { background: #ded2ea; }
+window.infinity-updater.light-mode button.secondary:disabled { background: #e8e2ef; color: #665b72; }
+window.infinity-updater.light-mode button.secondary:disabled label { color: #665b72; }
+window.infinity-updater.light-mode button.primary:focus-visible,
+window.infinity-updater.light-mode button.secondary:focus-visible { outline: 2px solid #604583; }
+window.infinity-updater.light-mode .footer { background: #f1ebf7; border-color: #d7c9e7; }
+window.infinity-updater.light-mode .update-progress trough { background: #ddd1e9; }
+window.infinity-updater.light-mode .update-progress progress { background: #604583; }
+window.infinity-updater.light-mode .state-icon { color: #604583; }
 '''
 
 
@@ -83,6 +113,10 @@ def main():
                 Gdk.Display.get_default(), css,
                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
             self.window = Gtk.ApplicationWindow(application=self, title=tr('Infinity OS Updates'))
+            self.window.add_css_class('infinity-updater')
+            self.color_settings = Gio.Settings.new('org.gnome.desktop.interface')
+            self.color_settings.connect('changed::color-scheme', self._sync_color_scheme)
+            self._sync_color_scheme()
             self.window.set_default_size(700, 620)
 
             layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -102,6 +136,7 @@ def main():
             self.content.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
             self.content.set_transition_duration(260)
             scroll = Gtk.ScrolledWindow(vexpand=True)
+            scroll.add_css_class('infinity-results')
             self.items = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
             self.items.set_margin_top(22)
             self.items.set_margin_bottom(22)
@@ -170,6 +205,12 @@ def main():
             layout.append(footer)
             self.on_refresh(None)
             self.window.present()
+
+        def _sync_color_scheme(self, *_args):
+            if self.color_settings.get_string('color-scheme') == 'prefer-dark':
+                self.window.remove_css_class('light-mode')
+            else:
+                self.window.add_css_class('light-mode')
 
         def render(self):
             if self.checking:

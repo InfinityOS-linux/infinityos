@@ -26,10 +26,14 @@ label.infinity-title { color: #f8f5fc; font-size: 29px; font-weight: 700; }
 label.infinity-subtitle { color: #ada1bd; font-size: 13px; }
 box.infinity-nav { background: #211a2c; border: 1px solid #3c304e; border-radius: 14px; padding: 5px; }
 button.infinity-tab { background: transparent; border: 1px solid transparent; border-radius: 10px; color: #b8abc9; min-height: 42px; padding: 0 8px; font-size: 13px; font-weight: 600; box-shadow: none; }
+button.infinity-tab label, button.infinity-tab image { color: #b8abc9; }
 button.infinity-tab:hover { background: #332940; color: #f4ecff; }
+button.infinity-tab:hover label, button.infinity-tab:hover image { color: #f4ecff; }
 button.infinity-tab:checked { background: #66518f; border-color: #9275bd; color: #fff; box-shadow: 0 2px 9px rgba(0,0,0,0.25); }
+button.infinity-tab:checked label, button.infinity-tab:checked image { color: #fff; }
 button.infinity-tab:focus-visible { outline: 2px solid #c3a2ef; outline-offset: -2px; }
 button.infinity-close { background: #251d30; border: 1px solid #40334f; border-radius: 20px; color: #d6c9e6; min-width: 34px; min-height: 34px; }
+button.infinity-close image { color: #d6c9e6; }
 button.infinity-close:hover { background: #403250; color: white; }
 label.infinity-page-title { color: #f0eaf6; font-size: 19px; font-weight: 700; }
 box.infinity-row { background: #211b2b; border: 1px solid #3d314e; border-radius: 12px; padding: 20px; }
@@ -41,9 +45,42 @@ scale.infinity-scale highlight { border-radius: 8px; background: #a77bdb; }
 scale.infinity-scale slider { min-width: 20px; min-height: 20px; margin: -6px; border-radius: 50%; background: #f4eaff; border: 0; box-shadow: 0 0 0 2px #a77bdb; }
 scale.infinity-scale marks label { color: #aa9bbd; font-size: 12px; }
 button.infinity-action { background: #211b2b; border: 1px solid #3d314e; border-radius: 12px; padding: 14px 18px; color: #f3eef8; box-shadow: none; }
+button.infinity-action image { color: #f3eef8; }
 button.infinity-action:hover { background: #352942; border-color: #8c6db5; }
 button.infinity-action:focus-visible { outline: 2px solid #c3a2ef; }
 box.infinity-footer { border-top: 1px solid #392d49; padding-top: 16px; }
+window.infinity-window.light-mode box.infinity-shade { background: rgba(32, 24, 45, 0.28); }
+window.infinity-window.light-mode box.infinity-card { background: #ffffff; border-color: #d5c6e6; color: #291f36; box-shadow: 0 24px 72px rgba(30, 19, 44, 0.22); }
+window.infinity-window.light-mode label.infinity-eyebrow,
+window.infinity-window.light-mode label.infinity-value { color: #654287; }
+window.infinity-window.light-mode label.infinity-title,
+window.infinity-window.light-mode label.infinity-page-title,
+window.infinity-window.light-mode label.infinity-setting-name { color: #291f36; }
+window.infinity-window.light-mode label.infinity-subtitle,
+window.infinity-window.light-mode label.infinity-muted,
+window.infinity-window.light-mode scale.infinity-scale marks label { color: #5c5269; }
+window.infinity-window.light-mode box.infinity-nav { background: #f2edf8; border-color: #ddd1e9; }
+window.infinity-window.light-mode button.infinity-tab,
+window.infinity-window.light-mode button.infinity-tab label,
+window.infinity-window.light-mode button.infinity-tab image { color: #51445f; }
+window.infinity-window.light-mode button.infinity-tab:hover { background: #e5d9f2; }
+window.infinity-window.light-mode button.infinity-tab:checked { background: #604583; border-color: #604583; }
+window.infinity-window.light-mode button.infinity-tab:checked label,
+window.infinity-window.light-mode button.infinity-tab:checked image { color: #ffffff; }
+window.infinity-window.light-mode button.infinity-close { background: #eee8f5; border-color: #d8cce4; color: #453651; }
+window.infinity-window.light-mode button.infinity-close image { color: #453651; }
+window.infinity-window.light-mode button.infinity-close:hover { background: #e3d8ef; color: #291f36; }
+window.infinity-window.light-mode button.infinity-tab:focus-visible,
+window.infinity-window.light-mode button.infinity-action:focus-visible,
+window.infinity-window.light-mode button.infinity-close:focus-visible { outline: 2px solid #604583; }
+window.infinity-window.light-mode box.infinity-row,
+window.infinity-window.light-mode button.infinity-action { background: #f8f5fb; border-color: #e0d6ea; color: #291f36; }
+window.infinity-window.light-mode button.infinity-action image { color: #291f36; }
+window.infinity-window.light-mode button.infinity-action:hover { background: #f0e9f7; border-color: #baa4cf; }
+window.infinity-window.light-mode scale.infinity-scale trough { background: #e4d9ed; }
+window.infinity-window.light-mode scale.infinity-scale highlight { background: #654287; }
+window.infinity-window.light-mode scale.infinity-scale slider { background: #ffffff; box-shadow: 0 0 0 2px #654287; }
+window.infinity-window.light-mode box.infinity-footer { border-color: #e0d6ea; }
 """
 
 
@@ -80,6 +117,9 @@ class InfinityConfig(Gtk.Application):
         self.window = Gtk.ApplicationWindow(application=self, title="Infinity Config")
         self.window.set_decorated(False)
         self.window.add_css_class("infinity-window")
+        self.color_settings = Gio.Settings.new("org.gnome.desktop.interface")
+        self.color_settings.connect("changed::color-scheme", self._sync_color_scheme)
+        self._sync_color_scheme()
         self.window.maximize()
         css = Gtk.CssProvider()
         css.load_from_data(CSS)
@@ -191,6 +231,12 @@ class InfinityConfig(Gtk.Application):
         footer.append(self.status)
         card.append(footer)
         self.window.present()
+
+    def _sync_color_scheme(self, *_args):
+        if self.color_settings.get_string("color-scheme") == "prefer-dark":
+            self.window.remove_css_class("light-mode")
+        else:
+            self.window.add_css_class("light-mode")
 
     def _select_tab(self, button, name):
         if button.get_active():
