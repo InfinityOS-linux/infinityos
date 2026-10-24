@@ -69,12 +69,13 @@ class TVModeTests(unittest.TestCase):
             self.assertIn('value="user-theme"', settings.read_text())
             self.assertIn('video_fullscreen = "true"', retroarch.read_text())
             self.assertIn('system_directory = "/emulation/bios"', retroarch.read_text())
-            self.assertEqual(
-                ET.parse(home / "ES-DE/gamelists/nes/gamelist.xml")
-                  .findtext("./alternativeEmulator/label"), "Nestopia UE")
-            self.assertEqual(
-                ET.parse(home / "ES-DE/gamelists/psx/gamelist.xml")
-                  .findtext("./alternativeEmulator/label"), "PCSX ReARMed")
+            for system, label in (("nes", "Nestopia UE"), ("psx", "PCSX ReARMed")):
+                gamelist = (home / f"ES-DE/gamelists/{system}/gamelist.xml").read_text()
+                # ES-DE 3.4.x reads alternativeEmulator beside gameList.
+                fragment = gamelist.removeprefix('<?xml version="1.0"?>\n')
+                document = ET.fromstring(f"<document>{fragment}</document>")
+                self.assertEqual(document.findtext("./alternativeEmulator/label"), label)
+                self.assertIsNotNone(document.find("./gameList"))
 
     def test_esde_configuration_preserves_existing_gamelist(self):
         with tempfile.TemporaryDirectory() as directory:

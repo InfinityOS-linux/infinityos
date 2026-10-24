@@ -198,11 +198,11 @@ def _configure_esde(home):
     for system, emulator in FEDORA_EMULATORS.items():
         gamelist = home / f"ES-DE/gamelists/{system}/gamelist.xml"
         if not gamelist.exists():
+            # ES-DE 3.4.x reads this node at document level, beside gameList.
             _replace_text(gamelist,
                 '<?xml version="1.0"?>\n'
-                '<gameList>\n'
-                f'  <alternativeEmulator><label>{emulator}</label></alternativeEmulator>\n'
-                '</gameList>\n')
+                f'<alternativeEmulator><label>{emulator}</label></alternativeEmulator>\n'
+                '<gameList />\n')
 
 
 def _finish_esde(home):
