@@ -4,6 +4,6 @@ PartOf=graphical-session.target
 After=graphical-session.target
 
 [Service]
-ExecStart=/usr/bin/infinity-terminal
+ExecStart=/usr/bin/infinity-terminal --service
 Restart=on-failure
 RestartSec=2

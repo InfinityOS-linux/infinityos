@@ -1,0 +1,26 @@
+--- a/src/apprt/gtk/class/application.zig
++++ b/src/apprt/gtk/class/application.zig
+@@ -2271,6 +2271,23 @@
+         // was a delay in the event loop before we created a Window.
+         self.private().requested_window = true;
+ 
++        // InfinityTerminal has one Shell-managed drop-down. New-window actions
++        // from shortcuts and external commands become tabs in that window.
++        if (std.mem.eql(u8, std.mem.span(self.as(gio.Application).getApplicationId() orelse ""), "com.infinityos.GhosTTY")) {
++            var node: ?*glib.List = @as(?*glib.List, self.as(gtk.Application).getWindows());
++            while (node) |entry| : (node = entry.f_next) {
++                const data = entry.f_data orelse continue;
++                const gtk_window: *gtk.Window = @ptrCast(@alignCast(data));
++                const window = gobject.ext.cast(Window, gtk_window) orelse continue;
++                window.newTabForWindow(parent, .{
++                    .command = overrides.command,
++                    .working_directory = overrides.working_directory,
++                    .title = overrides.title,
++                });
++                return;
++            }
++        }
++
+         const win = Window.new(self, .{
+             .title = overrides.title,
+         });

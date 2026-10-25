@@ -19,7 +19,7 @@ class TerminalToggleTests(unittest.TestCase):
         desktop = (ROOT / "usr/share/applications/com.infinityos.GhosTTY.desktop").read_text()
         service = (ROOT / "usr/lib/systemd/user/ghostty.service").read_text()
         self.assertIn("Exec=infinity-terminal --toggle\n", desktop)
-        self.assertIn("ExecStart=/usr/bin/infinity-terminal\n", service)
+        self.assertIn("ExecStart=/usr/bin/infinity-terminal --service\n", service)
 
         with tempfile.TemporaryDirectory() as directory:
             mock_bin = Path(directory)
@@ -41,6 +41,16 @@ class TerminalToggleTests(unittest.TestCase):
                 "/usr/share/gnome-shell/extensions/ghostty@infinityos.org/schemas",
                 "set", "org.infinityos.GhosTTY", "toggle-request", "1234567890123456789"
             ])
+
+            output.unlink()
+            result = subprocess.run(
+                [str(TERMINAL)],
+                env={**os.environ, "PATH": f"{mock_bin}:{os.environ['PATH']}",
+                     "TOGGLE_ARGS": str(output)},
+                capture_output=True, text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(output.read_text().splitlines()[3], "toggle-request")
 
     def test_shell_controller_subscribes_to_toggle_request(self):
         schema = ET.parse(EXTENSION / "schemas/org.infinityos.GhosTTY.gschema.xml")
@@ -64,7 +74,6 @@ class TerminalToggleTests(unittest.TestCase):
         create = dock.split("dash._createAppItem = function (app) {", 1)[1].split(
             "this.dash = dash;", 1)[0]
         self.assertIn("item.child.activate = toggleInfinityTerminal", create)
-
 
 if __name__ == "__main__":
     unittest.main()

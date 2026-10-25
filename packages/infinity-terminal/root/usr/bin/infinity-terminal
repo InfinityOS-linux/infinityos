@@ -1,8 +1,14 @@
 #!/bin/sh
-if [ "${1:-}" = '--toggle' ]; then
-	# Ask the Shell controller to use the same drop-down behavior as Super+T.
+# The persistent service is the only entry point that starts Ghostty itself.
+if [ "${1:-}" != '--service' ]; then
 	export GSETTINGS_SCHEMA_DIR=/usr/share/gnome-shell/extensions/ghostty@infinityos.org/schemas
-	exec gsettings set org.infinityos.GhosTTY toggle-request "$(date +%s%N)"
+	if [ "$#" -eq 0 ] || [ "${1:-}" = '--toggle' ]; then
+		exec gsettings set org.infinityos.GhosTTY toggle-request "$(date +%s%N)"
+	fi
+	# Command launches still reach Ghostty, but request the Shell panel first.
+	gsettings set org.infinityos.GhosTTY show-request "$(date +%s%N)" || exit 1
+else
+	shift
 fi
 export GHOSTTY_RESOURCES_DIR=/usr/share/ghostty
 if [ "$(systemd-detect-virt)" = parallels ]; then

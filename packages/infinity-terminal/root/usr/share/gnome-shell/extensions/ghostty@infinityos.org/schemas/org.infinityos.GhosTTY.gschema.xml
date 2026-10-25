@@ -21,5 +21,9 @@
       <default>0</default>
       <summary>Request drop-down toggle from the dock launcher</summary>
     </key>
+    <key name="show-request" type="x">
+      <default>0</default>
+      <summary>Show the drop-down for a terminal command</summary>
+    </key>
   </schema>
 </schemalist>

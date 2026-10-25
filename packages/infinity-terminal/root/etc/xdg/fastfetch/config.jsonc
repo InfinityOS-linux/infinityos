@@ -1,0 +1,8 @@
+{
+  "logo": {
+    "type": "kitty-direct",
+    "source": "/usr/share/infinityos/ghostty/mascot.png",
+    "width": 20,
+    "height": 10
+  }
+}

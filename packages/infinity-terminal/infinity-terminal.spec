@@ -39,6 +39,7 @@ glib-compile-schemas /usr/share/gnome-shell/extensions/ghostty@infinityos.org/sc
 /usr/share/icons/hicolor/scalable/apps/com.infinityos.GhosTTY.svg
 /usr/share/icons/hicolor/scalable/apps/infinity-*.svg
 /usr/share/infinityos/ghostty/
+/etc/xdg/fastfetch/config.jsonc
 /etc/profile.d/50-infinity-terminal-keybindings.sh
 /usr/share/ghostty/
 /usr/share/terminfo/

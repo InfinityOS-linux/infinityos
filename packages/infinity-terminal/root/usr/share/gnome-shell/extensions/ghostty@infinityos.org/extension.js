@@ -24,6 +24,8 @@ export default class InfinityTerminal extends Extension {
         this._window = null;
         this._pendingShow = false;
         this._sourceId = 0;
+        this._placementId = 0;
+        this._geometryIds = [];
         this._pendingWindows = new Map();
         this._resize = null;
         this._resizeCursor = false;
@@ -47,6 +49,7 @@ export default class InfinityTerminal extends Extension {
                 this._hide(window);
         });
         this._toggleRequestId = this._settings.connect('changed::toggle-request', () => this._toggle());
+        this._showRequestId = this._settings.connect('changed::show-request', () => this._showTerminal());
         const getRunning = Shell.AppSystem.prototype.get_running;
         this._getRunning = getRunning;
         this._filteredRunning = function () {
@@ -164,6 +167,7 @@ export default class InfinityTerminal extends Extension {
         this._gesture = null;
         this._settings.disconnect(this._hideRequestId);
         this._settings.disconnect(this._toggleRequestId);
+        this._settings.disconnect(this._showRequestId);
         global.stage.disconnect(this._outsideClickId);
         global.display.disconnect(this._focusId);
         global.display.disconnect(this._windowCreatedId);
@@ -176,6 +180,9 @@ export default class InfinityTerminal extends Extension {
             this._window.disconnect(this._unmanagedId);
         if (this._minimizedId && this._window)
             this._window.disconnect(this._minimizedId);
+        for (const id of this._geometryIds)
+            this._window?.disconnect(id);
+        this._geometryIds = [];
         if (this._window) {
             const actor = this._window.get_compositor_private();
             if (actor)
@@ -183,6 +190,8 @@ export default class InfinityTerminal extends Extension {
         }
         if (this._sourceId)
             GLib.Source.remove(this._sourceId);
+        if (this._placementId)
+            GLib.Source.remove(this._placementId);
         this._indicator.destroy();
         this._indicator = null;
         this._icon = null;
@@ -341,7 +350,13 @@ export default class InfinityTerminal extends Extension {
             this._window.disconnect(this._unmanagedId);
         if (this._minimizedId && this._window)
             this._window.disconnect(this._minimizedId);
+        for (const id of this._geometryIds)
+            this._window?.disconnect(id);
         this._window = window;
+        this._geometryIds = [
+            window.connect('position-changed', () => this._enforcePlacement(window)),
+            window.connect('size-changed', () => this._enforcePlacement(window)),
+        ];
         if (fresh && !this._pendingShow) {
             const actor = window.get_compositor_private();
             if (actor) {
@@ -362,6 +377,7 @@ export default class InfinityTerminal extends Extension {
             this._icon.opacity = 112;
             this._unmanagedId = 0;
             this._minimizedId = 0;
+            this._geometryIds = [];
         });
         this._sourceId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
             this._sourceId = 0;
@@ -375,6 +391,28 @@ export default class InfinityTerminal extends Extension {
                     Main.wm.skipNextEffect(actor);
                 window.minimize();
             }
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _enforcePlacement(window) {
+        if (window !== this._window || window.minimized || this._resize || this._placementId)
+            return;
+        this._placementId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            this._placementId = 0;
+            if (window !== this._window || window.minimized || this._resize)
+                return GLib.SOURCE_REMOVE;
+            const monitor = Main.layoutManager.primaryMonitor;
+            if (!monitor)
+                return GLib.SOURCE_REMOVE;
+            const rect = window.get_frame_rect();
+            const height = clampTerminalHeight(monitor.height, Main.panel.height,
+                monitor.height * this._settings.get_double('height-ratio'));
+            const full = isFullHeight(monitor.height, Main.panel.height, height);
+            if ((!full || window.get_maximized() !== Meta.MaximizeFlags.BOTH) &&
+                (rect.x !== monitor.x || rect.y !== monitor.y + Main.panel.height ||
+                 rect.width !== monitor.width || rect.height !== height))
+                this._place(window);
             return GLib.SOURCE_REMOVE;
         });
     }
