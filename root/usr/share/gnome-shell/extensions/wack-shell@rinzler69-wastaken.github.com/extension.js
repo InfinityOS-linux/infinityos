@@ -586,7 +586,7 @@ if (global.wackDockSnapshots) {
         }
 
         const cachedClassesList = (global.wack_panel_cached_classes || '').split(/\s+/).filter(Boolean);
-        global.wack_panel_cached_foreground = cachedClassesList.includes('light-contrast') ? 'rgb(20, 20, 20)' : null;
+        global.wack_panel_cached_foreground = cachedClassesList.includes('light-contrast') ? '#585560' : null;
 
         if (this._settings) {
             let blurMode = this._settings.get_int('vibrancy-blur-mode');

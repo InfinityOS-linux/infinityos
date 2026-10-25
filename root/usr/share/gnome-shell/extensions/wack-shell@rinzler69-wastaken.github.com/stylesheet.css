@@ -29,13 +29,13 @@
 #panel.light-contrast *,
 #panel.light-contrast .panel-button,
 #panel.light-contrast .panel-button * {
-  color: rgb(20, 20, 20) !important;
+  color: #585560 !important;
 }
 
 #panel.light-contrast .system-status-icon,
 #panel.light-contrast .app-menu-icon,
 #panel.light-contrast .popup-menu-arrow {
-  color: rgb(20, 20, 20) !important;
+  color: #585560 !important;
 }
 
 .workspace-dot {
@@ -45,7 +45,21 @@
 
 #panel.light-contrast .workspace-dot {
   border-radius: 999px;
-  background-color: #222226 !important;
+  background-color: #585560 !important;
+}
+
+#panel.light-contrast .panel-button:hover,
+#panel.light-contrast .panel-button:hover.clock-display .clock {
+  box-shadow: inset 0 0 0 1000px rgba(0, 0, 0, 0.08) !important;
+}
+
+#panel.light-contrast .panel-button:active,
+#panel.light-contrast .panel-button:focus,
+#panel.light-contrast .panel-button:checked,
+#panel.light-contrast .panel-button:active.clock-display .clock,
+#panel.light-contrast .panel-button:focus.clock-display .clock,
+#panel.light-contrast .panel-button:checked.clock-display .clock {
+  box-shadow: inset 0 0 0 1000px rgba(0, 0, 0, 0.16) !important;
 }
 
 #panel,

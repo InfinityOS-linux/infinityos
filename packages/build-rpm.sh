@@ -85,6 +85,7 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
     "$source_root/usr/share/gnome-shell/extensions" \
     "$source_root/usr/share/glib-2.0/schemas" \
     "$source_root/usr/share/infinityos" \
+    "$source_root/usr/share/themes/Orchis-Purple-Light-Compact/gnome-shell" \
     "$source_root/usr/share/licenses/infinityos-shell-extensions" \
     "$source_root/etc/dconf/db/local.d"
   cp -a "$fedora_snapshot/gnome-shell/extensions/." \
@@ -100,6 +101,8 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
   install -m 0644 "$repo/root/usr/share/infinityos/gnome-defaults" \
     "$repo/root/usr/share/infinityos/blur-defaults" \
     "$source_root/usr/share/infinityos/"
+  install -m 0644 "$repo/root/usr/share/themes/Orchis-Purple-Light-Compact/gnome-shell/gnome-shell.css" \
+    "$source_root/usr/share/themes/Orchis-Purple-Light-Compact/gnome-shell/gnome-shell.css"
   ln -s /usr/share/infinityos/gnome-defaults \
     "$source_root/etc/dconf/db/local.d/00-infinityos"
   ln -s /usr/share/infinityos/blur-defaults \

@@ -407,25 +407,6 @@ export default class VibrancyManager {
         }
     }
 
-    _getApca(txtR, txtG, txtB, bgR, bgG, bgB) {
-        const simpleExp = (chan) => Math.pow(chan / 255.0, 2.4);
-        let txtY = 0.2126729 * simpleExp(txtR) + 0.7151522 * simpleExp(txtG) + 0.0721750 * simpleExp(txtB);
-        let bgY = 0.2126729 * simpleExp(bgR) + 0.7151522 * simpleExp(bgG) + 0.0721750 * simpleExp(bgB);
-        const blkThrs = 0.022;
-        const blkClmp = 1.414;
-        txtY = (txtY > blkThrs) ? txtY : txtY + Math.pow(blkThrs - txtY, blkClmp);
-        bgY = (bgY > blkThrs) ? bgY : bgY + Math.pow(blkThrs - bgY, blkClmp);
-        if (Math.abs(bgY - txtY) < 0.0005) return 0.0;
-        let sapc = 0.0;
-        if (bgY > txtY) {
-            sapc = (Math.pow(bgY, 0.56) - Math.pow(txtY, 0.57)) * 1.14;
-            return (sapc < 0.1) ? 0.0 : (sapc - 0.027) * 100.0;
-        } else {
-            sapc = (Math.pow(bgY, 0.65) - Math.pow(txtY, 0.62)) * 1.14;
-            return (sapc > -0.1) ? 0.0 : (sapc + 0.027) * 100.0;
-        }
-    }
-
     _isWallpaperLenient() {
         if (!this._currentColors) return false;
 
@@ -928,7 +909,7 @@ export default class VibrancyManager {
 
         const useVenturaLight = style === 2 && !isDark;
 
-        if (useVenturaLight && !isOverview && !isLockscreen && !bmsConflict) {
+        if (useVenturaLight && !isOverview && !isLockscreen) {
             Main.panel.add_style_class_name('light-contrast');
         } else {
             Main.panel.remove_style_class_name('light-contrast');
@@ -939,34 +920,17 @@ export default class VibrancyManager {
         this._panelBackdropOverlayTint = null;
 
         if (bmsConflict) {
-            targetClass = 'panel-bigsur';
-            this._panelBackdropOverlayTint = isDark ? null : 'rgba(44, 30, 64, 0.82)';
+            targetClass = useVenturaLight ? 'panel-ventura-light' : 'panel-bigsur';
+            this._panelBackdropOverlayTint = isDark ? null :
+                (useVenturaLight ? 'rgba(250, 247, 255, 0.88)' : 'rgba(44, 30, 64, 0.82)');
+            if (useVenturaLight)
+                panelCSS = 'background-color: transparent !important;';
         } else if (isOverview || isLockscreen) {
             targetClass = 'panel-bigsur';
         } else if (useVenturaLight) {
             targetClass = 'panel-ventura-light';
-            const leftColor = this._currentColors?.left || { r: 128, g: 128, b: 128 };
-            const rightColor = this._currentColors?.right || { r: 128, g: 128, b: 128 };
-            const centerColor = this._currentColors?.center || { r: 128, g: 128, b: 128 };
-
-            const avgR = (leftColor.r + rightColor.r + centerColor.r) / 3;
-            const avgG = (leftColor.g + rightColor.g + centerColor.g) / 3;
-            const avgB = (leftColor.b + rightColor.b + centerColor.b) / 3;
-
-            const contrastLc = this._getApca(255, 255, 255, avgR, avgG, avgB);
-            const absLc = Math.abs(contrastLc);
-
-            let factor = Math.max(0, Math.min(1, (100.0 - absLc) / 100.0));
-
-            const maxVal = Math.max(avgR, avgG, avgB);
-            const minVal = Math.min(avgR, avgG, avgB);
-            const chroma = (maxVal - minVal) / 255.0;
-
-            factor = Math.max(0, Math.min(1, factor + chroma * 0.5));
-
-            const alpha = 0.375 + (0.475 * factor);
             panelCSS = 'background-color: transparent !important;';
-            this._panelBackdropOverlayTint = `rgba(255, 255, 255, ${alpha.toFixed(3)})`;
+            this._panelBackdropOverlayTint = 'rgba(250, 247, 255, 0.88)';
         } else {
             targetClass = 'panel-bigsur';
             panelCSS = isDark ? 'background-color: transparent !important;' :
@@ -1045,7 +1009,7 @@ export default class VibrancyManager {
             global.wack_panel_cached_style = Main.panel.style || '';
             global.wack_panel_cached_proximity_bg = null;
             global.wack_panel_cached_proximity_fg = null;
-            global.wack_panel_cached_foreground = Main.panel.has_style_class_name('light-contrast') ? 'rgb(20, 20, 20)' : null;
+            global.wack_panel_cached_foreground = Main.panel.has_style_class_name('light-contrast') ? '#585560' : null;
             global.wack_panel_cached_blur_mode = resolvedBlurMode;
             global.wack_panel_cached_brightness = brightness;
         }

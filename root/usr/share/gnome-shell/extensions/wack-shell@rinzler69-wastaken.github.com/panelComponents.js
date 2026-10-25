@@ -1140,6 +1140,11 @@ export const WackWorkspaceButton = GObject.registerClass(
 
             this._extension = extension;
             this._settings = extension._settings;
+            this._interfaceSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
+            this._interfaceSettings.connectObject(
+                'changed::color-scheme', () => this._updateInfinityIcon(),
+                this
+            );
 
             // Single box layout
             this._container = new St.BoxLayout({ style_class: 'activities-layout' });
@@ -1236,8 +1241,14 @@ export const WackWorkspaceButton = GObject.registerClass(
                 return;
 
             const path = this._settings.get_string('custom-logo-path');
-            const iconPath = path && GLib.file_test(path, GLib.FileTest.IS_REGULAR)
-                ? path : '/usr/share/icons/hicolor/scalable/apps/infinityos-panel-mark-v2.svg';
+            const defaultPath = '/usr/share/icons/hicolor/scalable/apps/infinityos-panel-mark-v2.svg';
+            let iconPath = path && GLib.file_test(path, GLib.FileTest.IS_REGULAR)
+                ? path : defaultPath;
+            if (iconPath === defaultPath && this._interfaceSettings.get_string('color-scheme') !== 'prefer-dark') {
+                const lightPath = GLib.build_filenamev([this._extension.path, 'assets', 'infinityos-panel-mark-light.svg']);
+                if (GLib.file_test(lightPath, GLib.FileTest.IS_REGULAR))
+                    iconPath = lightPath;
+            }
             this._infinityIcon.gicon = Gio.icon_new_for_string(iconPath);
             this._infinityIcon.icon_size = this._settings.get_int('logo-icon-size');
         }
@@ -1334,6 +1345,7 @@ export const WackWorkspaceButton = GObject.registerClass(
 
         destroy() {
             this._settings.disconnectObject(this);
+            this._interfaceSettings.disconnectObject(this);
             Main.overview.disconnectObject(this);
             global.workspace_manager.disconnectObject(this);
             if (this._xdndTimeOut) {

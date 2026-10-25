@@ -36,6 +36,7 @@ menu-button-terminal='infinity-terminal'
 menu-button-software-center='gnome-software'
 hide-qs-power-options=false
 enable-panel-proximity=false
+vibrancy-style=2
 
 [org/gnome/shell/extensions/dash2dock-lite]
 adaptive-background=true
