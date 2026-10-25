@@ -170,6 +170,8 @@ elif [[ "$package" == infinity-setup ]]; then
     "$work/source/$package-$version/usr/lib/systemd/system/"
   install -m 0644 "$repo/root/usr/share/infinityos/refind-theme/icons/"os_infinityos*.png \
     "$work/source/$package-$version/usr/share/infinityos/refind-theme/icons/"
+  install -m 0644 "$repo/root/usr/share/infinityos/refind-theme/icons/"arrow_*.png \
+    "$work/source/$package-$version/usr/share/infinityos/refind-theme/icons/"
   install -m 0644 "$repo/root/usr/share/infinityos/refind-theme/theme.conf" \
     "$work/source/$package-$version/usr/share/infinityos/refind-theme/theme.conf"
   install -m 0644 "$repo/root/usr/share/infinityos/efi-drivers/config.ini" \

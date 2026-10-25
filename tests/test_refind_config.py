@@ -133,6 +133,17 @@ class RefindConfigTests(unittest.TestCase):
                 self.assertEqual(struct.unpack(">II", data[16:24]), (128, 128))
                 self.assertEqual(data[25], 6)
 
+        for direction in ("left", "right"):
+            with self.subTest(direction=direction):
+                name = f"arrow_{direction}.png"
+                self.assertIn(f"/usr/share/infinityos/refind-theme/icons/{name}", spec)
+                self.assertIn("arrow_*.png", staging)
+                self.assertIn("icons/arrow_*.png", spec)
+                data = (icons / name).read_bytes()
+                self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
+                self.assertEqual(struct.unpack(">II", data[16:24]), (48, 48))
+                self.assertEqual(data[25], 6)
+
     def test_tv_entries_only_exist_for_enabled_modes(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

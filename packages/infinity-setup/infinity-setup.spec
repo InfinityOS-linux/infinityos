@@ -31,6 +31,7 @@ if [ -f /etc/infinityos/refind-installed ] && mountpoint -q /boot/efi; then
         [ -d "$destination/icons" ] || continue
         install -m 0644 /usr/share/infinityos/refind-theme/theme.conf "$destination/theme.conf" || :
         install -m 0644 /usr/share/infinityos/refind-theme/icons/os_infinityos*.png "$destination/icons/" || :
+        install -m 0644 /usr/share/infinityos/refind-theme/icons/arrow_*.png "$destination/icons/" || :
     done
     case "$(uname -m)" in
         x86_64) efi_arch=x64 ;;
@@ -63,6 +64,8 @@ fi
 /usr/share/infinityos/launcher_tv.py
 /usr/share/infinityos/launcher-icons/
 /usr/share/infinityos/refind-theme/theme.conf
+/usr/share/infinityos/refind-theme/icons/arrow_left.png
+/usr/share/infinityos/refind-theme/icons/arrow_right.png
 /usr/share/infinityos/refind-theme/icons/os_infinityos.png
 /usr/share/infinityos/refind-theme/icons/os_infinityos_check.png
 /usr/share/infinityos/refind-theme/icons/os_infinityos_esde.png
