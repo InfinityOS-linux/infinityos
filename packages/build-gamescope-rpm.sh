@@ -29,7 +29,8 @@ docker run --rm --platform linux/amd64 \
     rpmfile=(/build/rpmbuild/RPMS/x86_64/gamescope-3.16.29-*.x86_64.rpm)
     [[ ${#rpmfile[@]} -eq 1 ]]
     [[ $(rpm -qp --qf "%{NAME} %{VERSION}-%{RELEASE} %{ARCH}" "${rpmfile[0]}") == "gamescope 3.16.29-2.infinityos.fc44 x86_64" ]]
-    rpm -qpl "${rpmfile[0]}" | grep -qx /usr/bin/gamescope
+    rpm_files=$(rpm -qpl "${rpmfile[0]}")
+    grep -qx /usr/bin/gamescope <<< "$rpm_files"
     cp -a "${rpmfile[0]}" /output/
   '
 
