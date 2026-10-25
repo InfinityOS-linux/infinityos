@@ -151,6 +151,11 @@ if [[ $(uname -m) == x86_64 ]]; then
         echo 'Installer is missing the NVIDIA hardware detection hook' >&2
         exit 1
     }
+    [[ $(rpm --root "$rootpoint" -q --qf '%{RELEASE}' gamescope) == \
+        *.infinityos.fc44 ]] || {
+        echo 'Infinity OS Gamescope NVIDIA fix is missing from ISO' >&2
+        exit 1
+    }
 fi
 grep -Fqx 'mkdir -p "$EFI_HOME"' "$rootpoint/usr/sbin/gen_grub_cfgstub" || {
     echo 'Installer cannot create the Infinity OS EFI directory' >&2

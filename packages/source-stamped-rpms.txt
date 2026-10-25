@@ -1,0 +1,8 @@
+infinity-config
+infinity-setup
+infinity-terminal
+infinity-updater
+infinityos-ramdrive
+infinityos-repos
+infinityos-shell-extensions
+infinityos-wallpapers

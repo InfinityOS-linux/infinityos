@@ -22,6 +22,13 @@ PACKAGES = (
 
 
 class ImageProvenanceTests(unittest.TestCase):
+    def test_image_manifest_contains_only_source_stamped_packages(self):
+        manifest = (REPO / "packages/source-stamped-rpms.txt").read_text().splitlines()
+        self.assertEqual(set(manifest), set(PACKAGES))
+        self.assertEqual(len(manifest), len(PACKAGES))
+        for package in manifest:
+            self.assertTrue((REPO / "packages" / package / f"{package}.spec").is_file())
+
     def test_source_revision_rejects_uncommitted_changes(self):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)
