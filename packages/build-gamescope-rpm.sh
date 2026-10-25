@@ -26,11 +26,11 @@ docker run --rm --platform linux/amd64 \
     done < <(sed -n "s/^SHA512 (\([^)]*\)) = \([0-9a-f]*\)$/\2 \1/p" /source/sources)
     dnf -y builddep /source/gamescope.spec
     rpmbuild -bb --define "_topdir /build/rpmbuild" /source/gamescope.spec
-    rpmfile=(/build/rpmbuild/RPMS/x86_64/gamescope-*.rpm)
+    rpmfile=(/build/rpmbuild/RPMS/x86_64/gamescope-3.16.29-*.x86_64.rpm)
     [[ ${#rpmfile[@]} -eq 1 ]]
     [[ $(rpm -qp --qf "%{NAME} %{VERSION}-%{RELEASE} %{ARCH}" "${rpmfile[0]}") == "gamescope 3.16.29-2.infinityos.fc44 x86_64" ]]
     rpm -qpl "${rpmfile[0]}" | grep -qx /usr/bin/gamescope
-    cp -a /build/rpmbuild/RPMS/. /output/
+    cp -a "${rpmfile[0]}" /output/
   '
 
 mkdir -p "$repo/.build/rpm-output"
