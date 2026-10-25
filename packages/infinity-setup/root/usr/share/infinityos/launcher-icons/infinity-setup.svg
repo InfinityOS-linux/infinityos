@@ -8,11 +8,11 @@
   </defs>
   <rect x="8" y="8" width="496" height="496" rx="112" fill="url(#surface)"/>
   <rect x="10" y="10" width="492" height="492" rx="110" fill="none" stroke="#dfcaff" stroke-opacity=".29" stroke-width="4"/>
-  <g fill="none" stroke="#faf7ff" stroke-width="17" stroke-linejoin="round">
-    <rect x="128" y="128" width="108" height="108" rx="23"/>
-    <rect x="276" y="128" width="108" height="108" rx="23"/>
-    <rect x="128" y="276" width="108" height="108" rx="23"/>
-    <rect x="276" y="276" width="108" height="108" rx="23"/>
+  <g fill="none" stroke="#faf7ff" stroke-width="19" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M256 187c-28-17-67-24-105-16v173c42-8 78-1 105 17Z"/>
+    <path d="M256 187c28-17 67-24 105-16v173c-42-8-78-1-105 17Z"/>
+    <path d="M256 187v174" stroke="#dfccff" stroke-width="12"/>
+    <rect x="177" y="222" width="47" height="47" rx="11" stroke-width="14"/>
+    <path d="M179 304h47M288 224h43M309 203v43M289 304h42" stroke-width="13"/>
   </g>
-  <path d="m339 294-37 53h29l-12 43 60-70h-33l13-26Z" fill="#faf7ff" stroke="#faf7ff" stroke-width="5" stroke-linejoin="round"/>
 </svg>

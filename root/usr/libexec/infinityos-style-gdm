@@ -63,6 +63,16 @@ for css in "$work"/org/gnome/shell/theme/gnome-shell-{dark,light}.css; do
 EOF
         changed=1
     fi
+    if ! grep -Fq 'Infinity OS session transition v1' "$css"; then
+        cat >> "$css" <<'EOF'
+
+/* Infinity OS session transition v1: cover the stage before the wallpaper appears. */
+stage {
+  background-color: #000000;
+}
+EOF
+        changed=1
+    fi
     patched=$((patched + 1))
 done
 [[ $patched -gt 0 ]] || { echo 'No supported GNOME Shell theme CSS found' >&2; exit 1; }

@@ -8,7 +8,8 @@
   </defs>
   <rect x="8" y="8" width="496" height="496" rx="112" fill="url(#surface)"/>
   <rect x="10" y="10" width="492" height="492" rx="110" fill="none" stroke="#dfcaff" stroke-opacity=".29" stroke-width="4"/>
-  <path d="M236 108h40l10 35 25 10 32-18 28 28-18 32 10 25 35 10v52l-35 10-10 25 18 32-28 28-32-18-25 10-10 35h-40l-10-35-25-10-32 18-28-28 18-32-10-25-35-10v-52l35-10 10-25-18-32 28-28 32 18 25-10Z" fill="none" stroke="#faf7ff" stroke-width="17" stroke-linejoin="round"/>
-  <circle cx="256" cy="256" r="77" fill="none" stroke="#faf7ff" stroke-width="14"/>
-  <path d="M194 256c0-26 20-41 41-31 16 8 26 27 42 49 17 23 41 15 41-18s-24-41-41-18c-16 22-26 41-42 49-21 10-41-5-41-31Z" fill="none" stroke="#faf7ff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M228.1,152.7 234.6,130.8 277.4,130.8 283.9,152.7 294.1,156.0 312.2,142.1 346.9,167.3 339.3,188.8 345.6,197.5 368.4,196.9 381.7,237.7 362.9,250.6 362.9,261.4 381.7,274.3 368.4,315.1 345.6,314.5 339.3,323.2 346.9,344.7 312.2,369.9 294.1,356.0 283.9,359.3 277.4,381.2 234.6,381.2 228.1,359.3 217.9,356.0 199.8,369.9 165.1,344.7 172.7,323.2 166.4,314.5 143.6,315.1 130.3,274.3 149.1,261.4 149.1,250.6 130.3,237.7 143.6,196.9 166.4,197.5 172.7,188.8 165.1,167.3 199.8,142.1 217.9,156.0Z" fill="none" stroke="#faf7ff" stroke-width="18" stroke-linejoin="round"/>
+  <circle cx="256" cy="256" r="70" fill="none" stroke="#faf7ff" stroke-width="17"/>
+  <circle cx="256" cy="256" r="43" fill="none" stroke="#dfccff" stroke-width="11"/>
+  <circle cx="256" cy="256" r="13" fill="#faf7ff"/>
 </svg>

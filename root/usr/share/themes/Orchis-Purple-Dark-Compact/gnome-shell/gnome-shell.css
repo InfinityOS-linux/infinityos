@@ -3,6 +3,7 @@ stage {
   font-size: 9.75pt;
   font-weight: 400;
   color: white;
+  background-color: #000000;
 }
 
 .search-statustext {
