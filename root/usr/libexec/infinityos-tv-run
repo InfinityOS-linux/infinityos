@@ -2,21 +2,32 @@
 set -euo pipefail
 
 run_steam() {
-    local started=$SECONDS status
-    if gamescope -e -f -- "$@"; then
-        return 0
-    else
-        status=$?
-    fi
-    if (( SECONDS - started >= 20 )); then
-        return "$status"
-    fi
-    if ! command -v cage >/dev/null 2>&1; then
-        echo "gamescope exited early ($status); Cage fallback is unavailable" >&2
-        return "$status"
-    fi
-    echo "gamescope exited early ($status); trying Cage with software rendering" >&2
-    WLR_RENDERER=pixman exec cage -- "$@"
+    local started status relaunches=0
+    while true; do
+        started=$SECONDS
+        if gamescope -e -f -- "$@"; then
+            # Steam's updater can exit successfully before launching the client.
+            # Keep the TV session alive long enough to start Steam again.
+            if (( relaunches == 0 )); then
+                relaunches=1
+                echo 'Steam exited; relaunching once in TV mode' >&2
+                sleep 1
+                continue
+            fi
+            return 0
+        else
+            status=$?
+        fi
+        if (( SECONDS - started >= 20 )); then
+            return "$status"
+        fi
+        if ! command -v cage >/dev/null 2>&1; then
+            echo "gamescope exited early ($status); Cage fallback is unavailable" >&2
+            return "$status"
+        fi
+        echo "gamescope exited early ($status); trying Cage with software rendering" >&2
+        WLR_RENDERER=pixman exec cage -- "$@"
+    done
 }
 
 case ${1:-} in

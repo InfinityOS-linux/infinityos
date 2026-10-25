@@ -27,7 +27,7 @@ class TVRunnerTests(unittest.TestCase):
             commands = {
                 "uname": f"printf '{arch}\\n'\n",
                 "flatpak": "if [ \"$1\" = info ]; then exit 0; fi\n",
-                "gamescope": f"exit {result}\n",
+                "gamescope": f'printf x >> "$TV_RUN_TEST_ATTEMPTS"\nexit {result}\n',
                 "cage": 'printf "%s|%s\\n" "$WLR_RENDERER" "$*" > "$TV_RUN_TEST_LOG"\n',
             }
             for name, body in commands.items():
@@ -35,28 +35,40 @@ class TVRunnerTests(unittest.TestCase):
                 executable.write_text("#!/bin/sh\n" + body)
                 executable.chmod(0o755)
             log = root / "cage.log"
+            attempts = root / "attempts"
             env = dict(os.environ, PATH=f"{root}:{os.environ['PATH']}",
-                       HOME=str(home), TV_RUN_TEST_LOG=str(log))
+                       HOME=str(home), TV_RUN_TEST_LOG=str(log),
+                       TV_RUN_TEST_ATTEMPTS=str(attempts))
             completed = subprocess.run(["bash", str(RUNNER), "steam"], env=env,
                                        capture_output=True, text=True, check=False)
-            return completed, log.read_text() if log.exists() else None, str(client)
+            return (completed, log.read_text() if log.exists() else None,
+                    str(client), attempts.read_text() if attempts.exists() else "")
 
     def test_early_gamescope_failure_tries_software_cage(self):
-        completed, fallback, _client = self._run_with_gamescope_result(1)
+        completed, fallback, _client, attempts = self._run_with_gamescope_result(1)
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn("gamescope exited early", completed.stderr)
         self.assertEqual(fallback,
                          "pixman|-- flatpak run --user com.valvesoftware.Steam -gamepadui\n")
+        self.assertEqual(attempts, "x")
 
     def test_successful_gamescope_does_not_start_fallback(self):
-        completed, fallback, _client = self._run_with_gamescope_result(0)
+        completed, fallback, _client, attempts = self._run_with_gamescope_result(0)
         self.assertEqual(completed.returncode, 0)
         self.assertIsNone(fallback)
+        self.assertEqual(attempts, "xx")
 
     def test_arm_client_uses_the_same_fallback(self):
-        completed, fallback, client = self._run_with_gamescope_result(1, "aarch64")
+        completed, fallback, client, attempts = self._run_with_gamescope_result(1, "aarch64")
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertEqual(fallback, f"pixman|-- {client} -gamepadui\n")
+        self.assertEqual(attempts, "x")
+
+    def test_arm_steam_restarts_after_successful_updater_exit(self):
+        completed, fallback, _client, attempts = self._run_with_gamescope_result(0, "aarch64")
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIsNone(fallback)
+        self.assertEqual(attempts, "xx")
 
 
 if __name__ == "__main__":
