@@ -250,6 +250,8 @@ class InfinitySetup(Gtk.Application):
             tab.connect("toggled", self._select_tab, section.lower())
             navigation.append(tab)
             self.stack.add_named(self._page(section, description), section.lower())
+        if self.tv_switches["steam"].get_active():
+            self._steam_tv_toggled(self.tv_switches["steam"], None)
         first.set_active(True)
         backdrop.append(navigation)
         backdrop.append(self.stack)
@@ -385,6 +387,8 @@ class InfinitySetup(Gtk.Application):
                 status.set_visible(True)
             self.switches[app] = switch
             self.notes[app] = status
+            if app.source == "com.valvesoftware.Steam":
+                switch.connect("notify::active", self._steam_toggled)
             row.append(switch)
             body.append(row)
         if section == "TV Mode":
@@ -416,9 +420,22 @@ class InfinitySetup(Gtk.Application):
                 self.tv_initial[mode] = active
                 self.tv_switches[mode] = switch
                 self.tv_notes[mode] = status
+                if mode == "steam":
+                    switch.connect("notify::active", self._steam_tv_toggled)
                 row.append(switch)
                 body.append(row)
         return scroller
+
+    def _steam_toggled(self, switch, _property):
+        if not switch.get_active() and "steam" in self.tv_switches:
+            self.tv_switches["steam"].set_active(False)
+
+    def _steam_tv_toggled(self, switch, _property):
+        if switch.get_active():
+            for app, steam_switch in self.switches.items():
+                if app.source == "com.valvesoftware.Steam":
+                    steam_switch.set_active(True)
+                    break
 
     def _local_model_toggled(self, switch, app):
         if not switch.get_active():
@@ -481,35 +498,49 @@ class InfinitySetup(Gtk.Application):
 
     def _install(self, changes, tv_changes):
         errors = []
-        total = len(changes) + len(tv_changes)
+        early_tv = [(mode, enabled) for mode, enabled in tv_changes
+                    if mode == "steam" and not enabled]
+        later_tv = [(mode, enabled) for mode, enabled in tv_changes
+                    if (mode, enabled) not in early_tv]
+        operations = ([("tv", mode, enabled) for mode, enabled in early_tv] +
+                      [("app", app, enabled) for app, enabled in changes] +
+                      [("tv", mode, enabled) for mode, enabled in later_tv])
+        total = len(operations)
         steam_tv_selected = ("steam", True) in tv_changes
-        for index, (app, enabled) in enumerate(changes, 1):
-            GLib.idle_add(self.status.set_text, tr("Applying {index}/{total}: {name}…").format(
-                index=index, total=total, name=app.name))
-            try:
-                if enabled:
-                    if steam_tv_selected and app.source == "com.valvesoftware.Steam":
-                        install(app, defer_system_dependencies=True)
-                    else:
-                        install(app)
-                elif app.kind == "local-model":
-                    deactivate_local_model()
-                else:
-                    uninstall(app)
-            except Exception as exc:
-                errors.append(f"{app.name}: {exc}")
-            else:
-                GLib.idle_add(self._installed, app, enabled)
-        for index, (mode, enabled) in enumerate(tv_changes, len(changes) + 1):
-            name = "EmulationStation (ES-DE)" if mode == "esde" else "Steam Big Picture"
+        steam_tv_disable_failed = False
+        steam_install_failed = False
+        for index, (kind, item, enabled) in enumerate(operations, 1):
+            name = (item.name if kind == "app" else
+                    "EmulationStation (ES-DE)" if item == "esde" else "Steam Big Picture")
             GLib.idle_add(self.status.set_text, tr("Applying {index}/{total}: {name}…").format(
                 index=index, total=total, name=name))
+            if kind == "app" and item.source == "com.valvesoftware.Steam" and \
+                    not enabled and steam_tv_disable_failed:
+                errors.append(f"{name}: {tr('Could not disable Steam TV Mode; Steam was left installed.')}")
+                continue
+            if kind == "tv" and item == "steam" and enabled and steam_install_failed:
+                continue
             try:
-                set_tv_enabled(mode, enabled)
+                if kind == "tv":
+                    set_tv_enabled(item, enabled)
+                elif enabled:
+                    if steam_tv_selected and item.source == "com.valvesoftware.Steam":
+                        install(item, defer_system_dependencies=True)
+                    else:
+                        install(item)
+                elif item.kind == "local-model":
+                    deactivate_local_model()
+                else:
+                    uninstall(item)
             except Exception as exc:
                 errors.append(f"{name}: {exc}")
+                if kind == "tv" and item == "steam" and not enabled:
+                    steam_tv_disable_failed = True
+                if kind == "app" and item.source == "com.valvesoftware.Steam" and enabled:
+                    steam_install_failed = True
             else:
-                GLib.idle_add(self._tv_applied, mode, enabled)
+                GLib.idle_add(self._tv_applied if kind == "tv" else self._installed,
+                              item, enabled)
         GLib.idle_add(self._finished, errors)
 
     def _tv_applied(self, mode, enabled):

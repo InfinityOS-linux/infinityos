@@ -71,7 +71,7 @@ APPS = (
     App("System", "Brave", "flatpak", "com.brave.Browser", "Browse the web with built-in ad blocking.", group="Web browsers", icon="web-browser-symbolic"),
     App("System", "VLC", "flatpak", "org.videolan.VLC", "Play videos, music and online streams.", group="Media players", icon="applications-multimedia-symbolic"),
     App("System", "Spotify", "flatpak", "com.spotify.Client", "Listen to music and podcasts online.", group="Media players", icon="com.spotify.Client"),
-    App("System", "mpv", "flatpak", "io.mpv.Mpv", "Play videos with a lightweight player.", group="Media players", icon="applications-multimedia-symbolic"),
+    App("System", "mpv", "dnf", "mpv", "Play videos with a lightweight player.", group="Media players", icon="io.mpv.Mpv"),
     App("System", "qBittorrent", "flatpak", "org.qbittorrent.qBittorrent", "Download and manage torrents.", group="Download managers", icon="folder-download-symbolic"),
     App("System", "Transmission", "flatpak", "com.transmissionbt.Transmission", "Download torrents with a simple app.", group="Download managers", icon="folder-download-symbolic"),
     App("System", "JDownloader 2", "flatpak", "org.jdownloader.JDownloader", "Download files from many websites.", group="Download managers", icon="folder-download-symbolic"),
@@ -150,17 +150,45 @@ def deactivate_local_model(home=None):
 
 
 def removable(app, home=None):
-    """Only user-prefix npm installations can be safely removed here."""
-    if app.kind != "npm":
-        return False
-    command = "claude" if "anthropic" in app.source else "codex"
-    return (Path(home or Path.home()) / ".local/bin" / command).exists()
+    """Allow removal of Steam and user-prefix CLI installations."""
+    if app.source == "com.valvesoftware.Steam":
+        if os.uname().machine == "aarch64":
+            return installed(app, home)
+        return bool(_steam_flatpak_scopes(app))
+    if app.kind == "npm":
+        command = "claude" if "anthropic" in app.source else "codex"
+        return (Path(home or Path.home()) / ".local/bin" / command).exists()
+    return False
+
+
+def _steam_flatpak_scopes(app):
+    scopes = []
+    for scope in ("--user", "--system"):
+        try:
+            result = subprocess.run(["flatpak", "info", scope, app.source],
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                    check=False)
+        except OSError:
+            continue
+        if result.returncode == 0:
+            scopes.append(scope)
+    return scopes
 
 
 def uninstall(app, home=None):
     if not removable(app, home):
-        raise ValueError(f"No user installation to remove for {app.name}.")
+        raise ValueError(f"No removable installation for {app.name}.")
     home = Path(home or Path.home())
+    if app.source == "com.valvesoftware.Steam":
+        if os.uname().machine == "aarch64":
+            # Keep steamapps and user settings while removing the managed client.
+            shutil.rmtree(home / ".local/share/Steam/steamrtarm64")
+            (home / ".local/share/applications/steam-arm64.desktop").unlink(missing_ok=True)
+        else:
+            for scope in _steam_flatpak_scopes(app):
+                command = ["flatpak", "uninstall", scope, "--noninteractive", "--assumeyes", app.source]
+                _run(["pkexec", *command] if scope == "--system" else command)
+        return
     _run(["npm", "uninstall", "--global", "--prefix", str(home / ".local"), app.source])
     name = "claude" if "anthropic" in app.source else "codex"
     (home / f".local/share/applications/infinityos-{name}.desktop").unlink(missing_ok=True)
@@ -487,7 +515,9 @@ def install(app, home=None, *, defer_system_dependencies=False):
         _run(["pkexec", "/usr/bin/python3", str(Path(__file__).resolve()),
               "--install-driver", app.source])
     elif app.kind == "dnf":
-        if app.source == "docker-ce":
+        if app.source == "mpv":
+            _run(["pkexec", "dnf", "-y", "install", "mpv"])
+        elif app.source == "docker-ce":
             if not Path("/etc/yum.repos.d/docker-ce.repo").exists():
                 _run(["pkexec", "dnf", "config-manager", "addrepo", "--from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo"])
             _run(["pkexec", "dnf", "--enablerepo=docker-ce-stable", "-y", "install", "docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin", "docker-compose-plugin"])

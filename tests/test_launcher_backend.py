@@ -291,6 +291,59 @@ class LauncherBackendTests(unittest.TestCase):
         self.assertEqual(run.call_count, 2)
         self.assertEqual(run.call_args_list[1].args[0][-1], "com.valvesoftware.Steam")
 
+    def test_bundled_mpv_is_recognized_as_system_package(self):
+        mpv = next(app for app in backend.APPS if app.name == "mpv")
+        self.assertEqual((mpv.kind, mpv.source), ("dnf", "mpv"))
+        with patch.object(backend.subprocess, "run", return_value=SimpleNamespace(returncode=0)) as run:
+            self.assertTrue(backend.installed(mpv, flatpak_ids=set()))
+        self.assertEqual(run.call_args.args[0], ["rpm", "-q", "mpv"])
+        with patch.object(backend, "_run") as install_command:
+            backend.install(mpv)
+        install_command.assert_called_once_with(["pkexec", "dnf", "-y", "install", "mpv"])
+
+    def test_steam_can_be_removed_from_user_and_system_flatpak_scopes(self):
+        steam = next(app for app in backend.APPS if app.name == "Steam")
+        with patch.object(backend.os, "uname", return_value=SimpleNamespace(machine="x86_64")), \
+             patch.object(backend.subprocess, "run", return_value=SimpleNamespace(returncode=0)), \
+             patch.object(backend, "_run") as run:
+            self.assertTrue(backend.removable(steam))
+            backend.uninstall(steam)
+        self.assertEqual([call.args[0] for call in run.call_args_list], [
+            ["flatpak", "uninstall", "--user", "--noninteractive", "--assumeyes", steam.source],
+            ["pkexec", "flatpak", "uninstall", "--system", "--noninteractive", "--assumeyes", steam.source],
+        ])
+
+    def test_steam_removal_uses_only_its_installed_flatpak_scope(self):
+        steam = next(app for app in backend.APPS if app.name == "Steam")
+        scopes = [SimpleNamespace(returncode=1), SimpleNamespace(returncode=0)] * 2
+        with patch.object(backend.os, "uname", return_value=SimpleNamespace(machine="x86_64")), \
+             patch.object(backend.subprocess, "run", side_effect=scopes), \
+             patch.object(backend, "_run") as run:
+            backend.uninstall(steam)
+        run.assert_called_once_with([
+            "pkexec", "flatpak", "uninstall", "--system", "--noninteractive",
+            "--assumeyes", steam.source])
+
+    def test_arm_steam_removal_preserves_games(self):
+        steam = next(app for app in backend.APPS if app.name == "Steam")
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(backend.os, "uname", return_value=SimpleNamespace(machine="aarch64")):
+            home = Path(directory)
+            client = home / ".local/share/Steam/steamrtarm64/steam"
+            client.parent.mkdir(parents=True)
+            client.write_bytes(b"client")
+            client.chmod(0o755)
+            desktop = home / ".local/share/applications/steam-arm64.desktop"
+            desktop.parent.mkdir(parents=True)
+            desktop.write_text("Steam")
+            game = home / ".local/share/Steam/steamapps/game.dat"
+            game.parent.mkdir(parents=True)
+            game.write_bytes(b"game")
+            self.assertTrue(backend.removable(steam, home))
+            backend.uninstall(steam, home)
+            self.assertFalse(backend.installed(steam, home))
+            self.assertTrue(game.is_file())
+
     def test_catalog_reads_flatpak_installations_once_per_scope(self):
         vlc = next(app for app in backend.APPS if app.name == "VLC")
         responses = (

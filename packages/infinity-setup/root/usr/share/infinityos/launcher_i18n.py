@@ -77,6 +77,8 @@ POLISH = {
     "Enable and configure Razer gaming devices.": "Uruchom i skonfiguruj urządzenia Razer.",
     "Run Windows easily on this system.": "Uruchom w łatwy sposób Windowsa na tym systemie.",
     "Buy, install and play games from Steam.": "Kupuj, instaluj i uruchamiaj gry ze Steam.",
+    "Could not disable Steam TV Mode; Steam was left installed.":
+        "Nie udało się wyłączyć Steam TV Mode; Steam pozostał zainstalowany.",
     "Install and play games from Epic Games.": "Instaluj i uruchamiaj gry z Epic Games.",
     "Install and play Blizzard games through Lutris.":
         "Instaluj i uruchamiaj gry Blizzarda przez Lutris.",
