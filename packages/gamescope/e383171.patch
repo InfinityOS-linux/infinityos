@@ -1,0 +1,88 @@
+From e383171ff1c0f7b5b37f05f2bb67f7c5282b087f Mon Sep 17 00:00:00 2001
+From: Matthew Schwartz <matthew.schwartz@linux.dev>
+Date: Wed, 2 Sep 2026 12:52:27 -0700
+Subject: [PATCH] rendervulkan: make the shared output images on first use
+
+Every backend without a swapchain gets three output-sized images at
+init. OpenVR connectors composite into their own pools and only reach
+them on exhaustion, about 25 MB of idle 1080p images on a Frame, and
+headless never composites at all.
+
+Make them on the first composite that needs them. An allocation failure
+fails that composite instead of startup.
+---
+ src/rendervulkan.cpp | 40 +++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 39 insertions(+), 1 deletion(-)
+
+diff --git a/src/rendervulkan.cpp b/src/rendervulkan.cpp
+index be42a852e..b6eb36273 100644
+--- a/src/rendervulkan.cpp
++++ b/src/rendervulkan.cpp
+@@ -3399,6 +3399,31 @@ static bool vulkan_make_output_images( VulkanOutput_t *pOutput )
+ 	return true;
+ }
+ 
++// Without a swapchain the shared images are ours to make, so they wait for their first use.
++static bool vulkan_defer_output_images()
++{
++	return !GetBackend()->UsesVulkanSwapchain();
++}
++
++static bool vulkan_ensure_output_images()
++{
++	if ( !vulkan_defer_output_images() )
++		return true;
++
++	VulkanOutput_t *pOutput = &g_output;
++	if ( !pOutput->outputImages.empty() && pOutput->outputImages[0] )
++		return true;
++
++	vk_log.debugf( "Making the shared output images on first use" );
++	if ( vulkan_make_output_images( pOutput ) )
++		return true;
++
++	// A half-made set would pass the check above, so the next use tries again from nothing.
++	pOutput->outputImages.clear();
++	pOutput->outputImagesPartialOverlay.clear();
++	return false;
++}
++
+ bool vulkan_remake_output_images()
+ {
+ 	VulkanOutput_t *pOutput = &g_output;
+@@ -3412,6 +3437,14 @@ bool vulkan_remake_output_images()
+ 	for (auto& pCaptureTexture : pOutput->pCaptureTextures)
+ 		pCaptureTexture = nullptr;
+ 
++	if ( vulkan_defer_output_images() )
++	{
++		pOutput->outputImages.clear();
++		pOutput->outputImagesPartialOverlay.clear();
++		pOutput->temporaryHackyBlankImage = vulkan_create_debug_blank_texture();
++		return true;
++	}
++
+ 	bool bRet = vulkan_make_output_images( pOutput );
+ 	assert( bRet );
+ 	return bRet;
+@@ -3490,7 +3523,9 @@ bool vulkan_make_output()
+ 			return false;
+ 		}
+ 
+-		if ( !vulkan_make_output_images( pOutput ) )
++		if ( vulkan_defer_output_images() )
++			pOutput->temporaryHackyBlankImage = vulkan_create_debug_blank_texture();
++		else if ( !vulkan_make_output_images( pOutput ) )
+ 			return false;
+ 	}
+ 
+@@ -4092,6 +4127,9 @@ std::optional<uint64_t> vulkan_composite( struct FrameInfo_t *frameInfo, gamesco
+ 		g_reshadeManager.clear();
+ 	}
+ 
++	if ( !pOutputOverride && !vulkan_ensure_output_images() )
++		return std::nullopt;
++
+ 	gamescope::Rc<CVulkanTexture> compositeImage;
+ 	if ( pOutputOverride )
+ 		compositeImage = pOutputOverride;

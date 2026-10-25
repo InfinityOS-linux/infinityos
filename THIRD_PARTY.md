@@ -25,6 +25,7 @@
 | WACK Sonoma Lockscreen | https://github.com/rinzler69-wastaken/wack-sonoma-lockscreen | `e8c162421d6bf2adf17cce840f33c5bfb8d4b317`, user-session files packaged as in the upstream `make pack` target | GPL-3.0, included beside the extension |
 | Bibata Modern Ice cursor | https://github.com/ful1e5/Bibata_Cursor | `v2.0.7`, SHA-256 `a68cae60c4dc706350e194ebc91c5fe48bc7bc9d59e119555834a2a7ee5078ef` of the Linux archive | GPL-3.0, included at `root/usr/share/licenses/Bibata-Modern-Ice/LICENSE` |
 | Ghostty / InfinityTerminal | https://ghostty.org/ | 1.3.1, upstream archive SHA-256 `3349d25600ffbda281197a18314f7d18791969cffe9474f0ff16a45a9ebfccdb`, with Infinity OS patches at `ghostty/ghostty-1.3.1-infinity.patch` and `ghostty/ghostty-1.3.1-native-controls.patch` | MIT, included at `ghostty/GHOSTTY-LICENSE` |
+| Gamescope | https://github.com/ValveSoftware/gamescope | 3.16.29, rebuilt from Fedora 44 sources with upstream commit `e383171` reversed for NVIDIA; source hashes and patches are in `packages/gamescope/` | BSD, included in the rebuilt RPM as `LICENSE` |
 
 Performance configuration in `root/usr/share/infinityos/performance/` is adapted from [Bazzite's desktop zram, inotify, and networking settings](https://github.com/ublue-os/bazzite/tree/main/system_files/desktop/shared) and [Nobara's disk scheduler rules](https://github.com/Nobara-Project/rpm-sources/blob/main/baseos/nobara-login/60-ioschedulers.rules). These are configuration values and short udev rules, not bundled binaries.
 
