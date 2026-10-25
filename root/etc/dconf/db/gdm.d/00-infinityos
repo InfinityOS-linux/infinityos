@@ -6,8 +6,8 @@ font-name='IBM Plex Sans 11'
 document-font-name='IBM Plex Sans 11'
 
 [org/gnome/desktop/background]
-picture-uri='file:///usr/share/backgrounds/infinityos/infinityos-login.png'
-picture-uri-dark='file:///usr/share/backgrounds/infinityos/infinityos-login.png'
+picture-uri='file:///usr/share/backgrounds/infinityos/infinityos-login.svg'
+picture-uri-dark='file:///usr/share/backgrounds/infinityos/infinityos-login.svg'
 picture-options='zoom'
 color-shading-type='solid'
 primary-color='#000000'

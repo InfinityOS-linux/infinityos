@@ -4,7 +4,10 @@ set -euo pipefail
 # GDM draws #lockDialogGroup from GNOME Shell's theme resource. Its dconf
 # desktop background keys do not change the greeter's plain grey backdrop.
 theme=${1:-/usr/share/gnome-shell/gnome-shell-theme.gresource}
+login_svg=${2:-/usr/share/backgrounds/infinityos/infinityos-login.svg}
+login_resource=/org/gnome/shell/theme/infinityos-login.svg
 [[ -f "$theme" ]] || { echo "Missing GNOME Shell theme: $theme" >&2; exit 1; }
+[[ -f "$login_svg" ]] || { echo "Missing GDM background: $login_svg" >&2; exit 1; }
 command -v gresource >/dev/null
 command -v glib-compile-resources >/dev/null
 
@@ -26,26 +29,36 @@ gresource list "$theme" > "$list"
         gresource extract "$theme" "$resource" > "$work/$relative"
         printf '  <file compressed="true">%s</file>\n' "$relative"
     done < "$list"
+    if ! grep -Fqx "$login_resource" "$list"; then
+        printf '  <file compressed="true">%s</file>\n' "${login_resource#/}"
+    fi
     printf '%s\n' '</gresource></gresources>'
 } > "$work/theme.xml"
 
 patched=0
 changed=0
+if ! cmp -s "$login_svg" "$work/${login_resource#/}"; then
+    mkdir -p "$(dirname "$work/${login_resource#/}")"
+    install -m 0644 "$login_svg" "$work/${login_resource#/}"
+    changed=1
+fi
 for css in "$work"/org/gnome/shell/theme/gnome-shell-{dark,light}.css; do
     [[ -f "$css" ]] || continue
     grep -Fq '#lockDialogGroup' "$css" || {
         echo "Missing GDM backdrop selector: $css" >&2
         exit 1
     }
-    if ! grep -Fq 'Infinity OS GDM background' "$css"; then
+    if ! grep -Fq 'Infinity OS GDM background v2' "$css"; then
+        sed '/\/\* Infinity OS GDM background:/,/^}/d' "$css" > "$css.updated"
+        mv "$css.updated" "$css"
         cat >> "$css" <<'EOF'
 
-/* Infinity OS GDM background: nearly black, with a subtle violet lower edge. */
+/* Infinity OS GDM background v2: black with a faint bottom glow. */
 #lockDialogGroup {
-  background-color: #050407;
-  background-gradient-direction: vertical;
-  background-gradient-start: #050407;
-  background-gradient-end: #190d23;
+  background-color: #000000;
+  background-image: url("resource:///org/gnome/shell/theme/infinityos-login.svg");
+  background-size: cover;
+  background-position: center;
 }
 EOF
         changed=1

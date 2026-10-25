@@ -30,7 +30,7 @@ for file in \
     usr/bin/infinity-updater \
     usr/libexec/infinityos-style-gdm \
     usr/share/backgrounds/infinityos/infinityos-dark.png \
-    usr/share/backgrounds/infinityos/infinityos-login.png \
+    usr/share/backgrounds/infinityos/infinityos-login.svg \
     usr/share/gnome-shell/extensions/ghostty@infinityos.org/extension.js \
     usr/share/gnome-shell/extensions/infinity-updater@infinityos.org/extension.js; do
     [[ -e "$root/$file" ]] || { echo "Missing Infinity OS image file: $file" >&2; exit 1; }
@@ -38,8 +38,8 @@ done
 
 gdm_defaults="$root/etc/dconf/db/gdm.d/00-infinityos"
 for setting in \
-    "picture-uri='file:///usr/share/backgrounds/infinityos/infinityos-login.png'" \
-    "picture-uri-dark='file:///usr/share/backgrounds/infinityos/infinityos-login.png'" \
+    "picture-uri='file:///usr/share/backgrounds/infinityos/infinityos-login.svg'" \
+    "picture-uri-dark='file:///usr/share/backgrounds/infinityos/infinityos-login.svg'" \
     "picture-options='zoom'"; do
     grep -Fxq "$setting" "$gdm_defaults" || {
         echo "Missing Infinity OS GDM background setting: $setting" >&2
