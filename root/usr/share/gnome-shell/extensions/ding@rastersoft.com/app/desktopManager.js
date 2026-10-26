@@ -1199,132 +1199,171 @@ export var DesktopManager = class {
         this._readingDesktopFiles = true;
         this._forceDraw = false;
         this._lastDesktopUpdateRequest = GLib.get_monotonic_time();
-        let fileList = [];
-        /* eslint-disable no-await-in-loop */
-        while (true) {
-            this._desktopFilesChanged = false;
-            if (!this._desktopDir.query_exists(null)) {
-                fileList = [];
-                break;
-            }
-            fileList = await this._doReadAsync();
-            if (this._forcedExit)
-                return;
-
-            if (fileList !== null) {
-                if (!this._desktopFilesChanged)
+        try {
+            let fileList = [];
+            /* eslint-disable no-await-in-loop */
+            while (true) {
+                this._desktopFilesChanged = false;
+                if (!this._desktopDir.query_exists(null)) {
+                    fileList = [];
                     break;
-
-                if (this._forceDraw) {
-                    this._drawDesktop(fileList);
-                    this._lastDesktopUpdateRequest = GLib.get_monotonic_time();
-                } else {
-                    // Destroy the unused FileItems to prevent memory leak
-                    for (const item of fileList)
-                        item._onDestroy();
                 }
+                fileList = await this._doReadAsync();
+                if (this._forcedExit) {
+                    for (const item of fileList ?? [])
+                        item._onDestroy();
+                    return;
+                }
+
+                if (fileList !== null) {
+                    if (!this._desktopFilesChanged)
+                        break;
+
+                    if (this._forceDraw) {
+                        this._drawDesktop(fileList);
+                        this._lastDesktopUpdateRequest = GLib.get_monotonic_time();
+                    } else {
+                        // Destroy the unused FileItems to prevent memory leak
+                        for (const item of fileList)
+                            item._onDestroy();
+                    }
+                }
+                await DesktopIconsUtil.waitDelayMs(100);
+                this._forceDraw = (GLib.get_monotonic_time() - this._lastDesktopUpdateRequest) > 1000000;
             }
-            await DesktopIconsUtil.waitDelayMs(100);
-            if ((GLib.get_monotonic_time() - this._lastDesktopUpdateRequest) > 1000000)
-                this._forceDraw = true;
-            else
-                this._forceDraw = false;
+            this._drawDesktop(fileList);
+        } finally {
+            this._readingDesktopFiles = false;
+            this._forceDraw = false;
         }
-        this._readingDesktopFiles = false;
-        this._forceDraw = false;
-        this._drawDesktop(fileList);
     }
 
-    _doReadAsync() {
+    async _doReadAsync() {
         if (this._desktopEnumerateCancellable)
             this._desktopEnumerateCancellable.cancel();
 
-        this._desktopEnumerateCancellable = new Gio.Cancellable();
-        return new Promise(resolve => {
-            this._desktopDir.enumerate_children_async(
+        const cancellable = new Gio.Cancellable();
+        this._desktopEnumerateCancellable = cancellable;
+        let fileEnum = null;
+        const fileList = [];
+        let complete = false;
+        try {
+            fileEnum = await this._desktopDir.enumerate_children_async_promise(
                 Enums.DEFAULT_ATTRIBUTES,
                 Gio.FileQueryInfoFlags.NONE,
                 GLib.PRIORITY_DEFAULT,
-                this._desktopEnumerateCancellable,
-                (source, result) => {
-                    this._desktopEnumerateCancellable = null;
-                    try {
-                        const fileEnum = source.enumerate_children_finish(result);
-                        if (this._desktopFilesChanged && !this._forceDraw) {
-                            resolve(null);
-                            return;
+                cancellable);
+            if (this._desktopFilesChanged && !this._forceDraw)
+                return null;
+            for (const [newFolder, extras] of DesktopIconsUtil.getExtraFolders()) {
+                try {
+                    fileList.push(new FileItem.FileItem(this,
+                        newFolder,
+                        newFolder.query_info(Enums.DEFAULT_ATTRIBUTES, Gio.FileQueryInfoFlags.NONE, null),
+                        extras,
+                        null));
+                } catch (e) {
+                    print(`Failed with ${e.message} while adding extra folder ${newFolder.get_uri()}\n${e.stack}`);
+                }
+            }
+            let firstBatch = true;
+            while (true) {
+                let batch;
+                let lastBatch = false;
+                if (firstBatch) {
+                    // Small desktops finish without a second async round trip.
+                    batch = [];
+                    for (let i = 0; i < 100; i++) {
+                        const info = fileEnum.next_file(cancellable);
+                        if (!info) {
+                            lastBatch = true;
+                            break;
                         }
-                        const fileList = [];
-                        for (const [newFolder, extras] of DesktopIconsUtil.getExtraFolders()) {
-                            try {
-                                fileList.push(new FileItem.FileItem(this,
-                                    newFolder,
-                                    newFolder.query_info(Enums.DEFAULT_ATTRIBUTES, Gio.FileQueryInfoFlags.NONE, null),
-                                    extras,
-                                    null));
-                            } catch (e) {
-                                print(`Failed with ${e.message} while adding extra folder ${newFolder.get_uri()}\n${e.stack}`);
-                            }
+                        batch.push(info);
+                    }
+                    firstBatch = false;
+                } else {
+                    // Yield between batches on large desktops. Enumerators cannot run
+                    // concurrent next_files_async calls.
+                    batch = await fileEnum.next_files_async_promise(200, GLib.PRIORITY_DEFAULT, cancellable);
+                }
+                if (!batch.length)
+                    break;
+                for (const info of batch) {
+                    const fileItem = new FileItem.FileItem(this,
+                        fileEnum.get_child(info),
+                        info,
+                        Enums.FileType.NONE,
+                        null);
+                    if (fileItem.isHidden && !this._showHidden) {
+                        /* if there are hidden files in the desktop and the user doesn't want to
+                            show them, remove the coordinates. This ensures that if the user enables
+                            showing them, they won't fight with other icons for the same place
+                        */
+                        if (fileItem.savedCoordinates)
+                            fileItem.savedCoordinates = null;
+                        fileItem._onDestroy();
+                        continue;
+                    }
+                    fileList.push(fileItem);
+                    if (fileItem.dropCoordinates === null) {
+                        const basename = fileItem.file.get_basename();
+                        if (basename in this._pendingDropFiles) {
+                            fileItem.dropCoordinates = this._pendingDropFiles[basename];
+                            delete this._pendingDropFiles[basename];
                         }
-                        let info;
-                        while ((info = fileEnum.next_file(null))) {
-                            const fileItem = new FileItem.FileItem(this,
-                                fileEnum.get_child(info),
-                                info,
-                                Enums.FileType.NONE,
-                                null);
-                            if (fileItem.isHidden && !this._showHidden) {
-                                /* if there are hidden files in the desktop and the user doesn't want to
-                                    show them, remove the coordinates. This ensures that if the user enables
-                                    showing them, they won't fight with other icons for the same place
-                                */
-                                if (fileItem.savedCoordinates) {
-                                    // only overwrite them if needed
-                                    fileItem.savedCoordinates = null;
-                                }
-                                fileItem._onDestroy();
-                                continue;
-                            }
-                            fileList.push(fileItem);
-                            if (fileItem.dropCoordinates === null) {
-                                const basename = fileItem.file.get_basename();
-                                if (basename in this._pendingDropFiles) {
-                                    fileItem.dropCoordinates = this._pendingDropFiles[basename];
-                                    delete this._pendingDropFiles[basename];
-                                }
-                            }
-                        }
-                        for (const [newFolder, extras, volume] of DesktopIconsUtil.getMounts(this._volumeMonitor)) {
-                            try {
-                                fileList.push(new FileItem.FileItem(this,
-                                    newFolder,
-                                    newFolder.query_info(Enums.DEFAULT_ATTRIBUTES, Gio.FileQueryInfoFlags.NONE, null),
-                                    extras,
-                                    volume));
-                            } catch (e) {
-                                print(`Failed with ${e} while adding volume ${newFolder}`);
-                            }
-                        }
-                        // On a fresh desktop, place Home, RAMDrive, then Trash.
-                        // Saved icon coordinates still take precedence when a user moves them.
-                        const ramDriveIndex = fileList.findIndex(item =>
-                            item._fileExtra === Enums.FileType.NONE &&
-                            item.fileName === 'RAMDrive' &&
-                            item.file.get_parent()?.equal(this._desktopDir));
-                        const trashIndex = fileList.findIndex(item =>
-                            item._fileExtra === Enums.FileType.USER_DIRECTORY_TRASH);
-                        if (ramDriveIndex >= 0 && trashIndex >= 0) {
-                            const [ramDrive] = fileList.splice(ramDriveIndex, 1);
-                            fileList.splice(fileList.findIndex(item =>
-                                item._fileExtra === Enums.FileType.USER_DIRECTORY_TRASH), 0, ramDrive);
-                        }
-                        resolve(fileList);
-                    } catch {
-                        resolve(null);
                     }
                 }
-            );
-        });
+                if (this._desktopFilesChanged && !this._forceDraw)
+                    return null;
+                if (lastBatch)
+                    break;
+            }
+            for (const [newFolder, extras, volume] of DesktopIconsUtil.getMounts(this._volumeMonitor)) {
+                try {
+                    fileList.push(new FileItem.FileItem(this,
+                        newFolder,
+                        newFolder.query_info(Enums.DEFAULT_ATTRIBUTES, Gio.FileQueryInfoFlags.NONE, null),
+                        extras,
+                        volume));
+                } catch (e) {
+                    print(`Failed with ${e} while adding volume ${newFolder}`);
+                }
+            }
+            // On a fresh desktop, place Home, RAMDrive, then Trash.
+            // Saved icon coordinates still take precedence when a user moves them.
+            const ramDriveIndex = fileList.findIndex(item =>
+                item._fileExtra === Enums.FileType.NONE &&
+                item.fileName === 'RAMDrive' &&
+                item.file.get_parent()?.equal(this._desktopDir));
+            const trashIndex = fileList.findIndex(item =>
+                item._fileExtra === Enums.FileType.USER_DIRECTORY_TRASH);
+            if (ramDriveIndex >= 0 && trashIndex >= 0) {
+                const [ramDrive] = fileList.splice(ramDriveIndex, 1);
+                fileList.splice(fileList.findIndex(item =>
+                    item._fileExtra === Enums.FileType.USER_DIRECTORY_TRASH), 0, ramDrive);
+            }
+            complete = true;
+            return fileList;
+        } catch (e) {
+            if (cancellable.is_cancelled())
+                return null;
+            throw e;
+        } finally {
+            if (this._desktopEnumerateCancellable === cancellable)
+                this._desktopEnumerateCancellable = null;
+            if (fileEnum && !fileEnum.is_closed()) {
+                try {
+                    fileEnum.close(null);
+                } catch (e) {
+                    print(`Failed to close desktop enumerator: ${e.message}`);
+                }
+            }
+            if (!complete) {
+                for (const item of fileList)
+                    item._onDestroy();
+            }
+        }
     }
 
     _drawDesktop(fileList) {

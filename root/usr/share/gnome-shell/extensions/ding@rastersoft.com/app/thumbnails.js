@@ -60,17 +60,21 @@ export var ThumbnailLoader = class {
             }
             // if the file disappeared while waiting in the queue, don't refresh the thumbnail
             [file, resolve] = this._thumbList.shift();
-            if (file._destroyed)
+            if (file._destroyed) {
+                resolve(null);
                 continue;
+            }
 
             if (file.file.query_exists(null)) {
                 if (this._thumbnailFactoryLarge.has_valid_failed_thumbnail(file.uri, file.modifiedTime)) {
-                    this._resolveThumbnail(file, resolve);
+                    if (!this._resolveThumbnail(file, resolve))
+                        resolve(null);
                     continue;
                 } else {
                     break;
                 }
             }
+            resolve(null);
         } while (true);
         this._running = true;
         if (this._useAsyncAPI)
@@ -80,60 +84,114 @@ export var ThumbnailLoader = class {
     }
 
     _createThumbnailAsync(file, resolve) {
-        const fileInfo = file.file.query_info('standard::content-type,time::modified', Gio.FileQueryInfoFlags.NONE, null);
-        this._doCancel = new Gio.Cancellable();
+        let fileInfo;
+        try {
+            fileInfo = file.file.query_info('standard::content-type,time::modified', Gio.FileQueryInfoFlags.NONE, null);
+        } catch (e) {
+            print(`Error while reading thumbnail source: ${e.message}`);
+            resolve(null);
+            this._launchNewBuild();
+            return;
+        }
+        const generationCancel = new Gio.Cancellable();
         const modifiedTime = fileInfo.get_attribute_uint64('time::modified');
-        this._thumbnailFactoryLarge.generate_thumbnail_async(file.uri, fileInfo.get_content_type(), this._doCancel, (obj, res) => {
-            this._removeTimeout();
-            try {
-                const thumbnailPixbuf = obj.generate_thumbnail_finish(res);
-                this._thumbnailFactoryLarge.save_thumbnail_async(thumbnailPixbuf, file.uri, modifiedTime, this._doCancel, (obj2, res2) => {
-                    obj2.save_thumbnail_finish(res2);
-                    this._resolveThumbnail(file, resolve);
-                    this._launchNewBuild();
-                });
-            } catch (e) {
-                print(`Error while creating thumbnail: ${e.message}\n${e.stack}`);
-                this._createFailedThumbnailAsync(file, modifiedTime, resolve);
+        let timeoutId = 0;
+        const removeTimeout = () => {
+            if (timeoutId) {
+                GLib.source_remove(timeoutId);
+                timeoutId = 0;
             }
-        });
-        this._timeoutID = GLib.timeout_add(GLib.PRIORITY_DEFAULT, this._timeoutValue, () => {
-            print(`Timeout while generating thumbnail for ${file.displayName}`);
-            this._timeoutID = 0;
-            this._doCancel.cancel();
+        };
+        let fallbackStarted = false;
+        const startFallback = () => {
+            if (fallbackStarted)
+                return;
+            fallbackStarted = true;
             this._createFailedThumbnailAsync(file, modifiedTime, resolve);
+        };
+        try {
+            this._thumbnailFactoryLarge.generate_thumbnail_async(file.uri, fileInfo.get_content_type(), generationCancel, (obj, res) => {
+                removeTimeout();
+                try {
+                    const thumbnailPixbuf = obj.generate_thumbnail_finish(res);
+                    if (fallbackStarted)
+                        return;
+                    this._thumbnailFactoryLarge.save_thumbnail_async(thumbnailPixbuf, file.uri, modifiedTime, generationCancel, (obj2, res2) => {
+                        try {
+                            obj2.save_thumbnail_finish(res2);
+                            if (!this._resolveThumbnail(file, resolve))
+                                resolve(null);
+                        } catch (e) {
+                            print(`Error while saving thumbnail: ${e.message}`);
+                            resolve(null);
+                        }
+                        this._launchNewBuild();
+                    });
+                } catch (e) {
+                    print(`Error while creating thumbnail: ${e.message}\n${e.stack}`);
+                    startFallback();
+                }
+            });
+        } catch (e) {
+            print(`Error while starting thumbnail generation: ${e.message}`);
+            startFallback();
+            return;
+        }
+        timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, this._timeoutValue, () => {
+            print(`Timeout while generating thumbnail for ${file.displayName}`);
+            timeoutId = 0;
+            generationCancel.cancel();
+            startFallback();
             return false;
         });
     }
 
     _createFailedThumbnailAsync(file, modifiedTime, resolve) {
-        this._doCancel = new Gio.Cancellable();
-        this._thumbnailFactoryLarge.create_failed_thumbnail_async(file.uri, modifiedTime, this._doCancel, (obj, res) => {
-            try {
-                obj.create_failed_thumbnail_finish(res);
-                this._resolveThumbnail(file, resolve);
-            } catch (e) {
-                print(`Error while creating failed thumbnail: ${e.message}\n${e.stack}`);
-                resolve(null);
-            }
+        const cancellable = new Gio.Cancellable();
+        try {
+            this._thumbnailFactoryLarge.create_failed_thumbnail_async(file.uri, modifiedTime, cancellable, (obj, res) => {
+                try {
+                    obj.create_failed_thumbnail_finish(res);
+                    if (!this._resolveThumbnail(file, resolve))
+                        resolve(null);
+                } catch (e) {
+                    print(`Error while creating failed thumbnail: ${e.message}\n${e.stack}`);
+                    resolve(null);
+                }
+                this._launchNewBuild();
+            });
+        } catch (e) {
+            print(`Error while recording failed thumbnail: ${e.message}`);
+            resolve(null);
             this._launchNewBuild();
-        });
+        }
     }
 
     _createThumbnailSubprocess(file, resolve) {
         const args = [];
         args.push(GLib.build_filenamev([this._codePath, 'createThumbnail.js']));
         args.push(file.path);
-        this._proc = new Gio.Subprocess({argv: args});
-        this._proc.init(null);
+        try {
+            this._proc = new Gio.Subprocess({argv: args});
+            this._proc.init(null);
+        } catch (e) {
+            print(`Error while starting thumbnail helper: ${e.message}`);
+            resolve(null);
+            this._launchNewBuild();
+            return;
+        }
         this._proc.wait_check_async(null, (source, result) => {
             this._removeTimeout();
             try {
                 const result2 = source.wait_check_finish(result);
                 if (result2) {
                     const status = source.get_status();
-                    if (status === 0)
-                        this._resolveThumbnail(file, resolve);
+                    if (status === 0) {
+                        if (!this._resolveThumbnail(file, resolve))
+                            resolve(null);
+                    } else {
+                        resolve(null);
+                    }
                 } else {
                     print(`Failed to generate thumbnail for ${file.displayName}`);
                     resolve(null);
