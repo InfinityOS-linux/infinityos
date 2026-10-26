@@ -45,8 +45,6 @@ export var DesktopMenu = class extends MenuHelper.MenuHelper {
         this._bgMenuModels = new Map();
         this._menuRequest = 0;
         this._lastMenuClosedAt = 0;
-        this._closingBgMenu = null;
-        this._closeSourceId = 0;
         this.templatesMonitor = new TemplatesScriptsManager.TemplatesScriptsManager(
             DesktopIconsUtil.getTemplatesDir(),
             TemplatesScriptsManager.TemplatesScriptsManagerFlags.HIDE_EXTENSIONS
@@ -144,52 +142,17 @@ export var DesktopMenu = class extends MenuHelper.MenuHelper {
         });
     }
 
-    hideDesktopMenu(animate = true) {
-        if (!animate)
-            this._finishClosingMenu();
+    hideDesktopMenu() {
         if (this._lastBgMenu === null)
             return;
         const bgMenu = this._lastBgMenu;
         this._menuRequest++;
         this._lastBgMenu = null;
-        if (!bgMenu.menuPopover.get_visible())
-            return;
-
-        if (!animate || !Gtk.Settings.get_default()?.gtk_enable_animations) {
+        if (bgMenu.menuPopover.get_visible())
             bgMenu.menuPopover.popdown();
-            return;
-        }
-
-        this._closingBgMenu = bgMenu;
-        bgMenu.menuPopover.add_css_class('menu-exit');
-        this._closeSourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 110, () => {
-            this._closeSourceId = 0;
-            if (this._closingBgMenu === bgMenu)
-                this._closingBgMenu = null;
-            bgMenu.menuPopover.popdown();
-            bgMenu.menuPopover.remove_css_class('menu-exit');
-            return GLib.SOURCE_REMOVE;
-        });
-    }
-
-    _finishClosingMenu() {
-        if (this._closeSourceId) {
-            GLib.source_remove(this._closeSourceId);
-            this._closeSourceId = 0;
-        }
-        if (this._closingBgMenu) {
-            const bgMenu = this._closingBgMenu;
-            this._closingBgMenu = null;
-            bgMenu.menuPopover.popdown();
-            bgMenu.menuPopover.remove_css_class('menu-exit');
-        }
     }
 
     showDesktopMenu(x, y, grid) {
-        if (this._closingBgMenu) {
-            this._finishClosingMenu();
-            this._lastMenuClosedAt = 0;
-        }
         // An outside right click can close the popover and reach the desktop
         // gesture in the same event. Do not immediately reopen it.
         if (GLib.get_monotonic_time() - this._lastMenuClosedAt < 100000)
@@ -219,17 +182,11 @@ export var DesktopMenu = class extends MenuHelper.MenuHelper {
             const menuPopover = Gtk.PopoverMenu.new_from_model_full(menu, Gtk.PopoverMenuFlags.NESTED);
             menuPopover.add_css_class('desktopmenu');
             grid.put(menuPopover, x, y);
-            bgMenu = {menuPopover, menuKey, enterSourceId: 0};
+            bgMenu = {menuPopover, menuKey};
             this._bgMenus.set(grid, bgMenu);
             menuPopover.connect('closed', () => {
-                if (bgMenu.enterSourceId) {
-                    GLib.source_remove(bgMenu.enterSourceId);
-                    bgMenu.enterSourceId = 0;
-                    menuPopover.remove_css_class('menu-enter');
-                }
+                menuPopover.remove_css_class('menu-enter');
                 this._lastMenuClosedAt = GLib.get_monotonic_time();
-                if (this._closingBgMenu === bgMenu)
-                    this._finishClosingMenu();
                 if (this._lastBgMenu === bgMenu)
                     this._lastBgMenu = null;
                 this._menuRequest++;
@@ -248,14 +205,8 @@ export var DesktopMenu = class extends MenuHelper.MenuHelper {
         rect.width = 1;
         rect.height = 1;
         bgMenu.menuPopover.set_pointing_to(rect);
-        if (Gtk.Settings.get_default()?.gtk_enable_animations) {
+        if (Gtk.Settings.get_default()?.gtk_enable_animations)
             bgMenu.menuPopover.add_css_class('menu-enter');
-            bgMenu.enterSourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 20, () => {
-                bgMenu.enterSourceId = 0;
-                bgMenu.menuPopover.remove_css_class('menu-enter');
-                return GLib.SOURCE_REMOVE;
-            });
-        }
         this._lastBgMenu = bgMenu;
         bgMenu.menuPopover.popup();
         const request = ++this._menuRequest;

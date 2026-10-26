@@ -96,19 +96,23 @@ popover.fileitemmenu > contents {
 }
 
 popover.desktopmenu > contents {
-    opacity: 1;
-    transform: translateY(0px);
-    transition: opacity 140ms ease-out, transform 140ms ease-out;
+    transform-origin: top center;
 }
 
 popover.desktopmenu.menu-enter > contents {
-    opacity: 0;
-    transform: translateY(-8px);
+    animation: infinity-menu-expand 160ms ease-out both;
 }
 
-popover.desktopmenu.menu-exit > contents {
-    opacity: 0;
-    transform: translateY(-6px);
+@keyframes infinity-menu-expand {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scaleY(0.88);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0px) scaleY(1);
+    }
 }
 
 popover.desktopmenu modelbutton,

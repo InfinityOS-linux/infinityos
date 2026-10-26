@@ -257,7 +257,7 @@ export var DesktopManager = class {
             const signalAdd = GLibUnix.signal_add ?? GLibUnix.signal_add_full;
             this._sigtermID = signalAdd(GLib.PRIORITY_DEFAULT, 15, () => {
                 GLib.source_remove(this._sigtermID);
-                this._desktopMenu.hideDesktopMenu(false);
+                this._desktopMenu.hideDesktopMenu();
                 for (const desktop of this._desktops)
                     desktop.destroy();
 
@@ -358,7 +358,7 @@ export var DesktopManager = class {
     }
 
     _createGridWindows() {
-        this._desktopMenu.hideDesktopMenu(false);
+        this._desktopMenu.hideDesktopMenu();
         this._removeAllFilesFromGrids();
         for (const desktop of this._desktops)
             desktop.destroy();
@@ -588,7 +588,12 @@ export var DesktopManager = class {
     }
 
     clickCaptured() {
+        this._desktopMenu.hideDesktopMenu();
         this._clickCaptured = true;
+    }
+
+    onDesktopWindowDeactivated() {
+        this._desktopMenu.hideDesktopMenu();
     }
 
     onPressMainButton(controller, x, y) {
@@ -960,6 +965,7 @@ export var DesktopManager = class {
     }
 
     showFileMenu(fileItem, x, y) {
+        this._desktopMenu.hideDesktopMenu();
         this._fileItemMenu.showMenu(fileItem, x, y);
     }
 
@@ -1098,6 +1104,11 @@ export var DesktopManager = class {
             this.x2 = Math.floor(Math.max(x, this.rubberBandInitX));
             this.y1 = Math.floor(Math.min(y, this.rubberBandInitY));
             this.y2 = Math.floor(Math.max(y, this.rubberBandInitY));
+            if (this.selectionRectangle?.x === this.x1 &&
+                this.selectionRectangle.y === this.y1 &&
+                this.selectionRectangle.width === this.x2 - this.x1 &&
+                this.selectionRectangle.height === this.y2 - this.y1)
+                return;
             this.selectionRectangle = new Gdk.Rectangle({'x': this.x1, 'y': this.y1, 'width': this.x2 - this.x1, 'height': this.y2 - this.y1});
             for (const grid of this._desktops)
                 grid.queue_draw();
