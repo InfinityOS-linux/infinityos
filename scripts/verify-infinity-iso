@@ -118,6 +118,11 @@ grep -Fqx 'Exec=/usr/libexec/infinityos-liveinst' \
     echo 'Live installer does not guard InfinityTerminal' >&2
     exit 1
 }
+grep -Fqx 'Exec=/usr/libexec/infinityos-liveinst --restore-terminal' \
+    "$rootpoint/etc/xdg/autostart/infinityos-live-terminal-restore.desktop" || {
+    echo 'Live session does not restore InfinityTerminal after installer interruption' >&2
+    exit 1
+}
 grep -Fqx 'Icon=infinity-installer' \
     "$rootpoint/usr/share/applications/liveinst.desktop" || {
     echo 'Live installer is missing its Infinity OS icon' >&2

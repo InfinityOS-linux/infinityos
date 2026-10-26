@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Infinity OS Live Terminal Restore
+Exec=/usr/libexec/infinityos-liveinst --restore-terminal
+OnlyShowIn=GNOME;
+NotShowIn=GNOME-Greeter;
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

@@ -2,10 +2,29 @@
 set -euo pipefail
 
 extension=ghostty@infinityos.org
+marker="$HOME/.local/state/infinityos-liveinst-terminal"
+restore_terminal() {
+    if gnome-extensions enable "$extension"; then
+        rm -f "$marker"
+    fi
+}
+
+if [[ ${1:-} == --restore-terminal ]]; then
+    if [[ -f $marker ]]; then
+        read -r installer_pid < "$marker"
+        if ! kill -0 "$installer_pid" 2>/dev/null; then
+            restore_terminal
+        fi
+    fi
+    exit 0
+fi
+
 enabled=$(gnome-extensions list --enabled)
 if grep -Fqx "$extension" <<< "$enabled"; then
+    mkdir -p "${marker%/*}"
+    printf '%s\n' "$$" > "$marker"
     gnome-extensions disable "$extension"
-    trap 'gnome-extensions enable "$extension"' EXIT
+    trap restore_terminal EXIT
     trap 'exit 129' HUP
     trap 'exit 130' INT
     trap 'exit 143' TERM

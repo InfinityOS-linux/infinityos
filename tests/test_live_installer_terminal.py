@@ -22,7 +22,7 @@ class LiveInstallerTerminalTests(unittest.TestCase):
 case "$1" in
   list) cat "$TEST_STATE" ;;
   disable) printf 'disable\n' >> "$TEST_LOG"; : > "$TEST_STATE" ;;
-  enable) printf 'enable\n' >> "$TEST_LOG"; printf '%s\n' "$2" > "$TEST_STATE" ;;
+  enable) printf 'enable\n' >> "$TEST_LOG"; test "$TEST_FAIL_ENABLE" != 1 || exit 1; printf '%s\n' "$2" > "$TEST_STATE" ;;
 esac
 """)
             extensions.chmod(0o755)
@@ -34,6 +34,7 @@ exit "$TEST_INSTALLER_STATUS"
 """)
             installer.chmod(0o755)
             environment = dict(os.environ, PATH=f"{root}:{os.environ['PATH']}",
+                               HOME=str(root), TEST_FAIL_ENABLE="0",
                                TEST_STATE=str(terminal_state), TEST_LOG=str(events))
 
             for initially_enabled, installer_status, expected_events in (
@@ -49,6 +50,29 @@ exit "$TEST_INSTALLER_STATUS"
                     self.assertEqual(events.read_text().splitlines(), expected_events)
                     self.assertEqual(terminal_state.read_text(),
                                      f"{EXTENSION}\n" if initially_enabled else "")
+
+            marker = root / ".local/state/infinityos-liveinst-terminal"
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            marker.write_text(f"{os.getpid()}\n")
+            terminal_state.write_text("")
+            events.write_text("")
+            subprocess.run([str(WRAPPER), "--restore-terminal"], env=environment, check=True)
+            self.assertEqual(terminal_state.read_text(), "")
+            self.assertEqual(events.read_text(), "")
+
+            terminal_state.write_text(f"{EXTENSION}\n")
+            events.write_text("")
+            environment["TEST_INSTALLER_STATUS"] = "0"
+            environment["TEST_FAIL_ENABLE"] = "1"
+            subprocess.run([str(WRAPPER)], env=environment, check=True)
+            self.assertTrue(marker.exists())
+            self.assertEqual(terminal_state.read_text(), "")
+            environment["TEST_FAIL_ENABLE"] = "0"
+            subprocess.run([str(WRAPPER), "--restore-terminal"], env=environment, check=True)
+            self.assertEqual(events.read_text().splitlines(),
+                             ["disable", "liveinst", "enable", "enable"])
+            self.assertEqual(terminal_state.read_text(), f"{EXTENSION}\n")
+            self.assertFalse(marker.exists())
 
 
 if __name__ == "__main__":
