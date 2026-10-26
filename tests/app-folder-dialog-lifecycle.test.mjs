@@ -40,3 +40,28 @@ test('folder label disposal stops name updates before dialog teardown', () => {
     onLabelDestroy();
     assert.doesNotThrow(() => dialog._syncFolderName());
 });
+
+test('folder name updates skip an actor disposed without a destroy signal', () => {
+    assert.ok(dialogSource);
+    const dialogOverride = Function('Main', 'opt', `return (${dialogSource})`)(
+        {overview: {disconnectObject() {}}},
+        {APP_FOLDER_CLOSE_BUTTON: false, APP_FOLDER_REMOVE_BUTTON: false}
+    );
+    let syncs = 0;
+    let disposed = false;
+    const dialog = {
+        _editButton: {add_style_class_name() {}},
+        _folderNameLabel: {connect() {}, get_parent() {
+            if (disposed) throw new Error('actor disposed');
+            return {};
+        }},
+        _entry: {get_parent: () => ({})},
+        _syncFolderName() { syncs++; },
+    };
+
+    dialogOverride.after__addFolderNameEntry.call(dialog);
+    dialog._syncFolderName();
+    disposed = true;
+    dialog._syncFolderName();
+    assert.equal(syncs, 1);
+});

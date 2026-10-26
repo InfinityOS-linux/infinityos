@@ -1476,6 +1476,16 @@ const AppFolderDialog = {
     },
 
     after__addFolderNameEntry() {
+        const syncFolderName = this._syncFolderName;
+        this._syncFolderName = (...args) => {
+            try {
+                if (!this._folderNameLabel.get_parent() || !this._entry.get_parent())
+                    return;
+            } catch (_) { // GJS rejects method calls on disposed actors.
+                return;
+            }
+            syncFolderName.apply(this, args);
+        };
         // The label can be destroyed before the dialog's own destroy callback runs.
         this._folderNameLabel.connect('destroy', () => { this._syncFolderName = () => {}; });
         // edit-folder-button class has been replaced with icon-button class which is not transparent in 46
