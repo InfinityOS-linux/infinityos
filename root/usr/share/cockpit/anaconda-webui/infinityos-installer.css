@@ -841,10 +841,10 @@ body:has(#installation-quit-confirm-dialog) .pf-v6-c-backdrop {
   color: var(--infinity-text);
 }
 
-/* The 72px installer header leaves equal space above and below 44px controls. */
+/* Center 44px controls within the 64px installer header. */
 .infinityos-installer-audio {
   position: fixed;
-  top: 14px;
+  top: 10px;
   right: 24px;
   z-index: 10000;
   display: flex;
