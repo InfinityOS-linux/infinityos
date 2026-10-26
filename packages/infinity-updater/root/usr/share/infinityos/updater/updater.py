@@ -7,6 +7,13 @@ from i18n import tr, update_count
 from progress import run_update_command
 
 
+EXTENSION_RPMS = {'infinityos-shell-extensions', 'infinity-terminal', 'infinity-updater'}
+
+
+def includes_extension_update(updates):
+    return any(item['kind'] == 'RPM' and item['name'] in EXTENSION_RPMS for item in updates)
+
+
 STYLE = b'''
 window.infinity-updater { background: #111018; color: #f4f0fa; }
 .infinity-results, .infinity-results viewport { background: #111018; }
@@ -362,7 +369,8 @@ def main():
             return GLib.SOURCE_REMOVE
 
         def on_apply(self, _button):
-            commands = install_commands(self.state['updates'])
+            updates = self.state['updates']
+            commands = install_commands(updates)
             if not commands:
                 return
             self.busy = True
@@ -377,6 +385,7 @@ def main():
             def work():
                 errors = []
                 completed_system_updates = False
+                extensions_installed = False
                 snapshot = None
 
                 def report(label, phase, current, total):
@@ -392,6 +401,8 @@ def main():
                                                       result.stdout.strip() or 'Update failed'))
                     elif label in ('System packages', 'Device firmware'):
                         completed_system_updates = True
+                        if label == 'System packages' and includes_extension_update(updates):
+                            extensions_installed = True
                 self.report_progress('Remaining updates', 'Checking', None, None)
                 try:
                     state = check_updates()
@@ -403,6 +414,8 @@ def main():
                     notice = (tr('Some updates could not be installed.') if errors else
                               tr('System updates installed. Restart may be required.')
                               if completed_system_updates else tr('Updates installed.'))
+                    if extensions_installed:
+                        notice += ' ' + tr('Sign out and back in to use updated extensions.')
                     recovery = (f'Root snapshot #{snapshot} is available in Backups (Btrfs) in rEFInd. '
                                 '/home, /var and device firmware are not part of this snapshot.'
                                 if snapshot else None)

@@ -32,6 +32,8 @@ POLISH = {
     'Some updates could not be installed.': 'Nie udało się zainstalować części aktualizacji.',
     'System updates installed. Restart may be required.':
         'Zainstalowano aktualizacje systemu. Może być wymagane ponowne uruchomienie.',
+    'Sign out and back in to use updated extensions.':
+        'Wyloguj się i zaloguj ponownie, aby korzystać ze zaktualizowanych rozszerzeń.',
     'Updates installed.': 'Zainstalowano aktualizacje.',
     'Infinity OS {version} installed. Restart to use the new release.':
         'Zainstalowano Infinity OS {version}. Uruchom komputer ponownie, aby korzystać z nowej wersji.',

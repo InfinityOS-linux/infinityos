@@ -58,6 +58,18 @@ class UpdaterTests(unittest.TestCase):
             checker.save_state(state, path)
             self.assertEqual(checker.read_state(path), state)
 
+    def test_extension_rpms_use_system_updates_and_require_session_restart(self):
+        for package in ('infinityos-shell-extensions', 'infinity-terminal', 'infinity-updater'):
+            updates = [{'kind': 'RPM', 'name': package, 'version': '1', 'source': 'infinityos'}]
+            self.assertTrue(updater.includes_extension_update(updates))
+            self.assertEqual(updater.install_commands(updates), [
+                ('System packages', ['pkexec', '/usr/libexec/infinityos-upgrade-system'])])
+        self.assertFalse(updater.includes_extension_update([
+            {'kind': 'Flatpak user', 'name': 'infinity-terminal'}]))
+        with patch.object(i18n.locale, 'getlocale', return_value=('pl_PL', 'UTF-8')):
+            self.assertEqual(i18n.tr('Sign out and back in to use updated extensions.'),
+                             'Wyloguj się i zaloguj ponownie, aby korzystać ze zaktualizowanych rozszerzeń.')
+
     def test_network_monitor_distinguishes_offline_from_unknown(self):
         connectivity = SimpleNamespace(LOCAL=1, LIMITED=2, PORTAL=3, FULL=4, UNKNOWN=0)
         gio = SimpleNamespace(NetworkConnectivity=connectivity)
