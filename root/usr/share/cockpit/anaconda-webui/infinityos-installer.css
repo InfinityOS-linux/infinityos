@@ -372,6 +372,38 @@ body .pf-v6-c-modal-box :is(.pf-v6-c-form-control,
   color: var(--infinity-text);
 }
 
+/* Account fields use one surface each; InputGroup must not add a second border. */
+#installation-wizard.anaconda-wizard-step-anaconda-screen-accounts .pf-v6-c-input-group {
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+#installation-wizard.anaconda-wizard-step-anaconda-screen-accounts .pf-v6-c-form-control {
+  box-sizing: border-box;
+  min-height: 40px;
+  border-radius: 10px;
+}
+
+#installation-wizard.anaconda-wizard-step-anaconda-screen-accounts
+  .pf-v6-c-input-group .pf-v6-c-button.pf-m-control {
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  color: var(--infinity-text);
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+#installation-wizard.anaconda-wizard-step-anaconda-screen-accounts
+  .pf-v6-c-input-group .pf-v6-c-button.pf-m-control:hover {
+  background: var(--infinity-hover);
+}
+
 #app input::placeholder,
 #app textarea::placeholder,
 body .pf-v6-c-modal-box input::placeholder {
