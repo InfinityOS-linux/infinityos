@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+extension=ghostty@infinityos.org
+enabled=$(gnome-extensions list --enabled)
+if grep -Fqx "$extension" <<< "$enabled"; then
+    gnome-extensions disable "$extension"
+    trap 'gnome-extensions enable "$extension"' EXIT
+    trap 'exit 129' HUP
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+fi
+
+liveinst "$@"

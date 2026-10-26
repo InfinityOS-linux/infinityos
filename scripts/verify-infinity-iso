@@ -95,6 +95,7 @@ for required in \
     usr/libexec/infinityos-refind-config \
     usr/libexec/infinityos-remove-obsolete-efi-loaders \
     usr/libexec/infinityos-live-power \
+    usr/libexec/infinityos-liveinst \
     etc/skel/.config/autostart/infinityos-live-power.desktop \
     usr/lib/systemd/system/infinityos-liveinstall-boot-setup.service \
     usr/lib/kernel/install.d/96-infinityos-esp.install \
@@ -108,9 +109,13 @@ done
     echo 'Live power settings script is not executable' >&2
     exit 1
 }
-grep -Fqx 'Exec=liveinst' \
+[[ -x "$rootpoint/usr/libexec/infinityos-liveinst" ]] || {
+    echo 'Live installer terminal guard is not executable' >&2
+    exit 1
+}
+grep -Fqx 'Exec=/usr/libexec/infinityos-liveinst' \
     "$rootpoint/usr/share/applications/liveinst.desktop" || {
-    echo 'Live installer does not keep the GNOME dock active' >&2
+    echo 'Live installer does not guard InfinityTerminal' >&2
     exit 1
 }
 grep -Fqx 'Icon=infinity-installer' \

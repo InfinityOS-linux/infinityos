@@ -73,6 +73,7 @@ class LiveBootContractTests(unittest.TestCase):
         setup = (REPO / "config.sh").read_text()
         self.assertIn("installer_desktop=/usr/share/applications/liveinst.desktop", setup)
         self.assertIn("grep -qx 'Exec=liveinst'", setup)
+        self.assertIn("Exec=/usr/libexec/infinityos-liveinst", setup)
         self.assertIn("Icon=infinity-installer", setup)
         icon = REPO / "root/usr/share/icons/hicolor/256x256/apps/infinity-installer.png"
         self.assertTrue(icon.is_file())
@@ -81,7 +82,7 @@ class LiveBootContractTests(unittest.TestCase):
         self.assertEqual(unpack(">II", data[16:24]), (256, 256))
         self.assertEqual(data[25], 6)  # RGBA
         self.assertNotIn("disable-user-extensions", setup)
-        self.assertFalse((REPO / "root/usr/libexec/infinityos-liveinst").exists())
+        self.assertTrue((REPO / "root/usr/libexec/infinityos-liveinst").is_file())
 
     def test_mascot_is_used_by_installer_and_boot_animation(self):
         source = REPO / "assets/infinityos-mascot.png"
@@ -115,7 +116,7 @@ class LiveBootContractTests(unittest.TestCase):
         self.assertIn("idle-activation-enabled=false", setup)
         self.assertIn("sleep-inactive-ac-type='nothing'", setup)
         self.assertIn("sleep-inactive-battery-type='nothing'", setup)
-        self.assertIn("disabled-extensions=['ghostty@infinityos.org']", setup)
+        self.assertNotIn("disabled-extensions=['ghostty@infinityos.org']", setup)
         target_setup = (REPO / "root/usr/libexec/infinityos-liveinstall-boot-setup").read_text()
         self.assertIn("printf 'user-db:user\\nsystem-db:local\\n' > /etc/dconf/profile/user", target_setup)
         self.assertIn("rm -f /etc/dconf/db/infinityos-live", target_setup)

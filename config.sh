@@ -160,10 +160,13 @@ EOF
 			rpm -e systemd-boot-unsigned
 		fi
 		# livesys creates liveuser on first boot and copies /etc/skel then.
-		# Keep GNOME running while Anaconda is open; the dock hides for its window.
+		# Pause InfinityTerminal only while Anaconda is open.
 		installer_desktop=/usr/share/applications/liveinst.desktop
 		test -f "$installer_desktop"
+		test -x /usr/libexec/infinityos-liveinst
 		grep -qx 'Exec=liveinst' "$installer_desktop"
+		sed -i 's@^Exec=liveinst$@Exec=/usr/libexec/infinityos-liveinst@' "$installer_desktop"
+		grep -qx 'Exec=/usr/libexec/infinityos-liveinst' "$installer_desktop"
 		grep -q '^Icon=' "$installer_desktop"
 		sed -i 's/^Icon=.*/Icon=infinity-installer/' "$installer_desktop"
 		grep -qx 'Icon=infinity-installer' "$installer_desktop"
@@ -176,14 +179,10 @@ Exec=/usr/libexec/infinityos-live-power
 NoDisplay=true
 X-GNOME-Autostart-enabled=true
 EOF
-		# Apply live-session defaults before GNOME starts. Keep the terminal
-		# controller inactive while Anaconda runs; installed accounts use local.
+		# Apply live-session power defaults before GNOME starts; installed accounts use local.
 		# Autostart remains a fallback for stale liveuser power settings.
 		install -d /etc/dconf/db/infinityos-live.d
 		cat > /etc/dconf/db/infinityos-live.d/00-power << 'EOF'
-[org/gnome/shell]
-disabled-extensions=['ghostty@infinityos.org']
-
 [org/gnome/desktop/session]
 idle-delay=uint32 0
 
