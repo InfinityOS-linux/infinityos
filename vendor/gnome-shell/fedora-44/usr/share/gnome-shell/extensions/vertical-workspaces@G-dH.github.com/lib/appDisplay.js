@@ -1476,6 +1476,8 @@ const AppFolderDialog = {
     },
 
     after__addFolderNameEntry() {
+        // The label can be destroyed before the dialog's own destroy callback runs.
+        this._folderNameLabel.connect('destroy', () => { this._syncFolderName = () => {}; });
         // edit-folder-button class has been replaced with icon-button class which is not transparent in 46
         this._editButton.add_style_class_name('edit-folder-button');
 

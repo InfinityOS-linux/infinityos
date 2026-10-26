@@ -19,3 +19,24 @@ test('a destroyed app folder ignores later GNOME name changes', () => {
     dialogOverride.after__onDestroy.call(dialog);
     assert.doesNotThrow(() => dialog._syncFolderName());
 });
+
+test('folder label disposal stops name updates before dialog teardown', () => {
+    assert.ok(dialogSource);
+    const dialogOverride = Function('Main', 'opt', `return (${dialogSource})`)(
+        {overview: {disconnectObject() {}}},
+        {APP_FOLDER_CLOSE_BUTTON: false, APP_FOLDER_REMOVE_BUTTON: false}
+    );
+    let onLabelDestroy;
+    const dialog = {
+        _editButton: {add_style_class_name() {}},
+        _folderNameLabel: {connect(_signal, callback) { onLabelDestroy = callback; }},
+        _syncFolderName() {
+            throw new Error('GNOME Shell accessed a disposed folder label');
+        },
+    };
+
+    dialogOverride.after__addFolderNameEntry.call(dialog);
+    assert.equal(typeof onLabelDestroy, 'function');
+    onLabelDestroy();
+    assert.doesNotThrow(() => dialog._syncFolderName());
+});
