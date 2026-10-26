@@ -236,7 +236,7 @@
 .wack-cupertino-rest .login-dialog-prompt-layout,
 .wack-cupertino-prompt .login-dialog-prompt-layout,
 .wack-cupertino-prompt.login-dialog-prompt-layout {
-    width: 18em !important;
+    width: 22em !important;
     spacing: 9px !important;
 }
 

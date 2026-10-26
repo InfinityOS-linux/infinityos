@@ -57,7 +57,11 @@ class WackLayout extends Clutter.LayoutManager {
             }
 
             const anchorH = Math.floor(wellH * 1.3);
-            stackY = Math.floor(height * CUPERTINO_PROMPT_VERTICAL_FRACTION) - anchorH;
+            // Keep multi-line authentication errors above the bottom edge.
+            stackY = Math.max(0, Math.min(
+                Math.floor(height * CUPERTINO_PROMPT_VERTICAL_FRACTION) - anchorH,
+                height - stackHeight - SWITCH_USER_MARGIN
+            ));
         } else {
             stackY = Math.min(
                 Math.floor(height / 3.0),
