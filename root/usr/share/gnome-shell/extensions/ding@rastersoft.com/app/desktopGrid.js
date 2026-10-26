@@ -85,7 +85,7 @@ export var DesktopGrid = class extends SignalManager.SignalManager {
         this._window.set_size_request(this._windowWidth, this._windowHeight);
         this._window.show();
         this.connectSignal(this._window, 'notify::is-active', () => {
-            if (!this._window.is_active())
+            if (!this._window.is_active)
                 this._desktopManager.onDesktopWindowDeactivated();
         });
         this._window.set_size_request(this._windowWidth, this._windowHeight);
