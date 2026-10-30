@@ -693,6 +693,7 @@ def _install_epic_appimage(app, home):
                     raise RuntimeError("Unexpected Epic Games download URL.")
                 expected_size = response.headers.get("Content-Length")
                 shutil.copyfileobj(response, output)
+            output.flush()
             with temporary.open("rb") as downloaded:
                 header = downloaded.read(11)
                 if temporary.stat().st_size < 4096 or header[:4] != b"\x7fELF" or header[8:] != b"AI\x02":
