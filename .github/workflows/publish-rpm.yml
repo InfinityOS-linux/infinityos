@@ -20,9 +20,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Test source and GNOME extension contracts
         run: |
-          python3 -m unittest discover -s tests -p 'test_*.py' -q
-          node --test tests/app-folder-dialog-lifecycle.test.mjs tests/folder-click.test.mjs tests/terminal-resize.test.mjs
-          scripts/verify-gnome-extension-contracts
+          scripts/test-infinity-delta source
 
   build-noarch:
     name: Build ${{ matrix.package }}

@@ -91,6 +91,7 @@ assert '.installation-page--loading' in css
 PY
 for required in \
     usr/libexec/infinityos-audit-install \
+    usr/libexec/infinityos-audit-desktop \
     usr/libexec/infinityos-liveinstall-boot-setup \
     usr/libexec/infinityos-refind-install \
     usr/libexec/infinityos-refind-config \
@@ -108,6 +109,10 @@ for required in \
 done
 [[ -x "$rootpoint/usr/libexec/infinityos-live-power" ]] || {
     echo 'Live power settings script is not executable' >&2
+    exit 1
+}
+[[ -x "$rootpoint/usr/libexec/infinityos-audit-desktop" ]] || {
+    echo 'Infinity OS desktop audit is not executable' >&2
     exit 1
 }
 [[ -x "$rootpoint/usr/libexec/infinityos-liveinst" ]] || {

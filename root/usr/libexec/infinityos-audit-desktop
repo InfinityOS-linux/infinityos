@@ -1,0 +1,69 @@
+#!/usr/bin/python3
+"""Check Infinity OS additions in a fresh, logged-in GNOME session."""
+
+import ast
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+
+def expected_extensions(defaults, extensions):
+    line = next(line for line in defaults.read_text().splitlines()
+                if line.startswith("enabled-extensions="))
+    enabled = ast.literal_eval(line.partition("=")[2])
+    active = [uuid for uuid in enabled
+              if "user" in json.loads((extensions / uuid / "metadata.json").read_text())
+              .get("session-modes", ["user"])]
+    return enabled, active
+
+
+def command(*args):
+    return subprocess.check_output(args, text=True).strip()
+
+
+def main():
+    if os.geteuid() == 0 or not os.environ.get("DBUS_SESSION_BUS_ADDRESS"):
+        print("Run as the logged-in GNOME user, without sudo.", file=sys.stderr)
+        return 2
+    defaults = Path("/usr/share/infinityos/gnome-defaults")
+    extensions = Path("/usr/share/gnome-shell/extensions")
+    try:
+        enabled, expected_active = expected_extensions(defaults, extensions)
+        actual_enabled = set(command("gnome-extensions", "list", "--enabled").splitlines())
+        actual_active = set(command("gnome-extensions", "list", "--active").splitlines())
+        shell_version = command("gnome-shell", "--version")
+        desktop = Path(command("xdg-user-dir", "DESKTOP"))
+        store = Path("/home/.infinityos-ramdrives") / str(os.getuid())
+        bookmarks = Path.home() / ".config/gtk-3.0/bookmarks"
+    except (OSError, ValueError, StopIteration, SyntaxError, subprocess.CalledProcessError) as error:
+        print(f"FAIL  Cannot read the GNOME session: {error}", file=sys.stderr)
+        return 1
+
+    failures = 0
+
+    def check(label, valid):
+        nonlocal failures
+        print(f"{'PASS' if valid else 'FAIL'}  {label}")
+        failures += not valid
+
+    check("GNOME Shell 51", bool(re.fullmatch(r"GNOME Shell 51\.\d+.*", shell_version)))
+    for uuid in enabled:
+        check(f"extension enabled: {uuid}", uuid in actual_enabled)
+    for uuid in expected_active:
+        check(f"extension active: {uuid}", uuid in actual_active)
+    check("protected RAMDrive", store.is_dir() and not store.is_symlink()
+          and store.stat().st_uid == os.getuid())
+    check("RAMDrive desktop shortcut", desktop.is_absolute()
+          and (desktop / "RAMDrive").is_symlink()
+          and (desktop / "RAMDrive").resolve() == store)
+    check("RAMDrive Files bookmark", bookmarks.is_file()
+          and any(line.split(" ", 1)[0] == store.as_uri()
+                  for line in bookmarks.read_text().splitlines()))
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

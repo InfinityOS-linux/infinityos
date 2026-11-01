@@ -74,6 +74,9 @@ The image build requires the Infinity OS RPM repository to be published and reac
 
 ## Build an image
 
+Run the [Infinity OS versus Fedora regression gates](docs/infinityos-delta-tests.md)
+after source changes and after each new ISO build.
+
 Use a Fedora 45 host with the target CPU architecture and Btrfs ACL support. Install KIWI and its system dependencies:
 
 ```sh

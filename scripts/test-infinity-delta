@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Fast source checks or the existing full ISO check for Infinity OS changes.
+set -euo pipefail
+
+repo=$(cd "$(dirname "$0")/.." && pwd)
+cd "$repo"
+
+case ${1:-source} in
+    source)
+        [[ $# -le 1 ]] || { echo 'Usage: test-infinity-delta [source|iso IMAGE.iso [REVISION]]' >&2; exit 2; }
+        python3 -m unittest discover -s tests -p 'test_*.py' -q
+        node --test tests/*.test.mjs
+        scripts/verify-gnome-extension-contracts
+        ;;
+    iso)
+        [[ $# -ge 2 && $# -le 3 ]] || { echo 'Usage: test-infinity-delta iso IMAGE.iso [REVISION]' >&2; exit 2; }
+        scripts/verify-infinity-iso "${@:2}"
+        ;;
+    *)
+        echo 'Usage: test-infinity-delta [source|iso IMAGE.iso [REVISION]]' >&2
+        exit 2
+        ;;
+esac

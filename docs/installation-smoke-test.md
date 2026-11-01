@@ -1,5 +1,8 @@
 # Fresh-install smoke test
 
+For the short source, ISO and desktop checks first, use
+[Infinity OS versus Fedora regression gates](infinityos-delta-tests.md).
+
 An ISO content check does not prove that Anaconda ran its post-install script.
 Test each release on a **new** UEFI VM with a blank virtual disk. Do not reuse
 an installed Infinity OS disk: it can hide a broken installer.
