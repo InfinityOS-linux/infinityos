@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Apply the InfinityOS live installer changes to Fedora Anaconda WebUI 68."""
+"""Apply the InfinityOS live installer changes to Fedora 45 Anaconda WebUI 90."""
 
 import gzip
 import json
@@ -15,7 +15,7 @@ MESSAGE = "When reboot begins, remove the installation USB before the next boot.
 def replace_once(content, old, new, label):
     count = content.count(old)
     if count != 1:
-        raise RuntimeError(f"Anaconda WebUI 68 {label} changed: expected one match, got {count}")
+        raise RuntimeError(f"Anaconda WebUI 90 {label} changed: expected one match, got {count}")
     return content.replace(old, new)
 
 
@@ -27,13 +27,13 @@ def replace_once_or_present(content, old, new, label):
     if old_count == 0 and new_count == 1:
         return content
     raise RuntimeError(
-        f"Anaconda WebUI 68 {label} changed: expected one original or branded match, "
+        f"Anaconda WebUI 90 {label} changed: expected one original or branded match, "
         f"got {old_count} original and {new_count} branded"
     )
 
 
 version = (WEBUI / "VERSION.txt").read_text(encoding="utf-8").strip()
-if not version.startswith("68"):
+if version != "90":
     raise RuntimeError(f"Unsupported Anaconda WebUI version: {version}")
 for asset in ("infinityos-installer.css", "infinityos-installer-audio.js",
               "infinityos-installer-mark.svg", "infinityos-installer-mascot.png",
@@ -50,40 +50,40 @@ source = gzip.decompress(bundle.read_bytes()).decode("utf-8")
 if MESSAGE not in source:
     source = replace_once(
         source,
-        'Y.format(Yo("To begin using $0, reboot your system."),p.PRETTY_NAME)',
-        '(t=>t==="' + MESSAGE + '"?Yo("Reboot to installed system")+" · "+'
-        'Yo("Remove")+" USB":t)(Yo("' + MESSAGE + '"))',
+        'y.format(jo("To begin using $0, reboot your system."),m.PRETTY_NAME)',
+        '(t=>t==="' + MESSAGE + '"?jo("Reboot to installed system")+" · "+'
+        'jo("Remove")+" USB":t)(jo("' + MESSAGE + '"))',
         "completion message",
     )
     source = replace_once(
         source,
-        'Yo(d?"Reboot to installed system":"Exit to live desktop")',
-        'Yo("Reboot to installed system")',
+        'key:"reboot",onClick:kw},jo("Reboot")',
+        'key:"reboot",onClick:kw},jo("Reboot to installed system")',
         "reboot button",
     )
     source = replace_once(
         source,
-        'secondary:e==="success"&&Le.default.createElement(it,{onClick:Qp}',
-        'secondary:e==="success"&&Le.default.createElement(it,{onClick:()=>'
-        'Y.spawn(["systemctl","reboot"],{superuser:"require"})}',
+        'key:"reboot",onClick:kw},jo("Reboot to installed system")',
+        'key:"reboot",onClick:()=>y.spawn(["systemctl","reboot"],'
+        '{superuser:"require"})},jo("Reboot to installed system")',
         "success action",
     )
 
 step_labels = (
-    ('this.id="anaconda-screen-language",this.label=tO("Welcome")',
-     'this.id="anaconda-screen-language",this.label=tO("Language and layout")'),
-    ('this.id="anaconda-screen-date-time",this.label=rq("Date and time")',
-     'this.id="anaconda-screen-date-time",this.label=rq("Time and region")'),
-    ('this.id="anaconda-screen-method",this.label=W$("Installation method")',
-     'this.id="anaconda-screen-method",this.label=W$("Installation destination")'),
-    ('this.id="anaconda-screen-storage-configuration",this.label=QO("Storage configuration")',
-     'this.id="anaconda-screen-storage-configuration",this.label=QO("Security")'),
-    ('this.id="anaconda-screen-accounts",this.label=q$("Create Account")',
-     'this.id="anaconda-screen-accounts",this.label=q$("User")'),
-    ('this.id="anaconda-screen-review",this.label=iO("Review and install")',
-     'this.id="anaconda-screen-review",this.label=iO("Summary")'),
-    ('label:$$("Storage configuration"),steps:[o]',
-     'label:$$("Security"),steps:[o]'),
+    ('this.id="anaconda-screen-language",this.label=Zz("Welcome")',
+     'this.id="anaconda-screen-language",this.label=Zz("Language and layout")'),
+    ('this.id="anaconda-screen-date-time",this.label=q$("Date and time")',
+     'this.id="anaconda-screen-date-time",this.label=q$("Time and region")'),
+    ('this.id="anaconda-screen-method",this.label=Uet("Installation method")',
+     'this.id="anaconda-screen-method",this.label=Uet("Installation destination")'),
+    ('this.id="anaconda-screen-storage-configuration",this.label=hJ("Storage configuration")',
+     'this.id="anaconda-screen-storage-configuration",this.label=hJ("Security")'),
+    ('this.id="anaconda-screen-accounts",this.label=iet("Create Account")',
+     'this.id="anaconda-screen-accounts",this.label=iet("User")'),
+    ('this.id="anaconda-screen-review",this.label=Pz("Review and install")',
+     'this.id="anaconda-screen-review",this.label=Pz("Summary")'),
+    ('label:cot("Storage configuration"),steps:[r]',
+     'label:cot("Security"),steps:[r]'),
 )
 for original, branded in step_labels:
     source = replace_once_or_present(source, original, branded, "step label")

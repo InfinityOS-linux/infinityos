@@ -11,21 +11,20 @@ CSS = Path(__file__).resolve().parents[1] / "root/usr/share/cockpit/anaconda-web
 
 
 class InstallerBrandingTests(unittest.TestCase):
-    def test_fedora_webui_68_completion_is_branded_and_idempotent(self):
+    def test_fedora_webui_90_completion_is_branded_and_idempotent(self):
         with tempfile.TemporaryDirectory() as directory:
             webui = Path(directory)
-            (webui / "VERSION.txt").write_text("68\n")
+            (webui / "VERSION.txt").write_text("90\n")
             source = (
-                'Y.format(Yo("To begin using $0, reboot your system."),p.PRETTY_NAME)'
-                'Yo(d?"Reboot to installed system":"Exit to live desktop")'
-                'secondary:e==="success"&&Le.default.createElement(it,{onClick:Qp}'
-                'this.id="anaconda-screen-language",this.label=tO("Welcome"),this.title=tO("Welcome to Fedora Linux")'
-                'this.id="anaconda-screen-date-time",this.label=rq("Date and time")'
-                'this.id="anaconda-screen-method",this.label=W$("Installation method")'
-                'this.id="anaconda-screen-storage-configuration",this.label=QO("Storage configuration"),this.title=QO("Storage configuration")'
-                'this.id="anaconda-screen-accounts",this.label=q$("Create Account")'
-                'this.id="anaconda-screen-review",this.label=iO("Review and install"),this.title=iO("Review and install")'
-                'label:$$("Storage configuration"),steps:[o]'
+                'y.format(jo("To begin using $0, reboot your system."),m.PRETTY_NAME)'
+                'key:"reboot",onClick:kw},jo("Reboot")'
+                'this.id="anaconda-screen-language",this.label=Zz("Welcome"),this.title=Zz("Welcome to Fedora Linux")'
+                'this.id="anaconda-screen-date-time",this.label=q$("Date and time")'
+                'this.id="anaconda-screen-method",this.label=Uet("Installation method")'
+                'this.id="anaconda-screen-storage-configuration",this.label=hJ("Storage configuration"),this.title=hJ("Storage configuration")'
+                'this.id="anaconda-screen-accounts",this.label=iet("Create Account")'
+                'this.id="anaconda-screen-review",this.label=Pz("Review and install"),this.title=Pz("Review and install")'
+                'label:cot("Storage configuration"),steps:[r]'
             )
             (webui / "index.js.gz").write_bytes(gzip.compress(source.encode()))
             (webui / "po.pl.js.gz").write_bytes(gzip.compress(
@@ -44,14 +43,14 @@ class InstallerBrandingTests(unittest.TestCase):
             for _ in range(2):
                 subprocess.run([sys.executable, str(SCRIPT), str(webui)], check=True)
             result = gzip.decompress((webui / "index.js.gz").read_bytes()).decode()
-            self.assertIn('Y.spawn(["systemctl","reboot"],{superuser:"require"})', result)
-            self.assertIn('Yo("Reboot to installed system")+" · "+Yo("Remove")+" USB"', result)
+            self.assertIn('y.spawn(["systemctl","reboot"],{superuser:"require"})', result)
+            self.assertIn('jo("Reboot to installed system")+" · "+jo("Remove")+" USB"', result)
             for label in ("Language and layout", "Time and region", "Installation destination",
                           "Security", "User", "Summary"):
                 self.assertIn(f'("{label}")', result)
-            self.assertIn('label:$$("Security"),steps:[o]', result)
-            self.assertIn('this.title=QO("Storage configuration")', result)
-            self.assertIn('this.title=iO("Review and install")', result)
+            self.assertIn('label:cot("Security"),steps:[r]', result)
+            self.assertIn('this.title=hJ("Storage configuration")', result)
+            self.assertIn('this.title=Pz("Review and install")', result)
             self.assertEqual((webui / "index.html").read_text().count("infinityos-installer.css"), 1)
             self.assertEqual((webui / "index.html").read_text().count("infinityos-installer-audio.js"), 1)
             locale = gzip.decompress((webui / "po.pl.js.gz").read_bytes()).decode()
@@ -84,7 +83,7 @@ class InstallerBrandingTests(unittest.TestCase):
     def test_missing_music_fails_before_branding(self):
         with tempfile.TemporaryDirectory() as directory:
             webui = Path(directory)
-            (webui / "VERSION.txt").write_text("68\n")
+            (webui / "VERSION.txt").write_text("90\n")
             (webui / "infinityos-installer.css").write_text("/* style */")
             (webui / "infinityos-installer-audio.js").write_text("// controls")
             (webui / "infinityos-installer-mark.svg").write_text("<svg/>")

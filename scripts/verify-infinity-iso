@@ -65,8 +65,8 @@ assert 'user_pref("browser.tabs.inTitlebar", 0);' in firefox_live_prefs
 assert 'MOZ_GTK_TITLEBAR_DECORATION=system' in (
     root / 'usr/libexec/anaconda/webui-desktop').read_text()
 bundle = gzip.decompress((webui / 'index.js.gz').read_bytes()).decode()
-assert 'Y.spawn(["systemctl","reboot"],{superuser:"require"})' in bundle
-assert 'Yo("Reboot to installed system")' in bundle
+assert 'y.spawn(["systemctl","reboot"],{superuser:"require"})' in bundle
+assert 'jo("Reboot to installed system")' in bundle
 assert 'When reboot begins, remove the installation USB before the next boot.' in bundle
 locale = gzip.decompress((webui / 'po.pl.js.gz').read_bytes()).decode()
 assert 'Gdy rozpocznie się restart, wyjmij USB' in locale
@@ -330,9 +330,9 @@ for package in \
         exit 1
     fi
 done
-grep -qx 'Exec=gnome-session --session=gnome-login' \
+grep -qx 'Exec=gnome-session --session gnome-login' \
     "$rootpoint/usr/share/gdm/greeter/wayland-sessions/gnome-greeter.desktop" || {
-    echo 'Infinity OS login session fix missing from ISO' >&2
+    echo 'Fedora 45 GNOME login session missing from ISO' >&2
     exit 1
 }
 echo "Verified Infinity OS ISO from source revision $revision"

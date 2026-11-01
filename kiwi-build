@@ -71,6 +71,11 @@ if [[ "$image_profile" == Infinity-GNOME-* ]]; then
 	kiwibuild_stage=$(mktemp -d)
 	trap 'rm -rf "$kiwibuild_stage"' EXIT
 	git -c "safe.directory=$kiwibuild_repo" -C "$kiwibuild_repo" archive --format=tar "$kiwibuild_revision" | tar -xf - -C "$kiwibuild_stage"
+	# KIWI imports repository keys from the builder before entering the image root.
+	sed -i "s|file:///etc/pki/rpm-gpg/|file://$kiwibuild_stage/root/etc/pki/rpm-gpg/|g" \
+		"$kiwibuild_stage/repositories/infinityos.xml"
+	[[ $(grep -Fc "file://$kiwibuild_stage/root/etc/pki/rpm-gpg/" \
+		"$kiwibuild_stage/repositories/infinityos.xml") -eq 2 ]]
 	"$kiwibuild_stage/scripts/verify-gnome-extension-contracts" "$kiwibuild_stage"
 	# Run behavior contracts from the same commit that KIWI will install.
 	command -v node >/dev/null || { echo 'Node.js is required for Infinity OS behavior contracts.' >&2; exit 1; }

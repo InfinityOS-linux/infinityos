@@ -136,14 +136,6 @@ EOF
 	# KIWI runs with a restrictive umask; the initial-setup account must read
 	# this compiled database to get the Infinity OS wallpaper and dark theme.
 	chmod 0644 /etc/dconf/db/infinityos-initial-setup /etc/dconf/db/gdm /etc/dconf/db/local
-	# Fedora's greeter entry starts the default user session on this image.
-	# That renders a desktop without the login form. Select the GNOME login
-	# session explicitly until the packaged desktop entry does so itself.
-	greeter=/usr/share/gdm/greeter/wayland-sessions/gnome-greeter.desktop
-	if [[ -f "$greeter" ]]; then
-		sed -i 's/^Exec=gnome-session$/Exec=gnome-session --session=gnome-login/' "$greeter"
-		grep -qx 'Exec=gnome-session --session=gnome-login' "$greeter"
-	fi
 	useradd -D -s /usr/bin/zsh
 	if id liveuser &>/dev/null; then
 		usermod -s /usr/bin/zsh liveuser
