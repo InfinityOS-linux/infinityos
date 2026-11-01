@@ -27,11 +27,11 @@ if [[ "$kiwi_profiles" == *"Infinity-GNOME"* ]]; then
 	rm -f /etc/os-release
 	cat > /etc/os-release << EOF
 NAME="Infinity OS"
-PRETTY_NAME="Infinity OS ${release_version} (Fedora 44)"
+PRETTY_NAME="Infinity OS ${release_version} (Fedora 45)"
 ID=infinityos
 ID_LIKE=fedora
-VERSION_ID=44
-VERSION="44"
+VERSION_ID=45
+VERSION="45"
 INFINITYOS_VERSION_ID=${release_version}
 VARIANT="GNOME Workstation"
 VARIANT_ID=workstation
@@ -41,8 +41,8 @@ HOME_URL="https://github.com/InfinityOS-linux/infinityos"
 DOCUMENTATION_URL="https://github.com/InfinityOS-linux/infinityos/blob/main/README.md"
 EOF
 	printf '%s\n' "$release_version" > /etc/infinityos-release
-	printf 'Infinity OS %s (Fedora 44)\n' "$release_version" > /etc/issue
-	printf 'Infinity OS %s (Fedora 44)\n' "$release_version" > /etc/issue.net
+	printf 'Infinity OS %s (Fedora 45)\n' "$release_version" > /etc/issue
+	printf 'Infinity OS %s (Fedora 45)\n' "$release_version" > /etc/issue.net
 	chmod 0644 /etc/os-release /etc/infinityos-release /etc/issue /etc/issue.net
 	if rpm -q mediawriter >/dev/null 2>&1; then
 		dnf -y remove mediawriter
@@ -136,7 +136,7 @@ EOF
 	# KIWI runs with a restrictive umask; the initial-setup account must read
 	# this compiled database to get the Infinity OS wallpaper and dark theme.
 	chmod 0644 /etc/dconf/db/infinityos-initial-setup /etc/dconf/db/gdm /etc/dconf/db/local
-	# Fedora 44's greeter entry starts the default user session on this image.
+	# Fedora's greeter entry starts the default user session on this image.
 	# That renders a desktop without the login form. Select the GNOME login
 	# session explicitly until the packaged desktop entry does so itself.
 	greeter=/usr/share/gdm/greeter/wayland-sessions/gnome-greeter.desktop
@@ -241,7 +241,7 @@ EOF
 		cat > /.buildstamp << 'EOF'
 [Main]
 Product=Infinity OS
-Version=44
+Version=45
 IsFinal=True
 EOF
 		chmod 0644 /.buildstamp
@@ -272,7 +272,7 @@ EOF
 				grep -Fqx 'EFI_HOME=$2' "$cfgstub"
 				sed -i '/^EFI_HOME=\$2$/a mkdir -p "$EFI_HOME"' "$cfgstub"
 			fi
-			# Anaconda 44 parses interactive-defaults.ks for liveinst, but no
+			# Anaconda parses interactive-defaults.ks for liveinst, but no
 			# longer calls appendPostScripts(). Put required hooks in the file it
 			# actually reads so success requires a working rEFInd install.
 			cat >> /usr/share/anaconda/interactive-defaults.ks <<'BOOT_POST_EOF'

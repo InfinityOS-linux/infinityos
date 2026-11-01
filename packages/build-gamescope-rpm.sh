@@ -9,12 +9,7 @@ mkdir -p "$work/RPMS"
 docker run --rm --platform linux/amd64 \
   -v "$repo/packages/gamescope:/source:ro" \
   -v "$work/RPMS:/output" \
-  fedora:44 bash -euo pipefail -c '
-    # Pin Fedora servers so a slow mirror cannot stall the release workflow.
-    sed -i "s|^metalink=https://mirrors.fedoraproject.org/metalink?repo=fedora-\\\$releasever\&arch=\\\$basearch$|baseurl=https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/|" /etc/yum.repos.d/fedora.repo
-    sed -i "s|^metalink=https://mirrors.fedoraproject.org/metalink?repo=updates-released-f\\\$releasever\&arch=\\\$basearch$|baseurl=https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/|" /etc/yum.repos.d/fedora-updates.repo
-    grep -q "^baseurl=https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/" /etc/yum.repos.d/fedora.repo
-    grep -q "^baseurl=https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/" /etc/yum.repos.d/fedora-updates.repo
+  fedora:45 bash -euo pipefail -c '
     dnf -y install curl dnf5-plugins rpm-build
     mkdir -p /build/rpmbuild/SOURCES
     cp /source/*.patch /source/stb.pc /build/rpmbuild/SOURCES/
@@ -28,7 +23,7 @@ docker run --rm --platform linux/amd64 \
     rpmbuild -bb --define "_topdir /build/rpmbuild" /source/gamescope.spec
     rpmfile=(/build/rpmbuild/RPMS/x86_64/gamescope-3.16.29-*.x86_64.rpm)
     [[ ${#rpmfile[@]} -eq 1 ]]
-    [[ $(rpm -qp --qf "%{NAME} %{VERSION}-%{RELEASE} %{ARCH}" "${rpmfile[0]}") == "gamescope 3.16.29-2.infinityos.fc44 x86_64" ]]
+    [[ $(rpm -qp --qf "%{NAME} %{VERSION}-%{RELEASE} %{ARCH}" "${rpmfile[0]}") == "gamescope 3.16.29-2.infinityos.fc45 x86_64" ]]
     rpm_files=$(rpm -qpl "${rpmfile[0]}")
     grep -qx /usr/bin/gamescope <<< "$rpm_files"
     cp -a "${rpmfile[0]}" /output/

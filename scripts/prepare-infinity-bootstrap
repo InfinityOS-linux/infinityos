@@ -7,12 +7,12 @@ source_dir=$(cd "$(dirname "$0")/.." && pwd)
 	echo "Refusing to reuse an existing build root: $root" >&2
 	exit 1
 }
-[[ $(rpm --eval '%{fedora}') == 44 ]] || {
-	echo 'Build Infinity OS 44 on a Fedora 44 host.' >&2
+[[ $(rpm --eval '%{fedora}') == 45 ]] || {
+	echo 'Build Infinity OS 45 on a Fedora 45 host.' >&2
 	exit 1
 }
 
-# DNF in KIWI's empty installroot can run Fedora 44 RPM %sysusers hooks before
+# DNF in KIWI's empty installroot can run RPM %sysusers hooks before
 # systemd-sysusers is available. Install the exact bootstrap group first with
 # the host DNF configuration, then let KIWI continue from this fresh root.
 install -d "$root/usr/bin" "$root/usr/sbin" "$root/usr/lib" "$root/usr/lib64"
@@ -22,7 +22,7 @@ ln -s usr/lib "$root/lib"
 ln -s usr/lib64 "$root/lib64"
 
 dnf5 -y --use-host-config --disablerepo='*' --enablerepo=fedora --enablerepo=updates \
-	--installroot "$root" --releasever=44 \
+	--installroot "$root" --releasever=45 \
 	--setopt=group_package_types=default,mandatory,conditional \
 	install dnf5 filesystem generic-release grubby systemd-sysusers gawk distribution-gpg-keys @anaconda-tools
 
@@ -34,9 +34,9 @@ done
 for key in \
 	"$root/etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos" \
 	"$root/etc/pki/rpm-gpg/RPM-GPG-KEY-ublue-os-packages" \
-	"$root/usr/share/distribution-gpg-keys/fedora/RPM-GPG-KEY-fedora-44-primary" \
-	"$root/usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-free-fedora-44" \
-	"$root/usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-nonfree-fedora-44"; do
+	"$root/usr/share/distribution-gpg-keys/fedora/RPM-GPG-KEY-fedora-45-primary" \
+	"$root/usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-free-fedora-45" \
+	"$root/usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-nonfree-fedora-45"; do
 	[[ -f $key ]] || { echo "Missing build signing key: $key" >&2; exit 1; }
 done
 for package in fedora-release fedora-release-workstation fedora-logos fedora-release-notes; do

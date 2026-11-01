@@ -47,7 +47,7 @@ def installed(sysroot, package):
 
 
 def dnf(sysroot, *arguments):
-    command = ["dnf", "--installroot", str(sysroot), "--releasever", "44",
+    command = ["dnf", "--installroot", str(sysroot), "--releasever", "45",
                "-y"]
     if arguments[0] == "remove":
         command.append("--disablerepo=*")

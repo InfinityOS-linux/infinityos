@@ -99,6 +99,7 @@ jobs:
 
   publish:
     name: Sign RPMs and prepare Pages
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     needs: [build-noarch, build-terminal, build-gamescope]
     permissions:
@@ -125,7 +126,7 @@ jobs:
           docker run --rm \
             -v "$PWD:/work" \
             -v "$signing_key:/signing.asc:ro" \
-            -w /work fedora:44 sh -ec '
+            -w /work fedora:45 sh -ec '
               dnf -qy install createrepo_c rpm-sign gnupg2 python3
               export GNUPGHOME="$(mktemp -d)"
               chmod 700 "$GNUPGHOME"

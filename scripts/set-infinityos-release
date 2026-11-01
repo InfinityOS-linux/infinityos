@@ -20,7 +20,7 @@ def number(value):
 
 def replace_url(path, new_url):
     source = path.read_text(encoding='utf-8')
-    updated, count = re.subn(r'https://infinityos-linux\.github\.io/infinityos/rpm/44/(?:releases/[^/]+/)?\$basearch/',
+    updated, count = re.subn(r'https://infinityos-linux\.github\.io/infinityos/rpm/\d+/(?:releases/[^/]+/)?\$basearch/',
                              new_url, source)
     if count != 1:
         raise ValueError(f'Expected one Infinity OS repository URL in {path}')
@@ -35,9 +35,9 @@ def main(argv):
     current = data['version']
     if number(target) <= number(current):
         raise ValueError('The new release must be newer than the published release')
-    if data['fedora_release'] != 44:
-        raise ValueError('This release path currently supports Fedora 44 only')
-    url = f'https://infinityos-linux.github.io/infinityos/rpm/44/releases/{target}/$basearch/'
+    if data['fedora_release'] != 45:
+        raise ValueError('This release path currently supports Fedora 45 only')
+    url = f'https://infinityos-linux.github.io/infinityos/rpm/45/releases/{target}/$basearch/'
     replace_url(ROOT / 'root/usr/share/infinityos/repos/infinityos.repo', url)
     replace_url(ROOT / 'repositories/infinityos.xml', url)
     data['previous'].append(current)

@@ -23,19 +23,19 @@ class ReleaseManifestTests(unittest.TestCase):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(ROOT / name, target)
             result = subprocess.run([sys.executable, str(copy / 'scripts/set-infinityos-release'),
-                                     '1.1'], capture_output=True, text=True)
+                                     '2.1'], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             manifest = json.loads((copy / 'releases/stable.json').read_text())
-            self.assertEqual(manifest['version'], '1.1')
-            self.assertEqual(manifest['previous'], ['1.0'])
+            self.assertEqual(manifest['version'], '2.1')
+            self.assertEqual(manifest['previous'], ['1.0', '2.0'])
             self.assertEqual((copy / 'root/usr/share/infinityos/image-release-version').read_text(),
-                             '1.1\n')
-            expected = 'https://infinityos-linux.github.io/infinityos/rpm/44/releases/1.1/$basearch/'
+                             '2.1\n')
+            expected = 'https://infinityos-linux.github.io/infinityos/rpm/45/releases/2.1/$basearch/'
             for name in ('root/usr/share/infinityos/repos/infinityos.repo',
                          'repositories/infinityos.xml'):
                 self.assertIn(expected, (copy / name).read_text())
             result = subprocess.run([sys.executable, str(copy / 'scripts/set-infinityos-release'),
-                                     '1.0'], capture_output=True, text=True)
+                                     '2.0'], capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0)
 
     def test_published_version_matches_image_and_repository_sources(self):
@@ -43,7 +43,7 @@ class ReleaseManifestTests(unittest.TestCase):
         version = manifest['version']
         fedora = manifest['fedora_release']
         self.assertRegex(version, r'^[1-9][0-9]*\.[0-9]+(?:\.[0-9]+)?$')
-        self.assertEqual(fedora, 44)
+        self.assertEqual(fedora, 45)
         self.assertEqual((ROOT / 'root/usr/share/infinityos/image-release-version').read_text().strip(),
                          version)
         url = (f'https://infinityos-linux.github.io/infinityos/rpm/{fedora}/$basearch/'

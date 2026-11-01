@@ -31,7 +31,7 @@ else:
     )
     shell_major = result.stdout.split(".", 1)[0]
 
-fedora_snapshot = root / "vendor/gnome-shell/fedora-44/usr/share/gnome-shell/extensions"
+fedora_snapshot = root / "vendor/gnome-shell/fedora-45/usr/share/gnome-shell/extensions"
 fedora_extensions = {
     "GPaste@gnome-shell-extensions.gnome.org",
     "appindicatorsupport@rgcjonas.gmail.com",

@@ -80,7 +80,7 @@ elif [[ "$package" == infinityos-ramdrive ]]; then
     "$work/source/$package-$version/usr/share/licenses/infinityos-ramdrive/COPYING"
 elif [[ "$package" == infinityos-shell-extensions ]]; then
   source_root="$work/source/$package-$version"
-  fedora_snapshot="$repo/vendor/gnome-shell/fedora-44/usr/share"
+  fedora_snapshot="$repo/vendor/gnome-shell/fedora-45/usr/share"
   install -d "$source_root/usr/bin" \
     "$source_root/usr/share/gnome-shell/extensions" \
     "$source_root/usr/share/glib-2.0/schemas" \
@@ -223,7 +223,7 @@ if [[ "$package" == infinityos-shell-extensions ]]; then
     -v "$work/rpmbuild/SOURCES:/source:ro" \
     -v "$work/rpmbuild/RPMS:/output" \
     -v "$repo/packages/$package/$package.spec:/build/$package.spec:ro" \
-    fedora:44 sh -ec 'dnf -y --disablerepo=updates install rpm-build && \
+    fedora:45 sh -ec 'dnf -y --disablerepo=updates install rpm-build && \
       mkdir -p /build/rpmbuild/SOURCES && cp -a /source/. /build/rpmbuild/SOURCES/ && \
       rpmbuild -bb --define "_topdir /build/rpmbuild" \
         --define "infinity_release '${INFINITY_PACKAGE_RELEASE:-1}'" \
@@ -233,7 +233,7 @@ else
   docker run --rm ${INFINITY_TARGET_PLATFORM:+--platform "$INFINITY_TARGET_PLATFORM"} \
     -v "$work/rpmbuild:/build/rpmbuild" \
     -v "$repo/packages/$package/$package.spec:/build/$package.spec:ro" \
-    fedora:44 sh -ec 'dnf -y --disablerepo=updates install rpm-build && rpmbuild -bb \
+    fedora:45 sh -ec 'dnf -y --disablerepo=updates install rpm-build && rpmbuild -bb \
       --define "_topdir /build/rpmbuild" \
       --define "infinity_release '${INFINITY_PACKAGE_RELEASE:-1}'" \
       "/build/'"$package"'.spec"'

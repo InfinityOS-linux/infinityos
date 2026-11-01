@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<image schemaversion="7.4" name="InfinityOS" displayname="Infinity OS 44">
+<image schemaversion="7.4" name="InfinityOS" displayname="Infinity OS 45">
 	<description type="system">
 		<author>Infinity OS Contributors</author>
 		<contact>https://github.com/InfinityOS-linux/infinityos</contact>
 		<specification>Infinity OS based on Fedora Linux</specification>
 	</description>
 	<preferences>
-		<version>44</version>
+		<version>45</version>
 		<packagemanager>dnf5</packagemanager>
 		<locale>en_US</locale>
 		<keytable>us</keytable>
 		<timezone>UTC</timezone>
-		<release-version>44</release-version>
+		<release-version>45</release-version>
 	</preferences>
 	<include from="this://./repositories/core.xml"/>
 	<include from="this://./repositories/infinityos.xml"/>

@@ -1,6 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
 <interface>
-  <!--Infinity OS overlay for GNOME Control Center 50.4.-->
   <requires lib="gtk" version="4.0" />
   <template class="CcAboutPage" parent="AdwNavigationPage">
     <property name="title" translatable="yes">About</property>
@@ -11,93 +10,173 @@
           <object class="AdwHeaderBar" />
         </child>
         <property name="content">
-          <object class="AdwPreferencesPage">
-            <child>
-              <object class="AdwPreferencesGroup">
+          <object class="AdwToastOverlay" id="toast_overlay">
+            <property name="child">
+              <object class="AdwPreferencesPage">
                 <child>
-                  <object class="AdwClamp">
-                    <property name="orientation">1</property>
-                    <property name="maximum-size">192</property>
-                    <property name="tightening-threshold">192</property>
-                    <property name="child">
-                      <object class="GtkPicture" id="os_logo">
-                        <property name="can-shrink">false</property>
-                        <property name="content-fit">3</property>
-                        <property name="alternative-text" translatable="yes">System Logo</property>
+                  <object class="AdwPreferencesGroup">
+                    <child>
+                      <object class="AdwClamp">
+                        <property name="orientation">1</property>
+                        <property name="maximum-size">192</property>
+                        <property name="tightening-threshold">192</property>
+                        <property name="child">
+                          <object class="GtkPicture" id="os_logo">
+                            <property name="can-shrink">false</property>
+                            <property name="content-fit">3</property>
+                            <property name="alternative-text" translatable="yes">System Logo</property>
+                          </object>
+                        </property>
                       </object>
-                    </property>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="AdwPreferencesGroup">
+                    <child>
+                      <object class="CcHostnameEntry" id="hostname_row">
+                        <property name="title" translatable="yes">_Device Name</property>
+                        <property name="use-underline">true</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="AdwPreferencesGroup">
+                    <property name="title" translatable="yes">Software Information</property>
+                    <child>
+                      <object class="AdwActionRow" id="gnome_version_row">
+                        <property name="title" translatable="yes">GNOME Shell Version</property>
+                        <property name="subtitle-selectable">true</property>
+                        <property name="visible">false</property>
+                        <style>
+                          <class name="property" />
+                        </style>
+                        <child type="suffix">
+                          <object class="GtkButton">
+                            <property name="icon-name">adw-external-link-symbolic</property>
+                            <property name="valign">3</property>
+                            <property name="tooltip-text" translatable="yes">Release Notes</property>
+                            <signal name="clicked" handler="on_release_notes_button_clicked_cb" object="CcAboutPage" />
+                            <style>
+                              <class name="flat" />
+                            </style>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwActionRow" id="os_name_row">
+                        <property name="title" translatable="yes">Operating System Name</property>
+                        <property name="subtitle-selectable">true</property>
+                        <style>
+                          <class name="property" />
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwActionRow" id="os_build_row">
+                        <property name="title" translatable="yes">Operating System Build</property>
+                        <property name="subtitle-selectable">true</property>
+                        <style>
+                          <class name="property" />
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwActionRow" id="os_type_row">
+                        <property name="title" translatable="yes">Operating System Type</property>
+                        <property name="subtitle-selectable">true</property>
+                        <style>
+                          <class name="property" />
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwActionRow" id="virtualization_row">
+                        <property name="title" translatable="yes">Virtualization</property>
+                        <property name="subtitle-selectable">true</property>
+                        <style>
+                          <class name="property" />
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwActionRow" id="kernel_row">
+                        <property name="title" translatable="yes">Kernel Version</property>
+                        <property name="subtitle-selectable">true</property>
+                        <style>
+                          <class name="property" />
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwActionRow" id="firmware_version_row">
+                        <property name="title" translatable="yes">Firmware Version</property>
+                        <property name="subtitle-selectable">true</property>
+                        <style>
+                          <class name="property" />
+                        </style>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="AdwPreferencesGroup" id="hardware_group">
+                    <property name="title" translatable="yes">Hardware Information</property>
+                    <child>
+                      <object class="AdwActionRow" id="hardware_model_row">
+                        <property name="title" translatable="yes">Model</property>
+                        <property name="subtitle-selectable">true</property>
+                        <style>
+                          <class name="property" />
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwActionRow" id="memory_row">
+                        <property name="title" translatable="yes">Memory</property>
+                        <property name="subtitle-selectable">true</property>
+                        <style>
+                          <class name="property" />
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwActionRow" id="processor_row">
+                        <property name="title" translatable="yes">Processor</property>
+                        <property name="subtitle-selectable">true</property>
+                        <style>
+                          <class name="property" />
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwActionRow" id="disk_row">
+                        <property name="title" translatable="yes">Disk Capacity</property>
+                        <property name="subtitle" translatable="yes">Calculating…</property>
+                        <property name="subtitle-selectable">true</property>
+                        <style>
+                          <class name="property" />
+                        </style>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="AdwPreferencesGroup">
+                    <child>
+                      <object class="AdwButtonRow">
+                        <property name="start-icon-name">edit-copy-symbolic</property>
+                        <property name="title" translatable="yes">_Copy</property>
+                        <property name="use-underline">true</property>
+                        <signal name="activated" handler="on_copy_row_activated_cb" />
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>
-            </child>
-            <child>
-              <object class="AdwPreferencesGroup">
-                <child>
-                  <object class="CcHostnameEntry" id="hostname_row">
-                    <property name="title" translatable="yes">_Device Name</property>
-                    <property name="use-underline">true</property>
-                  </object>
-                </child>
-              </object>
-            </child>
-            <child>
-              <object class="AdwPreferencesGroup">
-                <child>
-                  <object class="AdwActionRow" id="os_name_row">
-                    <property name="title" translatable="yes">Operating System</property>
-                    <property name="subtitle-selectable">true</property>
-                    <style>
-                      <class name="property" />
-                    </style>
-                  </object>
-                </child>
-                <child>
-                  <object class="AdwActionRow" id="hardware_model_row">
-                    <property name="visible">false</property>
-                    <property name="title" translatable="yes">Hardware Model</property>
-                    <property name="subtitle-selectable">true</property>
-                    <style>
-                      <class name="property" />
-                    </style>
-                  </object>
-                </child>
-                <child>
-                  <object class="AdwActionRow" id="processor_row">
-                    <property name="title" translatable="yes">Processor</property>
-                    <property name="subtitle-selectable">true</property>
-                    <style>
-                      <class name="property" />
-                    </style>
-                  </object>
-                </child>
-                <child>
-                  <object class="AdwActionRow" id="memory_row">
-                    <property name="title" translatable="yes">Memory</property>
-                    <property name="subtitle-selectable">true</property>
-                    <style>
-                      <class name="property" />
-                    </style>
-                  </object>
-                </child>
-                <child>
-                  <object class="AdwActionRow" id="disk_row">
-                    <property name="title" translatable="yes">Disk Capacity</property>
-                    <property name="subtitle" translatable="yes">Calculating…</property>
-                    <property name="subtitle-selectable">true</property>
-                    <style>
-                      <class name="property" />
-                    </style>
-                  </object>
-                </child>
-                <child>
-                  <object class="CcListRow">
-                    <property name="title" translatable="yes">_System Details</property>
-                    <property name="show-arrow">true</property>
-                    <signal name="activated" handler="cc_about_page_open_system_details" object="CcAboutPage" />
-                  </object>
-                </child>
-              </object>
-            </child>
+            </property>
           </object>
         </property>
       </object>

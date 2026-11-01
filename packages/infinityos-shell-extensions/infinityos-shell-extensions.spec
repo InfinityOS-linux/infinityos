@@ -6,21 +6,21 @@ License:        GPL-3.0-only AND GPL-3.0-or-later AND GPL-2.0-only AND GPL-2.0-o
 URL:            https://github.com/InfinityOS-linux/infinityos
 Source0:        infinityos-shell-extensions-%{version}.tar.gz
 BuildArch:      noarch
-Requires:       gnome-shell >= 50
-Requires:       gnome-shell < 51
-Requires:       gpaste-ui >= 50.6
+Requires:       gnome-shell >= 51
+Requires:       gnome-shell < 52
+Requires:       gpaste-ui >= 51.0
 Requires:       glib2
 Requires:       dconf
 Requires:       python3-gobject
 
 # Adopt the six Fedora extension directories so that only an Infinity OS RPM
 # may update their code. The GPaste service remains Fedora-managed.
-Provides:       gnome-shell-extension-gpaste = 50.6-1.fc44
-Provides:       gnome-shell-extension-appindicator = 64-1.fc44
-Provides:       gnome-shell-extension-blur-my-shell = 72-1.fc44
-Provides:       gnome-shell-extension-caffeine = 60-2.fc44
-Provides:       gnome-shell-extension-user-theme = 50.4-1.fc44
-Provides:       gnome-shell-extension-vertical-workspaces = 50.2-1.fc44
+Provides:       gnome-shell-extension-gpaste = 51.0-1.fc45
+Provides:       gnome-shell-extension-appindicator = 66-1.fc45
+Provides:       gnome-shell-extension-blur-my-shell = 75-1.fc45
+Provides:       gnome-shell-extension-caffeine = 61-1.infinityos.fc45
+Provides:       gnome-shell-extension-user-theme = 51.0-1.fc45
+Provides:       gnome-shell-extension-vertical-workspaces = 51.0-1.fc45
 Obsoletes:      gnome-shell-extension-gpaste < 9999
 Obsoletes:      gnome-shell-extension-appindicator < 9999
 Obsoletes:      gnome-shell-extension-blur-my-shell < 9999
@@ -30,7 +30,7 @@ Obsoletes:      gnome-shell-extension-vertical-workspaces < 9999
 
 %description
 Ships the GNOME extensions and desktop defaults tested together for Infinity
-OS 44. Fedora updates cannot replace an enabled extension independently of
+OS 45. Fedora updates cannot replace an enabled extension independently of
 the matching Infinity OS package release.
 
 %prep

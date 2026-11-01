@@ -11,7 +11,7 @@ import sys
 data = json.load(open(sys.argv[1], encoding='utf-8'))
 version = data['version']
 fedora = data['fedora_release']
-if not re.fullmatch(r'[1-9][0-9]*\.[0-9]+(?:\.[0-9]+)?', version) or type(fedora) is not int or fedora != 44:
+if not re.fullmatch(r'[1-9][0-9]*\.[0-9]+(?:\.[0-9]+)?', version) or type(fedora) is not int or fedora != 45:
     raise SystemExit('Invalid Infinity OS release metadata')
 print(version)
 print(fedora)

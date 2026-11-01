@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "version": "1.0",
-  "fedora_release": 44,
-  "previous": []
+  "version": "2.0",
+  "fedora_release": 45,
+  "previous": ["1.0"]
 }

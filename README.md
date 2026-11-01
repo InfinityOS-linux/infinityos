@@ -8,6 +8,8 @@ This repository is the source for the Infinity OS KIWI images, desktop configura
 
 **InfinityOS_01 is out.** The first release includes `x86_64` and `aarch64` ISO images. Visit [infinityos.eu](https://infinityos.eu/) or get the images from the [download folder](https://mega.nz/folder/vx50XZrT#wjqKyqmFacFjPK8I4vNcxw).
 
+The `fedora-45-gnome-51` branch is the in-progress Infinity OS 2.0 port. Its Fedora 45 RPM repository and images are not published yet. See [the migration checklist](docs/fedora-45-migration.md) for verification status.
+
 **Infinity OS is an independent Fedora Remix. It is not provided, supported, or endorsed by the Fedora Project or Red Hat.** Official Fedora Linux is available at [fedoraproject.org](https://fedoraproject.org/).
 
 ## Start here
@@ -23,7 +25,7 @@ This repository is the source for the Infinity OS KIWI images, desktop configura
 
 | Area | Configuration |
 | --- | --- |
-| Base | Fedora 44 packages, DNF, Fedora Updates, RPM Fusion Free and Nonfree |
+| Base | Fedora 45 packages, DNF, Fedora Updates, RPM Fusion Free and Nonfree |
 | Desktop | GNOME with Orchis Purple Dark Compact by default and an optional Light mode, Kora icons, Bibata cursor, Infinity OS artwork, IBM Plex Sans, and a dark lock screen |
 | Storage | Writable Btrfs root, rEFInd, Snapper timeline and cleanup |
 | Applications | Firefox, GNOME Software, Flatpak with Flathub, mpv, InfinitySetup, and InfinityTerminal |
@@ -52,7 +54,7 @@ On `x86_64` live installations, Anaconda runs [`infinityos-install-nvidia`](root
 
 GNOME starts with desktop icons, AppIndicator support, dynamic Blur My Shell, the Window Is Ready notification remover, and WACK Sonoma Lockscreen in Cupertino mode. WACK Shell puts the Infinity logo on the panel's overview button. The signed `gnome-rounded-blur` helper fixes dynamic blur corners; its COPR repository is restricted to that package. Titlebars show minimize and maximize buttons. **Alt+Tab** switches windows. Firefox keeps **Ctrl+T** for a new tab. Location Services start enabled, and automatic problem reporting starts disabled.
 
-The desktop extensions and their default settings ship in the signed `infinityos-shell-extensions` RPM. Its source includes Infinity OS modifications and pinned Fedora 44 snapshots for GPaste, AppIndicator Support, Blur My Shell, Caffeine, User Themes, and V-Shell. Fedora package updates cannot replace those extension files independently; Infinity OS updates them together after compatibility checks. InfinityUpdater detects and installs newer signed extension RPMs through the normal system update flow; log out and back in to load the new extension code. User overrides in dconf remain possible.
+The desktop extensions and their default settings ship in the signed `infinityos-shell-extensions` RPM. Its source includes Infinity OS modifications and pinned Fedora 45 snapshots for GPaste, AppIndicator Support, Blur My Shell, User Themes, and V-Shell, plus a GNOME 51 compatible Caffeine release. Fedora package updates cannot replace those extension files independently; Infinity OS updates them together after compatibility checks. InfinityUpdater detects and installs newer signed extension RPMs through the normal system update flow; log out and back in to load the new extension code. User overrides in dconf remain possible.
 
 The extension RPM pins the tested GNOME Shell major version, and GitHub's RPM workflow checks every enabled extension's metadata before publishing. If an extension prevents the desktop from loading, log in on a text console and run `infinityos-shell-recover --list`, then `infinityos-shell-recover --disable UUID`. `--disable-all` provides a minimal session; `--restore-defaults` restores the packaged selection. Run these commands as the affected user, without sudo.
 
@@ -72,13 +74,13 @@ The image build requires the Infinity OS RPM repository to be published and reac
 
 ## Build an image
 
-Use a Fedora 44 host with the target CPU architecture and Btrfs ACL support. Install KIWI and its system dependencies:
+Use a Fedora 45 host with the target CPU architecture and Btrfs ACL support. Install KIWI and its system dependencies:
 
 ```sh
 sudo dnf install kiwi kiwi-systemdeps distribution-gpg-keys erofs-utils dosfstools xorriso isomd5sum
 ```
 
-Commit all image and application changes first. Publish all seven Infinity OS RPMs
+Commit all image and application changes first. Publish all eight Infinity OS RPMs
 from that same commit before starting an image build. The wrapper records the
 commit in the image, uses a fresh archive of that commit as its KIWI description,
 and stops if any installed Infinity OS RPM comes from another commit. It also
@@ -93,10 +95,10 @@ sudo ./kiwi-build --kiwi-file=InfinityOS.kiwi --image-type=iso \
 ```
 
 The wrapper checks the media checksum, embedded EROFS filesystem, source
-revision, seven RPM revisions, and essential desktop files before accepting an
+revision, eight RPM revisions, and essential desktop files before accepting an
 Infinity OS ISO. Run `sudo scripts/verify-infinity-iso IMAGE.iso` again after
 copying an image to another machine. An ISO from an old prepared root fails
-this check. On Fedora 44 the wrapper also prepares a fresh bootstrap root with
+this check. On Fedora 45 the wrapper also prepares a fresh bootstrap root with
 Fedora DNF before KIWI installs the rest of the live image, so RPM `sysusers`
 hooks have their interpreter available. It also stages the Fedora, RPM Fusion,
 Infinity OS, and COPR signing keys before KIWI validates package repositories.
@@ -130,4 +132,4 @@ Published x86_64 and aarch64 live ISOs boot through rEFInd. The ISO finalizer en
 
 ## Sources and licensing
 
-Infinity OS is based on Fedora's [KIWI descriptions](https://forge.fedoraproject.org/releng/kiwi-descriptions) from the `f44` branch. Project-authored and Fedora-derived build code follows GPL-3.0-or-later in [`LICENSE`](LICENSE); bundled software, fonts, icons, and artwork retain their own licenses. See [`THIRD_PARTY.md`](THIRD_PARTY.md) for component attribution. The image definition requests `generic-release`, `generic-logos`, and `generic-release-notes` in place of Fedora's identity packages. Review the finished image's package manifest for each new release. The [redistribution review](docs/REDISTRIBUTION.md) records the Fedora Remix, RPM Fusion, codec, NVIDIA, font, and Proview conditions relevant to a release from Poland.
+Infinity OS is based on Fedora's [KIWI descriptions](https://forge.fedoraproject.org/releng/kiwi-descriptions) from the `f44` branch, ported to Fedora 45 in this branch. Project-authored and Fedora-derived build code follows GPL-3.0-or-later in [`LICENSE`](LICENSE); bundled software, fonts, icons, and artwork retain their own licenses. See [`THIRD_PARTY.md`](THIRD_PARTY.md) for component attribution. The image definition requests `generic-release`, `generic-logos`, and `generic-release-notes` in place of Fedora's identity packages. Review the finished image's package manifest for each new release. The [redistribution review](docs/REDISTRIBUTION.md) records the Fedora Remix, RPM Fusion, codec, NVIDIA, font, and Proview conditions relevant to a release from Poland.

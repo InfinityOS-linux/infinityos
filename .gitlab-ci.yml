@@ -66,7 +66,7 @@ build-terminal-aarch64:
 
 pages:
   stage: publish
-  image: fedora:44
+  image: fedora:45
   needs:
     - job: build-setup
       artifacts: true

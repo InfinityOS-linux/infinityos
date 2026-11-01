@@ -162,7 +162,7 @@ if [[ $(uname -m) == x86_64 ]]; then
         exit 1
     }
     [[ $(rpm --root "$rootpoint" -q --qf '%{RELEASE}' gamescope) == \
-        *.infinityos.fc44 ]] || {
+        *.infinityos.fc45 ]] || {
         echo 'Infinity OS Gamescope NVIDIA fix is missing from ISO' >&2
         exit 1
     }
