@@ -251,6 +251,7 @@
 
 .wack-cupertino-prompt .login-dialog-prompt-entry {
     font-size: 14px !important;
+    height: 40px !important;
     padding: 0px 9px !important;
     border-radius: 9999px !important;
     border: none !important;
