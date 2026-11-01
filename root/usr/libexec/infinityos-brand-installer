@@ -92,6 +92,7 @@ polish = WEBUI / "po.pl.js.gz"
 locale = gzip.decompress(polish.read_bytes()).decode("utf-8").rstrip()
 translations = {
     MESSAGE: "Gdy rozpocznie się restart, wyjmij USB przed ponownym uruchomieniem systemu.",
+    "Reboot to installed system": "Uruchom ponownie do zainstalowanego systemu",
     "Language and layout": "Język i układ",
     "Time and region": "Czas i region",
     "Installation destination": "Miejsce instalacji",

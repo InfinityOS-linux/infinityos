@@ -789,6 +789,12 @@ body:has(.anaconda-screen-progress-status),
   border-radius: 999px;
 }
 
+#app .anaconda-screen-progress-status .pf-v6-c-empty-state__footer .pf-v6-c-button.pf-m-link {
+  color: var(--infinity-accent);
+  background: transparent;
+  border: 1px solid var(--infinity-accent);
+}
+
 @media (max-width: 900px) {
   .anaconda-screen-progress-status .pf-v6-c-progress-stepper {
     grid-template-columns: repeat(2, minmax(0, 1fr));

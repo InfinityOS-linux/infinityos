@@ -70,6 +70,7 @@ assert 'jo("Reboot to installed system")' in bundle
 assert 'When reboot begins, remove the installation USB before the next boot.' in bundle
 locale = gzip.decompress((webui / 'po.pl.js.gz').read_bytes()).decode()
 assert 'Gdy rozpocznie się restart, wyjmij USB' in locale
+assert '"Reboot to installed system": [null, "Uruchom ponownie do zainstalowanego systemu"]' in locale
 for english, polish in (
     ('Language and layout', 'Język i układ'),
     ('Time and region', 'Czas i region'),
