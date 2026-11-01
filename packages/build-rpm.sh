@@ -223,7 +223,7 @@ if [[ "$package" == infinityos-shell-extensions ]]; then
     -v "$work/rpmbuild/SOURCES:/source:ro" \
     -v "$work/rpmbuild/RPMS:/output" \
     -v "$repo/packages/$package/$package.spec:/build/$package.spec:ro" \
-    fedora:45 sh -ec 'dnf -y --disablerepo=updates install rpm-build && \
+    fedora:45 sh -ec 'dnf -y --disablerepo="*" --enablerepo=fedora install rpm-build && \
       mkdir -p /build/rpmbuild/SOURCES && cp -a /source/. /build/rpmbuild/SOURCES/ && \
       rpmbuild -bb --define "_topdir /build/rpmbuild" \
         --define "infinity_release '${INFINITY_PACKAGE_RELEASE:-1}'" \
@@ -233,7 +233,7 @@ else
   docker run --rm ${INFINITY_TARGET_PLATFORM:+--platform "$INFINITY_TARGET_PLATFORM"} \
     -v "$work/rpmbuild:/build/rpmbuild" \
     -v "$repo/packages/$package/$package.spec:/build/$package.spec:ro" \
-    fedora:45 sh -ec 'dnf -y --disablerepo=updates install rpm-build && rpmbuild -bb \
+    fedora:45 sh -ec 'dnf -y --disablerepo="*" --enablerepo=fedora install rpm-build && rpmbuild -bb \
       --define "_topdir /build/rpmbuild" \
       --define "infinity_release '${INFINITY_PACKAGE_RELEASE:-1}'" \
       "/build/'"$package"'.spec"'
