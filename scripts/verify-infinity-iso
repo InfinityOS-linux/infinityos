@@ -239,6 +239,7 @@ for required in \
     usr/share/infinityos/folder-icons/folder-documents-dock.svg \
     usr/local/share/applications/org.gnome.GPaste.Ui.desktop \
     usr/local/share/applications/org.gnome.GPaste.Preferences.desktop \
+    etc/skel/.config/dconf/user \
     usr/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/extension.js \
     usr/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/schemas/gschemas.compiled \
     usr/share/gnome-shell/extensions/caffeine@patapon.info/extension.js \
@@ -252,6 +253,15 @@ for required in \
         exit 1
     }
 done
+
+[[ $(XDG_CONFIG_HOME="$rootpoint/etc/skel/.config" dconf read /org/gnome/GPaste/storage-backend) == "'none'" ]] || {
+    echo 'New accounts do not use ephemeral GPaste history' >&2
+    exit 1
+}
+[[ $(XDG_CONFIG_HOME="$rootpoint/etc/skel/.config" dconf read /org/gnome/GPaste/storage-backend-revision) == 'uint64 3' ]] || {
+    echo 'New accounts still trigger GPaste storage migration' >&2
+    exit 1
+}
 for desktop in org.gnome.GPaste.Ui.desktop org.gnome.GPaste.Preferences.desktop; do
     grep -qx 'NoDisplay=true' "$rootpoint/usr/local/share/applications/$desktop" || {
         echo "GPaste launcher is visible in the app grid: $desktop" >&2

@@ -91,6 +91,9 @@ EOF
 	fc-cache -f
 	install -d /etc/skel/.config/gtk-4.0
 	ln -sfn /usr/share/infinityos/gtk4-adaptive.css /etc/skel/.config/gtk-4.0/gtk.css
+	# Set only on new accounts; upgrades must not hide existing clipboard history.
+	install -d /etc/skel/.config/dconf
+	dconf compile /etc/skel/.config/dconf/user /usr/share/infinityos/gpaste-new-user.d
 	install -d /etc/dconf/db/local.d
 	ln -sfn /usr/share/infinityos/gnome-defaults /etc/dconf/db/local.d/00-infinityos
 	ln -sfn /usr/share/infinityos/blur-defaults /etc/dconf/db/local.d/01-infinity-blur

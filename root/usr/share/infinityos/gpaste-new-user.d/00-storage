@@ -1,0 +1,3 @@
+[org/gnome/GPaste]
+storage-backend='none'
+storage-backend-revision=uint64 3

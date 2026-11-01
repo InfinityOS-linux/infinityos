@@ -122,6 +122,14 @@ class LiveBootContractTests(unittest.TestCase):
         self.assertIn("rm -f /etc/dconf/db/infinityos-live", target_setup)
         self.assertIn("rm -f /etc/skel/.config/autostart/infinityos-live-power.desktop", target_setup)
 
+    def test_new_accounts_start_with_ephemeral_gpaste_history(self):
+        setup = (REPO / "config.sh").read_text()
+        defaults = (REPO / "root/usr/share/infinityos/gpaste-new-user.d/00-storage").read_text()
+        self.assertIn("dconf compile /etc/skel/.config/dconf/user /usr/share/infinityos/gpaste-new-user.d", setup)
+        self.assertIn("storage-backend='none'", defaults)
+        self.assertIn("storage-backend-revision=uint64 3", defaults)
+        self.assertIn("etc/skel/.config/dconf/user", (REPO / "scripts/verify-infinity-iso").read_text())
+
     def test_release_has_an_installed_system_audit(self):
         audit = (REPO / "root/usr/libexec/infinityos-audit-install").read_text()
         image_check = (REPO / "scripts/verify-infinity-iso").read_text()
