@@ -6,6 +6,7 @@ License:        GPL-3.0-or-later
 URL:            https://github.com/InfinityOS-linux/infinityos
 Source0:        infinity-config-%{version}.tar.gz
 BuildArch:      noarch
+%global __brp_python_bytecompile %{nil}
 Requires:       python3-gobject
 Requires:       gtk4
 Requires:       gsettings-desktop-schemas
@@ -32,8 +33,6 @@ cp -a usr %{buildroot}/
 /usr/share/infinityos/config.py
 /usr/share/infinityos/config_backend.py
 /usr/share/infinityos/diagnostics.py
-/usr/share/infinityos/__pycache__/config_backend*.pyc
-/usr/share/infinityos/__pycache__/diagnostics*.pyc
 /usr/share/applications/org.infinityos.Config.desktop
 /usr/share/icons/hicolor/scalable/apps/infinity-config.svg
 
