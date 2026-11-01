@@ -1,4 +1,5 @@
 import importlib.util
+import hashlib
 from importlib.machinery import SourceFileLoader
 import sys
 import tempfile
@@ -290,6 +291,33 @@ class UpdaterTests(unittest.TestCase):
             github_update.install_github_update('storytold/photocraft')
         self.assertEqual(run.call_args.args[0][:3],
                          ['pkexec', '/usr/libexec/infinityos-upgrade-system', '--local-rpm'])
+
+    def test_twindesk_appimage_update_is_found_and_installed_by_updater(self):
+        app = next(app for app in github_update.APPS if app.name == 'TwinDesk')
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            binary, desktop = github_update.appimage_paths(app, home)
+            binary.parent.mkdir(parents=True)
+            binary.write_bytes(b'old appimage')
+            desktop.parent.mkdir(parents=True)
+            desktop.write_text('[Desktop Entry]\nName=TwinDesk\n')
+            release = {'tag_name': 'v2.4.0'}
+            asset = {'digest': 'sha256:' + hashlib.sha256(b'new appimage').hexdigest()}
+            with patch.object(github_update, '_installed', return_value={}), \
+                 patch.object(github_update, 'latest_appimage_asset',
+                              return_value=(release, asset)), \
+                 patch.object(github_update.os, 'uname',
+                              return_value=SimpleNamespace(machine='x86_64')):
+                updates, errors = github_update.check_github_updates(home)
+                self.assertEqual(errors, [])
+                self.assertEqual(updates, [{'kind': 'InfinitySetup AppImage',
+                    'name': 'TwinDesk', 'version': 'v2.4.0', 'source': app.source}])
+                self.assertEqual(updater.install_commands(updates), [
+                    ('TwinDesk', ['python3', '/usr/share/infinityos/updater/github_update.py',
+                                  app.source])])
+                with patch.object(github_update, 'install') as install:
+                    github_update.install_github_update(app.source, home)
+                install.assert_called_once_with(app, home)
 
     def test_firmware_updates_are_listed_and_no_device_is_not_an_error(self):
         result = type('Result', (), {'stdout': '{"Devices": [{"Name": "Laptop BIOS", '

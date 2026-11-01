@@ -221,6 +221,34 @@ class LauncherBackendTests(unittest.TestCase):
             desktop = home / ".local/share/applications/io.github.cyb3rl00m.SafeDiskCleaner.desktop"
             self.assertIn("APPIMAGE_EXTRACT_AND_RUN=1", desktop.read_text())
 
+    def test_twindesk_is_x86_only_and_installs_from_verified_appimage(self):
+        app = next(app for app in backend.APPS if app.name == "TwinDesk")
+        self.assertEqual((app.category, app.group, app.kind),
+                         ("System", "Device tools", "github-appimage"))
+        self.assertFalse(backend.available(app, "aarch64"))
+        self.assertTrue(backend.available(app, "x86_64"))
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            source = home / "TwinDesk-source.AppImage"
+            source.write_bytes(b"appimage")
+            with patch.object(backend, "_latest_appimage", return_value=source):
+                backend.install(app, home)
+            binary, desktop = backend.appimage_paths(app, home)
+            self.assertEqual(binary.read_bytes(), b"appimage")
+            self.assertIn("Name=TwinDesk", desktop.read_text())
+            self.assertTrue(backend.installed(app, home))
+
+    def test_twindesk_release_selects_x86_appimage(self):
+        app = next(app for app in backend.APPS if app.name == "TwinDesk")
+        name = "TwinDesk-2.4.0-x86_64.AppImage"
+        release = {"tag_name": "v2.4.0", "assets": [{"name": name,
+            "digest": "sha256:" + "a" * 64,
+            "browser_download_url": f"https://github.com/{app.source}/releases/download/v2.4.0/{name}"}]}
+        with patch.object(backend.urllib.request, "urlopen",
+                          return_value=io.BytesIO(json.dumps(release).encode())):
+            selected, asset = backend.latest_appimage_asset(app, "x86_64")
+        self.assertEqual((selected["tag_name"], asset["name"]), ("v2.4.0", name))
+
     def test_controller_install_uses_packaged_root_helper(self):
         app = next(app for app in backend.APPS if app.source == "xone")
         with patch.object(backend, "_run") as run:

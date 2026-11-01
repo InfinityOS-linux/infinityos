@@ -73,6 +73,8 @@ POLISH = {
     "Read and organize email from several accounts.": "Czytaj i porządkuj pocztę z kilku kont.",
     "See what uses disk space and remove unneeded files.":
         "Sprawdź, co zajmuje miejsce na dysku, i usuń zbędne pliki.",
+    "Share screens, files and controls between devices.":
+        "Udostępniaj ekrany i pliki oraz steruj innymi urządzeniami.",
     "Set up Logitech mouse buttons and sensitivity.": "Ustaw przyciski i czułość myszy Logitech.",
     "Enable and configure Razer gaming devices.": "Uruchom i skonfiguruj urządzenia Razer.",
     "Run Windows easily on this system.": "Uruchom w łatwy sposób Windowsa na tym systemie.",

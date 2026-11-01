@@ -43,6 +43,13 @@ LOCAL_MODELS = {
     "infinity-qwen-35b": LocalModel("hf.co/unsloth/Qwen3.5-35B-A3B-GGUF:UD-Q5_K_XL", 30),
 }
 
+GITHUB_APPIMAGES = {
+    "cyb3rl00m/safe-disk-cleaner": ("SafeDiskCleaner.AppImage", "io.github.cyb3rl00m.SafeDiskCleaner.desktop",
+                                    "/usr/share/infinityos/launcher-icons/io.github.cyb3rl00m.SafeDiskCleaner.svg"),
+    "InukaAsith/TwinDesk": ("TwinDesk.AppImage", "org.infinityos.TwinDesk.desktop",
+                            "video-display-symbolic"),
+}
+
 
 DRIVERS = {
     "xone": ("dlundqvist/xone", "f2aa9fe01103d7600553b505b298ff0bd47ff280",
@@ -80,6 +87,7 @@ APPS = (
     App("System", "BlueMail", "flatpak", "net.blix.BlueMail", "Read email from several accounts in one inbox.", True, group="Email clients", icon="mail-unread-symbolic"),
     App("System", "Mailspring", "flatpak", "com.getmailspring.Mailspring", "Read and organize email from several accounts.", group="Email clients", icon="mail-unread-symbolic"),
     App("System", "Safe Disk Cleaner", "github-appimage", "cyb3rl00m/safe-disk-cleaner", "See what uses disk space and remove unneeded files.", website="https://github.com/cyb3rl00m/safe-disk-cleaner", group="System maintenance", icon="io.github.cyb3rl00m.SafeDiskCleaner"),
+    App("System", "TwinDesk", "github-appimage", "InukaAsith/TwinDesk", "Share screens, files and controls between devices.", True, website="https://github.com/InukaAsith/TwinDesk", group="Device tools", icon="video-display-symbolic"),
     App("System", "OpenLogi", "github-rpm", "AprilNEA/OpenLogi", "Set up Logitech mouse buttons and sensitivity.", website="https://github.com/AprilNEA/OpenLogi", group="Device tools", icon="openlogi"),
     App("System", "OpenRazer", "dnf", "openrazer-meta", "Enable and configure Razer gaming devices.", website="https://github.com/openrazer/openrazer", group="Device tools", icon="openrazer"),
     App("System", "WinBoat", "winboat-rpm", "winboat-org/winboat", "Run Windows easily on this system.", True, website="https://github.com/winboat-org/winboat", group="Windows apps", icon="winboat", package="winboat"),
@@ -229,8 +237,8 @@ def installed(app, home=None, flatpak_ids=None):
         return ((home / ".local/bin/EpicGamesLauncher.AppImage").is_file() and
                 (home / ".local/share/applications/epic-games-launcher.desktop").is_file())
     if app.kind == "github-appimage":
-        return ((home / ".local/bin/SafeDiskCleaner.AppImage").is_file() and
-                (home / ".local/share/applications/io.github.cyb3rl00m.SafeDiskCleaner.desktop").is_file())
+        binary, desktop = appimage_paths(app, home)
+        return binary.is_file() and desktop.is_file()
     if app.kind == "local-model":
         ollama = ollama_binary()
         opencode = shutil.which("opencode") or (home / ".local/bin/opencode")
@@ -437,7 +445,7 @@ def _latest_rpm(app, arch, directory):
     return destination
 
 
-def _latest_appimage(app, arch, directory):
+def latest_appimage_asset(app, arch):
     request = urllib.request.Request(f"https://api.github.com/repos/{app.source}/releases/latest",
                                      headers={"User-Agent": "InfinitySetup"})
     with urllib.request.urlopen(request, timeout=30) as response:
@@ -455,12 +463,21 @@ def _latest_appimage(app, arch, directory):
     digest = asset.get("digest", "")
     if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
         raise RuntimeError("Release is missing a SHA256 digest for the AppImage.")
+    return release, asset
+
+
+def _latest_appimage(app, arch, directory):
+    _release, asset = latest_appimage_asset(app, arch)
+    url = asset["browser_download_url"]
+    digest = asset["digest"]
     destination = Path(directory) / asset["name"]
     with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "InfinitySetup"}), timeout=60) as response, destination.open("wb") as output:
         shutil.copyfileobj(response, output)
     if destination.stat().st_size != asset["size"]:
         raise RuntimeError("AppImage download size did not match GitHub metadata.")
-    if hashlib.sha256(destination.read_bytes()).hexdigest() != digest.removeprefix("sha256:"):
+    with destination.open("rb") as package:
+        actual = hashlib.file_digest(package, "sha256").hexdigest()
+    if actual != digest.removeprefix("sha256:"):
         raise RuntimeError("AppImage checksum verification failed.")
     with destination.open("rb") as downloaded:
         header = downloaded.read(20)
@@ -472,11 +489,17 @@ def _latest_appimage(app, arch, directory):
     return destination
 
 
-def _install_safe_disk_cleaner(app, home):
-    binary = home / ".local/bin/SafeDiskCleaner.AppImage"
-    desktop = home / ".local/share/applications/io.github.cyb3rl00m.SafeDiskCleaner.desktop"
+def appimage_paths(app, home=None):
+    binary, desktop, _icon = GITHUB_APPIMAGES[app.source]
+    home = Path(home or Path.home())
+    return home / ".local/bin" / binary, home / ".local/share/applications" / desktop
+
+
+def _install_github_appimage(app, home):
+    binary, desktop = appimage_paths(app, home)
+    icon = GITHUB_APPIMAGES[app.source][2]
     binary.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="infinity-cleaner-") as directory:
+    with tempfile.TemporaryDirectory(prefix="infinity-appimage-") as directory:
         package = _latest_appimage(app, os.uname().machine, directory)
         temporary = binary.with_suffix(".tmp")
         shutil.copyfile(package, temporary)
@@ -484,9 +507,9 @@ def _install_safe_disk_cleaner(app, home):
         temporary.replace(binary)
     desktop.parent.mkdir(parents=True, exist_ok=True)
     desktop.write_text(
-        "[Desktop Entry]\nType=Application\nName=Safe Disk Cleaner\n"
+        f"[Desktop Entry]\nType=Application\nName={app.name}\n"
         f'Exec=env APPIMAGE_EXTRACT_AND_RUN=1 "{binary}"\n'
-        "Icon=/usr/share/infinityos/launcher-icons/io.github.cyb3rl00m.SafeDiskCleaner.svg\n"
+        f"Icon={icon}\n"
         "Terminal=false\nCategories=GTK;System;Utility;\n",
         encoding="utf-8",
     )
@@ -502,9 +525,9 @@ def install(app, home=None, *, defer_system_dependencies=False):
     elif app.kind == "epic-appimage":
         _install_epic_appimage(app, home)
     elif app.kind == "github-appimage":
-        if app.source != "cyb3rl00m/safe-disk-cleaner":
+        if app.source not in GITHUB_APPIMAGES:
             raise ValueError(f"No AppImage installation source for {app.name}.")
-        _install_safe_disk_cleaner(app, home)
+        _install_github_appimage(app, home)
     elif app.kind == "flatpak":
         _run(["flatpak", "remote-add", "--user", "--if-not-exists", "flathub",
               "https://dl.flathub.org/repo/flathub.flatpakrepo"])
