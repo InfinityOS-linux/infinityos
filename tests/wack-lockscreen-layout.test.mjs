@@ -41,7 +41,7 @@ test('Cupertino prompt keeps its anchor until a multi-line error needs space', (
 const stylesheet = readFileSync(new URL('../root/usr/share/gnome-shell/extensions/wack-lockscreen-clock@rinzler69-wastaken.github.com/stylesheet.css', import.meta.url), 'utf8');
 
 test('Cupertino password entry remains tall enough with the compact Orchis theme', () => {
-    const rule = stylesheet.match(/\.wack-cupertino-prompt \.login-dialog-prompt-entry \{([^}]+)\}/)?.[1];
-    const height = Number(rule?.match(/\bheight:\s*(\d+)px\s*!important/)?.[1]);
-    assert.ok(height >= 36, `password entry height must be at least 36px (got ${height || 'unset'})`);
+    const rule = stylesheet.match(/\.unlock-dialog \.login-dialog-prompt-entry \{([^}]+)\}/)?.[1];
+    const minHeight = Number(rule?.match(/\bmin-height:\s*(\d+)px\s*!important/)?.[1]);
+    assert.ok(minHeight >= 36, `password entry minimum height must be at least 36px (got ${minHeight || 'unset'})`);
 });
