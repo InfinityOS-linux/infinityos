@@ -718,14 +718,12 @@ export let Dock = GObject.registerClass(
         this._inspectIcon(icon);
       });
 
-      // hack: sometimes the Dash creates more than one separator
-      // workaround - remove all separators in such situation
-      //! pinpoint the cause of the errors
-      if (this._separators.length > 1) {
-        while (this._separators.length > 0) {
-          this.dash._box.remove_child(this._separators[0]);
-          this._separators.shift();
-        }
+      // Keep the custom separator before Downloads when Dash creates duplicates.
+      const dashSeparators = this._separators.filter(c => c.get_parent() === this.dash._box);
+      for (const duplicate of dashSeparators.slice(1)) {
+        this.dash._box.remove_child(duplicate);
+        this._separators.splice(this._separators.indexOf(duplicate), 1);
+        this._dashItems.splice(this._dashItems.indexOf(duplicate), 1);
       }
 
       // hide separator between running apps and favorites - if not needed
