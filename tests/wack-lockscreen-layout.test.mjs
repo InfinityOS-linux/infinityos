@@ -44,4 +44,26 @@ test('Cupertino password entry remains tall enough with the compact Orchis theme
     const rule = stylesheet.match(/\.unlock-dialog \.login-dialog-prompt-entry \{([^}]+)\}/)?.[1];
     const minHeight = Number(rule?.match(/\bmin-height:\s*(\d+)px\s*!important/)?.[1]);
     assert.ok(minHeight >= 36, `password entry minimum height must be at least 36px (got ${minHeight || 'unset'})`);
+    const buttonBox = stylesheet.match(/\.wack-cupertino-prompt \.login-dialog-button-box \{([^}]+)\}/)?.[1];
+    const entry = stylesheet.match(/\.wack-cupertino-prompt \.login-dialog-prompt-entry \{([^}]+)\}/)?.[1];
+    assert.doesNotMatch(buttonBox, /\bheight:/);
+    assert.doesNotMatch(entry, /\bpadding:\s*0/);
+});
+
+test('WACK clock accepts GNOME 51 authentication hints', () => {
+    const clockSource = readFileSync(new URL('../root/usr/share/gnome-shell/extensions/wack-lockscreen-clock@rinzler69-wastaken.github.com/src/main/wackClock.js', import.meta.url), 'utf8')
+        .replace(/^import .*;\n/gm, '')
+        .replace('export const WackClock', 'const WackClock');
+    const WackClock = runInNewContext(`${clockSource}\nWackClock`, {
+        St: { BoxLayout: class {} },
+        GObject: { registerClass: cls => cls },
+        Gettext: { domain: () => ({ gettext: text => text }) },
+    });
+    const clock = new WackClock();
+    clock._seat = { touch_mode: false };
+    clock._hint = { text: '' };
+    clock.selectAuthHint('Use your password');
+    assert.equal(clock._hint.text, 'Use your password');
+    clock.selectAuthHint(null);
+    assert.equal(clock._hint.text, 'Click or press a key to unlock');
 });

@@ -129,6 +129,11 @@ export const WackClock = GObject.registerClass(
             this._updateHint();
         }
 
+        selectAuthHint(hint) {
+            this._authHint = hint;
+            this._updateHint();
+        }
+
         _updateTime() {
             const clockFormat = this._clockFormatOverride
                 ?? this._interfaceSettings.get_string('clock-format');
@@ -151,9 +156,9 @@ export const WackClock = GObject.registerClass(
          * Standardizes the unlock hint text for desktop and touch devices.
          */
         _updateHint() {
-            this._hint.text = this._seat.touch_mode
+            this._hint.text = this._authHint || (this._seat.touch_mode
                 ? shellGettext('Swipe up to unlock')
-                : shellGettext('Click or press a key to unlock');
+                : shellGettext('Click or press a key to unlock'));
         }
 
         /**

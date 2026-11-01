@@ -243,7 +243,6 @@
 
 .wack-cupertino-prompt .login-dialog-button-box {
     padding: 0.0875em 0.85em !important;
-    height: 34px !important;
 }
 
 .wack-cupertino-rest .login-dialog-prompt-entry {
@@ -252,7 +251,6 @@
 
 .wack-cupertino-prompt .login-dialog-prompt-entry {
     font-size: 14px !important;
-    padding: 0px 9px !important;
     border-radius: 9999px !important;
     border: none !important;
 }
