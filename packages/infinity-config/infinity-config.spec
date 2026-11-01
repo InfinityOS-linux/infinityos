@@ -32,6 +32,8 @@ cp -a usr %{buildroot}/
 /usr/share/infinityos/config.py
 /usr/share/infinityos/config_backend.py
 /usr/share/infinityos/diagnostics.py
+/usr/share/infinityos/__pycache__/config_backend*.pyc
+/usr/share/infinityos/__pycache__/diagnostics*.pyc
 /usr/share/applications/org.infinityos.Config.desktop
 /usr/share/icons/hicolor/scalable/apps/infinity-config.svg
 

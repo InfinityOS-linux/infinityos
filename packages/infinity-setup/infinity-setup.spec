@@ -58,10 +58,12 @@ fi
 /usr/share/infinityos/build-revisions/infinity-setup
 /usr/bin/infinity-setup
 /usr/bin/infinity-local-ai
+/usr/bin/__pycache__/infinity-local-ai*.pyc
 /usr/share/infinityos/launcher.py
 /usr/share/infinityos/launcher_i18n.py
 /usr/share/infinityos/launcher_backend.py
 /usr/share/infinityos/launcher_tv.py
+/usr/share/infinityos/__pycache__/launcher*.pyc
 /usr/share/infinityos/launcher-icons/
 /usr/share/infinityos/refind-theme/theme.conf
 /usr/share/infinityos/refind-theme/icons/arrow_left.png
