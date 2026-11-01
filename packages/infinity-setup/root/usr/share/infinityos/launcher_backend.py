@@ -398,7 +398,7 @@ def _install_driver_as_root(driver):
         _run(["systemctl", "enable", "--now", "bluetooth.service"])
 
 
-def _latest_rpm(app, arch, directory):
+def latest_rpm_asset(app, arch):
     request = urllib.request.Request(f"https://api.github.com/repos/{app.source}/releases/latest",
                                      headers={"User-Agent": "InfinitySetup"})
     with urllib.request.urlopen(request, timeout=30) as response:
@@ -409,21 +409,29 @@ def _latest_rpm(app, arch, directory):
     if len(assets) != 1:
         raise RuntimeError(f"No unique {arch} RPM in the latest {app.name} release.")
     asset = assets[0]
+    if Path(asset["name"]).name != asset["name"]:
+        raise RuntimeError("Unexpected release filename.")
+    digest = asset.get("digest")
+    if not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-fA-F]{64}", digest):
+        raise RuntimeError("Release has no supported SHA-256 checksum.")
     url = asset["browser_download_url"]
     if not url.startswith(f"https://github.com/{app.source}/releases/download/"):
         raise RuntimeError("Unexpected release download URL.")
+    return release, asset
+
+
+def _latest_rpm(app, arch, directory):
+    _release, asset = latest_rpm_asset(app, arch)
+    url = asset["browser_download_url"]
     destination = Path(directory) / asset["name"]
     with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "InfinitySetup"}), timeout=60) as response, destination.open("wb") as output:
         shutil.copyfileobj(response, output)
     if destination.stat().st_size != asset["size"]:
         raise RuntimeError("Release download size did not match GitHub metadata.")
-    checksums = next((item for item in release["assets"] if item["name"] in ("SHA256SUMS.txt", "SHA256SUMS")), None)
-    if checksums:
-        with urllib.request.urlopen(checksums["browser_download_url"], timeout=30) as response:
-            lines = response.read().decode().splitlines()
-        expected = next((line.split()[0] for line in lines if line.split()[-1].lstrip("*") == asset["name"]), None)
-        if expected and hashlib.sha256(destination.read_bytes()).hexdigest() != expected:
-            raise RuntimeError("Release checksum verification failed.")
+    with destination.open("rb") as package:
+        actual = hashlib.file_digest(package, "sha256").hexdigest()
+    if actual.lower() != asset["digest"][7:].lower():
+        raise RuntimeError("Release checksum verification failed.")
     destination.chmod(0o644)
     return destination
 

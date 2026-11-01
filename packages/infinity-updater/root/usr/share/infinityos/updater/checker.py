@@ -6,6 +6,7 @@ import tempfile
 from datetime import datetime, timezone
 
 from release import available_release, installed_version, load_manifest
+from github_update import check_github_updates
 
 
 def state_path():
@@ -61,6 +62,10 @@ def check_updates():
                                 'version': fields[1], 'source': fields[2]})
     else:
         errors.append('RPM: ' + (result.stderr.strip() or 'Could not check updates'))
+
+    github_updates, github_errors = check_github_updates()
+    updates.extend(github_updates)
+    errors.extend(github_errors)
 
     for scope in ('system', 'user'):
         result = _run(['flatpak', 'remote-ls', '--' + scope, '--updates',

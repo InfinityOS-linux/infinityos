@@ -16,6 +16,8 @@ Requires:       snapper
 Requires:       gnupg2
 Requires:       infinityos-repos >= 1.0.0
 Requires:       infinityos-shell-extensions >= 1.0.0
+Requires:       infinity-setup >= 1.0.0
+Requires:       python3-rpm
 
 %description
 Checks Fedora, Infinity OS, Flatpak, and device firmware updates periodically and provides an

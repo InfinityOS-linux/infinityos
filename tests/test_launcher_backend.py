@@ -178,6 +178,7 @@ class LauncherBackendTests(unittest.TestCase):
     def test_winboat_release_asset_matches_upstream_rpm_name(self):
         app = next(app for app in backend.APPS if app.name == "WinBoat")
         release = {"assets": [{"name": "winboat-0.9.2-x86_64.rpm", "size": 3,
+                               "digest": "sha256:" + hashlib.sha256(b"rpm").hexdigest(),
                                "browser_download_url": "https://github.com/winboat-org/winboat/releases/download/v0.9.2/winboat-0.9.2-x86_64.rpm"}]}
         responses = (io.BytesIO(json.dumps(release).encode()), io.BytesIO(b"rpm"))
         with tempfile.TemporaryDirectory() as directory, \
@@ -417,8 +418,10 @@ class LauncherBackendTests(unittest.TestCase):
     def test_latest_storytold_rpm_uses_target_arch_and_checks_size(self):
         app = next(app for app in backend.APPS if app.name == "PhotoCraft")
         release = {"assets": [{"name": "photocraft-1-linux-aarch64.rpm", "size": 3,
+                               "digest": "sha256:" + hashlib.sha256(b"rpm").hexdigest(),
                                "browser_download_url": "https://github.com/storytold/photocraft/releases/download/v1/photocraft-1-linux-aarch64.rpm"},
                               {"name": "photocraft-1-linux-x86_64.rpm", "size": 4,
+                               "digest": "sha256:" + hashlib.sha256(b"rpmx").hexdigest(),
                                "browser_download_url": "https://github.com/storytold/photocraft/releases/download/v1/photocraft-1-linux-x86_64.rpm"}]}
         responses = (io.BytesIO(json.dumps(release).encode()), io.BytesIO(b"rpm"))
         with tempfile.TemporaryDirectory() as directory, patch.object(backend.urllib.request, "urlopen", side_effect=responses):
@@ -426,9 +429,37 @@ class LauncherBackendTests(unittest.TestCase):
             self.assertEqual(package.name, "photocraft-1-linux-aarch64.rpm")
             self.assertEqual(package.read_bytes(), b"rpm")
 
+    def test_latest_storytold_rpm_rejects_wrong_github_digest(self):
+        app = next(app for app in backend.APPS if app.name == "PhotoCraft")
+        release = {"assets": [{"name": "photocraft-1-linux-aarch64.rpm", "size": 3,
+                               "digest": "sha256:" + "0" * 64,
+                               "browser_download_url": "https://github.com/storytold/photocraft/releases/download/v1/photocraft-1-linux-aarch64.rpm"}]}
+        responses = (io.BytesIO(json.dumps(release).encode()), io.BytesIO(b"rpm"))
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+                backend.urllib.request, "urlopen", side_effect=responses):
+            with self.assertRaisesRegex(RuntimeError, "checksum verification failed"):
+                backend._latest_rpm(app, "aarch64", directory)
+
+    def test_latest_storytold_rpm_rejects_path_in_asset_name(self):
+        app = next(app for app in backend.APPS if app.name == "PhotoCraft")
+        release = {"assets": [{"name": "../photocraft-1-linux-aarch64.rpm"}]}
+        with patch.object(backend.urllib.request, "urlopen",
+                          return_value=io.BytesIO(json.dumps(release).encode())):
+            with self.assertRaisesRegex(RuntimeError, "Unexpected release filename"):
+                backend.latest_rpm_asset(app, "aarch64")
+
+    def test_latest_storytold_rpm_requires_digest(self):
+        app = next(app for app in backend.APPS if app.name == "PhotoCraft")
+        release = {"assets": [{"name": "photocraft-1-linux-aarch64.rpm"}]}
+        with patch.object(backend.urllib.request, "urlopen",
+                          return_value=io.BytesIO(json.dumps(release).encode())):
+            with self.assertRaisesRegex(RuntimeError, "SHA-256 checksum"):
+                backend.latest_rpm_asset(app, "aarch64")
+
     def test_openlogi_arm_release_asset(self):
         app = next(app for app in backend.APPS if app.name == "OpenLogi")
         release = {"assets": [{"name": "openlogi-v1-linux-arm64.rpm", "size": 3,
+                               "digest": "sha256:" + hashlib.sha256(b"rpm").hexdigest(),
                                "browser_download_url": "https://github.com/AprilNEA/OpenLogi/releases/download/v1/openlogi-v1-linux-arm64.rpm"}]}
         responses = (io.BytesIO(json.dumps(release).encode()), io.BytesIO(b"rpm"))
         with tempfile.TemporaryDirectory() as directory, patch.object(backend.urllib.request, "urlopen", side_effect=responses):
@@ -438,6 +469,7 @@ class LauncherBackendTests(unittest.TestCase):
     def test_eurooffice_release_and_installed_package_name(self):
         app = next(app for app in backend.APPS if app.name == "EuroOffice")
         release = {"assets": [{"name": "euro-office-euro-office-9.3.5-2.aarch64.rpm", "size": 3,
+                               "digest": "sha256:" + hashlib.sha256(b"rpm").hexdigest(),
                                "browser_download_url": "https://github.com/Euro-Office/DesktopEditors/releases/download/v9.3.5-2/euro-office-euro-office-9.3.5-2.aarch64.rpm"}]}
         responses = (io.BytesIO(json.dumps(release).encode()), io.BytesIO(b"rpm"))
         with tempfile.TemporaryDirectory() as directory, patch.object(backend.urllib.request, "urlopen", side_effect=responses):

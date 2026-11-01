@@ -2,7 +2,7 @@
 # The only privileged RPM operation exposed by InfinityUpdater.
 set -euo pipefail
 
-if [[ $# -ne 0 || $EUID -ne 0 ]]; then
+if [[ $EUID -ne 0 || ( $# -ne 0 && ( $# -ne 2 || $1 != --local-rpm || ! -f $2 ) ) ]]; then
     echo 'Infinity OS system upgrade must be authorized by polkit.' >&2
     exit 2
 fi
@@ -27,4 +27,7 @@ number=$(snapper -c root create -t single -c number -p \
     exit 1
 }
 printf 'Infinity OS root snapshot #%s created.\n' "$number"
+if [[ $# -eq 2 ]]; then
+    exec dnf -y install "$2"
+fi
 exec dnf -y upgrade --refresh

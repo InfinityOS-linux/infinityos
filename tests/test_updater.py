@@ -5,11 +5,13 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import Mock
 from unittest.mock import patch
 
 
 SOURCE = Path(__file__).resolve().parents[1] / 'packages/infinity-updater/root/usr/share/infinityos/updater'
 sys.path.insert(0, str(SOURCE))
+sys.path.insert(0, str(SOURCE.parents[5] / 'infinity-setup/root/usr/share/infinityos'))
 
 
 def load(name):
@@ -24,6 +26,7 @@ i18n = load('i18n')
 updater = load('updater')
 progress = load('progress')
 release = load('release')
+github_update = load('github_update')
 
 helper_path = SOURCE.parents[2] / 'libexec/infinityos-upgrade-release'
 spec = importlib.util.spec_from_loader('upgrade_release', SourceFileLoader('upgrade_release', str(helper_path)))
@@ -40,6 +43,9 @@ class UpdaterTests(unittest.TestCase):
         latest.start()
         self.addCleanup(current.stop)
         self.addCleanup(latest.stop)
+        github = patch.object(checker, 'check_github_updates', return_value=([], []))
+        github.start()
+        self.addCleanup(github.stop)
 
     def test_checks_each_source_and_saves_state(self):
         outputs = [
@@ -230,6 +236,60 @@ class UpdaterTests(unittest.TestCase):
         self.assertEqual(commands[2][1], ['pkexec', 'fwupdmgr', 'update', '--assume-yes',
                                           '--no-reboot-check'])
         self.assertEqual(len(commands), 3)
+
+    def test_installed_setup_rpm_appears_and_uses_verified_update_path(self):
+        app = next(app for app in github_update.APPS if app.name == 'PhotoCraft')
+        with patch.object(github_update, '_installed', return_value={'photocraft': ('0.17.0', '1')}), \
+             patch.object(github_update, 'latest_rpm_asset', return_value=({'tag_name': 'v0.18.0'}, {})), \
+             patch.object(github_update, '_newer', return_value=True):
+            updates, errors = github_update.check_github_updates()
+        self.assertEqual(errors, [])
+        self.assertEqual(updates, [{'kind': 'InfinitySetup RPM', 'name': 'PhotoCraft',
+                                    'version': 'v0.18.0', 'source': app.source}])
+        self.assertEqual(updater.install_commands(updates), [
+            ('PhotoCraft', ['python3', '/usr/share/infinityos/updater/github_update.py',
+                            app.source])])
+
+    def test_setup_rpm_version_comparison_uses_rpm_ordering(self):
+        rpm = SimpleNamespace(labelCompare=Mock(return_value=1))
+        with patch.dict(sys.modules, {'rpm': rpm}):
+            self.assertTrue(github_update._newer('v0.18.0', ('0.17.0', '1')))
+            with self.assertRaisesRegex(ValueError, 'Unrecognized release version'):
+                github_update._newer('release-latest', ('0.17.0', '1'))
+        rpm.labelCompare.assert_called_once_with(('0', '0.18.0', '0'),
+                                                  ('0', '0.17.0', '1'))
+
+    def test_setup_rpm_update_rejects_wrong_downloaded_package(self):
+        def download(_app, _arch, directory):
+            path = Path(directory) / 'photocraft.rpm'
+            path.write_bytes(b'rpm')
+            return path
+
+        with patch.object(github_update, '_installed', return_value={'photocraft': ('0.17.0', '1')}), \
+             patch.object(github_update, '_latest_rpm', side_effect=download), \
+             patch.object(github_update.subprocess, 'run', return_value=SimpleNamespace(
+                 stdout='different|0.18.0|1|aarch64')) as run, \
+             patch.object(github_update.os, 'uname', return_value=SimpleNamespace(machine='aarch64')):
+            with self.assertRaisesRegex(ValueError, 'identity or architecture'):
+                github_update.install_github_update('storytold/photocraft')
+        self.assertEqual(run.call_count, 1)
+
+    def test_setup_rpm_update_installs_newer_matching_package(self):
+        def download(_app, _arch, directory):
+            path = Path(directory) / 'photocraft.rpm'
+            path.write_bytes(b'rpm')
+            return path
+
+        with patch.object(github_update, '_installed', return_value={'photocraft': ('0.17.0', '1')}), \
+             patch.object(github_update, '_latest_rpm', side_effect=download), \
+             patch.object(github_update, '_newer', return_value=True), \
+             patch.object(github_update.subprocess, 'run', side_effect=[
+                 SimpleNamespace(stdout='photocraft|0.18.0|1|aarch64'),
+                 SimpleNamespace(returncode=0)]) as run, \
+             patch.object(github_update.os, 'uname', return_value=SimpleNamespace(machine='aarch64')):
+            github_update.install_github_update('storytold/photocraft')
+        self.assertEqual(run.call_args.args[0][:3],
+                         ['pkexec', '/usr/libexec/infinityos-upgrade-system', '--local-rpm'])
 
     def test_firmware_updates_are_listed_and_no_device_is_not_an_error(self):
         result = type('Result', (), {'stdout': '{"Devices": [{"Name": "Laptop BIOS", '
