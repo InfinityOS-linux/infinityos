@@ -28,6 +28,7 @@ Infinity OS styled update window from the GNOME top panel.
 
 %install
 cp -a usr %{buildroot}/
+python3 -m py_compile %{buildroot}/usr/libexec/infinityos-upgrade-release
 
 %post
 # Previous releases enabled a one-shot Bazaar installer. Stop it during RPM upgrades.

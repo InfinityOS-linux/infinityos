@@ -24,6 +24,7 @@ InfinitySetup offers first-login application choices for Infinity OS.
 
 %install
 cp -a usr etc %{buildroot}/
+python3 -m py_compile %{buildroot}/usr/bin/infinity-local-ai %{buildroot}/usr/share/infinityos/launcher*.py
 
 %posttrans
 if [ -f /etc/infinityos/refind-installed ] && mountpoint -q /boot/efi; then
