@@ -237,6 +237,7 @@ for required in \
     usr/libexec/infinityos-open-downloads \
     usr/share/infinityos/folder-icons/folder-download-dock.svg \
     usr/share/infinityos/folder-icons/folder-documents-dock.svg \
+    usr/share/infinityos/folder-icons/folder-projects.svg \
     usr/local/share/applications/org.gnome.GPaste.Ui.desktop \
     usr/local/share/applications/org.gnome.GPaste.Preferences.desktop \
     etc/skel/.config/dconf/user \
@@ -253,6 +254,8 @@ for required in \
         exit 1
     }
 done
+cmp "$rootpoint/usr/share/infinityos/folder-icons/folder-projects.svg" \
+    "$rootpoint/usr/share/icons/kora/places/scalable/folder-projects.svg"
 
 [[ $(XDG_CONFIG_HOME="$rootpoint/etc/skel/.config" dconf read /org/gnome/GPaste/storage-backend) == "'none'" ]] || {
     echo 'New accounts do not use ephemeral GPaste history' >&2
