@@ -466,6 +466,16 @@ class LauncherBackendTests(unittest.TestCase):
             package = backend._latest_rpm(app, "aarch64", directory)
             self.assertEqual(package.name, "openlogi-v1-linux-arm64.rpm")
 
+    def test_github_rpm_accepts_canonical_owner_case(self):
+        app = next(app for app in backend.APPS if app.name == "OpenGamepadUI")
+        release = {"assets": [{"name": "opengamepadui-1.aarch64.rpm", "size": 3,
+                               "digest": "sha256:" + hashlib.sha256(b"rpm").hexdigest(),
+                               "browser_download_url": "https://github.com/ShadowBlip/OpenGamepadUI/releases/download/v1/opengamepadui-1.aarch64.rpm"}]}
+        responses = (io.BytesIO(json.dumps(release).encode()), io.BytesIO(b"rpm"))
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+                backend.urllib.request, "urlopen", side_effect=responses):
+            self.assertEqual(backend._latest_rpm(app, "aarch64", directory).read_bytes(), b"rpm")
+
     def test_eurooffice_release_and_installed_package_name(self):
         app = next(app for app in backend.APPS if app.name == "EuroOffice")
         release = {"assets": [{"name": "euro-office-euro-office-9.3.5-2.aarch64.rpm", "size": 3,

@@ -415,7 +415,8 @@ def latest_rpm_asset(app, arch):
     if not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-fA-F]{64}", digest):
         raise RuntimeError("Release has no supported SHA-256 checksum.")
     url = asset["browser_download_url"]
-    if not url.startswith(f"https://github.com/{app.source}/releases/download/"):
+    if not url.casefold().startswith(
+            f"https://github.com/{app.source}/releases/download/".casefold()):
         raise RuntimeError("Unexpected release download URL.")
     return release, asset
 
