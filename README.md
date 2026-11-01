@@ -2,13 +2,13 @@
 
 <img src="assets/infinityos-logo.svg" width="112" alt="Infinity OS logo">
 
-**InfinityOS_01 is an independent Fedora Remix built for a polished, personal desktop.** Infinity OS pairs a writable GNOME system with a distinctive purple design, a fast drop-down terminal, a first-run application chooser, and integrated updates. It uses Fedora's familiar DNF package model, so the desktop remains easy to customize and maintain.
+**Infinity OS is an independent Fedora Remix built for a polished, personal desktop.** Infinity OS pairs a writable GNOME system with a distinctive purple design, a fast drop-down terminal, a first-run application chooser, and integrated updates. It uses Fedora's familiar DNF package model, so the desktop remains easy to customize and maintain.
 
 This repository is the source for the Infinity OS KIWI images, desktop configuration, InfinitySetup, InfinityTerminal, InfinityUpdater, RPM packages, and build pipeline.
 
-**InfinityOS_01 is out.** The first release includes `x86_64` and `aarch64` ISO images. Visit [infinityos.eu](https://infinityos.eu/) or get the images from the [download folder](https://mega.nz/folder/vx50XZrT#wjqKyqmFacFjPK8I4vNcxw).
+**InfinityOS_01 downloads remain available.** The first release includes `x86_64` and `aarch64` ISO images. Visit [infinityos.eu](https://infinityos.eu/) or get the images from the [download folder](https://mega.nz/folder/vx50XZrT#wjqKyqmFacFjPK8I4vNcxw).
 
-The `fedora-45-gnome-51` branch is the in-progress Infinity OS 2.0 port. Its Fedora 45 RPM repository and images are not published yet. See [the migration checklist](docs/fedora-45-migration.md) for verification status.
+**Infinity OS 2.0** uses Fedora 45 and GNOME 51. See [the migration checklist](docs/fedora-45-migration.md) for verification status and remaining hardware checks.
 
 **Infinity OS is an independent Fedora Remix. It is not provided, supported, or endorsed by the Fedora Project or Red Hat.** Official Fedora Linux is available at [fedoraproject.org](https://fedoraproject.org/).
 

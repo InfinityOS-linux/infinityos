@@ -147,6 +147,7 @@ jobs:
             [[ -n "$previous" ]] || continue
             gh release download "repo-$previous" \
               --pattern "rpm-repo-$previous.tar.gz" --dir "$RUNNER_TEMP"
+            mkdir -p public/rpm/44/releases
             tar -xzf "$RUNNER_TEMP/rpm-repo-$previous.tar.gz" -C public
           done < "$RUNNER_TEMP/previous-releases"
           if [[ -d public/rpm/44/releases/1.0 && $(python3 -c 'import json; print(json.load(open("releases/stable.json"))["version"])') != 1.0 ]]; then
