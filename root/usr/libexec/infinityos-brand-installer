@@ -88,6 +88,12 @@ step_labels = (
 for original, branded in step_labels:
     source = replace_once_or_present(source, original, branded, "step label")
 
+source = replace_once_or_present(
+    source, 'c<A1?W[c].description:(t=>',
+    'c<A1?W[c].description.replace(/^[^:：]+[:：]\\s*/,""):(t=>',
+    "progress message prefix",
+)
+
 polish = WEBUI / "po.pl.js.gz"
 locale = gzip.decompress(polish.read_bytes()).decode("utf-8").rstrip()
 translations = {

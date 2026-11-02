@@ -25,6 +25,7 @@ class InstallerBrandingTests(unittest.TestCase):
                 'this.id="anaconda-screen-accounts",this.label=iet("Create Account")'
                 'this.id="anaconda-screen-review",this.label=Pz("Review and install"),this.title=Pz("Review and install")'
                 'label:cot("Storage configuration"),steps:[r]'
+                'c<A1?W[c].description:(t=>'
             )
             (webui / "index.js.gz").write_bytes(gzip.compress(source.encode()))
             (webui / "po.pl.js.gz").write_bytes(gzip.compress(
@@ -49,6 +50,7 @@ class InstallerBrandingTests(unittest.TestCase):
                           "Security", "User", "Summary"):
                 self.assertIn(f'("{label}")', result)
             self.assertIn('label:cot("Security"),steps:[r]', result)
+            self.assertIn('c<A1?W[c].description.replace(/^[^:：]+[:：]\\s*/,""):(t=>', result)
             self.assertIn('this.title=hJ("Storage configuration")', result)
             self.assertIn('this.title=Pz("Review and install")', result)
             self.assertEqual((webui / "index.html").read_text().count("infinityos-installer.css"), 1)
