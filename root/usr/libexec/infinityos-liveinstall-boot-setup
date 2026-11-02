@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Anaconda's live payload creates kernel and BLS files without installing an
-# EFI loader. The target is complete after both rEFInd boot choices exist.
+# The target is complete after both rEFInd boot choices exist.
 [[ -d /sys/firmware/efi ]] || { echo 'UEFI boot is required' >&2; exit 1; }
 [[ $(findmnt -n -o FSTYPE /) == btrfs ]] || { echo 'Infinity OS requires a Btrfs root' >&2; exit 1; }
 [[ $(findmnt -n -M /boot/efi -o FSTYPE) == vfat ]] || { echo 'EFI system partition required' >&2; exit 1; }
@@ -14,16 +13,24 @@ fi
 command -v snapper >/dev/null
 command -v efibootmgr >/dev/null
 
-source_entry=$(find /boot/loader/entries -maxdepth 1 -type f -name '*.conf' ! -name '*rescue*' | sort -V | tail -n 1)
-[[ -n $source_entry ]] || { echo 'No installed kernel entry' >&2; exit 1; }
-version=$(awk '$1 == "version" { print $2; exit }' "$source_entry")
+source_entry=
+if [[ -d /boot/loader/entries ]]; then
+    source_entry=$(find /boot/loader/entries -maxdepth 1 -type f -name '*.conf' ! -name '*rescue*' | sort -V | tail -n 1)
+fi
+source_kernel=$(find /usr/lib/modules -mindepth 2 -maxdepth 2 -type f -name vmlinuz | sort -V | tail -n 1)
+[[ -n $source_kernel ]] || { echo 'No installed kernel' >&2; exit 1; }
+version=${source_kernel%/vmlinuz}
+version=${version##*/}
 [[ $version =~ ^[A-Za-z0-9._+-]+$ ]] || { echo 'Invalid kernel version' >&2; exit 1; }
 kernel="/boot/vmlinuz-$version"
 initrd="/boot/initramfs-$version.img"
+[[ -s $kernel ]] || install -m 0644 "$source_kernel" "$kernel"
+[[ -s $initrd ]] || dracut --force --no-hostonly --no-hostonly-cmdline "$initrd" "$version"
 [[ -s $kernel && -s $initrd ]] || { echo 'Kernel or initramfs is missing' >&2; exit 1; }
 if [[ -s /etc/kernel/cmdline ]]; then
     options=$(</etc/kernel/cmdline)
 else
+    [[ -n $source_entry ]] || { echo 'Kernel options are missing' >&2; exit 1; }
     options=$(sed -n 's/^options[[:space:]]*//p' "$source_entry" | head -n 1)
     [[ -n $options ]] || { echo 'Kernel options are missing' >&2; exit 1; }
     install -d /etc/kernel
@@ -67,6 +74,8 @@ rm -rf "$esp/EFI/infinityos" "$esp/EFI/systemd" "$esp/loader" /boot/grub2
 systemctl enable infinityos-snapper-setup.service infinityos-backups-setup.service \
     infinityos-backups-entry.service infinityos-backups-entry.path \
     snapper-timeline.timer snapper-cleanup.timer
+# The copied live sysconfig file otherwise blocks snapperd under SELinux.
+restorecon /etc/sysconfig/snapper
 
 # The live PRETTY_NAME is the installer title. Restore the actual release in
 # the copied target so GNOME and update metadata identify the installed OS.
