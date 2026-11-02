@@ -54,19 +54,20 @@ EOF
 		plymouth-set-default-theme infinityos
 	fi
 	install -d /usr/share/icons /usr/share/licenses/kora
-	tar -xzf /usr/share/infinityos/kora-v2.0.6.tar.gz -C /usr/share/icons --strip-components=1 kora-2.0.6/kora/
+	# GNU tar fails here when x86_64 images are built under Apple Silicon emulation.
+	bsdtar -xzf /usr/share/infinityos/kora-v2.0.6.tar.gz -C /usr/share/icons --strip-components=1 kora-2.0.6/kora/
 	cp -a /usr/share/infinityos/folder-icons/. /usr/share/icons/kora/places/scalable/
 	rm -f /usr/share/icons/kora/apps/scalable/org.gnome.Nautilus.svg
 	install -m 0644 /usr/share/infinityos/folder-icons/folder.svg /usr/share/icons/kora/apps/scalable/org.gnome.Nautilus.svg
 	cp -f /usr/share/icons/hicolor/256x256/apps/infinityos-logo.png /usr/share/cockpit/branding/infinityos/logo.png
 	cp -f /usr/share/backgrounds/infinityos/infinityos-dark.png /usr/share/cockpit/branding/infinityos/wallpaper.png
-	tar -xOf /usr/share/infinityos/kora-v2.0.6.tar.gz kora-2.0.6/LICENSE > /usr/share/licenses/kora/LICENSE
+	bsdtar -xOf /usr/share/infinityos/kora-v2.0.6.tar.gz kora-2.0.6/LICENSE > /usr/share/licenses/kora/LICENSE
 	rm /usr/share/infinityos/kora-v2.0.6.tar.gz
 	gtk-update-icon-cache -f -q /usr/share/icons/kora
 	# The welcome screen resolves this icon through GTK's hicolor cache.
 	# The source overlay installs it after Fedora generated the original cache.
 	gtk-update-icon-cache -f -q /usr/share/icons/hicolor
-	tar -xf /usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz -C /usr/share/icons
+	bsdtar -xf /usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz -C /usr/share/icons
 	rm /usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz
 	glib-compile-schemas /usr/share/gnome-shell/extensions/ding@rastersoft.com/schemas
 	glib-compile-schemas /usr/share/gnome-shell/extensions/wack-lockscreen-clock@rinzler69-wastaken.github.com/schemas
