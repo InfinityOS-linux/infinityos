@@ -35,14 +35,13 @@ export default class InfinityTerminal extends Extension {
         this._icon = new St.Icon({
             icon_name: 'utilities-terminal-symbolic',
             style_class: 'system-status-icon',
-            opacity: 112,
         });
         this._indicator.add_child(this._icon);
         const click = new Clutter.ClickGesture();
         click.set_recognize_on_press(true);
         click.connect('recognize', () => this._toggle());
         this._indicator.add_action(click);
-        Main.panel.addToStatusArea('ghostty', this._indicator, 2, 'left');
+        Main.panel.addToStatusArea('ghostty', this._indicator, 1, 'center');
         this._hideRequestId = this._settings.connect('changed::hide-request', () => {
             const window = this._findWindow();
             if (window && !window.minimized)

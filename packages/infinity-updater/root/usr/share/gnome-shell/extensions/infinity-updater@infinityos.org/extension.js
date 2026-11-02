@@ -18,8 +18,8 @@ export default class InfinityUpdater extends Extension {
         this._indicator.accessible_role = Atk.Role.PUSH_BUTTON;
         const content = new St.BoxLayout({style_class: 'panel-status-menu-box'});
         this._icon = new St.Icon({
-            icon_name: 'org.infinityos.Updater',
-            icon_size: 20,
+            icon_name: 'infinity-update-available-symbolic',
+            style_class: 'system-status-icon',
         });
         content.add_child(this._icon);
         this._badge = new St.Label({
@@ -89,7 +89,7 @@ export default class InfinityUpdater extends Extension {
         this._badge.visible = total > 0;
         this._indicator.visible = total > 0 || hasErrors;
         this._icon.icon_name = hasErrors && total === 0
-            ? 'dialog-warning-symbolic' : 'org.infinityos.Updater';
+            ? 'dialog-warning-symbolic' : 'infinity-update-available-symbolic';
         this._indicator.accessible_name = release
             ? `Infinity OS ${release} is available`
             : hasErrors && count === 0
