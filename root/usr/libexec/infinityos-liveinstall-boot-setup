@@ -17,14 +17,22 @@ source_entry=
 if [[ -d /boot/loader/entries ]]; then
     source_entry=$(find /boot/loader/entries -maxdepth 1 -type f -name '*.conf' ! -name '*rescue*' | sort -V | tail -n 1)
 fi
-source_kernel=$(find /usr/lib/modules -mindepth 2 -maxdepth 2 -type f -name vmlinuz | sort -V | tail -n 1)
-[[ -n $source_kernel ]] || { echo 'No installed kernel' >&2; exit 1; }
-version=${source_kernel%/vmlinuz}
-version=${version##*/}
+source_kernel=
+if [[ -n $source_entry ]]; then
+    version=$(awk '$1 == "version" { print $2; exit }' "$source_entry")
+else
+    source_kernel=$(find /usr/lib/modules -mindepth 2 -maxdepth 2 -type f -name vmlinuz | sort -V | tail -n 1)
+    [[ -n $source_kernel ]] || { echo 'No installed kernel' >&2; exit 1; }
+    version=${source_kernel%/vmlinuz}
+    version=${version##*/}
+fi
 [[ $version =~ ^[A-Za-z0-9._+-]+$ ]] || { echo 'Invalid kernel version' >&2; exit 1; }
 kernel="/boot/vmlinuz-$version"
 initrd="/boot/initramfs-$version.img"
-[[ -s $kernel ]] || install -m 0644 "$source_kernel" "$kernel"
+if [[ ! -s $kernel ]]; then
+    [[ -s $source_kernel ]] || { echo 'Kernel is missing' >&2; exit 1; }
+    install -m 0644 "$source_kernel" "$kernel"
+fi
 [[ -s $initrd ]] || dracut --force --no-hostonly --no-hostonly-cmdline "$initrd" "$version"
 [[ -s $kernel && -s $initrd ]] || { echo 'Kernel or initramfs is missing' >&2; exit 1; }
 if [[ -s /etc/kernel/cmdline ]]; then
