@@ -114,8 +114,6 @@ test('clicking a desktop icon dismisses the background menu', () => {
   assert.equal(fileMenuShown, 1);
   assert.equal(closed, 2);
 
-  Manager.prototype.onDesktopWindowDeactivated.call(manager);
-  assert.equal(closed, 3);
 });
 
 test('rubberband does not redraw when pointer stays within the same pixels', () => {

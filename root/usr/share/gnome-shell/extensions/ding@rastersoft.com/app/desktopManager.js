@@ -587,10 +587,6 @@ export var DesktopManager = class {
         this._clickCaptured = true;
     }
 
-    onDesktopWindowDeactivated() {
-        this._desktopMenu.hideDesktopMenu();
-    }
-
     onPressMainButton(controller, x, y) {
         this._desktopMenu.hideDesktopMenu();
         if (this._clickCaptured)
