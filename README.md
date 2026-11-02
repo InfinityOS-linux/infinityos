@@ -80,7 +80,7 @@ after source changes and after each new ISO build.
 Use a Fedora 45 host with the target CPU architecture and Btrfs ACL support. Install KIWI and its system dependencies:
 
 ```sh
-sudo dnf install kiwi kiwi-systemdeps distribution-gpg-keys erofs-utils dosfstools xorriso isomd5sum
+sudo dnf install kiwi kiwi-systemdeps distribution-gpg-keys erofs-utils dosfstools xorriso isomd5sum bsdtar
 ```
 
 Commit all image and application changes first. Publish all eight Infinity OS RPMs

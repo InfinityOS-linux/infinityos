@@ -68,9 +68,10 @@ if [[ "$image_profile" == Infinity-GNOME-* ]]; then
 		exit 1
 	fi
 	kiwibuild_revision=$("$kiwibuild_repo/scripts/infinityos-source-revision" "$kiwibuild_repo")
+	command -v bsdtar >/dev/null || { echo 'bsdtar is required to stage Infinity OS sources.' >&2; exit 1; }
 	kiwibuild_stage=$(mktemp -d)
 	trap 'rm -rf "$kiwibuild_stage"' EXIT
-	git -c "safe.directory=$kiwibuild_repo" -C "$kiwibuild_repo" archive --format=tar "$kiwibuild_revision" | tar -xf - -C "$kiwibuild_stage"
+	git -c "safe.directory=$kiwibuild_repo" -C "$kiwibuild_repo" archive --format=tar "$kiwibuild_revision" | bsdtar -xf - -C "$kiwibuild_stage"
 	# KIWI imports repository keys from the builder before entering the image root.
 	sed -i "s|file:///etc/pki/rpm-gpg/|file://$kiwibuild_stage/root/etc/pki/rpm-gpg/|g" \
 		"$kiwibuild_stage/repositories/infinityos.xml"
