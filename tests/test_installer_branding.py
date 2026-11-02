@@ -72,6 +72,10 @@ class InstallerBrandingTests(unittest.TestCase):
             self.assertIn(".pf-v6-c-action-list__item:has(#installation-quit-btn)", css)
             self.assertIn(".pf-v6-c-action-list__item:has(#installation-next-btn)", css)
             self.assertIn("#app .anaconda-screen-progress-status .pf-v6-c-empty-state__footer .pf-v6-c-button.pf-m-link", css)
+            self.assertIn(".pf-v6-c-progress-stepper__step:not(.pf-m-current)", css)
+            self.assertIn('content: "04 / 04"', css)
+            self.assertIn("prefers-reduced-motion: reduce", css)
+            self.assertNotIn("backdrop-filter:", css)
 
     def test_unknown_webui_version_is_rejected_before_changes(self):
         with tempfile.TemporaryDirectory() as directory:

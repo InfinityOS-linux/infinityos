@@ -30,17 +30,18 @@
   font-display: swap;
 }
 
-/* InfinityOS colors follow the dark site: ink surfaces, lilac accents, and restrained glow. */
+/* Matte surfaces use the original mascot's violet palette. */
 :root {
-  --infinity-ink: #0b0912;
-  --infinity-panel: #171321;
-  --infinity-field: #241d31;
-  --infinity-raised: #21192e;
-  --infinity-hover: #322541;
-  --infinity-border: rgba(202, 178, 238, 0.23);
+  --infinity-ink: #0d0b12;
+  --infinity-panel: #18151e;
+  --infinity-field: #25202d;
+  --infinity-raised: #211c29;
+  --infinity-hover: #33293f;
+  --infinity-border: #3c3546;
   --infinity-text: #f7f2ff;
   --infinity-muted: #c0b5d0;
   --infinity-accent: #c7a8f2;
+  --infinity-active: #7552a7;
 }
 
 /* PatternFly uses tokens for many nested surfaces. Brand the tokens as well as
@@ -79,11 +80,11 @@ body,
   --pf-t--global--text--color--brand--clicked: #dfc9ff;
   --pf-t--global--text--color--link--default: var(--infinity-accent);
   --pf-t--global--text--color--link--hover: #e4d3ff;
-  --pf-t--global--color--brand--default: var(--infinity-accent);
-  --pf-t--global--color--brand--hover: #dfc9ff;
-  --pf-t--global--color--brand--clicked: #af83df;
-  --pf-t--global--text--color--on-brand--default: #170d27;
-  --pf-t--global--text--color--on-brand--hover: #170d27;
+  --pf-t--global--color--brand--default: var(--infinity-active);
+  --pf-t--global--color--brand--hover: #8562b3;
+  --pf-t--global--color--brand--clicked: #684594;
+  --pf-t--global--text--color--on-brand--default: #fff;
+  --pf-t--global--text--color--on-brand--hover: #fff;
   --pf-t--global--icon--color--regular: var(--infinity-text);
   --pf-t--global--icon--color--subtle: var(--infinity-muted);
   --pf-t--global--icon--color--brand--default: var(--infinity-accent);
@@ -106,15 +107,10 @@ textarea {
 
 .pf-v6-c-page__header,
 .pf-v6-c-masthead {
-  background: linear-gradient(100deg, #171025, #251536 54%, #171025) !important;
+  background: var(--infinity-panel) !important;
   border-bottom: 1px solid var(--infinity-border);
   color: var(--infinity-text);
   font-weight: 600;
-}
-
-.pf-v6-c-page__header img,
-.pf-v6-c-masthead img {
-  filter: drop-shadow(0 0 9px rgba(199, 168, 242, 0.55));
 }
 
 #installation-wizard {
@@ -129,8 +125,7 @@ textarea {
 }
 
 .installation-page--loading {
-  background: radial-gradient(ellipse at 92% 2%, rgba(112, 69, 167, 0.16), transparent 42%),
-    var(--infinity-ink) !important;
+  background: var(--infinity-ink) !important;
   color: var(--infinity-text);
   min-height: 100vh;
 }
@@ -165,6 +160,7 @@ textarea {
   color: var(--infinity-muted);
   border-radius: 9px;
   min-height: 42px;
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
 #installation-wizard .pf-v6-c-wizard__nav-link-main {
@@ -213,18 +209,13 @@ textarea {
 
 #installation-wizard .pf-v6-c-wizard__nav-link:hover,
 #installation-wizard .pf-v6-c-wizard__nav-link[aria-current="page"] {
-  background: rgba(174, 137, 225, 0.17);
+  background: var(--infinity-active);
   color: var(--infinity-text);
-}
-
-#installation-wizard .pf-v6-c-wizard__nav-link[aria-current="page"] {
-  box-shadow: inset 3px 0 var(--infinity-accent);
 }
 
 #installation-wizard .pf-v6-c-wizard__main,
 #installation-wizard .pf-v6-c-wizard__main-body {
-  background: radial-gradient(ellipse at 92% 2%, rgba(112, 69, 167, 0.16), transparent 42%),
-    var(--infinity-ink);
+  background: var(--infinity-ink);
   color: var(--infinity-text);
 }
 
@@ -259,7 +250,6 @@ textarea {
 #installation-wizard .pf-v6-c-wizard__footer {
   background: var(--infinity-panel);
   border-top: 1px solid var(--infinity-border);
-  box-shadow: 0 -10px 35px rgba(6, 4, 12, 0.2);
   padding-block: 18px;
 }
 
@@ -269,14 +259,13 @@ textarea {
 }
 
 #installation-wizard .pf-v6-c-button.pf-m-primary {
-  background: var(--infinity-accent) !important;
-  color: #170d27 !important;
-  border-radius: 999px;
-  box-shadow: 0 0 24px rgba(169, 116, 233, 0.16);
+  background: var(--infinity-active) !important;
+  color: #fff !important;
+  border-radius: 8px;
 }
 
 #installation-wizard .pf-v6-c-button.pf-m-primary:hover {
-  background: #dfc9ff !important;
+  background: #8562b3 !important;
 }
 
 #installation-wizard .pf-v6-c-button.pf-m-secondary,
@@ -284,7 +273,7 @@ textarea {
   background: var(--infinity-field);
   color: var(--infinity-text);
   border: 1px solid var(--infinity-border);
-  border-radius: 999px;
+  border-radius: 8px;
 }
 
 #installation-wizard .pf-v6-c-button:focus-visible,
@@ -311,7 +300,8 @@ textarea {
 
 #installation-wizard .pf-v6-c-menu__item:hover,
 #installation-wizard .pf-v6-c-menu__item.pf-m-selected {
-  background: rgba(174, 137, 225, 0.2);
+  background: var(--infinity-active);
+  color: #fff;
 }
 
 #installation-wizard .pf-v6-c-progress__indicator {
@@ -323,10 +313,9 @@ textarea {
 #installation-wizard :is(.pf-v6-c-panel, .pf-v6-c-card, .pf-v6-c-empty-state),
 body .pf-v6-c-modal-box {
   color: var(--infinity-text);
-  background: linear-gradient(135deg, var(--infinity-raised), var(--infinity-panel));
+  background: var(--infinity-panel);
   border: 1px solid var(--infinity-border);
-  border-radius: 14px;
-  box-shadow: 0 14px 36px rgba(4, 2, 10, 0.16);
+  border-radius: 10px;
 }
 
 #installation-wizard :is(.pf-v6-c-panel, .pf-v6-c-card) :is(.pf-v6-c-card__title,
@@ -417,7 +406,7 @@ body :is(.pf-v6-c-menu, .pf-v6-c-popover) {
   background: var(--infinity-raised);
   border: 1px solid var(--infinity-border);
   border-radius: 12px;
-  box-shadow: 0 20px 48px rgba(4, 2, 10, 0.35);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 #app .pf-v6-c-menu__item,
@@ -507,21 +496,22 @@ body .pf-v6-c-modal-box :is(.pf-v6-c-check__input,
 
 #app .pf-v6-c-button,
 body .pf-v6-c-modal-box .pf-v6-c-button {
-  border-radius: 999px;
+  border-radius: 8px;
   font-weight: 600;
+  transition: background-color 180ms ease, border-color 180ms ease;
 }
 
 #app .pf-v6-c-button.pf-m-primary,
 body .pf-v6-c-modal-box .pf-v6-c-button.pf-m-primary {
-  color: #170d27;
-  background: var(--infinity-accent);
-  border-color: var(--infinity-accent);
+  color: #fff;
+  background: var(--infinity-active);
+  border-color: var(--infinity-active);
 }
 
 #app .pf-v6-c-button.pf-m-primary:hover,
 body .pf-v6-c-modal-box .pf-v6-c-button.pf-m-primary:hover {
-  background: #dfc9ff;
-  border-color: #dfc9ff;
+  background: #8562b3;
+  border-color: #8562b3;
 }
 
 #app .pf-v6-c-button:is(.pf-m-secondary, .pf-m-tertiary, .pf-m-control),
@@ -553,32 +543,6 @@ body .pf-v6-c-modal-box :is(.pf-v6-c-button, .pf-v6-c-form-control,
   outline-offset: 2px;
 }
 
-@media (min-width: 1200px) {
-  #installation-wizard.anaconda-wizard-step-anaconda-screen-language .pf-v6-c-wizard__main-body::before {
-    content: "INFINITYOS / SETUP";
-    position: absolute;
-    top: 2.5rem;
-    right: 3rem;
-    color: var(--infinity-accent);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    pointer-events: none;
-  }
-
-  #installation-wizard.anaconda-wizard-step-anaconda-screen-language .pf-v6-c-wizard__main-body::after {
-    content: "";
-    position: absolute;
-    top: 4rem;
-    right: 3rem;
-    width: 220px;
-    height: 220px;
-    background: url("infinityos-installer-mark.svg") center / contain no-repeat;
-    opacity: 0.32;
-    pointer-events: none;
-  }
-}
-
 /* The review screen uses the same quiet panels and lilac hierarchy as setup. */
 #installation-wizard.anaconda-wizard-step-anaconda-screen-review .pf-v6-c-wizard__main-body {
   padding: clamp(24px, 4vw, 56px);
@@ -594,7 +558,7 @@ body .pf-v6-c-modal-box :is(.pf-v6-c-button, .pf-v6-c-form-control,
 #installation-wizard.anaconda-wizard-step-anaconda-screen-review .pf-v6-c-description-list__group {
   min-width: 0;
   padding: 18px 22px;
-  background: linear-gradient(120deg, rgba(43, 31, 61, 0.9), var(--infinity-panel));
+  background: var(--infinity-panel);
   border: 1px solid var(--infinity-border);
   border-radius: 12px;
 }
@@ -661,18 +625,14 @@ body:has(.anaconda-screen-progress-status),
 }
 
 .anaconda-screen-progress-status .pf-v6-c-empty-state__icon {
-  color: var(--infinity-accent);
-  font-size: 2.5rem;
-}
-
-.anaconda-screen-progress-status-success .pf-v6-c-empty-state__icon {
-  width: clamp(112px, 12vw, 160px);
-  height: clamp(112px, 12vw, 160px);
+  width: clamp(150px, 20vw, 210px);
+  height: clamp(150px, 20vw, 210px);
   margin-inline: auto;
   background: url("infinityos-installer-mascot.png") center / contain no-repeat;
+  animation: infinity-mascot-float 5s ease-in-out infinite;
 }
 
-.anaconda-screen-progress-status-success .pf-v6-c-empty-state__icon svg {
+.anaconda-screen-progress-status .pf-v6-c-empty-state__icon svg {
   display: none;
 }
 
@@ -680,101 +640,111 @@ body:has(.anaconda-screen-progress-status),
   color: var(--infinity-text);
   font-family: "Infinity Plex", "IBM Plex Sans", sans-serif;
   font-size: clamp(1.75rem, 3vw, 2.5rem);
-  font-weight: 700;
 }
 
 .anaconda-screen-progress-status .pf-v6-c-empty-state__body {
+  max-width: 44rem;
+  margin-inline: auto;
   color: var(--infinity-muted);
   font-size: 1rem;
   line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
-.anaconda-screen-progress-status .pf-v6-c-progress-stepper {
-  display: grid;
-  grid-auto-flow: row;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  width: 100%;
-  margin-top: 20px;
-  text-align: center;
-}
-
-.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step {
+.anaconda-screen-progress-status:has(.pf-v6-c-progress-stepper__step.pf-m-current)
+  .pf-v6-c-empty-state__content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-width: 0;
-  min-height: 190px;
-  padding: 20px;
-  background: rgba(11, 9, 18, 0.55);
-  border: 1px solid var(--infinity-border);
-  border-radius: 12px;
-  text-align: center;
+  gap: 16px;
+  width: 100%;
 }
 
-.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step.pf-m-current {
-  background: rgba(113, 73, 159, 0.22);
-  border-color: var(--infinity-accent);
-}
-
-.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-connector {
-  display: flex;
-  justify-content: center;
-  min-width: 0;
-  padding: 0;
-  margin-bottom: 14px;
-}
-
-.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-connector::before,
-.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-connector::after {
+.anaconda-screen-progress-status:has(.pf-v6-c-progress-stepper__step.pf-m-current)
+  .pf-v6-c-empty-state__title-text {
   display: none;
 }
 
-.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
+.anaconda-screen-progress-status:has(.pf-v6-c-progress-stepper__step.pf-m-current)
+  .pf-v6-c-empty-state__body {
+  order: 3;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper {
+  order: 2;
+  width: min(100%, 44rem);
+  margin-top: 8px;
+  text-align: center;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step:not(.pf-m-current) {
+  display: none;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step.pf-m-current {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 0;
+  color: var(--infinity-text);
+  background: transparent;
+  border: 0;
+  animation: infinity-stage-enter 280ms ease-out;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step.pf-m-current::before {
   color: var(--infinity-accent);
-  background: var(--infinity-field);
-  border: 1px solid var(--infinity-border);
-  border-radius: 50%;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  font-variant-numeric: tabular-nums;
 }
 
-.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step.pf-m-success .pf-v6-c-progress-stepper__step-icon {
-  color: #a8e0bd;
-}
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step:nth-child(1).pf-m-current::before { content: "01 / 04"; }
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step:nth-child(2).pf-m-current::before { content: "02 / 04"; }
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step:nth-child(3).pf-m-current::before { content: "03 / 04"; }
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step:nth-child(4).pf-m-current::before { content: "04 / 04"; }
 
-.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step.pf-m-danger .pf-v6-c-progress-stepper__step-icon {
-  color: #ffb3bd;
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-connector,
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-icon {
+  display: none;
 }
 
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-main {
-  display: grid;
-  justify-items: center;
-  align-content: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
   width: 100%;
   min-width: 0;
   margin: 0;
-  text-align: center;
 }
 
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-title {
   color: var(--infinity-text);
-  font-size: 0.95rem;
+  font-size: clamp(1.6rem, 3vw, 2.25rem);
   font-weight: 600;
-  text-align: center;
+  line-height: 1.2;
+}
+
+.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-main::after {
+  content: "";
+  order: 2;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--infinity-border);
+  border-top-color: var(--infinity-accent);
+  border-radius: 50%;
+  animation: infinity-spinner 1.6s linear infinite;
 }
 
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-description {
-  display: block;
-  width: 100%;
-  margin-top: 8px;
+  order: 3;
   color: var(--infinity-muted);
-  font-size: 0.8125rem;
-  line-height: 1.4;
-  text-align: center;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-description .pf-v6-l-flex {
@@ -784,26 +754,40 @@ body:has(.anaconda-screen-progress-status),
 
 .anaconda-screen-progress-status .pf-v6-c-empty-state__footer .pf-v6-c-button {
   padding-inline: 22px;
-  color: #170d27;
-  background: var(--infinity-accent);
-  border-radius: 999px;
+  color: #fff;
+  background: var(--infinity-active);
+  border-radius: 8px;
 }
 
 #app .anaconda-screen-progress-status .pf-v6-c-empty-state__footer .pf-v6-c-button.pf-m-link {
-  color: var(--infinity-accent);
-  background: transparent;
-  border: 1px solid var(--infinity-accent);
+  color: var(--infinity-text);
+  background: var(--infinity-field);
+  border: 1px solid var(--infinity-border);
 }
 
-@media (max-width: 900px) {
-  .anaconda-screen-progress-status .pf-v6-c-progress-stepper {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@keyframes infinity-spinner {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes infinity-mascot-float {
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes infinity-stage-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anaconda-screen-progress-status .pf-v6-c-empty-state__icon,
+  .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-main::after,
+  .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step.pf-m-current {
+    animation: none;
   }
-}
 
-@media (max-width: 560px) {
-  .anaconda-screen-progress-status .pf-v6-c-progress-stepper {
-    grid-template-columns: 1fr;
+  #app .pf-v6-c-button,
+  #installation-wizard .pf-v6-c-wizard__nav-link {
+    transition: none;
   }
 }
 
@@ -832,17 +816,16 @@ body:has(.anaconda-screen-progress-status),
 
 /* Style the existing Anaconda confirmation dialog. */
 body:has(#installation-quit-confirm-dialog) .pf-v6-c-backdrop {
-  background: rgba(8, 5, 15, 0.76);
-  backdrop-filter: blur(8px);
+  background: rgba(8, 5, 15, 0.82);
 }
 
 #installation-quit-confirm-dialog {
   --pf-v6-c-modal-box--BackgroundColor: var(--infinity-panel);
   color: var(--infinity-text);
-  background: linear-gradient(145deg, #251936, var(--infinity-panel) 68%);
+  background: var(--infinity-panel);
   border: 1px solid var(--infinity-border);
-  border-radius: 18px;
-  box-shadow: 0 28px 80px rgba(4, 2, 10, 0.52);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
   font-family: "Infinity Plex", "IBM Plex Sans", sans-serif;
 }
 
@@ -860,17 +843,17 @@ body:has(#installation-quit-confirm-dialog) .pf-v6-c-backdrop {
 }
 
 #installation-quit-confirm-dialog .pf-v6-c-button {
-  border-radius: 999px;
+  border-radius: 8px;
 }
 
 #installation-quit-confirm-btn {
-  background: var(--infinity-accent) !important;
-  border-color: var(--infinity-accent) !important;
-  color: #170d27 !important;
+  background: var(--infinity-active) !important;
+  border-color: var(--infinity-active) !important;
+  color: #fff !important;
 }
 
 #installation-quit-confirm-btn:hover {
-  background: #dfc9ff !important;
+  background: #8562b3 !important;
 }
 
 #installation-quit-confirm-cancel-btn {
@@ -903,18 +886,15 @@ body:has(#installation-quit-confirm-dialog) .pf-v6-c-backdrop {
   height: 44px;
   padding: 10px;
   color: inherit;
-  background: rgba(35, 28, 52, 0.86);
-  border: 1px solid rgba(201, 176, 238, 0.25);
-  border-radius: 50%;
-  box-shadow: 0 8px 24px rgba(12, 8, 20, 0.22);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--infinity-field);
+  border: 1px solid var(--infinity-border);
+  border-radius: 8px;
   cursor: pointer;
 }
 
 .infinityos-audio-button:hover,
 .infinityos-audio-button[aria-expanded="true"] {
-  background: rgba(55, 39, 78, 0.94);
+  background: var(--infinity-hover);
 }
 
 .infinityos-audio-button:focus-visible,
@@ -960,12 +940,10 @@ body:has(#installation-quit-btn[aria-disabled="true"]) .infinityos-installer-exi
   width: 216px;
   padding: 13px 15px;
   color: inherit;
-  background: rgba(35, 28, 52, 0.96);
-  border: 1px solid rgba(201, 176, 238, 0.3);
-  border-radius: 13px;
-  box-shadow: 0 12px 30px rgba(12, 8, 20, 0.3);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: var(--infinity-panel);
+  border: 1px solid var(--infinity-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 .infinityos-audio-popover[hidden] {

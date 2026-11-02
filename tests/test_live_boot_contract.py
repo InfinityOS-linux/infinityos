@@ -92,6 +92,17 @@ class LiveBootContractTests(unittest.TestCase):
             self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
             self.assertEqual(data[25], 6)  # RGBA
         self.assertFalse((REPO / "root/usr/share/icons/hicolor/scalable/apps/infinity-installer.svg").exists())
+        self.assertEqual(unpack(">II", frame.read_bytes()[16:24]), (280, 270))
+        self.assertNotEqual(frame.read_bytes(),
+                            (REPO / "root/usr/share/plymouth/themes/infinityos/throbber-0013.png").read_bytes())
+
+    def test_live_boot_has_quiet_default_and_visible_diagnostics(self):
+        finalizer = (REPO / "scripts/finalize-infinity-iso").read_text()
+        self.assertIn("rd.systemd.show_status=false", finalizer)
+        self.assertIn('menuentry "Live (diagnostics)"', finalizer)
+        self.assertIn("plymouth.enable=0 rd.debug", finalizer)
+        self.assertIn("rd.systemd.show_status=false",
+                      (REPO / "scripts/finalize-infinity-disk").read_text())
 
     def test_welcome_uses_mascot_and_refind_uses_original_symbol(self):
         setup = (REPO / "config.sh").read_text()
@@ -142,7 +153,7 @@ class LiveBootContractTests(unittest.TestCase):
         finalizer = (REPO / "scripts/finalize-infinity-iso").read_text()
         self.assertIn("scripts/finalize-infinity-iso", builder)
         self.assertIn('install -m 0644 "$kernel" "$efi_mount/os/linux"', finalizer)
-        self.assertIn("menuentry \"Infinity OS Live\"", finalizer)
+        self.assertIn("menuentry \"Uruchom system w trybie live\"", finalizer)
         for label in ("live", "check", "safe"):
             self.assertIn(f"icon /EFI/BOOT/infinity-theme/icons/os_infinityos_{label}.png", finalizer)
         self.assertIn("-rm_r /boot/grub2", finalizer)

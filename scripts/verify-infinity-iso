@@ -209,7 +209,7 @@ mount -o loop,ro "$efi_image" "$efi_mount"
    -s $efi_mount/os/linux && -s $efi_mount/os/initrd ]] || {
     echo 'rEFInd live EFI files are incomplete' >&2; exit 1;
 }
-for icon in live check safe; do
+for icon in live check safe recovery; do
     [[ -s $efi_mount/EFI/BOOT/infinity-theme/icons/os_infinityos_${icon}.png ]] || {
         echo "rEFInd $icon icon is missing" >&2; exit 1;
     }
@@ -221,18 +221,20 @@ cmp "$gamepad/$efi_arch/UsbXbox360Dxe.efi" \
 cmp "$gamepad/config.ini" "$efi_mount/EFI/Xbox360/config.ini"
 cmp "$mountpoint/boot/$(uname -m)/loader/linux" "$efi_mount/os/linux"
 cmp "$mountpoint/boot/$(uname -m)/loader/initrd" "$efi_mount/os/initrd"
-grep -Fq 'menuentry "Infinity OS Live"' "$efi_mount/EFI/BOOT/refind.conf"
+grep -Fq 'menuentry "Uruchom system w trybie live"' "$efi_mount/EFI/BOOT/refind.conf"
 if grep -Fq 'showtools ' "$efi_mount/EFI/BOOT/refind.conf"; then
     echo 'Live rEFInd has duplicate second-row tools' >&2
     exit 1
 fi
 grep -Fqx 'small_icon_size 32' "$efi_mount/EFI/BOOT/infinity-theme/theme.conf"
 grep -Fqx 'use_graphics_for linux' "$efi_mount/EFI/BOOT/infinity-theme/theme.conf"
-for icon in live check safe; do
+for icon in live check safe recovery; do
     grep -Fq "icon /EFI/BOOT/infinity-theme/icons/os_infinityos_${icon}.png" "$efi_mount/EFI/BOOT/refind.conf"
 done
 grep -Fq 'rd.live.check' "$efi_mount/EFI/BOOT/refind.conf"
 grep -Fq 'nomodeset' "$efi_mount/EFI/BOOT/refind.conf"
+grep -Fq 'menuentry "Live (diagnostics)"' "$efi_mount/EFI/BOOT/refind.conf"
+grep -Fq 'plymouth.enable=0 rd.debug' "$efi_mount/EFI/BOOT/refind.conf"
 for required in \
     usr/libexec/infinityos-open-downloads \
     usr/share/infinityos/folder-icons/folder-download-dock.svg \

@@ -38,7 +38,7 @@ WACK Lockscreen is enabled but is expected to run only on the unlock screen.
 1. Create a **new** UEFI VM with a blank disk. Boot the ISO through its rEFInd
    menu, then install to the whole disk. Check the Polish completion text and
    both visible buttons. Remove the ISO for the first disk boot.
-2. Confirm the installed rEFInd menu has **Infinity OS** and **Backups (Btrfs)**.
+2. Confirm the installed rEFInd menu has **Uruchom system** and **Backups (Btrfs)**.
    Log in and run both installed audits above. Every check must be `PASS`; both
    commands must exit 0. Save the output with the ISO checksum and revision.
 3. Open InfinitySetup, Infinity Config, InfinityTerminal and InfinityUpdater.

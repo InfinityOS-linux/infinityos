@@ -13,6 +13,7 @@ Requires:       gtk4
 Requires:       gdk-pixbuf2
 Requires:       util-linux
 Requires:       cage
+Requires:       dbus-daemon
 
 %description
 InfinitySetup offers first-login application choices for Infinity OS.

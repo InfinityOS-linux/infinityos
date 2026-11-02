@@ -12,7 +12,7 @@ fallback_config="$esp/EFI/BOOT/refind.conf"
 install -d "$esp/EFI/BOOT"
 options=$(<"$cmdline_file")
 [[ -n $options && $options != *'"'* && $options != *$'\n'* ]] || exit 1
-for splash_option in loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0; do
+for splash_option in loglevel=3 rd.udev.log_level=3 rd.systemd.show_status=false systemd.show_status=false vt.global_cursor_default=0; do
 	[[ " $options " == *" $splash_option "* ]] || options+=" $splash_option"
 done
 
@@ -39,13 +39,13 @@ done
 IFS=$'\n' versions=($(printf '%s\n' "${versions[@]}" | sort -Vr))
 unset IFS
 
-default='Infinity OS'
+default='Uruchom system'
 if [[ -s $next_mode ]]; then
 	requested=
 	read -r requested < "$next_mode" || true
 	case $requested in
-		esde) title='EmulationStation'; icon=os_infinityos_esde.png ;;
-		steam) title='Steam Big Picture'; icon=os_infinityos_steam.png ;;
+		esde) title='Emulator mode'; icon=os_infinityos_esde.png ;;
+		steam) title='Steam mode'; icon=os_infinityos_steam.png ;;
 		*) title=; icon= ;;
 	esac
 	if [[ -n $title && -s $tv_modes/$requested &&
@@ -61,9 +61,9 @@ trap 'rm -f "$tmp" "$fallback_tmp"' EXIT
 	printf 'timeout 5\ndefault_selection "%s"\nscanfor manual\ninclude infinity-theme/theme.conf\n\n' "$default"
 	for version in "${versions[@]}"; do
 		if [[ $version == "${versions[0]}" ]]; then
-			title='Infinity OS'
+			title='Uruchom system'
 		else
-			title="Infinity OS ($version)"
+			title="Uruchom system ($version)"
 		fi
 		printf 'menuentry "%s" {\n' "$title"
 		printf '    loader /os/vmlinuz-%s\n' "$version"
@@ -76,8 +76,8 @@ trap 'rm -f "$tmp" "$fallback_tmp"' EXIT
 	for mode in esde steam; do
 		[[ -s $tv_modes/$mode ]] || continue
 		case $mode in
-			esde) title='EmulationStation'; icon=os_infinityos_esde.png ;;
-			steam) title='Steam Big Picture'; icon=os_infinityos_steam.png ;;
+			esde) title='Emulator mode'; icon=os_infinityos_esde.png ;;
+			steam) title='Steam mode'; icon=os_infinityos_steam.png ;;
 		esac
 		[[ -s $esp/EFI/refind/infinity-theme/icons/$icon ]] || continue
 		printf 'menuentry "%s" {\n' "$title"
@@ -91,10 +91,16 @@ trap 'rm -f "$tmp" "$fallback_tmp"' EXIT
 	read -r -a args <<< "$options"
 	for arg in "${args[@]}"; do
 		case $arg in
-			rhgb|quiet|loglevel=*|rd.udev.log_level=*|systemd.show_status=*|vt.global_cursor_default=*|systemd.unit=*|plymouth.enable=*) ;;
+			rhgb|quiet|loglevel=*|rd.udev.log_level=*|rd.systemd.show_status=*|systemd.show_status=*|vt.global_cursor_default=*|systemd.unit=*|plymouth.enable=*) ;;
 			*) backup_options+=("$arg") ;;
 		esac
 	done
+	printf 'menuentry "Diagnostyka systemu" {\n'
+	printf '    loader /os/vmlinuz-%s\n' "$version"
+	printf '    icon /EFI/refind/infinity-theme/icons/os_infinityos_recovery.png\n'
+	printf '    initrd /os/initramfs-%s.img\n' "$version"
+	printf '    options "%s loglevel=7 rd.udev.log_level=info rd.systemd.show_status=true systemd.show_status=true plymouth.enable=0 rd.debug"\n' "${backup_options[*]}"
+	printf '}\n\n'
 	printf 'menuentry "Backups (Btrfs)" {\n'
 	printf '    loader /os/vmlinuz-%s\n' "$version"
 	printf '    icon /EFI/refind/infinity-theme/icons/os_infinityos_recovery.png\n'

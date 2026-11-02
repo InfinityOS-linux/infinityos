@@ -42,7 +42,7 @@ class BackupsTests(unittest.TestCase):
             result = esp / "EFI/refind/refind.conf"
             content = result.read_text()
             self.assertIn("\nscanfor manual\n", content)
-            self.assertIn('menuentry "Infinity OS"', content)
+            self.assertIn('menuentry "Uruchom system"', content)
             self.assertIn('menuentry "Backups (Btrfs)"', content)
             self.assertIn('loader /os/vmlinuz-1', content)
             self.assertIn('initrd /os/initramfs-1.img', content)

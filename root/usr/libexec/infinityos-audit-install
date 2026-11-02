@@ -44,7 +44,7 @@ check 'EFI partition mounted' bash -c '[[ $(findmnt -n -M /boot/efi -o FSTYPE) =
 check 'rEFInd installation recorded' test -f /etc/infinityos/refind-installed
 check 'rEFInd EFI binary' test -s "/boot/efi/EFI/refind/refind_${efi_arch}.efi"
 check 'rEFInd fallback matches' cmp -s "/boot/efi/EFI/refind/refind_${efi_arch}.efi" "/boot/efi/EFI/BOOT/BOOT${efi_arch^^}.EFI"
-check 'Infinity OS rEFInd entry' grep -Fq 'menuentry "Infinity OS"' /boot/efi/EFI/refind/refind.conf
+check 'Infinity OS rEFInd entry' grep -Fq 'menuentry "Uruchom system"' /boot/efi/EFI/refind/refind.conf
 check 'fallback rEFInd menu matches' cmp -s /boot/efi/EFI/refind/refind.conf /boot/efi/EFI/BOOT/refind.conf
 check 'fallback rEFInd theme' test -s /boot/efi/EFI/BOOT/infinity-theme/theme.conf
 check 'fallback Infinity OS icon' test -s /boot/efi/EFI/BOOT/infinity-theme/icons/os_infinityos.png
