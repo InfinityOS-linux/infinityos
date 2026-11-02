@@ -15,6 +15,7 @@ class SetupIdentityTests(unittest.TestCase):
         autostart = (PACKAGE / "root/usr/share/infinityos/launcher-autostart.desktop").read_text()
         self.assertIn('application_id="org.infinityos.Setup"', app)
         self.assertIn('title="InfinitySetup"', app)
+        self.assertIn('scroller.set_overlay_scrolling(False)', app)
         self.assertIn("Name=InfinitySetup\n", desktop)
         self.assertIn("Exec=infinity-setup\n", desktop)
         self.assertIn("Icon=infinity-setup\n", desktop)

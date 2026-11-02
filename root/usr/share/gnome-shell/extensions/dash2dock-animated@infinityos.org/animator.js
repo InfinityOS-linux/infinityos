@@ -866,8 +866,8 @@ export let Animator = class {
             dock._launchingApps.delete(appId);
           } else {
             didLaunchPulse = true;
-            launchOpacity = Math.round(175 + 80 *
-              (1 + Math.cos(elapsed * 2 * Math.PI / 900)) / 2);
+            launchOpacity = Math.round(70 + 185 *
+              (1 + Math.cos(elapsed * 2 * Math.PI / 700)) / 2);
           }
         }
         renderer.opacity =

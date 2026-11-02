@@ -298,6 +298,7 @@ class InfinitySetup(Gtk.Application):
     def _page(self, section, description):
         scroller = Gtk.ScrolledWindow()
         scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroller.set_overlay_scrolling(False)
         scroller.set_margin_start(28)
         scroller.set_margin_end(28)
         body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)

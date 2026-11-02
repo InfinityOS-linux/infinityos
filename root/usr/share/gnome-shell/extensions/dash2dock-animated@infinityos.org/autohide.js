@@ -168,7 +168,6 @@ export let AutoHide = class {
   }
 
   _launcherOpen() {
-    if (IS_LIVE_SESSION) return false;
     const tracker = Shell.WindowTracker.get_default();
     return global.get_window_actors().some((actor) => {
       const window = actor.get_meta_window();
@@ -339,11 +338,12 @@ export let AutoHide = class {
     }
     if (this._launcherOpen()) {
       this._launcherForcedHidden = true;
-      this.hide();
+      this.dock.visible = false;
       return;
     }
     if (this._launcherForcedHidden) {
       this._launcherForcedHidden = false;
+      this.dock.visible = true;
       if (!this._enabled) {
         this.show();
         return;
