@@ -700,6 +700,10 @@ body:has(.anaconda-screen-progress-status),
   text-align: center;
 }
 
+.anaconda-screen-progress-status #anaconda-screen-progress-step-done-description::first-letter {
+  text-transform: uppercase;
+}
+
 .anaconda-screen-progress-status #anaconda-screen-progress-step-done-description + .pf-v6-l-flex__item {
   display: none;
 }
