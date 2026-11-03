@@ -84,6 +84,8 @@ class InstallerBrandingTests(unittest.TestCase):
             self.assertIn('N="",J=l', gzip.decompress((webui / "index.js.gz").read_bytes()).decode())
             self.assertNotIn(".pf-v6-l-flex > :first-child", css)
             self.assertIn("#anaconda-screen-progress-step-done-description::first-letter", css)
+            self.assertIn(".pf-v6-c-progress-stepper {\n  display: block;", css)
+            self.assertIn("margin-inline: auto;\n  text-align: center;", css)
 
     def test_unknown_webui_version_is_rejected_before_changes(self):
         with tempfile.TemporaryDirectory() as directory:

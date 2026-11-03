@@ -709,8 +709,10 @@ body:has(.anaconda-screen-progress-status),
 }
 
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper {
+  display: block;
   width: min(100%, 44rem);
   margin-top: 0;
+  margin-inline: auto;
   text-align: center;
 }
 
@@ -720,6 +722,7 @@ body:has(.anaconda-screen-progress-status),
 
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step.pf-m-current {
   display: flex;
+  width: 100%;
   flex-direction: column;
   align-items: center;
   gap: 14px;
