@@ -82,6 +82,7 @@ class InstallerBrandingTests(unittest.TestCase):
             self.assertIn("prefers-reduced-motion: reduce", css)
             self.assertNotIn("backdrop-filter:", css)
             self.assertIn('N="",J=l', gzip.decompress((webui / "index.js.gz").read_bytes()).decode())
+            self.assertNotIn(".pf-v6-l-flex > :first-child", css)
 
     def test_unknown_webui_version_is_rejected_before_changes(self):
         with tempfile.TemporaryDirectory() as directory:

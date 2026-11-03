@@ -779,10 +779,6 @@ body:has(.anaconda-screen-progress-status),
   justify-content: center;
 }
 
-.anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-description .pf-v6-l-flex > :first-child {
-  display: none;
-}
-
 .anaconda-screen-progress-status .pf-v6-c-empty-state__footer .pf-v6-c-button {
   padding-inline: 22px;
   color: #fff;
