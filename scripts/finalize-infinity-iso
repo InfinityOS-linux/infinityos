@@ -53,6 +53,7 @@ mkfs.vfat -F 32 -n BOOT "$fat" >/dev/null
 mount -o loop "$fat" "$efi_mount"
 install -d "$efi_mount/EFI/BOOT/infinity-theme" "$efi_mount/os"
 install -m 0644 "$source/refind_$efi_arch.efi" "$efi_mount/EFI/BOOT/$fallback"
+python3 "$root_mount/usr/libexec/infinityos-refind-short-labels" "$efi_mount/EFI/BOOT/$fallback"
 gamepad="$root_mount/usr/share/infinityos/efi-drivers"
 [[ -s $gamepad/$efi_arch/UsbXbox360Dxe.efi && -s $gamepad/config.ini ]] || {
     echo 'Infinity OS UEFI gamepad driver is missing' >&2; exit 1;

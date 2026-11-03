@@ -1,4 +1,5 @@
 import hashlib
+import shutil
 import os
 import subprocess
 import struct
@@ -40,7 +41,19 @@ class RefindConfigTests(unittest.TestCase):
             source = root / "source"
             esp = root / "esp"
             (source / "usr/share/rEFInd/refind").mkdir(parents=True)
-            (source / "usr/share/rEFInd/refind/refind_x64.efi").write_bytes(b"refind")
+            def fixture(machine):
+                data = bytearray(512)
+                data[:2] = b'MZ'
+                struct.pack_into('<I', data, 0x3c, 128)
+                data[128:132] = b'PE\0\0'
+                struct.pack_into('<H', data, 132, machine)
+                struct.pack_into('<H', data, 152, 0x20b)
+                data.extend('Boot %s from %s\0'.encode('utf-16-le'))
+                return data
+            (source / "usr/share/rEFInd/refind/refind_x64.efi").write_bytes(fixture(0x8664))
+            (source / "usr/libexec").mkdir(parents=True)
+            shutil.copy2(ROOT / "root/usr/libexec/infinityos-refind-short-labels",
+                         source / "usr/libexec/infinityos-refind-short-labels")
             theme = source / "usr/share/infinityos/refind-theme"
             (theme / "icons").mkdir(parents=True)
             for name in ("", "_recovery", "_esde", "_steam"):
@@ -73,7 +86,7 @@ class RefindConfigTests(unittest.TestCase):
             config.write_text("# custom mapping\n")
             subprocess.run(["bash", str(INSTALL), str(esp)], check=True, env=env)
             self.assertEqual(config.read_text(), "# custom mapping\n")
-            (source / "usr/share/rEFInd/refind/refind_aa64.efi").write_bytes(b"refind-arm")
+            (source / "usr/share/rEFInd/refind/refind_aa64.efi").write_bytes(fixture(0xaa64))
             uname.write_text("#!/bin/sh\necho aarch64\n")
             arm_esp = root / "arm-esp"
             (arm_esp / "EFI").mkdir(parents=True)

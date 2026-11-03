@@ -165,6 +165,23 @@ def trash_icon(full):
             'stroke="#dbc7ff" stroke-width="2" stroke-linecap="round" opacity=".95"/></svg>')
 
 
+def repair_recoloured_glyphs(svg):
+    # Older RPM posttrans scripts could recolour v2's white overrides to the
+    # palette's lavender while retaining the v2 marker. Restore only overrides
+    # carrying our full-opacity foreground signature; leave tile paints alone.
+    def repair_style(match):
+        style = match.group(1)
+        if all(token in style for token in ("opacity:1", "fill-opacity:1", "stroke-opacity:1")):
+            for paint in ("fill", "stroke"):
+                pattern = rf";{paint}:#dbc7ff(?=;|$)"
+                matches = list(re.finditer(pattern, style))
+                if matches:
+                    last = matches[-1]
+                    style = style[:last.start()] + f";{paint}:#ffffff" + style[last.end():]
+        return 'style="' + style + '"'
+    return re.sub(r'style="([^"<>]*)"', repair_style, svg)
+
+
 def main(root):
     for section in SECTIONS:
         for path in (root / section).rglob("*.svg"):
@@ -172,6 +189,9 @@ def main(root):
                 continue
             original = path.read_text(encoding="utf-8")
             if 'data-infinity-glyph-contrast="white-v2"' in original:
+                repaired = repair_recoloured_glyphs(original)
+                if repaired != original:
+                    path.write_text(repaired, encoding="utf-8")
                 continue
             if section == "places" and (path.stem.startswith("folder") or path.stem in {"user-home", "user-desktop"}):
                 continue

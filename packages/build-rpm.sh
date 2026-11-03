@@ -170,6 +170,7 @@ elif [[ "$package" == infinity-setup ]]; then
     "$repo/root/usr/libexec/infinityos-tv-run" \
     "$repo/root/usr/libexec/infinityos-tv-steam-splash" \
     "$repo/root/usr/libexec/infinityos-tv-return-desktop" \
+    "$repo/root/usr/libexec/infinityos-refind-short-labels" \
     "$repo/root/usr/libexec/infinityos-refind-config" \
     "$repo/root/usr/libexec/infinityos-refind-install" \
     "$work/source/$package-$version/usr/libexec/"

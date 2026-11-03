@@ -15,8 +15,10 @@ install -d "$esp/EFI/refind/infinity-theme" "$esp/EFI/BOOT/infinity-theme"
 cp -a "$theme/." "$esp/EFI/refind/infinity-theme/"
 cp -a "$theme/." "$esp/EFI/BOOT/infinity-theme/"
 install -m 0644 "$source/refind_$arch.efi" "$esp/EFI/refind/.refind_$arch.efi.tmp"
+"$root/usr/libexec/infinityos-refind-short-labels" "$esp/EFI/refind/.refind_$arch.efi.tmp"
 mv -f "$esp/EFI/refind/.refind_$arch.efi.tmp" "$esp/EFI/refind/refind_$arch.efi"
 install -m 0644 "$source/refind_$arch.efi" "$esp/EFI/BOOT/.$fallback.tmp"
+"$root/usr/libexec/infinityos-refind-short-labels" "$esp/EFI/BOOT/.$fallback.tmp"
 mv -f "$esp/EFI/BOOT/.$fallback.tmp" "$esp/EFI/BOOT/$fallback"
 gamepad=$root/usr/share/infinityos/efi-drivers
 [[ -s $gamepad/$arch/UsbXbox360Dxe.efi && -s $gamepad/config.ini ]] || {

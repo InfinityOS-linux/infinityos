@@ -1,0 +1,75 @@
+#!/usr/bin/python3
+"""Shorten rEFInd's manual-entry format string without changing PE layout.
+
+Upstream AddStanzaEntries wraps configured names in 'Boot %s from %s'.
+Only that exact UTF-16 resource is replaced; auto-discovery stays unchanged.
+Signed or unrecognised images are rejected before writing anything.
+"""
+import os
+from pathlib import Path
+import struct
+import sys
+import tempfile
+
+OLD = 'Boot %s from %s\0'.encode('utf-16-le')
+NEW = '%s\0'.encode('utf-16-le').ljust(len(OLD), b'\0')
+
+
+def shorten(data):
+    image = bytearray(data)
+    if len(image) < 128 or image[:2] != b'MZ':
+        raise ValueError('Not a PE image')
+    pe = struct.unpack_from('<I', image, 0x3c)[0]
+    if pe + 160 > len(image) or image[pe:pe + 4] != b'PE\0\0':
+        raise ValueError('Invalid PE header')
+    machine = struct.unpack_from('<H', image, pe + 4)[0]
+    optional = pe + 24
+    if machine not in (0x8664, 0xaa64) or struct.unpack_from('<H', image, optional)[0] != 0x20b:
+        raise ValueError('Expected x64 or ARM64 PE32+ image')
+    certificate = struct.unpack_from('<II', image, optional + 112 + 32)
+    if certificate != (0, 0):
+        raise ValueError('Cannot modify a signed EFI image')
+    if OLD not in image and image.count(NEW) == 1:
+        return bytes(image)
+    if image.count(OLD) != 1:
+        raise ValueError('Unrecognised rEFInd manual-label format')
+    image = image.replace(OLD, NEW)
+    # Recompute the PE checksum; section addresses and image size stay intact.
+    offset = optional + 64
+    struct.pack_into('<I', image, offset, 0)
+    total = 0
+    padded = image + b'\0' if len(image) % 2 else image
+    for (word,) in struct.iter_unpack('<H', padded):
+        total += word
+        total = (total & 0xffff) + (total >> 16)
+    total = (total & 0xffff) + (total >> 16)
+    struct.pack_into('<I', image, offset, total + len(image))
+    return bytes(image)
+
+
+def main(path):
+    path = Path(path)
+    original = path.read_bytes()
+    updated = shorten(original)
+    if updated == original:
+        return
+    fd, temporary = tempfile.mkstemp(prefix='.refind-labels-', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(updated)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.chmod(temporary, path.stat().st_mode & 0o777)
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        sys.exit('Usage: infinityos-refind-short-labels EFI_IMAGE')
+    try:
+        main(sys.argv[1])
+    except (OSError, ValueError, struct.error) as error:
+        sys.exit(f'rEFInd labels: {error}')

@@ -53,6 +53,11 @@ if [ -f /etc/infinityos/refind-installed ] && mountpoint -q /boot/efi; then
                 /boot/efi/EFI/Xbox360/config.ini || :
         fi
     fi
+    # Refresh already installed loaders as well as future installs.
+    for loader in /boot/efi/EFI/refind/refind_x64.efi /boot/efi/EFI/refind/refind_aa64.efi /boot/efi/EFI/BOOT/BOOTX64.EFI /boot/efi/EFI/BOOT/BOOTAA64.EFI; do
+        [ -f "$loader" ] || continue
+        /usr/libexec/infinityos-refind-short-labels "$loader" || :
+    done
     /usr/libexec/infinityos-refind-config || :
 fi
 
@@ -90,6 +95,7 @@ fi
 /usr/libexec/infinityos-tv-steam-splash
 /usr/libexec/infinityos-tv-return-desktop
 /usr/libexec/infinityos-refind-config
+/usr/libexec/infinityos-refind-short-labels
 /usr/libexec/infinityos-refind-install
 /usr/lib/systemd/system-generators/infinityos-tv-mode-generator
 /usr/lib/systemd/system/infinityos-tv@.service
