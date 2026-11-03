@@ -10,6 +10,15 @@ SCRIPT = ROOT / "root/usr/libexec/infinityos-tint-system-icons"
 
 
 class SystemIconThemeTests(unittest.TestCase):
+    def test_dock_folder_icons_have_no_tile_behind_the_folder(self):
+        icons = ROOT / "root/usr/share/infinityos/folder-icons"
+        for name in ("folder-download", "folder-documents"):
+            self.assertEqual(
+                (icons / f"{name}-dock.svg").read_text(),
+                (icons / f"{name}.svg").read_text(),
+            )
+        self.assertNotIn('id="tile"', (icons / "drive-dock.svg").read_text())
+
     def test_tint_is_idempotent_and_keeps_apps_and_transparency(self):
         with tempfile.TemporaryDirectory() as directory:
             theme = Path(directory)
