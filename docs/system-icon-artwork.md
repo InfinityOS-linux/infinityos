@@ -1,7 +1,7 @@
 # Infinity system application icons
 
 The InfinitySetup, Infinity Config, InfinityUpdater, InfinityTerminal and Live
-Installer artwork shares a sculpted violet and lavender style with white symbols.
+Installer artwork shares a sculpted muted gray-violet and dusty lavender style with white symbols.
 The user approved the concept family on 2026-11-03. Original artwork was generated
 using OpenAI ImageGen and is shipped as PNG with alpha transparency.
 
@@ -15,3 +15,8 @@ This keeps the approved artwork independent of icon-theme lookup preferences
 and third-party theme overrides. The animated dock clears its visual icon clones
 after a debounced TextureCache invalidation; it does not recreate the dash or
 restart its services during RPM transactions.
+
+The revised palette was approved on 2026-11-03 to match the folder icons: subdued
+`#645394` midtones, `#443456` shadows and dusty lavender highlights. White symbols
+remain bright. The artwork was edited with ImageGen, preserving transparency,
+and downsampled to the existing application and installer icon sizes.
