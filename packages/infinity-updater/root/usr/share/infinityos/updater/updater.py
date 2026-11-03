@@ -14,6 +14,11 @@ def includes_extension_update(updates):
     return any(item['kind'] == 'RPM' and item['name'] in EXTENSION_RPMS for item in updates)
 
 
+def pending_rpm_names(before, after):
+    requested = {item['name'] for item in before if item['kind'] == 'RPM'}
+    return sorted(requested & {item['name'] for item in after if item['kind'] == 'RPM'})
+
+
 STYLE = b'''
 window.infinity-updater { background: #111018; color: #f4f0fa; }
 .infinity-results, .infinity-results viewport { background: #111018; }
@@ -410,6 +415,11 @@ def main():
                 self.report_progress('Remaining updates', 'Checking', None, None)
                 try:
                     state = check_updates()
+                    if not errors and state.get('rpm_check_ok'):
+                        pending = pending_rpm_names(updates, state['updates'])
+                        if pending:
+                            errors.append('System packages: updates still pending: ' +
+                                          ', '.join(pending))
                     state['errors'] = errors + state['errors']
                     save_state(state)
                 except Exception as error:

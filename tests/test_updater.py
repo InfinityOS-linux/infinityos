@@ -238,6 +238,15 @@ class UpdaterTests(unittest.TestCase):
                                           '--no-reboot-check'])
         self.assertEqual(len(commands), 3)
 
+    def test_pending_rpm_updates_are_not_reported_as_installed(self):
+        before = [{'kind': 'RPM', 'name': 'libheif'},
+                  {'kind': 'RPM', 'name': 'libheif-ffmpeg'},
+                  {'kind': 'Flatpak user', 'name': 'org.example.App'}]
+        after = [{'kind': 'RPM', 'name': 'libheif-ffmpeg'},
+                 {'kind': 'Flatpak user', 'name': 'org.example.App'}]
+        self.assertEqual(updater.pending_rpm_names(before, after), ['libheif-ffmpeg'])
+        self.assertEqual(updater.pending_rpm_names(before, []), [])
+
     def test_installed_setup_rpm_appears_and_uses_verified_update_path(self):
         app = next(app for app in github_update.APPS if app.name == 'PhotoCraft')
         with patch.object(github_update, '_installed', return_value={'photocraft': ('0.17.0', '1')}), \
@@ -376,6 +385,7 @@ class UpdaterTests(unittest.TestCase):
         script = (SOURCE.parents[2] / 'libexec/infinityos-upgrade-system').read_text()
         self.assertLess(script.index('number=$(snapper'), script.index('exec dnf'))
         self.assertIn('RPM upgrade stopped: could not create', script)
+        self.assertIn('dnf -y upgrade --refresh --best', script)
 
     def test_update_command_streams_carriage_return_progress(self):
         events = []
