@@ -181,10 +181,14 @@ export let AutoHide = class {
 
   _installerOpen() {
     if (!IS_LIVE_SESSION) return false;
+    const focusedWindows = new Set();
+    for (let window = global.display.focus_window; window; window = window.get_transient_for?.())
+      focusedWindows.add(window);
+    if (!focusedWindows.size) return false;
     const tracker = Shell.WindowTracker.get_default();
     return global.get_window_actors().some((actor) => {
       const window = actor.get_meta_window();
-      if (!window || !actor.visible || window.minimized || !window.showing_on_its_workspace())
+      if (!window || !focusedWindows.has(window) || !actor.visible || window.minimized || !window.showing_on_its_workspace())
         return false;
       const wmClass = window.get_wm_class?.()?.toLowerCase();
       const appId = tracker.get_window_app(window)?.get_id();
@@ -336,6 +340,7 @@ export let AutoHide = class {
     if (this._installerForcedHidden) {
       this._installerForcedHidden = false;
       this.dock.visible = true;
+      this.dock._beginAnimation();
       if (!this._enabled) {
         this.show();
         return;
@@ -349,6 +354,7 @@ export let AutoHide = class {
     if (this._launcherForcedHidden) {
       this._launcherForcedHidden = false;
       this.dock.visible = true;
+      this.dock._beginAnimation();
       if (!this._enabled) {
         this.show();
         return;

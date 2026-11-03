@@ -19,7 +19,8 @@ const checkHide = new Function(`return ({${checkMethod}})._checkHide`)();
 
 test('InfinitySetup is detected in a Live session and hides the dock until close', () => {
   assert.equal(launcherOpen(), true);
-  const dock = {visible: true};
+  let redraws = 0;
+  const dock = {visible: true, _beginAnimation: () => { redraws++; }};
   const autohider = {_installerOpen: () => false, _launcherOpen: () => true, dock};
   checkHide.call(autohider);
   assert.equal(dock.visible, false);
@@ -28,25 +29,30 @@ test('InfinitySetup is detected in a Live session and hides the dock until close
   autohider.show = () => {};
   checkHide.call(autohider);
   assert.equal(dock.visible, true);
+  assert.equal(redraws, 1);
 });
 
-test('closed installer window restores the Live dock', () => {
-  let visible = true;
+test('returning to the Live desktop redraws the dock even while the installer actor remains', () => {
+  const installerWindow = {
+    minimized: false, showing_on_its_workspace: () => true, get_wm_class: () => 'liveinst',
+  };
+  const guest = {
+    display: {focus_window: installerWindow},
+    get_window_actors: () => [{visible: true, get_meta_window: () => installerWindow}],
+  };
   const installerOpen = new Function('IS_LIVE_SESSION', 'Shell', 'global', `return ({${installerMethod}})._installerOpen`)(true, {
     WindowTracker: {get_default: () => ({get_window_app: () => ({get_id: () => 'liveinst.desktop'})})},
-  }, {
-    get_window_actors: () => [{get visible() { return visible; }, get_meta_window: () => ({
-      minimized: false, showing_on_its_workspace: () => true, get_wm_class: () => 'liveinst',
-    })}],
-  });
-  const dock = {visible: true};
+  }, guest);
+  let redraws = 0;
+  const dock = {visible: true, _beginAnimation: () => { redraws++; }};
   let shown = false;
-  const autohider = {_installerOpen: installerOpen, _launcherOpen: () => false, _enabled: false,
-    dock, show: () => { shown = true; }};
+  const autohider = {_installerOpen: installerOpen, _launcherOpen: () => false, _enabled: true,
+    _checkOverlap: () => false, dock, show: () => { shown = true; }};
   checkHide.call(autohider);
   assert.equal(dock.visible, false);
-  visible = false;
+  guest.display.focus_window = null;
   checkHide.call(autohider);
   assert.equal(dock.visible, true);
   assert.equal(shown, true);
+  assert.equal(redraws, 1);
 });
