@@ -12,7 +12,7 @@ fallback_config="$esp/EFI/BOOT/refind.conf"
 install -d "$esp/EFI/BOOT"
 options=$(<"$cmdline_file")
 [[ -n $options && $options != *'"'* && $options != *$'\n'* ]] || exit 1
-for splash_option in loglevel=3 rd.udev.log_level=3 rd.systemd.show_status=false systemd.show_status=false vt.global_cursor_default=0; do
+for splash_option in quiet rhgb loglevel=3 rd.udev.log_level=3 rd.systemd.show_status=false systemd.show_status=false vt.global_cursor_default=0; do
 	[[ " $options " == *" $splash_option "* ]] || options+=" $splash_option"
 done
 
@@ -68,6 +68,7 @@ trap 'rm -f "$tmp" "$fallback_tmp"' EXIT
 			title="Launch system ($entry)"
 		fi
 		printf 'menuentry "%s" {\n' "$title"
+		printf '    graphics on\n'
 		printf '    loader /os/vmlinuz-%s\n' "$version"
 		printf '    icon /EFI/refind/infinity-theme/icons/os_infinityos.png\n'
 		printf '    initrd /os/initramfs-%s.img\n' "$version"
@@ -83,6 +84,7 @@ trap 'rm -f "$tmp" "$fallback_tmp"' EXIT
 		esac
 		[[ -s $esp/EFI/refind/infinity-theme/icons/$icon ]] || continue
 		printf 'menuentry "%s" {\n' "$title"
+		printf '    graphics on\n'
 		printf '    loader /os/vmlinuz-%s\n' "$version"
 		printf '    icon /EFI/refind/infinity-theme/icons/%s\n' "$icon"
 		printf '    initrd /os/initramfs-%s.img\n' "$version"
@@ -98,12 +100,14 @@ trap 'rm -f "$tmp" "$fallback_tmp"' EXIT
 		esac
 	done
 	printf 'menuentry "Recovery" {\n'
+	printf '    graphics off\n'
 	printf '    loader /os/vmlinuz-%s\n' "$version"
 	printf '    icon /EFI/refind/infinity-theme/icons/os_infinityos_recovery.png\n'
 	printf '    initrd /os/initramfs-%s.img\n' "$version"
 	printf '    options "%s loglevel=7 rd.udev.log_level=info rd.systemd.show_status=true systemd.show_status=true plymouth.enable=0 rd.debug"\n' "${backup_options[*]}"
 	printf '}\n\n'
 	printf 'menuentry "Backups" {\n'
+	printf '    graphics off\n'
 	printf '    loader /os/vmlinuz-%s\n' "$version"
 	printf '    icon /EFI/refind/infinity-theme/icons/os_infinityos_recovery.png\n'
 	printf '    initrd /os/initramfs-%s.img\n' "$version"

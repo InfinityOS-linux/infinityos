@@ -73,24 +73,28 @@ scanfor manual
 include infinity-theme/theme.conf
 
 menuentry "Launch system" {
+    graphics on
     loader /os/linux
     icon /EFI/BOOT/infinity-theme/icons/os_infinityos_live.png
     initrd /os/initrd
     options "quiet rhgb loglevel=3 rd.udev.log_level=3 rd.systemd.show_status=false systemd.show_status=false vt.global_cursor_default=0 root=live:CDLABEL=$volid rd.live.image"
 }
 menuentry "Check media" {
+    graphics on
     loader /os/linux
     icon /EFI/BOOT/infinity-theme/icons/os_infinityos_check.png
     initrd /os/initrd
     options "quiet rhgb loglevel=3 rd.udev.log_level=3 rd.systemd.show_status=false systemd.show_status=false vt.global_cursor_default=0 root=live:CDLABEL=$volid rd.live.image rd.live.check"
 }
 menuentry "Safe graphics" {
+    graphics on
     loader /os/linux
     icon /EFI/BOOT/infinity-theme/icons/os_infinityos_safe.png
     initrd /os/initrd
     options "quiet rhgb loglevel=3 rd.udev.log_level=3 rd.systemd.show_status=false systemd.show_status=false vt.global_cursor_default=0 root=live:CDLABEL=$volid rd.live.image nomodeset"
 }
 menuentry "Recovery" {
+    graphics off
     loader /os/linux
     icon /EFI/BOOT/infinity-theme/icons/os_infinityos_recovery.png
     initrd /os/initrd

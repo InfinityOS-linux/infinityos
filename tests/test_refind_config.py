@@ -101,7 +101,7 @@ class RefindConfigTests(unittest.TestCase):
             (esp / "os/vmlinuz-6.0.test").write_bytes(b"kernel")
             (esp / "os/initramfs-6.0.test.img").write_bytes(b"initrd")
             cmdline = root / "cmdline"
-            cmdline.write_text("root=UUID=test rootflags=subvol=root rw rhgb quiet\n")
+            cmdline.write_text("root=UUID=test rootflags=subvol=root rw\n")
             subprocess.run(["bash", str(CONFIG), str(esp), str(cmdline),
                             str(root / "no-backups-marker")], check=True)
             menu = (esp / "EFI/refind/refind.conf").read_text()
@@ -109,6 +109,10 @@ class RefindConfigTests(unittest.TestCase):
             self.assertNotIn("showtools", menu)
             system, diagnostics = menu.split('menuentry "Recovery"', 1)
             diagnostics, recovery = diagnostics.split('menuentry "Backups"', 1)
+            self.assertIn("graphics on", system)
+            self.assertIn(" quiet rhgb ", system)
+            self.assertIn("graphics off", diagnostics)
+            self.assertIn("graphics off", recovery)
             self.assertIn("loglevel=3", system)
             self.assertIn("rd.systemd.show_status=false", system)
             self.assertNotIn(" quiet", diagnostics)
