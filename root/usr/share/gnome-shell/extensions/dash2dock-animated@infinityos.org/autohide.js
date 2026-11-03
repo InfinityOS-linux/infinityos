@@ -184,7 +184,8 @@ export let AutoHide = class {
     const tracker = Shell.WindowTracker.get_default();
     return global.get_window_actors().some((actor) => {
       const window = actor.get_meta_window();
-      if (!window) return false;
+      if (!window || !actor.visible || window.minimized || !window.showing_on_its_workspace())
+        return false;
       const wmClass = window.get_wm_class?.()?.toLowerCase();
       const appId = tracker.get_window_app(window)?.get_id();
       return wmClass === 'liveinst' || appId === 'anaconda.desktop' ||
@@ -335,6 +336,10 @@ export let AutoHide = class {
     if (this._installerForcedHidden) {
       this._installerForcedHidden = false;
       this.dock.visible = true;
+      if (!this._enabled) {
+        this.show();
+        return;
+      }
     }
     if (this._launcherOpen()) {
       this._launcherForcedHidden = true;
