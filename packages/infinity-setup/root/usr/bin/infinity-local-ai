@@ -44,6 +44,9 @@ def main():
                 "models": {
                     model: {
                         "name": MODELS[model],
+                        # Ollama otherwise spends minutes producing hidden
+                        # reasoning, including OpenCode's background title task.
+                        "options": {"reasoningEffort": "none"},
                         "limit": {"context": 65536, "output": 8192},
                     },
                 },

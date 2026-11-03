@@ -33,6 +33,8 @@ class LocalAiWrapperTests(unittest.TestCase):
                     return SimpleNamespace(returncode=0)
                 settings = json.loads(kwargs["env"]["OPENCODE_CONFIG_CONTENT"])
                 self.assertEqual(settings["model"], "ollama/infinity-qwen-9b")
+                model_options = settings["provider"]["ollama"]["models"]["infinity-qwen-9b"]["options"]
+                self.assertEqual(model_options["reasoningEffort"], "none")
                 self.assertEqual(settings["permission"]["edit"], "ask")
                 self.assertEqual(settings["permission"]["external_directory"], "ask")
                 return SimpleNamespace(returncode=0, stdout="ollama/infinity-qwen-9b\n")
