@@ -25,6 +25,7 @@ InfinitySetup offers first-login application choices for Infinity OS.
 
 %install
 cp -a usr etc %{buildroot}/
+install -d -m 0755 %{buildroot}/etc/gamescope/scripts
 python3 -m py_compile %{buildroot}/usr/bin/infinity-local-ai %{buildroot}/usr/share/infinityos/launcher*.py
 
 %posttrans
@@ -55,6 +56,8 @@ if [ -f /etc/infinityos/refind-installed ] && mountpoint -q /boot/efi; then
 fi
 
 %files
+%dir /etc/gamescope
+%dir /etc/gamescope/scripts
 %license /usr/share/licenses/infinity-setup/COPYING
 %license /usr/share/licenses/infinity-setup/UsbXbox360Dxe-LICENSE
 /usr/share/infinityos/build-revisions/infinity-setup

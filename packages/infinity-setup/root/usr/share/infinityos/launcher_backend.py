@@ -515,6 +515,18 @@ def _install_github_appimage(app, home):
     )
 
 
+def _install_steam_gl_drivers(scope="--user"):
+    """Install the active NVIDIA libraries into the same scope as Steam."""
+    result = subprocess.run(["flatpak", "--gl-drivers"], capture_output=True,
+                            text=True, check=True)
+    for driver in result.stdout.split():
+        if re.fullmatch(r"nvidia-[0-9]+(?:-[0-9]+)+", driver):
+            prefix = ["pkexec"] if scope == "--system" else []
+            _run(prefix + ["flatpak", "install", scope, "--noninteractive", "--assumeyes",
+                  "flathub", f"org.freedesktop.Platform.GL.{driver}//1.4",
+                  f"org.freedesktop.Platform.GL32.{driver}//1.4"])
+
+
 def install(app, home=None, *, defer_system_dependencies=False):
     """Install one selected app. Calling this is the only installation trigger."""
     home = Path(home or Path.home())
@@ -532,6 +544,8 @@ def install(app, home=None, *, defer_system_dependencies=False):
         _run(["flatpak", "remote-add", "--user", "--if-not-exists", "flathub",
               "https://dl.flathub.org/repo/flathub.flatpakrepo"])
         _run(["flatpak", "install", "--user", "--noninteractive", "--assumeyes", "flathub", app.source])
+        if app.source == "com.valvesoftware.Steam":
+            _install_steam_gl_drivers()
     elif app.kind == "github-rpm":
         with tempfile.TemporaryDirectory(prefix="infinity-setup-") as directory:
             package = _latest_rpm(app, os.uname().machine, directory)

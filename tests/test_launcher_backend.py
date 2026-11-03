@@ -314,11 +314,37 @@ class LauncherBackendTests(unittest.TestCase):
 
     def test_flatpak_install_starts_only_when_called(self):
         steam = next(app for app in backend.APPS if app.name == "Steam")
-        with patch.object(backend, "_run") as run:
+        with patch.object(backend, "_install_steam_gl_drivers") as drivers, \
+             patch.object(backend, "_run") as run:
             self.assertEqual(run.call_count, 0)
             backend.install(steam)
+        drivers.assert_called_once_with()
         self.assertEqual(run.call_count, 2)
         self.assertEqual(run.call_args_list[1].args[0][-1], "com.valvesoftware.Steam")
+
+    def test_steam_installs_matching_nvidia_libraries_for_both_architectures(self):
+        with patch.object(backend.subprocess, "run", return_value=SimpleNamespace(
+                stdout="nvidia-615-78-08\ndefault\nhost\n")), \
+             patch.object(backend, "_run") as run:
+            backend._install_steam_gl_drivers()
+        run.assert_called_once_with([
+            "flatpak", "install", "--user", "--noninteractive", "--assumeyes", "flathub",
+            "org.freedesktop.Platform.GL.nvidia-615-78-08//1.4",
+            "org.freedesktop.Platform.GL32.nvidia-615-78-08//1.4"])
+
+    def test_steam_does_not_install_nvidia_libraries_on_other_gpus(self):
+        with patch.object(backend.subprocess, "run", return_value=SimpleNamespace(
+                stdout="default\nhost\n")), patch.object(backend, "_run") as run:
+            backend._install_steam_gl_drivers()
+        run.assert_not_called()
+
+    def test_system_steam_gl_drivers_use_the_system_scope(self):
+        with patch.object(backend.subprocess, "run", return_value=SimpleNamespace(
+                stdout="nvidia-615-78-08\ndefault\nhost\n")), \
+             patch.object(backend, "_run") as run:
+            backend._install_steam_gl_drivers("--system")
+        self.assertEqual(run.call_args.args[0][:4],
+                         ["pkexec", "flatpak", "install", "--system"])
 
     def test_bundled_mpv_is_recognized_as_system_package(self):
         mpv = next(app for app in backend.APPS if app.name == "mpv")
