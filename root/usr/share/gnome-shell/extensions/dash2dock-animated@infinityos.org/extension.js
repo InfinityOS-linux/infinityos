@@ -266,6 +266,7 @@ export default class Dash2DockLiteExt extends Extension {
     this._timer?.shutdown();
     this._hiTimer?.shutdown();
     this._loTimer?.shutdown();
+    this._iconThemeRefresh = null;
     this._diagnosticTimer?.shutdown();
     // null later
 
@@ -882,13 +883,27 @@ export default class Dash2DockLiteExt extends Extension {
   }
 
   _onIconThemeChanged() {
-    if (this.animate_icons) {
-      this.services.disable();
-      this.services.enable();
+    // RPM transactions invalidate the icon cache repeatedly. Rebuild once after
+    // the burst, without restarting services or hiding a working dock.
+    if (this._iconThemeRefresh) {
+      this._loTimer.runDebounced(this._iconThemeRefresh);
+      return;
     }
-    this._iconTheme = St.IconTheme.new();
-    this._updateStyle();
-    this.recreateAllDocks();
+    this._iconThemeRefresh = this._loTimer.runDebounced(() => {
+      this._iconThemeRefresh = null;
+      this.icon_theme = St.IconTheme.new();
+      // TextureCache refreshes the source St.Icons itself. Clear the visual
+      // clones so identical icon names also fetch the new cached texture.
+      this.docks.forEach(dock => {
+        dock.animator._iconSnapshots = null;
+        for (const renderer of dock.animator._renderers ?? []) {
+          renderer.gicon = null;
+          renderer.icon_name = null;
+        }
+      });
+      this.animate({refresh: true});
+      this.checkHide();
+    }, 750, 'icon-theme-refresh');
   }
 
   _onFocusWindow() {

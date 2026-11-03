@@ -3,6 +3,7 @@ set -euo pipefail
 
 run_steam() {
     local started status relaunches=0
+    set -- /usr/libexec/infinityos-tv-steam-splash "$@"
     while true; do
         started=$SECONDS
         if dbus-run-session -- gamescope -e -f -- "$@"; then

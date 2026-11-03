@@ -18,7 +18,7 @@ class SetupIdentityTests(unittest.TestCase):
         self.assertIn('scroller.set_overlay_scrolling(False)', app)
         self.assertIn("Name=InfinitySetup\n", desktop)
         self.assertIn("Exec=infinity-setup\n", desktop)
-        self.assertIn("Icon=infinity-setup\n", desktop)
+        self.assertIn("Icon=/usr/share/icons/hicolor/512x512/apps/infinity-setup.png\n", desktop)
         self.assertIn("Exec=infinity-setup --first-run\n", autostart)
         self.assertTrue((PACKAGE / "root/usr/share/infinityos/launcher-icons/infinity-setup.png").is_file())
         self.assertNotIn("NEXT_START", app)

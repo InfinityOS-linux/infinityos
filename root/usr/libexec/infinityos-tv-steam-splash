@@ -1,0 +1,78 @@
+#!/usr/bin/python3
+"""Show a boot card inside the TV compositor until Steam takes the screen."""
+import os
+import subprocess
+import sys
+
+# Gamescope exposes its desktop clients through Xwayland.
+os.environ['GDK_BACKEND'] = 'x11'
+
+import gi
+gi.require_version('Gtk', '4.0')
+from gi.repository import Gio, GLib, Gtk
+
+
+class SteamBoot(Gtk.Application):
+    def __init__(self, command):
+        super().__init__(application_id='org.infinityos.SteamBoot',
+                         flags=Gio.ApplicationFlags.NON_UNIQUE)
+        self.command = command
+        self.process = None
+        self.status = 1
+
+    def do_activate(self):
+        window = Gtk.ApplicationWindow(application=self, title='Starting Steam')
+        window.set_decorated(False)
+        window.fullscreen()
+        css = Gtk.CssProvider()
+        css.load_from_string('window { background: #17121f; color: #ffffff; } '
+                             '.heading { font-size: 32px; font-weight: bold; } '
+                             '.detail { font-size: 18px; color: #d4c9e4; }')
+        Gtk.StyleContext.add_provider_for_display(window.get_display(), css, 600)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24,
+                      halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+        logo = Gtk.Image.new_from_file('/usr/share/icons/hicolor/512x512/apps/infinity-setup.png')
+        logo.set_pixel_size(112)
+        box.append(logo)
+        heading = Gtk.Label(label='Uruchamianie Steam')
+        heading.add_css_class('heading')
+        box.append(heading)
+        spinner = Gtk.Spinner(spinning=True, width_request=36, height_request=36,
+                              halign=Gtk.Align.CENTER)
+        box.append(spinner)
+        detail = Gtk.Label(label='Jeśli Steam pobiera aktualizacje, uruchomienie potrwa dłużej.\n'
+                                 'To może potrwać kilka minut — proszę czekać.',
+                           justify=Gtk.Justification.CENTER)
+        detail.add_css_class('detail')
+        box.append(detail)
+        window.set_child(box)
+        window.connect('map', self.start_steam)
+        window.present()
+
+    def start_steam(self, _window):
+        if self.process is None:
+            # The card is mapped before the client starts. Gamescope's Steam
+            # focus policy places Steam's own windows above it when ready.
+            try:
+                self.process = subprocess.Popen(self.command)
+            except OSError as error:
+                print(f'Cannot start Steam: {error}', file=sys.stderr)
+                self.quit()
+                return
+            GLib.timeout_add(250, self.check_client)
+
+    def check_client(self):
+        result = self.process.poll()
+        if result is None:
+            return GLib.SOURCE_CONTINUE
+        self.status = result if result >= 0 else 128 - result
+        self.quit()
+        return GLib.SOURCE_REMOVE
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        sys.exit(2)
+    app = SteamBoot(sys.argv[1:])
+    app.run([sys.argv[0]])
+    sys.exit(app.status)

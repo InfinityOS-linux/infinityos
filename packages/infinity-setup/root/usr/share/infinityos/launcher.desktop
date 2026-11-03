@@ -3,6 +3,6 @@ Type=Application
 Name=InfinitySetup
 Comment=Choose applications for Infinity OS
 Exec=infinity-setup
-Icon=infinity-setup
+Icon=/usr/share/icons/hicolor/512x512/apps/infinity-setup.png
 Terminal=false
 Categories=System;Settings;

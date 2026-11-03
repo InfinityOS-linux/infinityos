@@ -59,7 +59,7 @@ class DockItemMenu extends PopupMenu.PopupMenu {
 
   popup() {
     this.open({animate: true});
-    this._menuManager.ignoreRelease();
+    // GNOME 51 handles the release through PopupMenuManager itself.
   }
 }
 

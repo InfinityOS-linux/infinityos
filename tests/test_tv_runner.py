@@ -55,7 +55,7 @@ class TVRunnerTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn("gamescope exited early", completed.stderr)
         self.assertEqual(fallback,
-                         "pixman|-- flatpak run --user --system-talk-name=org.freedesktop.login1 com.valvesoftware.Steam -gamepadui -steamos3 -steampal -steamdeck\n")
+                         "pixman|-- /usr/libexec/infinityos-tv-steam-splash flatpak run --user --system-talk-name=org.freedesktop.login1 com.valvesoftware.Steam -gamepadui -steamos3 -steampal -steamdeck\n")
         self.assertEqual(attempts, "x")
         self.assertEqual(bus.count("-- gamescope"), 1)
         self.assertEqual(bus.count("-- cage"), 1)
@@ -72,7 +72,7 @@ class TVRunnerTests(unittest.TestCase):
     def test_arm_client_uses_the_same_fallback(self):
         completed, fallback, client, attempts, _bus = self._run_with_gamescope_result(1, "aarch64")
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        self.assertEqual(fallback, f"pixman|-- {client} -gamepadui -steamos3 -steampal -steamdeck\n")
+        self.assertEqual(fallback, f"pixman|-- /usr/libexec/infinityos-tv-steam-splash {client} -gamepadui -steamos3 -steampal -steamdeck\n")
         self.assertEqual(attempts, "x")
 
     def test_arm_steam_restarts_after_successful_updater_exit(self):

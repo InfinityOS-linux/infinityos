@@ -5,6 +5,6 @@ Name[pl]=Aktualizacje Infinity OS
 Comment=Review system and Flatpak updates
 Comment[pl]=Przeglądaj aktualizacje systemu i Flatpaków
 Exec=infinity-updater
-Icon=org.infinityos.Updater
+Icon=/usr/share/icons/hicolor/512x512/apps/org.infinityos.Updater.png
 Categories=System;Settings;
 StartupNotify=true

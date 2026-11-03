@@ -168,6 +168,7 @@ elif [[ "$package" == infinity-setup ]]; then
   install -m 0755 "$repo/root/usr/libexec/infinityos-tv-control" \
     "$repo/root/usr/libexec/infinityos-tv-enter" \
     "$repo/root/usr/libexec/infinityos-tv-run" \
+    "$repo/root/usr/libexec/infinityos-tv-steam-splash" \
     "$repo/root/usr/libexec/infinityos-tv-return-desktop" \
     "$repo/root/usr/libexec/infinityos-refind-config" \
     "$repo/root/usr/libexec/infinityos-refind-install" \
