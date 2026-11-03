@@ -174,6 +174,7 @@ def main():
                                halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
             self.spinner = Gtk.Spinner()
             self.spinner.set_size_request(44, 44)
+            self.spinner.set_halign(Gtk.Align.CENTER)
             checking.append(self.spinner)
             checking_title = Gtk.Label(label=tr('Checking for updates…'))
             checking_title.add_css_class('state-title')
