@@ -387,7 +387,9 @@ class UpdaterTests(unittest.TestCase):
         script = (SOURCE.parents[2] / 'libexec/infinityos-upgrade-system').read_text()
         self.assertLess(script.index('number=$(snapper'), script.index('exec dnf'))
         self.assertIn('RPM upgrade stopped: could not create', script)
-        self.assertIn('dnf -y upgrade --refresh --best --skip-unavailable', script)
+        self.assertIn('dnf -y upgrade --refresh --no-best --skip-unavailable', script)
+        self.assertNotIn('--best ', script)
+        self.assertNotIn('--allowerasing', script)
 
     def test_update_command_streams_carriage_return_progress(self):
         events = []

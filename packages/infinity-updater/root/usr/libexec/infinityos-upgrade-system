@@ -30,4 +30,5 @@ printf 'Infinity OS root snapshot #%s created.\n' "$number"
 if [[ $# -eq 2 ]]; then
     exec dnf -y install "$2"
 fi
-exec dnf -y upgrade --refresh --best --skip-unavailable
+# Dependency conflicts in one package must not block unrelated upgrades.
+exec dnf -y upgrade --refresh --no-best --skip-unavailable
