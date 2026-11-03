@@ -214,7 +214,10 @@ for icon in live check safe recovery; do
         echo "rEFInd $icon icon is missing" >&2; exit 1;
     }
 done
-cmp "$rootpoint/usr/share/rEFInd/refind/refind_${efi_arch}.efi" "$efi_mount/EFI/BOOT/$fallback"
+expected_refind="$efi_images/refind_${efi_arch}.efi"
+cp "$rootpoint/usr/share/rEFInd/refind/refind_${efi_arch}.efi" "$expected_refind"
+python3 "$rootpoint/usr/libexec/infinityos-refind-short-labels" "$expected_refind"
+cmp "$expected_refind" "$efi_mount/EFI/BOOT/$fallback"
 gamepad="$rootpoint/usr/share/infinityos/efi-drivers"
 cmp "$gamepad/$efi_arch/UsbXbox360Dxe.efi" \
     "$efi_mount/EFI/BOOT/drivers_$efi_arch/UsbXbox360Dxe.efi"
