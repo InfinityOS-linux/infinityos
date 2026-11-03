@@ -53,6 +53,10 @@ class SetupIdentityTests(unittest.TestCase):
         self.assertNotIn("/usr/share/icons/hicolor/scalable/apps/infinity-*.svg", setup_spec)
         self.assertNotIn("/usr/share/icons/hicolor/scalable/apps/infinity-*.svg", terminal_spec)
         self.assertIn("/usr/share/icons/hicolor/scalable/apps/infinity-ai.svg", terminal_spec)
+        self.assertEqual(
+            (PACKAGE / "root/usr/share/infinityos/launcher-icons/infinity-ai.svg").read_bytes(),
+            (ROOT / "packages/infinity-terminal/root/usr/share/icons/hicolor/scalable/apps/infinity-ai.svg").read_bytes(),
+        )
 
 
 if __name__ == "__main__":
