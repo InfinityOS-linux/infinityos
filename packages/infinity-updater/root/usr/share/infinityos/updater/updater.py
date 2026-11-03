@@ -37,6 +37,14 @@ button.secondary label { color: #f4edff; }
 .footer { background: #17131f; border-top: 1px solid #3b3152; padding: 17px 24px; }
 .update-progress trough { min-height: 5px; background: #322941; border-radius: 999px; }
 .update-progress progress { min-height: 5px; background: #ad82e9; border-radius: 999px; }
+@keyframes infinity-updater-spin { to { transform: rotate(1turn); } }
+window.infinity-updater spinner {
+  -gtk-icon-source: none;
+  border: 4px solid #3b3152;
+  border-top-color: #ad82e9;
+  border-radius: 50%;
+}
+window.infinity-updater spinner:checked { animation: infinity-updater-spin 900ms linear infinite; }
 .state-title { font-size: 22px; font-weight: 700; color: #ffffff; }
 .state-icon { color: #ad82e9; }
 window.infinity-updater.light-mode { background: #f6f3fa; color: #241b31; }
@@ -65,6 +73,7 @@ window.infinity-updater.light-mode button.secondary:focus-visible { outline: 2px
 window.infinity-updater.light-mode .footer { background: #f1ebf7; border-color: #d7c9e7; }
 window.infinity-updater.light-mode .update-progress trough { background: #ddd1e9; }
 window.infinity-updater.light-mode .update-progress progress { background: #604583; }
+window.infinity-updater.light-mode spinner { border-color: #d7c9e7; border-top-color: #604583; }
 window.infinity-updater.light-mode .state-icon { color: #604583; }
 '''
 
