@@ -144,9 +144,9 @@ elif [[ "$package" == infinity-setup ]]; then
     "$work/source/$package-$version/etc/xdg/autostart" \
     "$work/source/$package-$version/usr/share/licenses/infinity-setup"
   # App catalog artwork stays private so a future RPM can own its real icon.
-  # Only Infinity OS icons used by desktop files or terminal tabs are global.
-  install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/launcher-icons/"infinity-*.svg \
-    "$work/source/$package-$version/usr/share/icons/hicolor/scalable/apps/"
+  # Launcher catalog icons stay private; InfinityTerminal owns its tab icons.
+  install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/launcher-icons/infinity-setup.svg" \
+    "$work/source/$package-$version/usr/share/icons/hicolor/scalable/apps/infinity-setup.svg"
   install -m 0755 "$repo/packages/infinity-setup/root/usr/bin/infinity-setup" \
     "$work/source/$package-$version/usr/bin/infinity-setup"
   install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/launcher.desktop" \

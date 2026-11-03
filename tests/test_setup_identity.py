@@ -43,6 +43,17 @@ class SetupIdentityTests(unittest.TestCase):
         self.assertIn("Exec=infinity-setup\n", alias)
         self.assertIn("NoDisplay=true\n", alias)
 
+    def test_setup_and_terminal_rpms_do_not_claim_the_same_icons(self):
+        builder = (ROOT / "packages/build-rpm.sh").read_text()
+        setup_spec = (PACKAGE / "infinity-setup.spec").read_text()
+        terminal_spec = (ROOT / "packages/infinity-terminal/infinity-terminal.spec").read_text()
+        self.assertIn("launcher-icons/infinity-setup.svg", builder)
+        self.assertNotIn('launcher-icons/"infinity-*.svg', builder)
+        self.assertIn("/usr/share/icons/hicolor/scalable/apps/infinity-setup.svg", setup_spec)
+        self.assertNotIn("/usr/share/icons/hicolor/scalable/apps/infinity-*.svg", setup_spec)
+        self.assertNotIn("/usr/share/icons/hicolor/scalable/apps/infinity-*.svg", terminal_spec)
+        self.assertIn("/usr/share/icons/hicolor/scalable/apps/infinity-ai.svg", terminal_spec)
+
 
 if __name__ == "__main__":
     unittest.main()
