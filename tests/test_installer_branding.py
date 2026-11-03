@@ -26,6 +26,7 @@ class InstallerBrandingTests(unittest.TestCase):
                 'this.id="anaconda-screen-review",this.label=Pz("Review and install"),this.title=Pz("Review and install")'
                 'label:cot("Storage configuration"),steps:[r]'
                 'c<A1?W[c].description:(t=>'
+                'N=jo("In progress"),J=l'
             )
             (webui / "index.js.gz").write_bytes(gzip.compress(source.encode()))
             (webui / "po.pl.js.gz").write_bytes(gzip.compress(
@@ -71,6 +72,8 @@ class InstallerBrandingTests(unittest.TestCase):
             ):
                 self.assertEqual(locale.count(f'"{english}": [null, "{polish}"]'), 1)
             css = CSS.read_text()
+            self.assertIn(".anaconda-screen-progress-status {", css)
+            self.assertIn("text-align: center;", css)
             self.assertIn(".pf-v6-c-action-list__item:has(#installation-quit-btn)", css)
             self.assertIn(".pf-v6-c-action-list__item:has(#installation-next-btn)", css)
             self.assertIn("#app .anaconda-screen-progress-status .pf-v6-c-empty-state__footer .pf-v6-c-button.pf-m-link", css)
@@ -78,6 +81,7 @@ class InstallerBrandingTests(unittest.TestCase):
             self.assertIn('content: "04 / 04"', css)
             self.assertIn("prefers-reduced-motion: reduce", css)
             self.assertNotIn("backdrop-filter:", css)
+            self.assertIn('N="",J=l', gzip.decompress((webui / "index.js.gz").read_bytes()).decode())
 
     def test_unknown_webui_version_is_rejected_before_changes(self):
         with tempfile.TemporaryDirectory() as directory:

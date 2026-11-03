@@ -98,6 +98,12 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
     "$source_root/usr/share/icons/kora/places/scalable/folder-projects.svg"
   install -m 0755 "$repo/root/usr/bin/infinityos-shell-recover" \
     "$source_root/usr/bin/infinityos-shell-recover"
+  install -D -m 0755 "$repo/root/usr/libexec/infinityos-tint-system-icons" \
+    "$source_root/usr/libexec/infinityos-tint-system-icons"
+  install -D -m 0644 "$repo/root/usr/share/icons/hicolor/scalable/apps/infinityos-logo.svg" \
+    "$source_root/usr/share/icons/hicolor/scalable/apps/infinityos-logo.svg"
+  install -D -m 0644 "$repo/root/usr/share/icons/hicolor/256x256/apps/infinityos-logo.png" \
+    "$source_root/usr/share/icons/hicolor/256x256/apps/infinityos-logo.png"
   cp -a "$fedora_snapshot/glib-2.0/schemas/." \
     "$source_root/usr/share/glib-2.0/schemas/"
   install -m 0644 "$repo/root/usr/share/infinityos/gnome-defaults" \

@@ -52,14 +52,23 @@ for uuid in \
     glib-compile-schemas "/usr/share/gnome-shell/extensions/$uuid/schemas" || :
 done
 dconf update || :
+if test -d /usr/share/icons/kora/places; then
+    /usr/libexec/infinityos-tint-system-icons /usr/share/icons/kora || :
+    cp -a /usr/share/infinityos/folder-icons/. /usr/share/icons/kora/places/scalable/ || :
+    gtk-update-icon-cache -f -q /usr/share/icons/kora || :
+fi
+gtk-update-icon-cache -f -q /usr/share/icons/hicolor || :
 
 %files
 /usr/bin/infinityos-shell-recover
+/usr/libexec/infinityos-tint-system-icons
 /usr/share/infinityos/build-revisions/infinityos-shell-extensions
 /usr/share/infinityos/gnome-defaults
 /usr/share/infinityos/blur-defaults
 /usr/share/infinityos/folder-icons/
 /usr/share/icons/kora/places/scalable/folder-projects.svg
+/usr/share/icons/hicolor/scalable/apps/infinityos-logo.svg
+/usr/share/icons/hicolor/256x256/apps/infinityos-logo.png
 /etc/dconf/db/local.d/00-infinityos
 /etc/dconf/db/local.d/01-infinity-blur
 /usr/share/gnome-shell/extensions/GPaste@gnome-shell-extensions.gnome.org/

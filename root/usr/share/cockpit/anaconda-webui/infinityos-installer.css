@@ -604,6 +604,7 @@ body:has(.anaconda-screen-progress-status),
   align-items: center;
   justify-content: center;
   color: var(--infinity-text);
+  text-align: center;
   background: transparent;
   gap: 0 !important;
 }
@@ -649,6 +650,7 @@ body:has(.anaconda-screen-progress-status),
   color: var(--infinity-muted);
   font-size: 1rem;
   line-height: 1.55;
+  text-align: center;
   overflow-wrap: anywhere;
 }
 
@@ -750,6 +752,7 @@ body:has(.anaconda-screen-progress-status),
   width: 100%;
   min-width: 0;
   margin: 0;
+  text-align: center;
 }
 
 .anaconda-screen-progress-status .pf-v6-c-progress-stepper__step-title {

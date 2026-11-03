@@ -93,6 +93,9 @@ source = replace_once_or_present(
     'c<A1?W[c].description.replace(/^[^:：]+[:：]\\s*/,""):(t=>',
     "progress message prefix",
 )
+source = replace_once_or_present(
+    source, 'N=jo("In progress"),J=l', 'N="",J=l', "progress status label",
+)
 
 polish = WEBUI / "po.pl.js.gz"
 locale = gzip.decompress(polish.read_bytes()).decode("utf-8").rstrip()

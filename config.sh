@@ -56,6 +56,7 @@ EOF
 	install -d /usr/share/icons /usr/share/licenses/kora
 	# GNU tar gets ENOSYS on symlinks under Apple Silicon x86_64 emulation.
 	bsdtar -xzf /usr/share/infinityos/kora-v2.0.6.tar.gz -C /usr/share/icons --strip-components=1 kora-2.0.6/kora/
+	python3 /usr/libexec/infinityos-tint-system-icons /usr/share/icons/kora
 	cp -a /usr/share/infinityos/folder-icons/. /usr/share/icons/kora/places/scalable/
 	rm -f /usr/share/icons/kora/apps/scalable/org.gnome.Nautilus.svg
 	install -m 0644 /usr/share/infinityos/folder-icons/folder.svg /usr/share/icons/kora/apps/scalable/org.gnome.Nautilus.svg
