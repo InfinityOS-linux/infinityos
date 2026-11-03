@@ -19,6 +19,36 @@ class SystemIconThemeTests(unittest.TestCase):
             )
         self.assertNotIn('id="tile"', (icons / "drive-dock.svg").read_text())
 
+    def test_file_symbols_are_white_without_erasing_cutouts_or_captions(self):
+        available = subprocess.run([sys.executable, "-c",
+            "import gi; gi.require_version('Rsvg', '2.0'); from gi.repository import Rsvg"],
+            capture_output=True).returncode == 0
+        if not available:
+            self.skipTest("librsvg introspection is required for SVG layer geometry")
+        with tempfile.TemporaryDirectory() as directory:
+            theme = Path(directory)
+            (theme / "mimetypes").mkdir()
+            path = theme / "mimetypes/archive.svg"
+            path.write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
+                '<defs><linearGradient id="tile"><stop stop-color="#222222"/>'
+                '<stop offset="1" stop-color="#777777"/></linearGradient></defs>'
+                '<rect x="6" y="2" width="52" height="60" fill="url(#tile)"/>'
+                '<rect id="glyph" x="20" y="16" width="24" height="26" fill="#333333"/>'
+                '<rect id="detail" x="30" y="18" width="4" height="20" fill="#ffffff"/>'
+                '<rect id="caption" x="24" y="52" width="16" height="4" fill="#ffffff"/>'
+                '</svg>')
+            subprocess.run([sys.executable, str(SCRIPT), str(theme)], check=True)
+            first = path.read_text()
+            import xml.etree.ElementTree as ET
+            tree = ET.fromstring(first)
+            nodes = {node.get("id"): node for node in tree.iter() if node.get("id")}
+            self.assertIn("fill:#ffffff", nodes["glyph"].get("style"))
+            self.assertIn("fill:#443456", nodes["detail"].get("style"))
+            self.assertIn("fill:#ffffff", nodes["caption"].get("style"))
+            self.assertIn('fill="url(#tile)"', first)
+            subprocess.run([sys.executable, str(SCRIPT), str(theme)], check=True)
+            self.assertEqual(first, path.read_text())
+
     def test_tint_is_idempotent_and_keeps_apps_and_transparency(self):
         with tempfile.TemporaryDirectory() as directory:
             theme = Path(directory)

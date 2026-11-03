@@ -237,11 +237,12 @@
 .wack-cupertino-rest .login-dialog-prompt-layout,
 .wack-cupertino-prompt .login-dialog-prompt-layout,
 .wack-cupertino-prompt.login-dialog-prompt-layout {
-    width: 22em !important;
+    width: 28em !important;
     spacing: 9px !important;
 }
 
 .wack-cupertino-prompt .login-dialog-button-box {
+    width: 26em !important;
     padding: 0.0875em 0.85em !important;
 }
 
@@ -253,6 +254,40 @@
     font-size: 14px !important;
     border-radius: 9999px !important;
     border: none !important;
+}
+
+/* GNOME 51 overlays Submit / Spinner on the entry area. Reserve a separate
+   trailing lane so the native password-visibility icon never sits underneath it. */
+.wack-cupertino-prompt .login-dialog-prompt-entry:ltr {
+    padding-right: 3em !important;
+    padding-left: 12px !important;
+}
+
+.wack-cupertino-prompt .login-dialog-prompt-entry:rtl {
+    padding-left: 3em !important;
+    padding-right: 12px !important;
+}
+
+.wack-cupertino-prompt .login-dialog-default-button-well {
+    width: 24px;
+    height: 24px;
+}
+
+.wack-cupertino-prompt .login-dialog-default-button-well:ltr {
+    margin-right: 10px;
+}
+
+.wack-cupertino-prompt .login-dialog-default-button-well:rtl {
+    margin-left: 10px;
+}
+
+.wack-cupertino-prompt .login-dialog-button.next-button {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0 !important;
+    margin: 0;
+    border: none;
+    background-color: transparent !important;
 }
 
 /* ── Action Buttons (A11y, Session, Auth) ─────────────────────────────────── */

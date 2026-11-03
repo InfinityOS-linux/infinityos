@@ -2,6 +2,14 @@
 """Tint Kora's system icons purple while leaving application logos alone."""
 
 import re
+import xml.etree.ElementTree as ET
+
+try:
+    import gi
+    gi.require_version("Rsvg", "2.0")
+    from gi.repository import Rsvg
+except (ImportError, ValueError):
+    Rsvg = None
 import sys
 from pathlib import Path
 
@@ -56,6 +64,77 @@ def tint(match, section):
     return match.group("property") + purple
 
 
+
+def white_file_glyphs(svg):
+    """Keep document tiles purple, with white symbols and contrasting cutouts."""
+    if Rsvg is None:
+        return svg
+    tree = ET.fromstring(svg)
+    if tree.get("data-infinity-glyph-contrast") == "white-v1":
+        return svg
+    viewbox = tree.get("viewBox", "").split()
+    if len(viewbox) != 4:
+        return svg
+    viewport = Rsvg.Rectangle()
+    viewport.x, viewport.y, viewport.width, viewport.height = map(float, viewbox)
+    shapes = []
+
+    def collect(node, inherited=None):
+        tag = node.tag.rsplit("}", 1)[-1]
+        if tag in {"defs", "clipPath", "mask", "linearGradient", "radialGradient", "filter"}:
+            return
+        paints = dict(inherited or {"fill": "#000000", "stroke": "none"})
+        for key in ("fill", "stroke"):
+            if key in node.attrib:
+                paints[key] = node.get(key)
+        for key, value in re.findall(r"(?:^|;)\s*(fill|stroke)\s*:\s*([^;]+)", node.get("style", "")):
+            paints[key] = value.strip()
+        if tag in {"path", "rect", "circle", "ellipse", "polygon", "polyline", "text", "use"}:
+            if not node.get("id"):
+                node.set("id", f"infinity-glyph-{len(shapes)}")
+            shapes.append((node, paints))
+        for child in node:
+            collect(child, paints)
+
+    collect(tree)
+    handle = Rsvg.Handle.new_from_data(ET.tostring(tree))
+    measured = []
+    for node, paints in shapes:
+        valid, _ink, bounds = handle.get_geometry_for_layer("#" + node.get("id"), viewport)
+        if valid:
+            measured.append((node, paints, bounds))
+    area = viewport.width * viewport.height
+    backgrounds = {id(node) for node, _paints, box in measured
+                   if box.width * box.height >= area * 0.45}
+    if not backgrounds:
+        return svg
+    dark_symbols = []
+    for node, paints, box in measured:
+        if id(node) in backgrounds:
+            continue
+        overrides = []
+        for key, value in paints.items():
+            if not re.fullmatch(r"#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?", value):
+                continue
+            dark = max(int(value[i:i + 2], 16) for i in (1, 3, 5)) < 190
+            # White details inside an earlier dark symbol become purple cutouts;
+            # captions outside the symbol remain white on the document tile.
+            inset = not dark and any(
+                box.x >= outer.x - 0.01 and box.y >= outer.y - 0.01
+                and box.x + box.width <= outer.x + outer.width + 0.01
+                and box.y + box.height <= outer.y + outer.height + 0.01
+                for outer in dark_symbols)
+            color = "#443456" if inset else "#ffffff"
+            overrides.append(f"{key}:{color}{value[7:]}")
+            if key == "fill" and dark:
+                dark_symbols.append(box)
+        if overrides:
+            node.set("style", node.get("style", "").rstrip(";") + ";" + ";".join(overrides))
+    tree.set("data-infinity-glyph-contrast", "white-v1")
+    ET.register_namespace("", "http://www.w3.org/2000/svg")
+    ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
+    return ET.tostring(tree, encoding="unicode") + "\n"
+
 def trash_icon(full):
     paper = '<path d="m19 18 5-5 5 4 4-7 5 7 6-3 2 10H19Z" fill="#dbc7ff"/>' if full else ""
     return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
@@ -71,12 +150,16 @@ def main(root):
             if path.is_symlink() or not path.is_file():
                 continue
             original = path.read_text(encoding="utf-8")
+            if 'data-infinity-glyph-contrast="white-v1"' in original:
+                continue
             if section == "places" and (path.stem.startswith("folder") or path.stem in {"user-home", "user-desktop"}):
                 continue
             if section in {"places", "status"} and "scalable" in path.parts and path.name in {"user-trash.svg", "user-trash-full.svg"}:
                 updated = trash_icon(path.stem.endswith("-full"))
             else:
                 updated = COLOR.sub(lambda match: tint(match, section), original)
+                if section == "mimetypes":
+                    updated = white_file_glyphs(updated)
             if updated != original:
                 path.write_text(updated, encoding="utf-8")
 

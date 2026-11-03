@@ -67,3 +67,15 @@ test('WACK clock accepts GNOME 51 authentication hints', () => {
     clock.selectAuthHint(null);
     assert.equal(clock._hint.text, 'Click or press a key to unlock');
 });
+
+
+test('Cupertino reserves independent space for password visibility and submit/spinner', () => {
+    const rule = selector => stylesheet.slice(stylesheet.indexOf(selector + ' {'))
+        .match(/\{([^}]+)\}/)?.[1] ?? '';
+    assert.match(rule('.wack-cupertino-prompt.login-dialog-prompt-layout'), /width: 28em/);
+    assert.match(rule('.wack-cupertino-prompt .login-dialog-button-box'), /width: 26em/);
+    assert.match(rule('.wack-cupertino-prompt .login-dialog-prompt-entry:ltr'), /padding-right: 3em/);
+    assert.match(rule('.wack-cupertino-prompt .login-dialog-prompt-entry:rtl'), /padding-left: 3em/);
+    assert.match(rule('.wack-cupertino-prompt .login-dialog-default-button-well'), /width: 24px/);
+    assert.match(rule('.wack-cupertino-prompt .login-dialog-button.next-button'), /padding: 0 !important/);
+});

@@ -12,6 +12,7 @@ Requires:       gpaste-ui >= 51.0
 Requires:       glib2
 Requires:       dconf
 Requires:       python3-gobject
+Requires:       librsvg2
 
 # Adopt the six Fedora extension directories so that only an Infinity OS RPM
 # may update their code. The GPaste service remains Fedora-managed.
