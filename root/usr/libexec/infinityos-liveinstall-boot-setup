@@ -53,7 +53,7 @@ mv -f "$esp/os/.vmlinuz-$version.tmp" "$esp/os/vmlinuz-$version"
 mv -f "$esp/os/.initramfs-$version.img.tmp" "$esp/os/initramfs-$version.img"
 /usr/libexec/infinityos-refind-install "$esp"
 /usr/libexec/infinityos-refind-config "$esp"
-grep -Fq 'menuentry "Backups (Btrfs)"' "$esp/EFI/refind/refind.conf"
+grep -Fq 'menuentry "Backups"' "$esp/EFI/refind/refind.conf"
 cmp "$esp/EFI/refind/refind.conf" "$esp/EFI/BOOT/refind.conf"
 /usr/libexec/infinityos-remove-obsolete-efi-loaders
 # RPM erasure must not be able to remove the firmware fallback installed above.

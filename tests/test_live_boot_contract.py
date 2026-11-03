@@ -103,7 +103,7 @@ class LiveBootContractTests(unittest.TestCase):
     def test_live_boot_has_quiet_default_and_visible_diagnostics(self):
         finalizer = (REPO / "scripts/finalize-infinity-iso").read_text()
         self.assertIn("rd.systemd.show_status=false", finalizer)
-        self.assertIn('menuentry "Live (diagnostics)"', finalizer)
+        self.assertIn('menuentry "Recovery"', finalizer)
         self.assertIn("plymouth.enable=0 rd.debug", finalizer)
         self.assertIn("rd.systemd.show_status=false",
                       (REPO / "scripts/finalize-infinity-disk").read_text())
@@ -157,7 +157,7 @@ class LiveBootContractTests(unittest.TestCase):
         finalizer = (REPO / "scripts/finalize-infinity-iso").read_text()
         self.assertIn("scripts/finalize-infinity-iso", builder)
         self.assertIn('install -m 0644 "$kernel" "$efi_mount/os/linux"', finalizer)
-        self.assertIn("menuentry \"Uruchom system w trybie live\"", finalizer)
+        self.assertIn("menuentry \"Launch system\"", finalizer)
         for label in ("live", "check", "safe"):
             self.assertIn(f"icon /EFI/BOOT/infinity-theme/icons/os_infinityos_{label}.png", finalizer)
         self.assertIn("-rm_r /boot/grub2", finalizer)

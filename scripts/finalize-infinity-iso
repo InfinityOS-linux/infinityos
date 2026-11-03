@@ -68,29 +68,29 @@ cmp "$initrd" "$efi_mount/os/initrd"
 cp -a "$theme/." "$efi_mount/EFI/BOOT/infinity-theme/"
 cat > "$efi_mount/EFI/BOOT/refind.conf" <<EOF_CONF
 timeout 10
-default_selection "Uruchom system w trybie live"
+default_selection "Launch system"
 scanfor manual
 include infinity-theme/theme.conf
 
-menuentry "Uruchom system w trybie live" {
+menuentry "Launch system" {
     loader /os/linux
     icon /EFI/BOOT/infinity-theme/icons/os_infinityos_live.png
     initrd /os/initrd
     options "quiet rhgb loglevel=3 rd.udev.log_level=3 rd.systemd.show_status=false systemd.show_status=false vt.global_cursor_default=0 root=live:CDLABEL=$volid rd.live.image"
 }
-menuentry "Test media and start live" {
+menuentry "Check media" {
     loader /os/linux
     icon /EFI/BOOT/infinity-theme/icons/os_infinityos_check.png
     initrd /os/initrd
     options "quiet rhgb loglevel=3 rd.udev.log_level=3 rd.systemd.show_status=false systemd.show_status=false vt.global_cursor_default=0 root=live:CDLABEL=$volid rd.live.image rd.live.check"
 }
-menuentry "Live (basic graphics)" {
+menuentry "Safe graphics" {
     loader /os/linux
     icon /EFI/BOOT/infinity-theme/icons/os_infinityos_safe.png
     initrd /os/initrd
     options "quiet rhgb loglevel=3 rd.udev.log_level=3 rd.systemd.show_status=false systemd.show_status=false vt.global_cursor_default=0 root=live:CDLABEL=$volid rd.live.image nomodeset"
 }
-menuentry "Live (diagnostics)" {
+menuentry "Recovery" {
     loader /os/linux
     icon /EFI/BOOT/infinity-theme/icons/os_infinityos_recovery.png
     initrd /os/initrd

@@ -44,7 +44,7 @@ check 'EFI partition mounted' bash -c '[[ $(findmnt -n -M /boot/efi -o FSTYPE) =
 check 'rEFInd installation recorded' test -f /etc/infinityos/refind-installed
 check 'rEFInd EFI binary' test -s "/boot/efi/EFI/refind/refind_${efi_arch}.efi"
 check 'rEFInd fallback matches' cmp -s "/boot/efi/EFI/refind/refind_${efi_arch}.efi" "/boot/efi/EFI/BOOT/BOOT${efi_arch^^}.EFI"
-check 'Infinity OS rEFInd entry' grep -Fq 'menuentry "Uruchom system"' /boot/efi/EFI/refind/refind.conf
+check 'Infinity OS rEFInd entry' grep -Fq 'menuentry "Launch system"' /boot/efi/EFI/refind/refind.conf
 check 'fallback rEFInd menu matches' cmp -s /boot/efi/EFI/refind/refind.conf /boot/efi/EFI/BOOT/refind.conf
 check 'fallback rEFInd theme' test -s /boot/efi/EFI/BOOT/infinity-theme/theme.conf
 check 'fallback Infinity OS icon' test -s /boot/efi/EFI/BOOT/infinity-theme/icons/os_infinityos.png
@@ -52,7 +52,7 @@ check 'fallback recovery icon' test -s /boot/efi/EFI/BOOT/infinity-theme/icons/o
 check 'active Infinity OS EFI entry' active_infinity_boot
 check 'Snapper root configuration' test -f /etc/snapper/configs/root
 check 'Btrfs backup setup' test -f /var/lib/infinityos/backups-ready
-check 'Btrfs Backups rEFInd entry' grep -Fq 'menuentry "Backups (Btrfs)"' /boot/efi/EFI/refind/refind.conf
+check 'Btrfs Backups rEFInd entry' grep -Fq 'menuentry "Backups"' /boot/efi/EFI/refind/refind.conf
 check 'obsolete EFI loaders absent' bash -c '[[ ! -e /boot/efi/EFI/infinityos && ! -e /boot/efi/EFI/systemd && ! -e /boot/efi/loader && ! -e /boot/grub2 ]]'
 check 'obsolete loader maintenance masked' bash -c 'for unit in systemd-boot-update.service systemd-boot-clear-sysfail.service systemd-boot-random-seed.service systemd-bootctl.socket grub-boot-indeterminate.service; do [[ $(systemctl is-enabled "$unit") == masked ]] || exit 1; done'
 check 'obsolete EFI loader packages absent' bash -c '! rpm -qa --qf "%{NAME}\n" | grep -Eq "^(grub2-efi-|grub2-pc($|-)|grub2-tools-efi$|shim-(aa64|ia32|x64)$|systemd-boot-unsigned$)"'

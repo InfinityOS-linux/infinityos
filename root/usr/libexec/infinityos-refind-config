@@ -39,13 +39,13 @@ done
 IFS=$'\n' versions=($(printf '%s\n' "${versions[@]}" | sort -Vr))
 unset IFS
 
-default='Uruchom system'
+default='Launch system'
 if [[ -s $next_mode ]]; then
 	requested=
 	read -r requested < "$next_mode" || true
 	case $requested in
-		esde) title='Emulator mode'; icon=os_infinityos_esde.png ;;
-		steam) title='Steam mode'; icon=os_infinityos_steam.png ;;
+		esde) title='Emulation'; icon=os_infinityos_esde.png ;;
+		steam) title='Steam'; icon=os_infinityos_steam.png ;;
 		*) title=; icon= ;;
 	esac
 	if [[ -n $title && -s $tv_modes/$requested &&
@@ -59,11 +59,13 @@ fallback_tmp=$(mktemp "$esp/EFI/BOOT/.refind.conf.XXXXXX")
 trap 'rm -f "$tmp" "$fallback_tmp"' EXIT
 {
 	printf 'timeout 5\ndefault_selection "%s"\nscanfor manual\ninclude infinity-theme/theme.conf\n\n' "$default"
+	entry=0
 	for version in "${versions[@]}"; do
+		(( ++entry ))
 		if [[ $version == "${versions[0]}" ]]; then
-			title='Uruchom system'
+			title='Launch system'
 		else
-			title="Uruchom system ($version)"
+			title="Launch system ($entry)"
 		fi
 		printf 'menuentry "%s" {\n' "$title"
 		printf '    loader /os/vmlinuz-%s\n' "$version"
@@ -76,8 +78,8 @@ trap 'rm -f "$tmp" "$fallback_tmp"' EXIT
 	for mode in esde steam; do
 		[[ -s $tv_modes/$mode ]] || continue
 		case $mode in
-			esde) title='Emulator mode'; icon=os_infinityos_esde.png ;;
-			steam) title='Steam mode'; icon=os_infinityos_steam.png ;;
+			esde) title='Emulation'; icon=os_infinityos_esde.png ;;
+			steam) title='Steam'; icon=os_infinityos_steam.png ;;
 		esac
 		[[ -s $esp/EFI/refind/infinity-theme/icons/$icon ]] || continue
 		printf 'menuentry "%s" {\n' "$title"
@@ -95,13 +97,13 @@ trap 'rm -f "$tmp" "$fallback_tmp"' EXIT
 			*) backup_options+=("$arg") ;;
 		esac
 	done
-	printf 'menuentry "Diagnostyka systemu" {\n'
+	printf 'menuentry "Recovery" {\n'
 	printf '    loader /os/vmlinuz-%s\n' "$version"
 	printf '    icon /EFI/refind/infinity-theme/icons/os_infinityos_recovery.png\n'
 	printf '    initrd /os/initramfs-%s.img\n' "$version"
 	printf '    options "%s loglevel=7 rd.udev.log_level=info rd.systemd.show_status=true systemd.show_status=true plymouth.enable=0 rd.debug"\n' "${backup_options[*]}"
 	printf '}\n\n'
-	printf 'menuentry "Backups (Btrfs)" {\n'
+	printf 'menuentry "Backups" {\n'
 	printf '    loader /os/vmlinuz-%s\n' "$version"
 	printf '    icon /EFI/refind/infinity-theme/icons/os_infinityos_recovery.png\n'
 	printf '    initrd /os/initramfs-%s.img\n' "$version"

@@ -107,8 +107,8 @@ class RefindConfigTests(unittest.TestCase):
             menu = (esp / "EFI/refind/refind.conf").read_text()
             self.assertEqual(menu, (esp / "EFI/BOOT/refind.conf").read_text())
             self.assertNotIn("showtools", menu)
-            system, diagnostics = menu.split('menuentry "Diagnostyka systemu"', 1)
-            diagnostics, recovery = diagnostics.split('menuentry "Backups (Btrfs)"', 1)
+            system, diagnostics = menu.split('menuentry "Recovery"', 1)
+            diagnostics, recovery = diagnostics.split('menuentry "Backups"', 1)
             self.assertIn("loglevel=3", system)
             self.assertIn("rd.systemd.show_status=false", system)
             self.assertNotIn(" quiet", diagnostics)
@@ -170,37 +170,37 @@ class RefindConfigTests(unittest.TestCase):
                        str(root / "no-backups-marker"), str(modes), str(next_mode)]
             subprocess.run(command, check=True)
             menu = (esp / "EFI/refind/refind.conf").read_text()
-            self.assertIn('default_selection "Uruchom system"', menu)
-            self.assertIn('menuentry "Emulator mode"', menu)
+            self.assertIn('default_selection "Launch system"', menu)
+            self.assertIn('menuentry "Emulation"', menu)
             self.assertIn('systemd.unit=infinityos-tv@esde.target', menu)
-            self.assertNotIn('menuentry "Steam mode"', menu)
+            self.assertNotIn('menuentry "Steam"', menu)
             next_mode.write_text("esde\n")
             subprocess.run(command, check=True)
-            self.assertIn('default_selection "Emulator mode"',
+            self.assertIn('default_selection "Emulation"',
                           (esp / "EFI/refind/refind.conf").read_text())
             next_mode.write_text("steam\n")
             subprocess.run(command, check=True)
-            self.assertIn('default_selection "Uruchom system"',
+            self.assertIn('default_selection "Launch system"',
                           (esp / "EFI/refind/refind.conf").read_text())
             (modes / "steam").write_text("1000\n")
             subprocess.run(command, check=True)
             menu = (esp / "EFI/refind/refind.conf").read_text()
-            self.assertIn('default_selection "Steam mode"', menu)
+            self.assertIn('default_selection "Steam"', menu)
             self.assertIn('systemd.unit=infinityos-tv@steam.target', menu)
             self.assertEqual(
                 [line for line in menu.splitlines() if line.startswith("menuentry ")],
-                ['menuentry "Uruchom system" {', 'menuentry "Emulator mode" {',
-                 'menuentry "Steam mode" {', 'menuentry "Diagnostyka systemu" {',
-                 'menuentry "Backups (Btrfs)" {'],
+                ['menuentry "Launch system" {', 'menuentry "Emulation" {',
+                 'menuentry "Steam" {', 'menuentry "Recovery" {',
+                 'menuentry "Backups" {'],
             )
             self.assertEqual(menu, (esp / "EFI/BOOT/refind.conf").read_text())
             next_mode.unlink()
             subprocess.run(command, check=True)
-            self.assertIn('default_selection "Uruchom system"',
+            self.assertIn('default_selection "Launch system"',
                           (esp / "EFI/refind/refind.conf").read_text())
             (modes / "esde").unlink()
             subprocess.run(command, check=True)
-            self.assertNotIn('menuentry "Emulator mode"',
+            self.assertNotIn('menuentry "Emulation"',
                              (esp / "EFI/refind/refind.conf").read_text())
 
 

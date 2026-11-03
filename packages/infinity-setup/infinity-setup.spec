@@ -53,6 +53,7 @@ if [ -f /etc/infinityos/refind-installed ] && mountpoint -q /boot/efi; then
                 /boot/efi/EFI/Xbox360/config.ini || :
         fi
     fi
+    /usr/libexec/infinityos-refind-config || :
 fi
 
 %files
