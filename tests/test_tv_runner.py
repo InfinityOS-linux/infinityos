@@ -55,7 +55,7 @@ class TVRunnerTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn("gamescope exited early", completed.stderr)
         self.assertEqual(fallback,
-                         "pixman|-- flatpak run --user com.valvesoftware.Steam -gamepadui -steamos3 -steampal -steamdeck\n")
+                         "pixman|-- flatpak run --user --system-talk-name=org.freedesktop.login1 com.valvesoftware.Steam -gamepadui -steamos3 -steampal -steamdeck\n")
         self.assertEqual(attempts, "x")
         self.assertEqual(bus.count("-- gamescope"), 1)
         self.assertEqual(bus.count("-- cage"), 1)

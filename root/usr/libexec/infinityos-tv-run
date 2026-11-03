@@ -40,6 +40,7 @@ case ${1:-} in
         exec cage -- "$app"
         ;;
     steam)
+        mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/gamescope/scripts"
         if [[ $(uname -m) == aarch64 ]]; then
             client="$HOME/.local/share/Steam/steamrtarm64/steam"
             [[ -x $client ]] || { echo 'Steam ARM64 is missing' >&2; exit 1; }
@@ -54,7 +55,8 @@ case ${1:-} in
             echo 'Steam Flatpak is missing' >&2
             exit 1
         fi
-        run_steam flatpak run "$scope" com.valvesoftware.Steam -gamepadui -steamos3 -steampal -steamdeck
+        # Allow TV power-menu actions through logind; authorization remains with polkit.
+        run_steam flatpak run "$scope" --system-talk-name=org.freedesktop.login1 com.valvesoftware.Steam -gamepadui -steamos3 -steampal -steamdeck
         ;;
     *) echo 'Unknown TV mode' >&2; exit 2 ;;
 esac
