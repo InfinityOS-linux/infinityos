@@ -99,6 +99,8 @@ class UpdaterTests(unittest.TestCase):
             self.assertEqual(i18n.update_count(1), '1 dostępna aktualizacja')
             self.assertEqual(i18n.update_count(3), '3 dostępne aktualizacje')
             self.assertEqual(i18n.update_count(12), '12 dostępnych aktualizacji')
+            self.assertEqual(i18n.tr('RPM updates waiting for compatible dependencies: {packages}').format(
+                packages='libheif'), 'Aktualizacje RPM czekają na zgodne zależności: libheif')
         with patch.object(i18n.locale, 'getlocale', return_value=('en_US', 'UTF-8')):
             self.assertEqual(i18n.tr('No internet connection'), 'No internet connection')
             self.assertEqual(i18n.update_count(1), '1 available update')
@@ -385,7 +387,7 @@ class UpdaterTests(unittest.TestCase):
         script = (SOURCE.parents[2] / 'libexec/infinityos-upgrade-system').read_text()
         self.assertLess(script.index('number=$(snapper'), script.index('exec dnf'))
         self.assertIn('RPM upgrade stopped: could not create', script)
-        self.assertIn('dnf -y upgrade --refresh --best', script)
+        self.assertIn('dnf -y upgrade --refresh --best --skip-unavailable', script)
 
     def test_update_command_streams_carriage_return_progress(self):
         events = []

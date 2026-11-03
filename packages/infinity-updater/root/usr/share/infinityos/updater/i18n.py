@@ -30,6 +30,8 @@ POLISH = {
     'This release changes the Fedora base and needs a dedicated migration path.':
         'Ta wersja zmienia bazę Fedory i wymaga osobnej procedury migracji.',
     'Some updates could not be installed.': 'Nie udało się zainstalować części aktualizacji.',
+    'RPM updates waiting for compatible dependencies: {packages}':
+        'Aktualizacje RPM czekają na zgodne zależności: {packages}',
     'System updates installed. Restart may be required.':
         'Zainstalowano aktualizacje systemu. Może być wymagane ponowne uruchomienie.',
     'Sign out and back in to use updated extensions.':

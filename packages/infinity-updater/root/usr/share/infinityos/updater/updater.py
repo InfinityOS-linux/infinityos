@@ -415,11 +415,11 @@ def main():
                 self.report_progress('Remaining updates', 'Checking', None, None)
                 try:
                     state = check_updates()
-                    if not errors and state.get('rpm_check_ok'):
+                    if state.get('rpm_check_ok'):
                         pending = pending_rpm_names(updates, state['updates'])
                         if pending:
-                            errors.append('System packages: updates still pending: ' +
-                                          ', '.join(pending))
+                            errors.append(tr('RPM updates waiting for compatible dependencies: {packages}').format(
+                                packages=', '.join(pending)))
                     state['errors'] = errors + state['errors']
                     save_state(state)
                 except Exception as error:
