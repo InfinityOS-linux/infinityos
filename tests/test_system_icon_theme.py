@@ -35,7 +35,9 @@ class SystemIconThemeTests(unittest.TestCase):
                 '<rect x="6" y="2" width="52" height="60" fill="url(#tile)"/>'
                 '<rect id="glyph" x="20" y="16" width="24" height="26" fill="#333333"/>'
                 '<rect id="detail" x="30" y="18" width="4" height="20" fill="#ffffff"/>'
+                '<rect id="gradient-detail" x="24" y="20" width="3" height="12" fill="url(#tile)"/>'
                 '<rect id="caption" x="24" y="52" width="16" height="4" fill="#ffffff"/>'
+                '<g id="faint-group" opacity=".2"><rect id="faint" x="9" y="16" width="5" height="12" fill="url(#tile)" fill-opacity=".3"/></g>'
                 '</svg>')
             subprocess.run([sys.executable, str(SCRIPT), str(theme)], check=True)
             first = path.read_text()
@@ -44,7 +46,11 @@ class SystemIconThemeTests(unittest.TestCase):
             nodes = {node.get("id"): node for node in tree.iter() if node.get("id")}
             self.assertIn("fill:#ffffff", nodes["glyph"].get("style"))
             self.assertIn("fill:#443456", nodes["detail"].get("style"))
+            self.assertIn("fill:#443456", nodes["gradient-detail"].get("style"))
             self.assertIn("fill:#ffffff", nodes["caption"].get("style"))
+            self.assertIn("fill:#ffffff", nodes["faint"].get("style"))
+            self.assertIn("fill-opacity:1", nodes["faint"].get("style"))
+            self.assertIn("opacity:1", nodes["faint-group"].get("style"))
             self.assertIn('fill="url(#tile)"', first)
             subprocess.run([sys.executable, str(SCRIPT), str(theme)], check=True)
             self.assertEqual(first, path.read_text())

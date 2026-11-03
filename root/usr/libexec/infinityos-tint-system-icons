@@ -65,12 +65,27 @@ def tint(match, section):
 
 
 
+
+def restore_file_paints(svg):
+    """Recover the original paints before upgrading the first contrast pass."""
+    if 'data-infinity-glyph-contrast="white-v1"' not in svg:
+        return svg
+    tree = ET.fromstring(svg)
+    for node in tree.iter():
+        style = node.get("style", "")
+        while re.search(r";(?:fill|stroke):(?:#ffffff|#443456)(?:[0-9a-f]{2})?$", style):
+            style = style.rsplit(";", 1)[0]
+        if "style" in node.attrib:
+            node.set("style", style)
+    tree.attrib.pop("data-infinity-glyph-contrast", None)
+    return ET.tostring(tree, encoding="unicode")
+
 def white_file_glyphs(svg):
     """Keep document tiles purple, with white symbols and contrasting cutouts."""
     if Rsvg is None:
         return svg
     tree = ET.fromstring(svg)
-    if tree.get("data-infinity-glyph-contrast") == "white-v1":
+    if tree.get("data-infinity-glyph-contrast") == "white-v2":
         return svg
     viewbox = tree.get("viewBox", "").split()
     if len(viewbox) != 4:
@@ -114,23 +129,29 @@ def white_file_glyphs(svg):
             continue
         overrides = []
         for key, value in paints.items():
-            if not re.fullmatch(r"#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?", value):
+            gradient = value.startswith("url(")
+            if not gradient and not re.fullmatch(r"#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?", value):
                 continue
-            dark = max(int(value[i:i + 2], 16) for i in (1, 3, 5)) < 190
+            dark = gradient or max(int(value[i:i + 2], 16) for i in (1, 3, 5)) < 190
             # White details inside an earlier dark symbol become purple cutouts;
             # captions outside the symbol remain white on the document tile.
-            inset = not dark and any(
+            inset = (not dark or gradient) and any(
                 box.x >= outer.x - 0.01 and box.y >= outer.y - 0.01
                 and box.x + box.width <= outer.x + outer.width + 0.01
                 and box.y + box.height <= outer.y + outer.height + 0.01
                 for outer in dark_symbols)
             color = "#443456" if inset else "#ffffff"
-            overrides.append(f"{key}:{color}{value[7:]}")
-            if key == "fill" and dark:
+            overrides.append(f"{key}:{color}")
+            if key == "fill" and dark and not inset:
                 dark_symbols.append(box)
         if overrides:
+            overrides.extend(["opacity:1", "fill-opacity:1", "stroke-opacity:1"])
             node.set("style", node.get("style", "").rstrip(";") + ";" + ";".join(overrides))
-    tree.set("data-infinity-glyph-contrast", "white-v1")
+    # Group opacity multiplies child opacity; clear it for foreground-only groups.
+    for group in tree.iter():
+        if group.tag.rsplit("}", 1)[-1] == "g" and not any(id(child) in backgrounds for child in group.iter()):
+            group.set("style", group.get("style", "").rstrip(";") + ";opacity:1;fill-opacity:1;stroke-opacity:1")
+    tree.set("data-infinity-glyph-contrast", "white-v2")
     ET.register_namespace("", "http://www.w3.org/2000/svg")
     ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
     return ET.tostring(tree, encoding="unicode") + "\n"
@@ -150,14 +171,15 @@ def main(root):
             if path.is_symlink() or not path.is_file():
                 continue
             original = path.read_text(encoding="utf-8")
-            if 'data-infinity-glyph-contrast="white-v1"' in original:
+            if 'data-infinity-glyph-contrast="white-v2"' in original:
                 continue
             if section == "places" and (path.stem.startswith("folder") or path.stem in {"user-home", "user-desktop"}):
                 continue
             if section in {"places", "status"} and "scalable" in path.parts and path.name in {"user-trash.svg", "user-trash-full.svg"}:
                 updated = trash_icon(path.stem.endswith("-full"))
             else:
-                updated = COLOR.sub(lambda match: tint(match, section), original)
+                source = restore_file_paints(original) if section == "mimetypes" else original
+                updated = COLOR.sub(lambda match: tint(match, section), source)
                 if section == "mimetypes":
                     updated = white_file_glyphs(updated)
             if updated != original:
