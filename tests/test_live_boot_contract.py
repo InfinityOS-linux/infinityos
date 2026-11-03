@@ -83,6 +83,10 @@ class LiveBootContractTests(unittest.TestCase):
         self.assertEqual(data[25], 6)  # RGBA
         self.assertNotIn("disable-user-extensions", setup)
         self.assertTrue((REPO / "root/usr/libexec/infinityos-liveinst").is_file())
+        defaults = (REPO / "root/usr/share/infinityos/gnome-defaults").read_text()
+        favorites = defaults.split("favorite-apps=", 1)[1].splitlines()[0]
+        self.assertNotIn("com.infinityos.GhosTTY.desktop", favorites)
+        self.assertIn("dash2dock-animated@infinityos.org", defaults)
 
     def test_mascot_is_used_by_installer_and_boot_animation(self):
         source = REPO / "assets/infinityos-mascot.png"

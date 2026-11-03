@@ -94,7 +94,9 @@ source = replace_once_or_present(
     "progress message prefix",
 )
 source = replace_once_or_present(
-    source, 'N=jo("In progress"),J=l', 'N="",J=l', "progress status label",
+    source, 'N=jo("In progress"),J=l',
+    'N="",J=c===1&&/\\d+%/.test(l)?jo("Copying everything you need into place!")+" "+l.match(/\\d+%/)[0]:l',
+    "software installation progress",
 )
 
 polish = WEBUI / "po.pl.js.gz"
@@ -108,6 +110,7 @@ translations = {
     "Security": "Bezpieczeństwo",
     "User": "Użytkownik",
     "Summary": "Podsumowanie",
+    "Copying everything you need into place!": "Kopiujemy wszystko, co potrzebne, na miejsce!",
 }
 missing = [key for key in translations if not re.search(r'"' + re.escape(key) + r'"\s*:', locale)]
 if missing:

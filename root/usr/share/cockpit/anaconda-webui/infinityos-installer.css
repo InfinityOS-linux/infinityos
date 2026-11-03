@@ -631,7 +631,6 @@ body:has(.anaconda-screen-progress-status),
   height: clamp(150px, 20vw, 210px);
   margin-inline: auto;
   background: url("infinityos-installer-mascot.png") center / contain no-repeat;
-  animation: infinity-mascot-float 5s ease-in-out infinite;
 }
 
 .anaconda-screen-progress-status .pf-v6-c-empty-state__icon svg {
@@ -801,10 +800,6 @@ body:has(.anaconda-screen-progress-status),
 
 @keyframes infinity-spinner {
   to { transform: rotate(360deg); }
-}
-
-@keyframes infinity-mascot-float {
-  50% { transform: translateY(-4px); }
 }
 
 @keyframes infinity-stage-enter {
