@@ -95,7 +95,7 @@ fi
 /usr/lib/systemd/system/infinityos-tv@.target
 /usr/share/polkit-1/actions/org.infinityos.tv-modes.policy
 /usr/share/polkit-1/actions/org.infinityos.tv-enter.policy
-/usr/share/icons/hicolor/scalable/apps/infinity-setup.svg
+/usr/share/icons/hicolor/512x512/apps/infinity-setup.png
 /usr/share/infinityos/launcher.desktop
 /usr/share/infinityos/launcher-appid.desktop
 /usr/share/infinityos/launcher-autostart.desktop

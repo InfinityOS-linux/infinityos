@@ -134,6 +134,7 @@ elif [[ "$package" == infinity-setup ]]; then
   install -d "$work/source/$package-$version/usr/bin" \
     "$work/source/$package-$version/usr/share/applications" \
     "$work/source/$package-$version/usr/share/icons/hicolor/scalable/apps" \
+    "$work/source/$package-$version/usr/share/icons/hicolor/512x512/apps" \
     "$work/source/$package-$version/usr/share/infinityos/refind-theme/icons" \
     "$work/source/$package-$version/usr/share/infinityos/efi-drivers/x64" \
     "$work/source/$package-$version/usr/share/infinityos/efi-drivers/aa64" \
@@ -145,8 +146,8 @@ elif [[ "$package" == infinity-setup ]]; then
     "$work/source/$package-$version/usr/share/licenses/infinity-setup"
   # App catalog artwork stays private so a future RPM can own its real icon.
   # Launcher catalog icons stay private; InfinityTerminal owns its tab icons.
-  install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/launcher-icons/infinity-setup.svg" \
-    "$work/source/$package-$version/usr/share/icons/hicolor/scalable/apps/infinity-setup.svg"
+  install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/launcher-icons/infinity-setup.png" \
+    "$work/source/$package-$version/usr/share/icons/hicolor/512x512/apps/infinity-setup.png"
   install -m 0755 "$repo/packages/infinity-setup/root/usr/bin/infinity-setup" \
     "$work/source/$package-$version/usr/bin/infinity-setup"
   install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/launcher.desktop" \

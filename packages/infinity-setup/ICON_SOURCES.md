@@ -7,3 +7,6 @@ InfinitySetup bundles these additional brand marks for its app catalog:
 
 Downloaded on 2026-10-22. The marks identify their respective products; the
 bundled copies are not part of the InfinityOS visual identity.
+
+InfinitySetup app icon: original purple package artwork generated with OpenAI ImageGen,
+approved for InfinityOS on 2026-11-03. Stored as infinity-setup.png with alpha transparency.

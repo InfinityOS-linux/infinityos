@@ -36,7 +36,7 @@ python3 -m py_compile %{buildroot}/usr/share/infinityos/config_backend.py %{buil
 /usr/share/infinityos/__pycache__/config_backend*.pyc
 /usr/share/infinityos/__pycache__/diagnostics*.pyc
 /usr/share/applications/org.infinityos.Config.desktop
-/usr/share/icons/hicolor/scalable/apps/infinity-config.svg
+/usr/share/icons/hicolor/512x512/apps/infinity-config.png
 
 %changelog
 * Mon Oct 19 2026 Infinity OS Contributors <noreply@github.com> - 1.0.0-1

@@ -36,7 +36,7 @@ glib-compile-schemas /usr/share/gnome-shell/extensions/ghostty@infinityos.org/sc
 /usr/lib/systemd/user/ghostty.service
 /usr/share/applications/com.infinityos.GhosTTY.desktop
 /usr/share/gnome-shell/extensions/ghostty@infinityos.org/
-/usr/share/icons/hicolor/scalable/apps/com.infinityos.GhosTTY.svg
+/usr/share/icons/hicolor/512x512/apps/com.infinityos.GhosTTY.png
 /usr/share/icons/hicolor/scalable/apps/infinity-ai.svg
 /usr/share/icons/hicolor/scalable/apps/infinity-claude.svg
 /usr/share/icons/hicolor/scalable/apps/infinity-codex.svg

@@ -46,7 +46,7 @@ systemctl --global enable infinity-updater.timer >/dev/null 2>&1 || :
 /usr/libexec/__pycache__/infinityos-upgrade-release*.pyc
 /usr/share/infinityos/updater/
 /usr/share/applications/org.infinityos.Updater.desktop
-/usr/share/icons/hicolor/scalable/apps/org.infinityos.Updater.svg
+/usr/share/icons/hicolor/512x512/apps/org.infinityos.Updater.png
 /usr/share/icons/hicolor/scalable/status/infinity-update-available-symbolic.svg
 /usr/share/gnome-shell/extensions/infinity-updater@infinityos.org/
 /usr/lib/systemd/user/infinity-updater.service
