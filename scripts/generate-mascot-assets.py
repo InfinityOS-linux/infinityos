@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the boot animation and installer icon from the mascot."""
+"""Render the boot animation and welcome icon from the mascot."""
 
 from pathlib import Path
 import math
@@ -23,14 +23,10 @@ def centered_icon(size, inset):
     return canvas
 
 
-installer_icons = repo / "root/usr/share/icons/hicolor"
-for size in (32, 48, 64, 128, 256):
-    destination = installer_icons / f"{size}x{size}/apps/infinity-installer.png"
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    centered_icon(size, max(2, round(size * 0.07))).save(destination, optimize=True)
-
 webui_mascot = repo / "root/usr/share/cockpit/anaconda-webui/infinityos-installer-mascot.png"
-centered_icon(256, round(256 * 0.07)).save(webui_mascot, optimize=True)
+welcome_icon = repo / "root/usr/share/icons/hicolor/256x256/apps/infinityos-welcome.png"
+for destination in (webui_mascot, welcome_icon):
+    centered_icon(256, round(256 * 0.07)).save(destination, optimize=True)
 
 theme = repo / "root/usr/share/plymouth/themes/infinityos"
 mascot = ImageOps.contain(source, (205, 175), Image.Resampling.LANCZOS)

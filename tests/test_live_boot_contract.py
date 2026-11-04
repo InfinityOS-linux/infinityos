@@ -110,11 +110,19 @@ class LiveBootContractTests(unittest.TestCase):
 
     def test_welcome_uses_mascot_and_refind_uses_original_symbol(self):
         setup = (REPO / "config.sh").read_text()
-        self.assertIn("iconName: 'infinity-installer'", setup)
-        self.assertIn("Icon=infinityos-logo", setup)
+        self.assertIn("iconName: 'infinityos-welcome'", setup)
+        self.assertIn("Icon=infinity-installer", setup)
         verifier = (REPO / "scripts/verify-infinity-iso").read_text()
-        self.assertIn("iconName: 'infinity-installer'", verifier)
+        self.assertIn("iconName: 'infinityos-welcome'", verifier)
+        welcome_icon = REPO / "root/usr/share/icons/hicolor/256x256/apps/infinityos-welcome.png"
+        self.assertEqual(welcome_icon.read_bytes(), (
+            REPO / "root/usr/share/cockpit/anaconda-webui/infinityos-installer-mascot.png"
+        ).read_bytes())
+        self.assertNotEqual(welcome_icon.read_bytes(), (
+            REPO / "root/usr/share/icons/hicolor/256x256/apps/infinity-installer.png"
+        ).read_bytes())
         generator = (REPO / "scripts/generate-mascot-assets.py").read_text()
+        self.assertNotIn('f"{size}x{size}/apps/infinity-installer.png"', generator)
         self.assertNotIn("refind-theme", generator)
         refind_generator = (REPO / "scripts/generate-refind-icons.sh").read_text()
         generated_names = refind_generator.split("for name in ", 1)[1].split("; do", 1)[0].split()

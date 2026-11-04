@@ -37,6 +37,7 @@ if version != "90":
     raise RuntimeError(f"Unsupported Anaconda WebUI version: {version}")
 for asset in ("infinityos-installer.css", "infinityos-installer-audio.js",
               "infinityos-installer-mark.svg", "infinityos-installer-mascot.png",
+              "infinityos-installer-train.png",
               "infinityos-installer-music.mp3",
               "infinityos-plex-regular.woff2", "infinityos-plex-medium.woff2",
               "infinityos-plex-semibold.woff2", "infinityos-plex-bold.woff2",

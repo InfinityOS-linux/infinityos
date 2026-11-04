@@ -245,13 +245,16 @@ EOF
 		welcome=/usr/share/anaconda/gnome/fedora-welcome
 		welcome_desktop=/usr/share/anaconda/gnome/org.fedoraproject.welcome-screen.desktop
 		test -f "$welcome" && test -f "$welcome_desktop"
-		grep -Eq "iconName: '(fedora-logo-icon|infinityos-logo|infinity-installer)'" "$welcome"
-		sed -i -e "s/iconName: 'fedora-logo-icon'/iconName: 'infinity-installer'/" \
-			-e "s/iconName: 'infinityos-logo'/iconName: 'infinity-installer'/" "$welcome"
-		grep -Fq "iconName: 'infinity-installer'" "$welcome"
+		grep -Eq "iconName: '(fedora-logo-icon|infinityos-logo|infinity-installer|infinityos-welcome)'" "$welcome"
+		sed -i -e "s/iconName: 'fedora-logo-icon'/iconName: 'infinityos-welcome'/" \
+			-e "s/iconName: 'infinityos-logo'/iconName: 'infinityos-welcome'/" \
+			-e "s/iconName: 'infinity-installer'/iconName: 'infinityos-welcome'/" "$welcome"
+		grep -Fq "iconName: 'infinityos-welcome'" "$welcome"
 		sed -i -e 's/^Name=Welcome to Fedora$/Name=Welcome to Infinity OS/' \
-			-e 's/^Icon=fedora-logo-icon$/Icon=infinityos-logo/' \
+			-e 's/^Icon=fedora-logo-icon$/Icon=infinity-installer/' \
+			-e 's/^Icon=infinityos-logo$/Icon=infinity-installer/' \
 			-e '/^Name\[/d' "$welcome_desktop"
+		grep -Fqx 'Icon=infinity-installer' "$welcome_desktop"
 		# Live media mounts its root dynamically; disk-image UUIDs must not reach the ISO.
 		: > /etc/fstab
 		# Anaconda must create an ESP and kernel metadata. The post script

@@ -36,6 +36,7 @@ class InstallerBrandingTests(unittest.TestCase):
             (webui / "index.html").write_text("<html><head></head></html>")
             for asset in ("infinityos-installer.css", "infinityos-installer-audio.js",
                           "infinityos-installer-mark.svg", "infinityos-installer-mascot.png",
+                          "infinityos-installer-train.png",
                           "infinityos-installer-music.mp3",
                           *(f"infinityos-plex-{weight}.woff2" for weight in (
                               "regular", "medium", "semibold", "bold")),
@@ -73,6 +74,9 @@ class InstallerBrandingTests(unittest.TestCase):
                 self.assertEqual(locale.count(f'"{english}": [null, "{polish}"]'), 1)
             css = CSS.read_text()
             self.assertIn(".anaconda-screen-progress-status {", css)
+            self.assertIn('url("infinityos-installer-train.png")', css)
+            self.assertIn(".anaconda-screen-progress-status .pf-v6-c-empty-state__icon {\n  display: none;", css)
+            self.assertNotIn("infinity-spinner", css)
             self.assertIn("text-align: center;", css)
             self.assertIn(".pf-v6-c-action-list__item:has(#installation-quit-btn)", css)
             self.assertIn(".pf-v6-c-action-list__item:has(#installation-next-btn)", css)
@@ -107,6 +111,7 @@ class InstallerBrandingTests(unittest.TestCase):
             (webui / "infinityos-installer-audio.js").write_text("// controls")
             (webui / "infinityos-installer-mark.svg").write_text("<svg/>")
             (webui / "infinityos-installer-mascot.png").write_bytes(b"test asset")
+            (webui / "infinityos-installer-train.png").write_bytes(b"test asset")
             (webui / "index.html").write_text("<html><head></head></html>")
             result = subprocess.run([sys.executable, str(SCRIPT), str(webui)],
                                     capture_output=True, text=True, check=False)

@@ -54,6 +54,7 @@ assert 'anaconda-wizard-step-anaconda-screen-language' in installer_controls
 assert 'infinityos-installer-exit' in installer_controls
 assert (webui / 'infinityos-installer-music.mp3').stat().st_size > 1_000_000
 for asset in ('infinityos-installer-mark.svg', 'infinityos-installer-mascot.png',
+              'infinityos-installer-train.png',
               *(f'infinityos-plex-{weight}.woff2' for weight in (
                   'regular', 'medium', 'semibold', 'bold')),
               *(f'infinityos-step-{name}.svg' for name in (
@@ -82,6 +83,7 @@ for english, polish in (
     assert f'("{english}")' in bundle
     assert f'"{english}": [null, "{polish}"]' in locale
 css = (webui / 'infinityos-installer.css').read_text()
+assert 'url("infinityos-installer-train.png")' in css
 assert '.feedback-section' in css
 assert 'padding-block: 18px' in css
 assert ':has(#installation-back-btn)' in css
@@ -138,7 +140,16 @@ grep -Fqx 'Icon=infinity-installer' \
     echo 'Infinity OS installer icon is missing from ISO' >&2
     exit 1
 }
-grep -Fq "iconName: 'infinity-installer'" \
+[[ -s "$rootpoint/usr/share/icons/hicolor/256x256/apps/infinityos-welcome.png" ]] || {
+    echo 'Infinity OS welcome mascot is missing from ISO' >&2
+    exit 1
+}
+grep -Fqx 'Icon=infinity-installer' \
+    "$rootpoint/usr/share/anaconda/gnome/org.fedoraproject.welcome-screen.desktop" || {
+    echo 'Live welcome dock icon does not match installer icon' >&2
+    exit 1
+}
+grep -Fq "iconName: 'infinityos-welcome'" \
     "$rootpoint/usr/share/anaconda/gnome/fedora-welcome" || {
     echo 'Live welcome dialog does not use the Infinity mascot' >&2
     exit 1
