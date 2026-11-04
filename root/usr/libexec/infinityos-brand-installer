@@ -70,6 +70,17 @@ if MESSAGE not in source:
         "success action",
     )
 
+source = replace_once_or_present(
+    source,
+    'key:"reboot",onClick:()=>y.spawn(["systemctl","reboot"],'
+    '{superuser:"require"})},jo("Reboot to installed system")),'
+    '...b?[]:[pe.default.createElement(st,{key:"exit",variant:"link",onClick:yi},'
+    'jo("Exit to live desktop"))]]',
+    'key:"reboot",onClick:()=>y.spawn(["systemctl","reboot"],'
+    '{superuser:"require"})},jo("To infinity and beyond!"))]',
+    "completion actions",
+)
+
 step_labels = (
     ('this.id="anaconda-screen-language",this.label=Zz("Welcome")',
      'this.id="anaconda-screen-language",this.label=Zz("Language and layout")'),

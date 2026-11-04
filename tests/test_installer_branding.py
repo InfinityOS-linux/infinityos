@@ -17,7 +17,9 @@ class InstallerBrandingTests(unittest.TestCase):
             (webui / "VERSION.txt").write_text("90\n")
             source = (
                 'y.format(jo("To begin using $0, reboot your system."),m.PRETTY_NAME)'
-                'key:"reboot",onClick:kw},jo("Reboot")'
+                'key:"reboot",onClick:kw},jo("Reboot")),...b?[]:['
+                'pe.default.createElement(st,{key:"exit",variant:"link",onClick:yi},'
+                'jo("Exit to live desktop"))]]'
                 'this.id="anaconda-screen-language",this.label=Zz("Welcome"),this.title=Zz("Welcome to Fedora Linux")'
                 'this.id="anaconda-screen-date-time",this.label=q$("Date and time")'
                 'this.id="anaconda-screen-method",this.label=Uet("Installation method")'
@@ -48,6 +50,8 @@ class InstallerBrandingTests(unittest.TestCase):
             result = gzip.decompress((webui / "index.js.gz").read_bytes()).decode()
             self.assertIn('y.spawn(["systemctl","reboot"],{superuser:"require"})', result)
             self.assertIn('jo("Reboot to installed system")+" · "+jo("Remove")+" USB"', result)
+            self.assertIn('jo("To infinity and beyond!"))]', result)
+            self.assertNotIn('jo("Exit to live desktop"))]]', result)
             for label in ("Language and layout", "Time and region", "Installation destination",
                           "Security", "User", "Summary"):
                 self.assertIn(f'("{label}")', result)
