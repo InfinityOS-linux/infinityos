@@ -602,10 +602,12 @@ body:has(.anaconda-screen-progress-status),
   position: relative;
   isolation: isolate;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   min-height: calc(100vh - 72px);
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   color: var(--infinity-text);
   text-align: center;
   background: transparent;
@@ -619,7 +621,9 @@ body:has(.anaconda-screen-progress-status),
   inset: auto 0 0;
   width: 100%;
   aspect-ratio: 1926 / 816;
-  background: url("infinityos-installer-train.png") center bottom / contain no-repeat;
+  max-height: 42vh;
+  background: url("infinityos-installer-train.png") center bottom / cover no-repeat;
+  mask-image: linear-gradient(to bottom, transparent, #000 18%);
   pointer-events: none;
 }
 
@@ -628,21 +632,17 @@ body:has(.anaconda-screen-progress-status),
   z-index: 1;
   width: min(100%, 1120px);
   height: auto;
-  margin: auto;
-  padding: clamp(24px, 5vw, 64px);
+  flex: none;
+  margin: 0 auto;
+  padding: clamp(24px, 4vh, 48px) clamp(24px, 5vw, 64px);
   color: var(--infinity-text);
   background: transparent;
   border: 0;
   box-shadow: none;
 }
 
-.anaconda-screen-progress-status:has(.pf-v6-c-progress-stepper__step.pf-m-current) {
-  align-items: flex-start;
-}
-
 .anaconda-screen-progress-status:has(.pf-v6-c-progress-stepper__step.pf-m-current)
   .pf-v6-c-empty-state {
-  margin: 0 auto;
   padding-top: clamp(20px, 3vh, 40px);
 }
 
