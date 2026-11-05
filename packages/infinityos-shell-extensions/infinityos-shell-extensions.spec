@@ -63,6 +63,8 @@ gtk-update-icon-cache -f -q /usr/share/icons/hicolor || :
 
 %files
 /usr/bin/infinityos-shell-recover
+/usr/libexec/infinityos-enable-global-menu
+/etc/xdg/autostart/infinityos-enable-global-menu.desktop
 /usr/libexec/infinityos-tint-system-icons
 /usr/share/infinityos/build-revisions/infinityos-shell-extensions
 /usr/share/infinityos/gnome-defaults

@@ -1,0 +1,35 @@
+#!/usr/bin/python3
+"""Enable Global Menu once for accounts that already have custom GNOME settings."""
+
+import os
+from pathlib import Path
+
+
+UUID = "globalmenu@ShiroOSL.github.io"
+
+
+def with_global_menu(enabled):
+    return enabled if UUID in enabled else [*enabled, UUID]
+
+
+def main():
+    from gi.repository import Gio
+
+    state = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
+    marker = state / "infinityos/global-menu-v26"
+    if marker.exists():
+        return 0
+
+    settings = Gio.Settings.new("org.gnome.shell")
+    enabled = list(settings.get_strv("enabled-extensions"))
+    updated = with_global_menu(enabled)
+    if updated != enabled and not settings.set_strv("enabled-extensions", updated):
+        return 1
+
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.touch()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

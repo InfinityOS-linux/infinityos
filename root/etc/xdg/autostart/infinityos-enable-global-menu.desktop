@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Infinity OS Global Menu Setup
+Exec=/usr/libexec/infinityos-enable-global-menu
+OnlyShowIn=GNOME;
+NotShowIn=GNOME-Greeter;
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
