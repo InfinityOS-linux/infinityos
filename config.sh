@@ -79,7 +79,7 @@ EOF
 	chmod 0644 \
 		/usr/share/gnome-shell/extensions/ding@rastersoft.com/schemas/gschemas.compiled \
 		/usr/share/gnome-shell/extensions/wack-lockscreen-clock@rinzler69-wastaken.github.com/schemas/gschemas.compiled \
-		/usr/share/gnome-shell/extensions/wack-shell@rinzler69-wastaken.github.com/schemas/gschemas.compiled
+		/usr/share/gnome-shell/extensions/wack-shell@rinzler69-wastaken.github.com/schemas/gschemas.compiled \
 		/usr/share/gnome-shell/extensions/globalmenu@ShiroOSL.github.io/schemas/gschemas.compiled
 	chmod 0644 /usr/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/schemas/gschemas.compiled
 	chmod 0644 /usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/schemas/gschemas.compiled
