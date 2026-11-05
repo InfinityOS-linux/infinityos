@@ -82,9 +82,13 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
   source_root="$work/source/$package-$version"
   fedora_snapshot="$repo/vendor/gnome-shell/fedora-45/usr/share"
   install -d "$source_root/usr/bin" \
+    "$source_root/usr/libexec" \
     "$source_root/usr/share/gnome-shell/extensions" \
     "$source_root/usr/share/glib-2.0/schemas" \
     "$source_root/usr/share/infinityos" \
+    "$source_root/usr/share/icons/kora/places/scalable" \
+    "$source_root/usr/share/icons/hicolor/scalable/apps" \
+    "$source_root/usr/share/icons/hicolor/256x256/apps" \
     "$source_root/usr/share/themes/Orchis-Purple-Light-Compact/gnome-shell" \
     "$source_root/usr/share/licenses/infinityos-shell-extensions" \
     "$source_root/etc/dconf/db/local.d"
@@ -94,15 +98,15 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
     "$source_root/usr/share/gnome-shell/extensions/"
   cp -a "$repo/root/usr/share/infinityos/folder-icons" \
     "$source_root/usr/share/infinityos/"
-  install -D -m 0644 "$repo/root/usr/share/infinityos/folder-icons/folder-projects.svg" \
+  install -m 0644 "$repo/root/usr/share/infinityos/folder-icons/folder-projects.svg" \
     "$source_root/usr/share/icons/kora/places/scalable/folder-projects.svg"
   install -m 0755 "$repo/root/usr/bin/infinityos-shell-recover" \
     "$source_root/usr/bin/infinityos-shell-recover"
-  install -D -m 0755 "$repo/root/usr/libexec/infinityos-tint-system-icons" \
+  install -m 0755 "$repo/root/usr/libexec/infinityos-tint-system-icons" \
     "$source_root/usr/libexec/infinityos-tint-system-icons"
-  install -D -m 0644 "$repo/root/usr/share/icons/hicolor/scalable/apps/infinityos-logo.svg" \
+  install -m 0644 "$repo/root/usr/share/icons/hicolor/scalable/apps/infinityos-logo.svg" \
     "$source_root/usr/share/icons/hicolor/scalable/apps/infinityos-logo.svg"
-  install -D -m 0644 "$repo/root/usr/share/icons/hicolor/256x256/apps/infinityos-logo.png" \
+  install -m 0644 "$repo/root/usr/share/icons/hicolor/256x256/apps/infinityos-logo.png" \
     "$source_root/usr/share/icons/hicolor/256x256/apps/infinityos-logo.png"
   cp -a "$fedora_snapshot/glib-2.0/schemas/." \
     "$source_root/usr/share/glib-2.0/schemas/"
