@@ -48,6 +48,7 @@ for uuid in \
     ding@rastersoft.com \
     wack-lockscreen-clock@rinzler69-wastaken.github.com \
     wack-shell@rinzler69-wastaken.github.com \
+    globalmenu@ShiroOSL.github.io \
     tilingshell@ferrarodomenico.com \
     dash2dock-animated@infinityos.org; do
     glib-compile-schemas "/usr/share/gnome-shell/extensions/$uuid/schemas" || :
@@ -78,6 +79,7 @@ gtk-update-icon-cache -f -q /usr/share/icons/hicolor || :
 /usr/share/gnome-shell/extensions/caffeine@patapon.info/
 /usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/
 /usr/share/gnome-shell/extensions/ding@rastersoft.com/
+/usr/share/gnome-shell/extensions/globalmenu@ShiroOSL.github.io/
 /usr/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/
 /usr/share/gnome-shell/extensions/user-theme@gnome-shell-extensions.gcampax.github.com/
 /usr/share/gnome-shell/extensions/vertical-workspaces@G-dH.github.com/

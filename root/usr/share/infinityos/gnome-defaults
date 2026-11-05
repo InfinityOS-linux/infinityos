@@ -1,5 +1,5 @@
 [org/gnome/shell]
-enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'ghostty@infinityos.org', 'infinity-updater@infinityos.org', 'wack-lockscreen-clock@rinzler69-wastaken.github.com', 'dash2dock-animated@infinityos.org', 'tilingshell@ferrarodomenico.com', 'vertical-workspaces@G-dH.github.com', 'caffeine@patapon.info', 'GPaste@gnome-shell-extensions.gnome.org', 'wack-shell@rinzler69-wastaken.github.com']
+enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'ghostty@infinityos.org', 'infinity-updater@infinityos.org', 'wack-lockscreen-clock@rinzler69-wastaken.github.com', 'dash2dock-animated@infinityos.org', 'tilingshell@ferrarodomenico.com', 'vertical-workspaces@G-dH.github.com', 'caffeine@patapon.info', 'GPaste@gnome-shell-extensions.gnome.org', 'wack-shell@rinzler69-wastaken.github.com', 'globalmenu@ShiroOSL.github.io']
 favorite-apps=['org.mozilla.firefox.desktop', 'infinity-setup.desktop', 'org.infinityos.Config.desktop']
 
 [org/gnome/software]
@@ -26,6 +26,7 @@ lockscreen-wallpaper-enable=true
 clock-weight='light'
 
 [org/gnome/shell/extensions/wack-shell]
+show-app-menu=false
 use-custom-logo=true
 custom-logo-path='/usr/share/icons/hicolor/scalable/apps/infinityos-panel-mark-v2.svg'
 logo-icon-size=26
@@ -37,6 +38,10 @@ menu-button-software-center='gnome-software'
 hide-qs-power-options=false
 enable-panel-proximity=false
 vibrancy-style=2
+
+[org/gnome/shell/extensions/globalmenu]
+show-logo-menu=false
+hide-overview-button=true
 
 [org/gnome/shell/extensions/dash2dock-lite]
 adaptive-background=true
