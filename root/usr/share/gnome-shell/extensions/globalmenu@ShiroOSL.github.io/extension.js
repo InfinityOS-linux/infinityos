@@ -4,6 +4,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {MenuManager} from './menuManager.js';
 import {SystemMenuButton} from './systemMenu.js';
 import {setDebug} from './utils.js';
+import {needsRightSide} from './panelLayout.mjs';
 
 // systemInfoPanel.js is a GTK4 script that systemMenu.js starts as its own
 // `gjs -m` process. Never import it here.
@@ -147,8 +148,7 @@ export default class GlobalMenuExtension extends Extension {
 
         const terminal = Main.panel.statusArea.ghostty?.container;
         const centerWidth = clock.width + (terminal?.width ?? 0);
-        const centerStart = Math.floor((Main.panel.width - centerWidth) / 2);
-        const crowded = Main.panel._leftBox.width + 12 > centerStart;
+        const crowded = needsRightSide(Main.panel.width, Main.panel._leftBox.width, centerWidth);
         this._moveCenterItems(crowded ? Main.panel._rightBox : Main.panel._centerBox);
     }
 }
