@@ -121,29 +121,6 @@ class TopLevelMenuButton extends PanelMenu.Button {
         }));
 
         this._fill(children, this.menu);
-        this.menu.connectObject('open-state-changed', () => this._centerMenu(), this);
-    }
-
-    _centerMenu() {
-        const buttonWidth = Math.round(this.get_width());
-        const menuWidth = Math.round(this.menu.actor?.get_width() ?? 0);
-        if (buttonWidth <= 0 || menuWidth <= 0)
-            return;
-
-        let offset = Math.round((menuWidth - buttonWidth) / 2);
-
-        const [buttonX] = this.get_transformed_position();
-        const monitor = Main.layoutManager.findMonitorForActor(this) ?? Main.layoutManager.primaryMonitor;
-        if (monitor) {
-            const left = buttonX - offset;
-            const right = left + menuWidth;
-            if (left < monitor.x)
-                offset -= monitor.x - left;
-            else if (right > monitor.x + monitor.width)
-                offset += right - (monitor.x + monitor.width);
-        }
-
-        this.menu.actor.translation_x = offset;
     }
 
     _fill(items, menu) {
