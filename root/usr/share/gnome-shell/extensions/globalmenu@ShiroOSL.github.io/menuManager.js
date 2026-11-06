@@ -27,7 +27,7 @@ const LAUNCHERS = {
     'go-desktop': () => ['xdg-open', specialDir(UserDir.DIRECTORY_DESKTOP, 'Desktop')],
     'go-downloads': () => ['xdg-open', specialDir(UserDir.DIRECTORY_DOWNLOAD, 'Downloads')],
     'open-settings': () => ['gnome-control-center'],
-    'open-system-help': () => ['yelp'],
+    'open-infinityos-discord': () => ['xdg-open', 'https://discord.gg/QA8N3XKsH8'],
     'empty-bin': () => ['gio', 'trash', '--empty'],
 };
 

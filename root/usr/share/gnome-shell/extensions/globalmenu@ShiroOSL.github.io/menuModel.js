@@ -90,7 +90,7 @@ const WINDOW_MENU = submenu('Window', 'preferences-system-windows-symbolic', [
 ]);
 
 const HELP_MENU = submenu('Help', 'help-about-symbolic', [
-    item('GNOME Help', 'open-system-help', 'help-browser-symbolic'),
+    item('InfinityOS Discord', 'open-infinityos-discord', 'help-browser-symbolic'),
 ]);
 
 export const builtinMenus = desktopName => [
