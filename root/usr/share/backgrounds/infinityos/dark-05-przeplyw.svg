@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="2160" viewBox="0 0 1600 900" role="img" aria-label="InfinityOS inspired abstract wallpaper, dark-05-przeplyw">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0B0D18"/><stop offset="1" stop-color="#1A1A30"/></linearGradient>
+  <linearGradient id="flow" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7780B0"/><stop offset=".53" stop-color="#957CC0"/><stop offset="1" stop-color="#BA9ACB"/></linearGradient>
+  <linearGradient id="flowReverse" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#BA9ACB"/><stop offset=".52" stop-color="#957CC0"/><stop offset="1" stop-color="#7780B0"/></linearGradient>
+  <radialGradient id="ambient"><stop stop-color="#957CC0" stop-opacity=".16"/><stop offset="1" stop-color="#957CC0" stop-opacity="0"/></radialGradient>
+  
+</defs>
+<path d="M0 0H1600V900H0Z" fill="url(#bg)"/>
+
+<path d="M510 890C821 760 1010 477 1306 317C1424 251 1536 229 1660 255" fill="none" stroke="url(#ambient)" stroke-width="350"/>
+<path d="M-100 678C267 454 493 901 840 620C1137 380 1340 249 1710 322" fill="none" stroke="url(#flow)" stroke-opacity=".54" stroke-width="46"/>
+<path d="M-100 691C267 467 493 914 840 633C1137 393 1340 262 1710 335" fill="none" stroke="#F2EDF8" stroke-opacity=".32" stroke-width="3"/>
+<path d="M-100 520C265 310 492 765 837 512C1130 264 1334 225 1710 241" fill="none" stroke="#7780B0" stroke-opacity="0.100" stroke-width="3"/><path d="M-100 547C265 337 492 781 837 539C1130 291 1334 247 1710 263" fill="none" stroke="#957CC0" stroke-opacity="0.145" stroke-width="3"/><path d="M-100 574C265 364 492 797 837 566C1130 318 1334 269 1710 285" fill="none" stroke="#BA9ACB" stroke-opacity="0.190" stroke-width="3"/><path d="M-100 601C265 391 492 813 837 593C1130 345 1334 291 1710 307" fill="none" stroke="#7780B0" stroke-opacity="0.235" stroke-width="3"/><path d="M-100 628C265 418 492 829 837 620C1130 372 1334 313 1710 329" fill="none" stroke="#957CC0" stroke-opacity="0.100" stroke-width="3"/><path d="M-100 655C265 445 492 845 837 647C1130 399 1334 335 1710 351" fill="none" stroke="#BA9ACB" stroke-opacity="0.145" stroke-width="3"/><path d="M-100 682C265 472 492 861 837 674C1130 426 1334 357 1710 373" fill="none" stroke="#7780B0" stroke-opacity="0.190" stroke-width="3"/><path d="M-100 709C265 499 492 877 837 701C1130 453 1334 379 1710 395" fill="none" stroke="#957CC0" stroke-opacity="0.235" stroke-width="3"/><path d="M-100 736C265 526 492 893 837 728C1130 480 1334 401 1710 417" fill="none" stroke="#BA9ACB" stroke-opacity="0.100" stroke-width="3"/><path d="M-100 763C265 553 492 909 837 755C1130 507 1334 423 1710 439" fill="none" stroke="#7780B0" stroke-opacity="0.145" stroke-width="3"/><path d="M-100 790C265 580 492 925 837 782C1130 534 1334 445 1710 461" fill="none" stroke="#957CC0" stroke-opacity="0.190" stroke-width="3"/>
+
+</svg>

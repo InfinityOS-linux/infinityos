@@ -6,8 +6,8 @@ font-name='IBM Plex Sans 11'
 document-font-name='IBM Plex Sans 11'
 
 [org/gnome/desktop/background]
-picture-uri='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'
-picture-uri-dark='file:///usr/share/backgrounds/infinityos/infinityos-dark.png'
+picture-uri='file:///usr/share/backgrounds/infinityos/dark-02-horyzont.svg'
+picture-uri-dark='file:///usr/share/backgrounds/infinityos/dark-02-horyzont.svg'
 picture-options='zoom'
 
 [org/gnome/GPaste]
