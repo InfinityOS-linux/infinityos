@@ -1,5 +1,5 @@
 import { registerGObjectClass } from "../../utils/gjs.js";
-import { GObject, St, Clutter, Gio } from "../../gi/ext.js";
+import { GObject, St, Clutter, Gio, Shell } from "../../gi/ext.js";
 import SnapAssistLayout from "./snapAssistLayout.js";
 import Tile from "../layout/Tile.js";
 import Settings from "../../settings/settings.js";
@@ -83,6 +83,7 @@ const _SnapAssistContent = class _SnapAssistContent extends St.BoxLayout {
   }
 
   set blur(value) {
+    value = value && !!this.get_effect("blur");
     if (this._blur === value) return;
     this._blur = value;
     this.get_effect("blur")?.set_enabled(value);
@@ -104,14 +105,19 @@ const _SnapAssistContent = class _SnapAssistContent extends St.BoxLayout {
   _init() {
     super._init();
     const effect = buildBlurEffect(36);
-    effect.set_name("blur");
-    effect.set_enabled(this._blur);
-    this.add_effect(effect);
+    // shortcut: GNOME 51 cannot round native blur; use the unblurred surface until corner-radius is available.
+    if (Shell.BlurEffect.list_properties().some((property) => property.name === "corner-radius")) {
+      effect.set_name("blur");
+      effect.set_enabled(this._blur);
+      this.add_effect(effect);
+    }
     this.add_style_class_name("popup-menu-content snap-assistant");
   }
 
   _applyStyle() {
     this.set_style(null);
+    const effect = this.get_effect("blur");
+    if (effect) effect.corner_radius = this.get_theme_node().get_border_radius(St.Corner.TOPLEFT);
     const [alreadyScaled, finalScalingFactor] = getScalingFactorOf(this);
     this._padding = (alreadyScaled ? 1 : finalScalingFactor) * (this.get_theme_node().get_length("padding-value") / (alreadyScaled ? finalScalingFactor : 1));
     const backgroundColor = this.get_theme_node().get_background_color().copy();

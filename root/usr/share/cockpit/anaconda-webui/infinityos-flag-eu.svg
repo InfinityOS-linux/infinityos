@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 24">
+  <path fill="#003399" d="M0 0h32v24H0z"/>
+  <defs><path id="star" fill="#ffcc00" d="M0-1.5.35-.45H1.4L.55.2.9 1.3 0 .65-.9 1.3-.55.2-1.4-.45H-.35z"/></defs>
+  <use href="#star" transform="translate(16 4.5)"/>
+  <use href="#star" transform="translate(19.75 5.5)"/>
+  <use href="#star" transform="translate(22.5 8.25)"/>
+  <use href="#star" transform="translate(23.5 12)"/>
+  <use href="#star" transform="translate(22.5 15.75)"/>
+  <use href="#star" transform="translate(19.75 18.5)"/>
+  <use href="#star" transform="translate(16 19.5)"/>
+  <use href="#star" transform="translate(12.25 18.5)"/>
+  <use href="#star" transform="translate(9.5 15.75)"/>
+  <use href="#star" transform="translate(8.5 12)"/>
+  <use href="#star" transform="translate(9.5 8.25)"/>
+  <use href="#star" transform="translate(12.25 5.5)"/>
+</svg>

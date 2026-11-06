@@ -7,6 +7,7 @@ const source = readFileSync(new URL('../root/usr/share/cockpit/anaconda-webui/in
 
 test('installer music starts once when Welcome appears and survives later steps', () => {
   let welcomeVisible = false;
+  let introVisible = true;
   let playCount = 0;
   let quitRequests = 0;
   const observers = [];
@@ -51,14 +52,18 @@ test('installer music starts once when Welcome appears and survives later steps'
     listeners: {},
     createElement: tag => new Element(tag),
     querySelector: selector => selector === '#installation-quit-btn'
-      ? quitButton : (welcomeVisible ? {} : null),
+      ? quitButton : selector === '#infinityos-installer-intro'
+        ? (introVisible ? {} : null) : (welcomeVisible ? {} : null),
     addEventListener(type, callback) {
       (this.listeners[type] ??= []).push(callback);
     },
     removeEventListener() {},
     documentElement: { lang: 'pl' },
   };
-  const window = { addEventListener() {} };
+  const window = {
+    listeners: {},
+    addEventListener(type, callback) { (this.listeners[type] ??= []).push(callback); },
+  };
   class FakeObserver {
     constructor(callback) { this.callback = callback; observers.push(this); }
     observe() {}
@@ -79,6 +84,10 @@ test('installer music starts once when Welcome appears and survives later steps'
 
   welcomeVisible = true;
   observers[0].callback();
+  assert.equal(playCount, 0);
+  introVisible = false;
+  window.infinityosInstallerIntroComplete = true;
+  window.listeners['infinityos-installer-intro-complete'][0]();
   assert.equal(playCount, 1);
   assert.equal(audio.preload, 'auto');
   assert.equal(controls.hidden, false);

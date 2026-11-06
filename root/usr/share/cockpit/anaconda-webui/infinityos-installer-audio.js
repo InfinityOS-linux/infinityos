@@ -161,6 +161,9 @@
     document.addEventListener('pointerdown', startMusic, true);
     document.addEventListener('keydown', startMusic, true);
     function activateOnWelcome() {
+        if (document.querySelector('#infinityos-installer-intro') &&
+            !window.infinityosInstallerIntroComplete)
+            return;
         if (!document.querySelector('#installation-wizard.anaconda-wizard-step-anaconda-screen-language'))
             return;
         welcomeReady = true;
@@ -171,6 +174,7 @@
         startMusic();
     }
     const welcomeObserver = new MutationObserver(activateOnWelcome);
+    window.addEventListener('infinityos-installer-intro-complete', activateOnWelcome);
     welcomeObserver.observe(document.body, {
         childList: true, subtree: true, attributes: true, attributeFilter: ['class'],
     });

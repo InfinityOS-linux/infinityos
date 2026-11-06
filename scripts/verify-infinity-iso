@@ -48,7 +48,15 @@ assert f'PRETTY_NAME="{title}"' in (root / 'etc/os-release').read_text()
 webui = root / 'usr/share/cockpit/anaconda-webui'
 assert 'infinityos-installer.css' in (webui / 'index.html').read_text()
 assert 'infinityos-installer-audio.js' in (webui / 'index.html').read_text()
+assert 'infinityos-installer-intro.js' in (webui / 'index.html').read_text()
+assert 'id="infinityos-installer-intro"' in (webui / 'index.html').read_text()
 assert (webui / 'infinityos-installer-audio.js').stat().st_size > 1000
+assert (webui / 'infinityos-installer-intro.js').stat().st_size > 1000
+assert (webui / 'infinityos-installer-intro-logo.png').stat().st_size > 1000
+assert (webui / 'infinityos-flag-pl.svg').stat().st_size > 100
+assert (webui / 'infinityos-flag-eu.svg').stat().st_size > 100
+assert (root / 'usr/share/gnome-shell/extensions/wack-shell@rinzler69-wastaken.github.com/installerDim.js').stat().st_size > 1000
+assert 'infinityos-liveinst-dim-' in (root / 'usr/libexec/infinityos-liveinst').read_text()
 installer_controls = (webui / 'infinityos-installer-audio.js').read_text()
 assert 'anaconda-wizard-step-anaconda-screen-language' in installer_controls
 assert 'infinityos-installer-exit' in installer_controls

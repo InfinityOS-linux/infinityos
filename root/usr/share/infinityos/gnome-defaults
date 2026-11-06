@@ -90,7 +90,7 @@ separator-color=(1.0, 1.0, 1.0, 0.25)
 inner-gaps=uint32 12
 outer-gaps=uint32 8
 window-border-color='#9b7bd1'
-enable-blur-snap-assistant=true
+enable-blur-snap-assistant=false
 enable-blur-selected-tilepreview=true
 
 [org/gnome/shell/extensions/vertical-workspaces]

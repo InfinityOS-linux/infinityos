@@ -36,6 +36,8 @@ version = (WEBUI / "VERSION.txt").read_text(encoding="utf-8").strip()
 if version != "90":
     raise RuntimeError(f"Unsupported Anaconda WebUI version: {version}")
 for asset in ("infinityos-installer.css", "infinityos-installer-audio.js",
+              "infinityos-installer-intro.js", "infinityos-installer-intro-logo.png",
+              "infinityos-flag-pl.svg", "infinityos-flag-eu.svg",
               "infinityos-installer-mark.svg", "infinityos-installer-mascot.png",
               "infinityos-installer-train.png",
               "infinityos-installer-music.mp3",
@@ -154,8 +156,27 @@ html = index.read_text(encoding="utf-8")
 if 'infinityos-installer.css' not in html:
     html = replace_once(html, '</head>',
                         '<link rel="stylesheet" href="infinityos-installer.css"></head>', "HTML head")
+if 'infinityos-installer-intro.js' not in html:
+    html = replace_once(html, '</head>',
+                        '<script src="infinityos-installer-intro.js" defer></script></head>',
+                        "intro script")
 if 'infinityos-installer-audio.js' not in html:
     html = replace_once(html, '</head>',
                         '<script src="infinityos-installer-audio.js" defer></script></head>',
                         "audio controls")
+if 'id="infinityos-installer-intro"' not in html:
+    intro = (
+        '<div id="infinityos-installer-intro" role="status" aria-live="polite">'
+        '<div class="infinityos-intro-frame" aria-hidden="true">InfinityTeam presents</div>'
+        '<div class="infinityos-intro-frame" aria-hidden="true">Proudly made in Poland '
+        '<span class="infinityos-intro-flags">'
+        '<span class="infinityos-intro-flag infinityos-intro-flag-pl" role="img" aria-label="Poland">🇵🇱</span>'
+        '<span class="infinityos-intro-flag infinityos-intro-flag-eu" role="img" aria-label="European Union">🇪🇺</span>'
+        '</span></div>'
+        '<div class="infinityos-intro-frame" aria-hidden="true">'
+        '<img class="infinityos-intro-logo" src="infinityos-installer-intro-logo.png" alt="">'
+        'InfinityOS_02</div></div>'
+    )
+    html = replace_once(html, '<div class="ct-page-fill" id="app"></div>',
+                        intro + '<div class="ct-page-fill" id="app"></div>', "intro overlay")
 index.write_text(html, encoding="utf-8")
