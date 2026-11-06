@@ -20,7 +20,7 @@ test('intro shows all three cards and releases the ready installer', async () =>
   const delays = [];
   let completed;
   const done = new Promise(resolve => { completed = resolve; });
-  const window = { dispatchEvent: completed };
+  const window = { dispatchEvent: event => { if (event.type === 'infinityos-installer-intro-complete') completed(); } };
   const document = { querySelector: selector => selector === '#infinityos-installer-intro'
     ? intro : selector === '#app' ? app : {} };
   vm.runInNewContext(source, {
@@ -52,7 +52,7 @@ test('intro waits for the wizard before showing the first card', async () => {
   const document = { querySelector: selector => selector === '#infinityos-installer-intro'
     ? intro : selector === '#app' ? app : wizardReady ? {} : null };
   vm.runInNewContext(source, {
-    document, window: { dispatchEvent: complete }, matchMedia: () => ({ matches: false }),
+    document, window: { dispatchEvent: event => { if (event.type === 'infinityos-installer-intro-complete') complete(); } }, matchMedia: () => ({ matches: false }),
     MutationObserver: class { constructor(callback) { onMutation = callback; } observe() {} disconnect() {} },
     setTimeout: (callback, delay) => { if (delay !== 20000) queueMicrotask(callback); return 1; },
     clearTimeout() {},
@@ -66,9 +66,47 @@ test('intro waits for the wizard before showing the first card', async () => {
   assert.deepEqual(shown, [0, 1, 2]);
 });
 
-test('intro continues after a page reload instead of starting over', async () => {
+test('preloader holds the first card until the wizard survives startup', async () => {
+  const shown = [];
+  const pending = [];
+  let wizardReady = true;
+  let onMutation;
+  const frames = Array.from({length: 3}, (_, index) => ({
+    classList: {add(name) { if (name === 'is-visible') shown.push(index); }, remove() {}},
+    setAttribute() {},
+  }));
+  const intro = {classList: {add() {}}, querySelectorAll: () => frames, remove() {}};
+  let finished = false;
+  let complete;
+  const done = new Promise(resolve => { complete = () => { finished = true; resolve(); }; });
+  vm.runInNewContext(source, {
+    document: {querySelector: selector => selector === '#infinityos-installer-intro'
+      ? intro : selector === '#app' ? {inert: false} : wizardReady ? {} : null},
+    window: {dispatchEvent: event => { if (event.type === 'infinityos-installer-intro-complete') complete(); }},
+    matchMedia: () => ({matches: false}),
+    MutationObserver: class {constructor(callback) { onMutation = callback; } observe() {} disconnect() {}},
+    setTimeout: callback => { pending.push(callback); return pending.length; },
+    Event: class {constructor(type) { this.type = type; }},
+  });
+  await Promise.resolve();
+  assert.deepEqual(shown, []);
+  wizardReady = false;
+  pending.shift()();
+  await Promise.resolve();
+  assert.deepEqual(shown, []);
+  wizardReady = true;
+  onMutation();
+  for (let tries = 0; !finished && tries < 20; tries++) {
+    if (pending.length) pending.shift()();
+    await Promise.resolve();
+  }
+  await done;
+  assert.deepEqual(shown, [0, 1, 2]);
+});
+
+test('intro continues across a new page context instead of starting over', async () => {
   const saved = new Map();
-  const sessionStorage = {
+  const localStorage = {
     getItem: key => saved.get(key),
     setItem: (key, value) => saved.set(key, value),
   };
@@ -83,7 +121,8 @@ test('intro continues after a page reload instead of starting over', async () =>
     vm.runInNewContext(source, {
       document: {querySelector: selector => selector === '#infinityos-installer-intro'
         ? intro : selector === '#app' ? app : {}},
-      window: {sessionStorage, dispatchEvent: done},
+      window: {localStorage, sessionStorage: {getItem: () => null},
+        dispatchEvent: event => { if (event.type === 'infinityos-installer-intro-complete') done(); }},
       Date: {now: () => now},
       matchMedia: () => ({matches: false}),
       setTimeout,
@@ -91,8 +130,8 @@ test('intro continues after a page reload instead of starting over', async () =>
     });
   };
   const first = [];
-  run(first, () => 1, () => {});
-  await Promise.resolve();
+  run(first, (callback, delay) => { if (delay <= 1500) queueMicrotask(callback); return 1; }, () => {});
+  for (let i = 0; i < 8; i++) await Promise.resolve();
   assert.deepEqual(first, [0]);
   now += 3500;
   const second = [];
@@ -114,7 +153,7 @@ test('intro releases the installer if the animation fails', async () => {
   const app = { inert: false };
   let completed;
   const done = new Promise(resolve => { completed = resolve; });
-  const window = { dispatchEvent: completed };
+  const window = { dispatchEvent: event => { if (event.type === 'infinityos-installer-intro-complete') completed(); } };
   const document = { querySelector: selector => {
     if (selector === '#infinityos-installer-intro') return intro;
     if (selector === '#app') return app;

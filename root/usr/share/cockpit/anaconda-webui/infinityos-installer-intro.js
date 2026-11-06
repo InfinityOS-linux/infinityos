@@ -14,26 +14,24 @@
     const storageKey = 'infinityos-installer-intro-start';
     app.inert = true;
 
-    function waitForWizard() {
-        return new Promise(resolve => {
-            const ready = () => document.querySelector('#installation-wizard');
-            if (ready()) {
-                resolve();
+    async function waitForWizard() {
+        const ready = () => document.querySelector('#installation-wizard.anaconda-wizard-step-anaconda-screen-language');
+        while (true) {
+            if (!ready())
+                await new Promise(resolve => {
+                    const observer = new MutationObserver(() => {
+                        if (!ready())
+                            return;
+                        observer.disconnect();
+                        resolve();
+                    });
+                    observer.observe(app, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+                });
+            // Anaconda mounts the language page once before its own locale reload.
+            await pause(1500);
+            if (ready())
                 return;
-            }
-            const observer = new MutationObserver(() => {
-                if (!ready())
-                    return;
-                observer.disconnect();
-                clearTimeout(timeout);
-                resolve();
-            });
-            observer.observe(app, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
-            const timeout = setTimeout(() => {
-                observer.disconnect();
-                resolve();
-            }, 20000);
-        });
+        }
     }
 
     async function show(frame, duration) {
@@ -47,16 +45,19 @@
     (async () => {
         try {
             await waitForWizard();
+            intro.classList.add('is-ready');
+            await pause(reducedMotion ? 0 : 400);
             let startedAt = Date.now();
             try {
-                const saved = Number(window.sessionStorage.getItem(storageKey));
+                const saved = Number(window.localStorage.getItem(storageKey));
                 if (saved > 0)
                     startedAt = saved;
                 else
-                    window.sessionStorage.setItem(storageKey, String(startedAt));
+                    window.localStorage.setItem(storageKey, String(startedAt));
             } catch (_) {
                 // Private storage can be unavailable; the intro still runs for this page.
             }
+            window.dispatchEvent(new Event('infinityos-installer-intro-start'));
             let offset = 0;
             for (let index = 0; index < frames.length; index++) {
                 const elapsed = Date.now() - startedAt;

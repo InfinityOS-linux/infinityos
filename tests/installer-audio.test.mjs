@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const source = readFileSync(new URL('../root/usr/share/cockpit/anaconda-webui/infinityos-installer-audio.js', import.meta.url), 'utf8');
 
-test('installer music starts with intro and survives later steps', () => {
+test('installer music starts with the ready intro and survives later steps', () => {
   let welcomeVisible = false;
   let introVisible = true;
   let playCount = 0;
@@ -75,11 +75,13 @@ test('installer music starts with intro and survives later steps', () => {
   vm.runInNewContext(source, context);
   const audio = appended.find(element => element.tag === 'audio');
   const controls = appended.find(element => element.tag === 'div');
-  assert.equal(playCount, 1);
+  assert.equal(playCount, 0);
   assert.equal(audio.preload, 'auto');
   assert.equal(controls.hidden, true);
 
   document.listeners.pointerdown.at(-1)();
+  assert.equal(playCount, 0);
+  window.listeners['infinityos-installer-intro-start'][0]();
   assert.equal(playCount, 1);
 
   welcomeVisible = true;

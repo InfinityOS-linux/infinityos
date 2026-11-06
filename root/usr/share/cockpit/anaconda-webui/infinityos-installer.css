@@ -168,6 +168,42 @@ textarea {
   pointer-events: none;
 }
 
+.infinityos-intro-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  color: #d7c8e9;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 400ms ease, visibility 0s linear 400ms;
+}
+
+.infinityos-intro-loader img {
+  width: 84px;
+  height: 84px;
+}
+
+.infinityos-intro-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #5a476d;
+  border-top-color: var(--infinity-accent);
+  border-radius: 50%;
+  animation: infinityos-intro-spin 1s linear infinite;
+}
+
+#infinityos-installer-intro.is-ready .infinityos-intro-loader {
+  opacity: 0;
+  visibility: hidden;
+}
+
+@keyframes infinityos-intro-spin {
+  to { transform: rotate(360deg); }
+}
+
 .infinityos-intro-frame {
   position: absolute;
   display: flex;
@@ -246,8 +282,13 @@ textarea {
 
 @media (prefers-reduced-motion: reduce) {
   #infinityos-installer-intro,
-  .infinityos-intro-frame {
+  .infinityos-intro-frame,
+  .infinityos-intro-loader {
     transition: none;
+  }
+
+  .infinityos-intro-spinner {
+    animation: none;
   }
 }
 

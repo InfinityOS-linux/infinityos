@@ -50,8 +50,11 @@ assert 'infinityos-installer.css' in (webui / 'index.html').read_text()
 assert 'infinityos-installer-audio.js' in (webui / 'index.html').read_text()
 assert 'infinityos-installer-intro.js' in (webui / 'index.html').read_text()
 assert 'id="infinityos-installer-intro"' in (webui / 'index.html').read_text()
+assert 'class="infinityos-intro-loader"' in (webui / 'index.html').read_text()
 assert (webui / 'infinityos-installer-audio.js').stat().st_size > 1000
 assert (webui / 'infinityos-installer-intro.js').stat().st_size > 1000
+assert 'window.localStorage.getItem(storageKey)' in (webui / 'infinityos-installer-intro.js').read_text()
+assert 'infinityos-installer-intro-start' in (webui / 'infinityos-installer-audio.js').read_text()
 assert (webui / 'infinityos-installer-intro-logo.png').stat().st_size > 1000
 assert (webui / 'infinityos-flag-pl.svg').stat().st_size > 100
 assert (webui / 'infinityos-flag-eu.svg').stat().st_size > 100

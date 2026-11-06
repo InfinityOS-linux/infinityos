@@ -61,7 +61,7 @@
     let level = 45;
     let lastNonZeroLevel = level;
     let muted = false;
-    let musicReady = Boolean(document.querySelector('#infinityos-installer-intro'));
+    let musicReady = false;
     let volumeTimer;
 
     function updateLabels() {
@@ -161,6 +161,10 @@
 
     document.addEventListener('pointerdown', startMusic, true);
     document.addEventListener('keydown', startMusic, true);
+    window.addEventListener('infinityos-installer-intro-start', () => {
+        musicReady = true;
+        startMusic();
+    });
     function activateOnWelcome() {
         if (document.querySelector('#infinityos-installer-intro') &&
             !window.infinityosInstallerIntroComplete)
@@ -192,5 +196,4 @@
         audio.pause();
     });
     updateControls();
-    startMusic();
 })();
