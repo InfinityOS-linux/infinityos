@@ -17,18 +17,21 @@ test('intro shows all three cards and releases the ready installer', async () =>
     remove() { this.removed = true; },
   };
   const app = { inert: false };
+  const delays = [];
   let completed;
   const done = new Promise(resolve => { completed = resolve; });
   const window = { dispatchEvent: completed };
   const document = { querySelector: selector => selector === '#infinityos-installer-intro'
     ? intro : selector === '#app' ? app : {} };
   vm.runInNewContext(source, {
-    document, window, matchMedia: () => ({ matches: true }),
-    setTimeout: callback => { queueMicrotask(callback); return 1; },
+    document, window, matchMedia: () => ({ matches: false }),
+    setTimeout: (callback, delay) => { delays.push(delay); queueMicrotask(callback); return 1; },
     Event: class { constructor(type) { this.type = type; } },
   });
   await done;
   assert.deepEqual(shown, [0, 1, 2]);
+  assert.ok(delays.filter(delay => delay >= 2000).length >= 3);
+  assert.ok(delays.reduce((sum, delay) => sum + delay, 0) >= 9000);
   assert.equal(intro.removed, true);
   assert.equal(app.inert, false);
   assert.equal(window.infinityosInstallerIntroComplete, true);

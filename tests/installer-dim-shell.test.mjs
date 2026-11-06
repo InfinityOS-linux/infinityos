@@ -50,9 +50,11 @@ test('installer dim follows the live marker and is removed after exit', () => {
   const InstallerDim = vm.runInNewContext(`${source}\nInstallerDim`, context);
   const dim = new InstallerDim();
   assert.deepEqual(dim._dim.size, [1200, 800]);
-  assert.equal(group.below, undefined);
-  dim._place();
   assert.equal(group.below, focused);
+  const installer = { get_parent: () => group };
+  global.display.focus_window = { get_compositor_private: () => installer };
+  dim._sync();
+  assert.equal(group.below, installer);
   running = false;
   dim._sync();
   assert.equal(dim._dim, null);

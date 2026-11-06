@@ -52,7 +52,7 @@ export default class InstallerDim {
             });
             this._resize();
             global.window_group.add_child(this._dim);
-            global.window_group.set_child_above_sibling(this._dim, null);
+            global.window_group.set_child_below_sibling(this._dim, null);
             this._dim.ease({ opacity: 255, duration: 280, mode: Clutter.AnimationMode.EASE_OUT_QUAD });
         } else if (!active && this._dim) {
             const dim = this._dim;
@@ -69,6 +69,8 @@ export default class InstallerDim {
                 return GLib.SOURCE_REMOVE;
             });
         }
+        if (active)
+            this._place();
     }
 
     _place() {

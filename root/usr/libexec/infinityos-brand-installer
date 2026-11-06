@@ -167,15 +167,16 @@ if 'infinityos-installer-audio.js' not in html:
 if 'id="infinityos-installer-intro"' not in html:
     intro = (
         '<div id="infinityos-installer-intro" role="status" aria-live="polite">'
-        '<div class="infinityos-intro-frame" aria-hidden="true">InfinityTeam presents</div>'
-        '<div class="infinityos-intro-frame" aria-hidden="true">Proudly made in Poland '
+        '<div class="infinityos-intro-frame infinityos-intro-origin" aria-hidden="true">'
+        '<span>Proudly made in Poland</span>'
         '<span class="infinityos-intro-flags">'
         '<span class="infinityos-intro-flag infinityos-intro-flag-pl" role="img" aria-label="Poland">🇵🇱</span>'
         '<span class="infinityos-intro-flag infinityos-intro-flag-eu" role="img" aria-label="European Union">🇪🇺</span>'
         '</span></div>'
-        '<div class="infinityos-intro-frame" aria-hidden="true">'
+        '<div class="infinityos-intro-frame infinityos-intro-presents" aria-hidden="true">InfinityTeam presents</div>'
+        '<div class="infinityos-intro-frame infinityos-intro-title" aria-hidden="true">'
         '<img class="infinityos-intro-logo" src="infinityos-installer-intro-logo.png" alt="">'
-        'InfinityOS_02</div></div>'
+        'InfinityOS(_02)</div></div>'
     )
     html = replace_once(html, '<div class="ct-page-fill" id="app"></div>',
                         intro + '<div class="ct-page-fill" id="app"></div>', "intro overlay")

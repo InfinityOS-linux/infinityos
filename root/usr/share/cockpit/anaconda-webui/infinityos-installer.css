@@ -131,10 +131,10 @@ textarea {
   display: grid;
   place-items: center;
   color: #fff;
-  background: #050407;
+  background: radial-gradient(ellipse 50% 45% at 50% 50%, #15101f 0%, #08060d 70%, #050407 100%);
   font-family: "Infinity Plex", "IBM Plex Sans", sans-serif;
   opacity: 1;
-  transition: opacity 450ms ease;
+  transition: opacity 800ms ease-in-out;
 }
 
 #infinityos-installer-intro.is-finished {
@@ -147,32 +147,47 @@ textarea {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  width: min(90vw, 640px);
+  gap: 18px;
+  width: min(90vw, 720px);
   opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 400ms ease, transform 400ms ease;
+  filter: blur(8px);
+  transform: translateY(18px) scale(0.98);
+  transition: opacity 800ms ease-in-out, filter 800ms ease-in-out,
+    transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
   text-align: center;
-  font-size: clamp(1.5rem, 3vw, 2.6rem);
+  font-size: clamp(1.6rem, 3vw, 2.8rem);
   font-weight: 500;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .infinityos-intro-frame.is-visible {
   opacity: 1;
+  filter: blur(0);
   transform: none;
+}
+
+.infinityos-intro-presents {
+  color: #d7c8e9;
+  font-size: clamp(1.4rem, 2.4vw, 2.2rem);
+  letter-spacing: 0.04em;
+}
+
+.infinityos-intro-title {
+  gap: 0;
+  font-weight: 600;
+  letter-spacing: -0.035em;
 }
 
 .infinityos-intro-flags {
   display: inline-flex;
-  gap: 10px;
+  gap: 16px;
   white-space: nowrap;
 }
 
 .infinityos-intro-flag {
   display: inline-block;
-  width: 32px;
-  height: 24px;
+  width: 42px;
+  height: 30px;
   overflow: hidden;
   font-size: 0;
   background-position: center;
@@ -190,9 +205,9 @@ textarea {
 
 .infinityos-intro-logo {
   display: block;
-  width: min(65vw, 380px);
+  width: min(65vw, 420px);
   height: auto;
-  margin-bottom: -12px;
+  margin-bottom: -20px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -332,7 +347,7 @@ textarea {
   .anaconda-wizard-step-anaconda-screen-storage-configuration,
   .anaconda-wizard-step-anaconda-screen-accounts
 ) .pf-v6-c-wizard__main-body > * {
-  width: min(100%, 64rem);
+  width: min(100%, 48rem);
   height: auto;
   flex-shrink: 0;
 }
