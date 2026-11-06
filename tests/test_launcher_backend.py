@@ -161,6 +161,46 @@ class LauncherBackendTests(unittest.TestCase):
             app = next(app for app in backend.APPS if app.name == name)
             self.assertTrue(backend.available(app, "aarch64"))
 
+    def test_all_craft_apps_have_their_section_description_and_icon(self):
+        expected = {
+            "PDFCraft": ("Office", "Documents", "The open-source PDF workbench."),
+            "PhotoCraft": ("Creative", "Image", "The image editor you already know how to use."),
+            "VectorCraft": ("Creative", "Image", "Vector illustration, with familiar tools and editable effects."),
+            "CADCraft": ("Creative", "Design", "Computer-aided drafting, with a familiar workflow."),
+            "Craft Anything": ("Programming", "Development tools", "See how any website, app or game works, then build your own."),
+            "DeckCraft": ("Office", "Documents", "Create slides, tell stories and present."),
+            "DesignCraft": ("Creative", "Design", "Page layout and publishing."),
+            "EffectCraft": ("Creative", "Video", "Motion graphics and visual effects."),
+            "FigCraft": ("Creative", "Design", "Interface design and prototyping."),
+            "FilmCraft": ("Creative", "Video", "Professional video editing, rebuilt from scratch."),
+            "GridCraft": ("Office", "Documents", "Spreadsheets you already know how to use."),
+            "LightCraft": ("Creative", "Image", "Your photos. Your pixels. Your machine."),
+            "MaterialCraft": ("Creative", "3D", "Build materials with node graphs."),
+            "SolidCraft": ("Creative", "3D", "Parametric 3D CAD, with editable sketches and solids."),
+            "SoundCraft": ("Creative", "Audio", "Record, edit and mix your audio."),
+            "TextureCraft": ("Creative", "3D", "Paint textures on 3D models."),
+            "WordCraft": ("Office", "Documents", "The familiar word processor, native and offline."),
+        }
+        craft = [app for app in backend.APPS if app.name in expected]
+        self.assertEqual({app.name for app in craft}, set(expected))
+        for app in craft:
+            with self.subTest(app=app.name):
+                self.assertEqual((app.category, app.group, app.description), expected[app.name])
+                self.assertEqual(app.kind, "github-rpm")
+                self.assertIn(app.description, i18n.POLISH)
+                icon = CATALOG_DIR / "launcher-icons" / f"{app.icon}.png"
+                self.assertEqual(icon.read_bytes()[:8], b"\x89PNG\r\n\x1a\n")
+
+    def test_solidcraft_duplicate_release_alias_selects_one_rpm(self):
+        app = next(app for app in backend.APPS if app.name == "SolidCraft")
+        assets = [{"name": name, "digest": "sha256:" + "a" * 64,
+                   "browser_download_url": f"https://github.com/{app.source}/releases/download/v1/{name}"}
+                  for name in ("solidcraft-1-linux-aarch64.rpm", "solidcraft-linux-aarch64.rpm")]
+        response = io.BytesIO(json.dumps({"assets": assets}).encode())
+        with patch.object(backend.urllib.request, "urlopen", return_value=response):
+            _release, asset = backend.latest_rpm_asset(app, "aarch64")
+        self.assertEqual(asset["name"], "solidcraft-1-linux-aarch64.rpm")
+
     def test_winboat_is_x86_only_and_installs_runtime_with_rpm(self):
         app = next(app for app in backend.APPS if app.name == "WinBoat")
         self.assertFalse(backend.available(app, "aarch64"))

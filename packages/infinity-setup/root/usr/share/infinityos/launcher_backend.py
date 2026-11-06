@@ -105,15 +105,18 @@ APPS = (
     App("Gaming", "Discord", "flatpak", "com.discordapp.Discord", "Talk with friends by voice and text.", True, group="Communication", icon="mail-message-new-symbolic"),
     App("Gaming", "Vesktop", "flatpak", "dev.vencord.Vesktop", "Use Discord with extra customization.", group="Communication", icon="mail-message-new-symbolic"),
     App("Gaming", "Bottles", "flatpak", "com.usebottles.bottles", "Run Windows apps in separate Wine environments.", True, group="Other", icon="applications-system-symbolic"),
-    App("Creative", "PhotoCraft", "github-rpm", "storytold/photocraft", "Edit and improve photos.", website="https://github.com/storytold/photocraft", group="Image", icon="ai.storyteller.photocraft"),
-    App("Creative", "VectorCraft", "github-rpm", "storytold/vectorcraft", "Draw and edit vector graphics.", website="https://github.com/storytold/vectorcraft", group="Image", icon="ai.storyteller.vectorcraft"),
-    App("Creative", "LightCraft", "github-rpm", "storytold/lightcraft", "Adjust photos without changing the originals.", website="https://github.com/storytold/lightcraft", group="Image", icon="ai.storyteller.lightcraft"),
-    App("Creative", "FilmCraft", "github-rpm", "storytold/filmcraft", "Edit videos on a timeline.", website="https://github.com/storytold/filmcraft", group="Video", icon="ai.storyteller.filmcraft"),
-    App("Creative", "EffectCraft", "github-rpm", "storytold/effectcraft", "Create animations and video effects.", website="https://github.com/storytold/effectcraft", group="Video", icon="ai.storyteller.effectcraft"),
-    App("Creative", "DesignCraft", "github-rpm", "storytold/designcraft", "Design page layouts and publications.", website="https://github.com/storytold/designcraft", group="Design", icon="ai.storyteller.designcraft"),
-    App("Creative", "CADCraft", "github-rpm", "storytold/cadcraft", "Draw precise technical designs.", website="https://github.com/storytold/cadcraft", group="Design", icon="ai.storyteller.cadcraft"),
-    App("Creative", "FigCraft", "github-rpm", "storytold/figcraft", "Design app screens and prototypes (early version).", website="https://github.com/storytold/figcraft", group="Design", icon="ai.storyteller.figcraft"),
-    App("Creative", "SoundCraft", "github-rpm", "storytold/soundcraft", "Record, edit and mix audio (early version).", website="https://github.com/storytold/soundcraft", group="Audio", icon="ai.storyteller.soundcraft"),
+    App("Creative", "PhotoCraft", "github-rpm", "storytold/photocraft", "The image editor you already know how to use.", website="https://github.com/storytold/photocraft", group="Image", icon="ai.storyteller.photocraft"),
+    App("Creative", "VectorCraft", "github-rpm", "storytold/vectorcraft", "Vector illustration, with familiar tools and editable effects.", website="https://github.com/storytold/vectorcraft", group="Image", icon="ai.storyteller.vectorcraft"),
+    App("Creative", "LightCraft", "github-rpm", "storytold/lightcraft", "Your photos. Your pixels. Your machine.", website="https://github.com/storytold/lightcraft", group="Image", icon="ai.storyteller.lightcraft"),
+    App("Creative", "FilmCraft", "github-rpm", "storytold/filmcraft", "Professional video editing, rebuilt from scratch.", website="https://github.com/storytold/filmcraft", group="Video", icon="ai.storyteller.filmcraft"),
+    App("Creative", "EffectCraft", "github-rpm", "storytold/effectcraft", "Motion graphics and visual effects.", website="https://github.com/storytold/effectcraft", group="Video", icon="ai.storyteller.effectcraft"),
+    App("Creative", "DesignCraft", "github-rpm", "storytold/designcraft", "Page layout and publishing.", website="https://github.com/storytold/designcraft", group="Design", icon="ai.storyteller.designcraft"),
+    App("Creative", "CADCraft", "github-rpm", "storytold/cadcraft", "Computer-aided drafting, with a familiar workflow.", website="https://github.com/storytold/cadcraft", group="Design", icon="ai.storyteller.cadcraft"),
+    App("Creative", "FigCraft", "github-rpm", "storytold/figcraft", "Interface design and prototyping.", website="https://github.com/storytold/figcraft", group="Design", icon="ai.storyteller.figcraft"),
+    App("Creative", "SolidCraft", "github-rpm", "tangency-labs/solidcraft", "Parametric 3D CAD, with editable sketches and solids.", website="https://github.com/tangency-labs/solidcraft", group="3D", icon="io.tangencylabs.solidcraft"),
+    App("Creative", "MaterialCraft", "github-rpm", "storytold/materialcraft", "Build materials with node graphs.", website="https://github.com/storytold/materialcraft", group="3D", icon="ai.storyteller.materialcraft"),
+    App("Creative", "TextureCraft", "github-rpm", "storytold/texturecraft", "Paint textures on 3D models.", website="https://github.com/storytold/texturecraft", group="3D", icon="ai.storyteller.texturecraft"),
+    App("Creative", "SoundCraft", "github-rpm", "storytold/soundcraft", "Record, edit and mix your audio.", website="https://github.com/storytold/soundcraft", group="Audio", icon="ai.storyteller.soundcraft"),
     App("Creative", "GIMP", "flatpak", "org.gimp.GIMP", "Edit photos and other images.", group="More tools", icon="applications-graphics-symbolic"),
     App("Creative", "Krita", "flatpak", "org.kde.krita", "Paint and draw digital art.", group="More tools", icon="applications-graphics-symbolic"),
     App("Creative", "Inkscape", "flatpak", "org.inkscape.Inkscape", "Create and edit vector graphics.", group="More tools", icon="applications-graphics-symbolic"),
@@ -122,6 +125,7 @@ APPS = (
     App("Creative", "OBS Studio", "flatpak", "com.obsproject.Studio", "Record your screen and stream video.", True, group="More tools", icon="applications-multimedia-symbolic"),
     App("Creative", "Audacity", "flatpak", "org.audacityteam.Audacity", "Record and edit audio.", group="More tools", icon="applications-multimedia-symbolic"),
     App("Programming", "Visual Studio Code", "flatpak", "com.visualstudio.code", "Write and edit code.", group="Development tools", icon="applications-development-symbolic"),
+    App("Programming", "Craft Anything", "github-rpm", "storytold/craft-anything", "See how any website, app or game works, then build your own.", website="https://github.com/storytold/craft-anything", group="Development tools", icon="ai.storyteller.craft-anything"),
     App("Programming", "Docker CE", "dnf", "docker-ce", "Run apps in isolated containers.", group="Development tools", icon="docker"),
     App("AI", "Anthropic Claude + Claude Code CLI", "npm", "@anthropic-ai/claude-code", "Use Claude in the browser and terminal.", website="https://claude.ai/", group="Assistants", icon="infinity-claude"),
     App("AI", "OpenAI Codex + Codex CLI", "npm", "@openai/codex", "Use Codex in the browser and terminal.", website="https://chatgpt.com/codex", group="Assistants", icon="infinity-codex"),
@@ -130,10 +134,10 @@ APPS = (
     App("AI", "Qwen3.5 35B A3B Q5 · 64 GB RAM", "local-model", "infinity-qwen-35b", "Run a local AI coding assistant. Needs 30 GB of disk space.", group="Local models", icon="infinity-ai"),
     App("Office", "EuroOffice", "github-rpm", "Euro-Office/DesktopEditors", "Create documents, spreadsheets and presentations.", website="https://github.com/Euro-Office/DesktopEditors", group="Office suite", icon="applications-office-symbolic", package="euro-office-euro-office"),
     App("Office", "LibreOffice", "flatpak", "org.libreoffice.LibreOffice", "Create documents, spreadsheets and presentations.", group="Office suite", icon="applications-office-symbolic"),
-    App("Office", "PDFCraft", "github-rpm", "storytold/pdfcraft", "Open and edit PDF files.", website="https://github.com/storytold/pdfcraft", group="Documents", icon="ai.storyteller.pdfcraft"),
-    App("Office", "WordCraft", "github-rpm", "storytold/wordcraft", "Write and edit text documents.", website="https://github.com/storytold/wordcraft", group="Documents", icon="ai.storyteller.wordcraft"),
-    App("Office", "GridCraft", "github-rpm", "storytold/gridcraft", "Create and edit spreadsheets.", website="https://github.com/storytold/gridcraft", group="Documents", icon="ai.storyteller.gridcraft"),
-    App("Office", "DeckCraft", "github-rpm", "storytold/deckcraft", "Create and edit presentations.", website="https://github.com/storytold/deckcraft", group="Documents", icon="ai.storyteller.deckcraft"),
+    App("Office", "PDFCraft", "github-rpm", "storytold/pdfcraft", "The open-source PDF workbench.", website="https://github.com/storytold/pdfcraft", group="Documents", icon="ai.storyteller.pdfcraft"),
+    App("Office", "WordCraft", "github-rpm", "storytold/wordcraft", "The familiar word processor, native and offline.", website="https://github.com/storytold/wordcraft", group="Documents", icon="ai.storyteller.wordcraft"),
+    App("Office", "GridCraft", "github-rpm", "storytold/gridcraft", "Spreadsheets you already know how to use.", website="https://github.com/storytold/gridcraft", group="Documents", icon="ai.storyteller.gridcraft"),
+    App("Office", "DeckCraft", "github-rpm", "storytold/deckcraft", "Create slides, tell stories and present.", website="https://github.com/storytold/deckcraft", group="Documents", icon="ai.storyteller.deckcraft"),
 )
 
 
@@ -414,6 +418,8 @@ def latest_rpm_asset(app, arch):
     release_arch = {"aarch64": "arm64", "x86_64": "amd64"}.get(arch, arch)
     suffixes = (f"-linux-{arch}.rpm", f".{arch}.rpm", f"-linux-{release_arch}.rpm", f"-{arch}.rpm")
     assets = [asset for asset in release.get("assets", ()) if asset["name"].endswith(suffixes)]
+    if len(assets) > 1 and all(asset.get("digest") == assets[0].get("digest") for asset in assets):
+        assets = [max(assets, key=lambda asset: len(asset["name"]))]
     if len(assets) != 1:
         raise RuntimeError(f"No unique {arch} RPM in the latest {app.name} release.")
     asset = assets[0]

@@ -97,23 +97,32 @@ POLISH = {
     "Use Discord with extra customization.": "Korzystaj z Discorda z dodatkowymi opcjami wyglądu.",
     "Run Windows apps in separate Wine environments.":
         "Uruchamiaj aplikacje Windows w osobnych środowiskach Wine.",
-    "Edit and improve photos.": "Edytuj i poprawiaj zdjęcia.",
-    "Draw and edit vector graphics.": "Rysuj i edytuj grafikę wektorową.",
-    "Adjust photos without changing the originals.": "Poprawiaj zdjęcia bez zmieniania oryginałów.",
-    "Edit videos on a timeline.": "Montuj filmy na osi czasu.",
-    "Create animations and video effects.": "Twórz animacje i efekty do filmów.",
-    "Design page layouts and publications.": "Projektuj układy stron i publikacje.",
-    "Draw precise technical designs.": "Rysuj precyzyjne projekty techniczne.",
-    "Design app screens and prototypes (early version).":
-        "Projektuj ekrany aplikacji i prototypy (wczesna wersja).",
-    "Record, edit and mix audio (early version).": "Nagrywaj, edytuj i miksuj dźwięk (wczesna wersja).",
+    "The image editor you already know how to use.": "Edytor obrazów, który już znasz.",
+    "Vector illustration, with familiar tools and editable effects.":
+        "Ilustracje wektorowe ze znajomymi narzędziami i edytowalnymi efektami.",
+    "Your photos. Your pixels. Your machine.": "Twoje zdjęcia. Twoje piksele. Twój komputer.",
+    "Professional video editing, rebuilt from scratch.":
+        "Profesjonalny montaż wideo, zbudowany od podstaw.",
+    "Motion graphics and visual effects.": "Grafika ruchoma i efekty wizualne.",
+    "Page layout and publishing.": "Skład stron i publikowanie.",
+    "Computer-aided drafting, with a familiar workflow.":
+        "Projektowanie wspomagane komputerowo w znajomym środowisku.",
+    "Interface design and prototyping.": "Projektowanie interfejsów i prototypowanie.",
+    "Parametric 3D CAD, with editable sketches and solids.":
+        "Parametryczne projektowanie 3D z edytowalnymi szkicami i bryłami.",
+    "Build materials with node graphs.": "Twórz materiały za pomocą grafów węzłów.",
+    "Paint textures on 3D models.": "Maluj tekstury na modelach 3D.",
+    "Record, edit and mix your audio.": "Nagrywaj, edytuj i miksuj dźwięk.",
     "Edit photos and other images.": "Edytuj zdjęcia i inne obrazy.",
     "Paint and draw digital art.": "Maluj i rysuj cyfrowe ilustracje.",
     "Create and edit vector graphics.": "Twórz i edytuj grafikę wektorową.",
     "Create 3D models and animations.": "Twórz modele 3D i animacje.",
+    "Edit videos on a timeline.": "Montuj filmy na osi czasu.",
     "Record your screen and stream video.": "Nagrywaj ekran i prowadź transmisje wideo.",
     "Record and edit audio.": "Nagrywaj i edytuj dźwięk.",
     "Write and edit code.": "Pisz i edytuj kod.",
+    "See how any website, app or game works, then build your own.":
+        "Zobacz, jak działa dowolna strona, aplikacja lub gra, a potem zbuduj własną.",
     "Run apps in isolated containers.": "Uruchamiaj aplikacje w odizolowanych kontenerach.",
     "Use Claude in the browser and terminal.": "Korzystaj z Claude w przeglądarce i terminalu.",
     "Use Codex in the browser and terminal.": "Korzystaj z Codexa w przeglądarce i terminalu.",
@@ -124,10 +133,11 @@ POLISH = {
     "Run a local AI coding assistant. Needs 30 GB of disk space.":
         "Uruchom lokalnego asystenta AI do kodu. Potrzebuje 30 GB miejsca na dysku.",
     "Create documents, spreadsheets and presentations.": "Twórz dokumenty, arkusze i prezentacje.",
-    "Open and edit PDF files.": "Otwieraj i edytuj pliki PDF.",
-    "Write and edit text documents.": "Pisz i edytuj dokumenty tekstowe.",
-    "Create and edit spreadsheets.": "Twórz i edytuj arkusze kalkulacyjne.",
-    "Create and edit presentations.": "Twórz i edytuj prezentacje.",
+    "The open-source PDF workbench.": "Otwarte narzędzie do pracy z plikami PDF.",
+    "The familiar word processor, native and offline.":
+        "Znany edytor tekstu, działający natywnie i bez internetu.",
+    "Spreadsheets you already know how to use.": "Arkusze kalkulacyjne, które już znasz.",
+    "Create slides, tell stories and present.": "Twórz slajdy, opowiadaj historie i prezentuj.",
 }
 
 
