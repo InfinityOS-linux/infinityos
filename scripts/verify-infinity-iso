@@ -43,7 +43,7 @@ from pathlib import Path
 
 root = Path(sys.argv[1])
 version = (root / 'usr/share/infinityos/image-release-version').read_text().strip()
-title = 'InfinityOS_01' if version == '1.0' else f'InfinityOS_{version}'
+title = {'1.0': 'InfinityOS_01', '2.0': 'InfinityOS_02'}.get(version, f'InfinityOS_{version}')
 assert f'PRETTY_NAME="{title}"' in (root / 'etc/os-release').read_text()
 webui = root / 'usr/share/cockpit/anaconda-webui'
 assert 'infinityos-installer.css' in (webui / 'index.html').read_text()

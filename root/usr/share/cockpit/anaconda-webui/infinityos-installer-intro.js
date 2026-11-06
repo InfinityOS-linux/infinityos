@@ -44,11 +44,12 @@
 
     (async () => {
         try {
+            await waitForWizard();
             await show(frames[0], reducedMotion ? 300 : 2800);
             await show(frames[1], reducedMotion ? 300 : 2600);
             frames[2].classList.add('is-visible');
             frames[2].setAttribute('aria-hidden', 'false');
-            await Promise.all([pause(reducedMotion ? 300 : 3000), waitForWizard()]);
+            await pause(reducedMotion ? 300 : 3000);
             intro.classList.add('is-finished');
             await pause(reducedMotion ? 0 : 800);
         } finally {

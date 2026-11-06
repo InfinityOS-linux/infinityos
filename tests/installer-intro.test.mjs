@@ -37,6 +37,35 @@ test('intro shows all three cards and releases the ready installer', async () =>
   assert.equal(window.infinityosInstallerIntroComplete, true);
 });
 
+test('intro waits for the wizard before showing the first card', async () => {
+  const shown = [];
+  const frames = Array.from({ length: 3 }, (_, index) => ({
+    classList: { add(name) { if (name === 'is-visible') shown.push(index); }, remove() {} },
+    setAttribute() {},
+  }));
+  const intro = { classList: { add() {} }, querySelectorAll: () => frames, remove() {} };
+  const app = { inert: false };
+  let wizardReady = false;
+  let onMutation;
+  let complete;
+  const done = new Promise(resolve => { complete = resolve; });
+  const document = { querySelector: selector => selector === '#infinityos-installer-intro'
+    ? intro : selector === '#app' ? app : wizardReady ? {} : null };
+  vm.runInNewContext(source, {
+    document, window: { dispatchEvent: complete }, matchMedia: () => ({ matches: false }),
+    MutationObserver: class { constructor(callback) { onMutation = callback; } observe() {} disconnect() {} },
+    setTimeout: (callback, delay) => { if (delay !== 20000) queueMicrotask(callback); return 1; },
+    clearTimeout() {},
+    Event: class { constructor(type) { this.type = type; } },
+  });
+  await Promise.resolve();
+  assert.deepEqual(shown, []);
+  wizardReady = true;
+  onMutation();
+  await done;
+  assert.deepEqual(shown, [0, 1, 2]);
+});
+
 test('intro releases the installer if the animation fails', async () => {
   const frames = Array.from({ length: 3 }, () => ({
     classList: { add() {}, remove() {} }, setAttribute() {},

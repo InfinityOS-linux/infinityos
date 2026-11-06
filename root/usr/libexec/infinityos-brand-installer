@@ -116,7 +116,7 @@ source = replace_once_or_present(
 polish = WEBUI / "po.pl.js.gz"
 locale = gzip.decompress(polish.read_bytes()).decode("utf-8").rstrip()
 translations = {
-    MESSAGE: "Gdy rozpocznie się restart, wyjmij USB przed ponownym uruchomieniem systemu.",
+    MESSAGE: "Naciśnij przycisk poniżej, aby uruchomić ponownie! Wyjmij też USB z instalatorem, nie będzie już potrzebne.",
     "Reboot to installed system": "Uruchom ponownie do zainstalowanego systemu",
     "Language and layout": "Język i układ",
     "Time and region": "Czas i region",
@@ -176,7 +176,7 @@ if 'id="infinityos-installer-intro"' not in html:
         '<div class="infinityos-intro-frame infinityos-intro-presents" aria-hidden="true">InfinityTeam presents</div>'
         '<div class="infinityos-intro-frame infinityos-intro-title" aria-hidden="true">'
         '<img class="infinityos-intro-logo" src="infinityos-installer-intro-logo.png" alt="">'
-        'InfinityOS(_02)</div></div>'
+        'InfinityOS_<span class="infinityos-intro-version">02</span></div></div>'
     )
     html = replace_once(html, '<div class="ct-page-fill" id="app"></div>',
                         intro + '<div class="ct-page-fill" id="app"></div>', "intro overlay")
