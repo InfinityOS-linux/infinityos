@@ -66,6 +66,43 @@ test('intro waits for the wizard before showing the first card', async () => {
   assert.deepEqual(shown, [0, 1, 2]);
 });
 
+test('intro continues after a page reload instead of starting over', async () => {
+  const saved = new Map();
+  const sessionStorage = {
+    getItem: key => saved.get(key),
+    setItem: (key, value) => saved.set(key, value),
+  };
+  let now = 100000;
+  const run = (shown, setTimeout, done) => {
+    const frames = Array.from({length: 3}, (_, index) => ({
+      classList: {add(name) { if (name === 'is-visible') shown.push(index); }, remove() {}},
+      setAttribute() {},
+    }));
+    const intro = {classList: {add() {}}, querySelectorAll: () => frames, remove() {}};
+    const app = {inert: false};
+    vm.runInNewContext(source, {
+      document: {querySelector: selector => selector === '#infinityos-installer-intro'
+        ? intro : selector === '#app' ? app : {}},
+      window: {sessionStorage, dispatchEvent: done},
+      Date: {now: () => now},
+      matchMedia: () => ({matches: false}),
+      setTimeout,
+      Event: class {constructor(type) { this.type = type; }},
+    });
+  };
+  const first = [];
+  run(first, () => 1, () => {});
+  await Promise.resolve();
+  assert.deepEqual(first, [0]);
+  now += 3500;
+  const second = [];
+  let complete;
+  const done = new Promise(resolve => { complete = resolve; });
+  run(second, (callback, delay) => { now += delay; queueMicrotask(callback); return 1; }, complete);
+  await done;
+  assert.deepEqual(second, [1, 2]);
+});
+
 test('intro releases the installer if the animation fails', async () => {
   const frames = Array.from({ length: 3 }, () => ({
     classList: { add() {}, remove() {} }, setAttribute() {},

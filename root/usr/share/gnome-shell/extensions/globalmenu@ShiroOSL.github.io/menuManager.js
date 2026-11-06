@@ -279,7 +279,7 @@ export class MenuManager {
         const menus = [];
         if (enabled('menu-app-enabled')) {
             menus.push({
-                label: focus?.name ?? desktopName,
+                label: focus?.name ?? 'Desktop',
                 children: appMenuItems(focus, desktopName),
             });
         }

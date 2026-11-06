@@ -68,7 +68,7 @@ class InstallerBrandingTests(unittest.TestCase):
             self.assertEqual((webui / "index.html").read_text().count('id="infinityos-installer-intro"'), 1)
             html = (webui / "index.html").read_text()
             self.assertLess(html.index("Proudly made in Poland"), html.index("InfinityTeam presents"))
-            self.assertLess(html.index("InfinityTeam presents"), html.index('InfinityOS_<span class="infinityos-intro-version">02</span>'))
+            self.assertLess(html.index("InfinityTeam presents"), html.index('<span>InfinityOS_<span class="infinityos-intro-version">02</span></span>'))
             locale = gzip.decompress((webui / "po.pl.js.gz").read_bytes()).decode()
             self.assertIn("Naciśnij przycisk poniżej, aby uruchomić ponownie! Wyjmij też USB z instalatorem, nie będzie już potrzebne.", locale)
             self.assertIn('"Quit": [\n  null,\n  "Zakończ"\n ]', locale)

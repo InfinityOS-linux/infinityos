@@ -113,11 +113,11 @@ textarea {
   font-weight: 600;
 }
 
-#app .pf-v6-c-page__header {
+#app :is(.pf-v6-c-page__header, .pf-v6-c-masthead) {
   position: relative;
 }
 
-#app .pf-v6-c-page__header h1 {
+#app :is(.pf-v6-c-page__header, .pf-v6-c-masthead) h1 {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -132,7 +132,7 @@ textarea {
 }
 
 @media (max-width: 700px) {
-  #app .pf-v6-c-page__header h1 {
+  #app :is(.pf-v6-c-page__header, .pf-v6-c-masthead) h1 {
     position: static;
     max-width: 100%;
     transform: none;
@@ -202,6 +202,10 @@ textarea {
   gap: 0;
   font-weight: 600;
   letter-spacing: -0.035em;
+}
+
+.infinityos-intro-title > span {
+  white-space: nowrap;
 }
 
 .infinityos-intro-version {
@@ -355,6 +359,8 @@ textarea {
 
 #installation-wizard .pf-v6-c-wizard__main-body {
   position: relative;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 #installation-wizard:is(

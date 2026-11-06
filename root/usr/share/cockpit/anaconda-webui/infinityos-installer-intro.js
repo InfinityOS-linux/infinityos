@@ -9,6 +9,9 @@
     const frames = [...intro.querySelectorAll('.infinityos-intro-frame')];
     const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+    const timing = reducedMotion ? [300, 300, 300] : [2800, 2600, 3000];
+    const gap = reducedMotion ? 0 : 620;
+    const storageKey = 'infinityos-installer-intro-start';
     app.inert = true;
 
     function waitForWizard() {
@@ -39,17 +42,31 @@
         await pause(duration);
         frame.classList.remove('is-visible');
         frame.setAttribute('aria-hidden', 'true');
-        await pause(reducedMotion ? 0 : 620);
     }
 
     (async () => {
         try {
             await waitForWizard();
-            await show(frames[0], reducedMotion ? 300 : 2800);
-            await show(frames[1], reducedMotion ? 300 : 2600);
-            frames[2].classList.add('is-visible');
-            frames[2].setAttribute('aria-hidden', 'false');
-            await pause(reducedMotion ? 300 : 3000);
+            let startedAt = Date.now();
+            try {
+                const saved = Number(window.sessionStorage.getItem(storageKey));
+                if (saved > 0)
+                    startedAt = saved;
+                else
+                    window.sessionStorage.setItem(storageKey, String(startedAt));
+            } catch (_) {
+                // Private storage can be unavailable; the intro still runs for this page.
+            }
+            let offset = 0;
+            for (let index = 0; index < frames.length; index++) {
+                const elapsed = Date.now() - startedAt;
+                if (elapsed < offset)
+                    await pause(offset - elapsed);
+                const remaining = offset + timing[index] - (Date.now() - startedAt);
+                if (remaining > 0)
+                    await show(frames[index], remaining);
+                offset += timing[index] + (index < frames.length - 1 ? gap : 0);
+            }
             intro.classList.add('is-finished');
             await pause(reducedMotion ? 0 : 800);
         } finally {
