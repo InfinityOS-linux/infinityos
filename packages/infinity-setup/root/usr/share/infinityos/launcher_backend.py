@@ -461,7 +461,7 @@ def latest_appimage_asset(app, arch):
     if not url.startswith(f"https://github.com/{app.source}/releases/download/"):
         raise RuntimeError("Unexpected release download URL.")
     digest = asset.get("digest", "")
-    if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+    if not isinstance(digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
         raise RuntimeError("Release is missing a SHA256 digest for the AppImage.")
     return release, asset
 

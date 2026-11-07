@@ -209,6 +209,18 @@ class LauncherBackendTests(unittest.TestCase):
                     with self.assertRaisesRegex(RuntimeError, "checksum"):
                         backend._latest_appimage(app, arch, directory)
 
+    def test_appimage_rejects_missing_or_invalid_digest(self):
+        app = next(app for app in backend.APPS if app.name == "TwinDesk")
+        name = "TwinDesk-2.4.0-x86_64.AppImage"
+        for digest in (None, 123, "", "sha256:invalid"):
+            with self.subTest(digest=digest):
+                release = {"assets": [{"name": name, "digest": digest,
+                    "browser_download_url": f"https://github.com/{app.source}/releases/download/v2.4.0/{name}"}]}
+                with patch.object(backend.urllib.request, "urlopen",
+                                  return_value=io.BytesIO(json.dumps(release).encode())):
+                    with self.assertRaisesRegex(RuntimeError, "SHA256"):
+                        backend.latest_appimage_asset(app, "x86_64")
+
     def test_safe_disk_cleaner_install_creates_desktop_entry(self):
         app = next(app for app in backend.APPS if app.name == "Safe Disk Cleaner")
         with tempfile.TemporaryDirectory() as directory:
@@ -314,7 +326,8 @@ class LauncherBackendTests(unittest.TestCase):
 
     def test_flatpak_install_starts_only_when_called(self):
         steam = next(app for app in backend.APPS if app.name == "Steam")
-        with patch.object(backend, "_install_steam_gl_drivers") as drivers, \
+        with patch.object(backend.os, "uname", return_value=SimpleNamespace(machine="x86_64")), \
+             patch.object(backend, "_install_steam_gl_drivers") as drivers, \
              patch.object(backend, "_run") as run:
             self.assertEqual(run.call_count, 0)
             backend.install(steam)
