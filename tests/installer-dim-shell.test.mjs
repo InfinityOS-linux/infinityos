@@ -11,6 +11,7 @@ test('installer dim follows the live marker and is removed after exit', () => {
   let running = true;
   let deleted = false;
   let parent;
+  const displaySignals = {};
   const monitor = { connectObject() {}, disconnectObject() {}, cancel() {} };
   const runtime = {
     monitor_directory: () => monitor,
@@ -35,7 +36,7 @@ test('installer dim follows the live marker and is removed after exit', () => {
   const focused = { get_parent: () => group };
   const global = {
     window_group: group,
-    display: { focus_window: { get_compositor_private: () => focused }, connectObject() {}, disconnectObject() {} },
+    display: { focus_window: { get_compositor_private: () => focused }, connectObject(signal, callback) { displaySignals[signal] = callback; }, disconnectObject() {} },
     stage: { width: 1200, height: 800, connectObject() {}, disconnectObject() {} },
   };
   const context = {
@@ -50,8 +51,9 @@ test('installer dim follows the live marker and is removed after exit', () => {
   const InstallerDim = vm.runInNewContext(`${source}\nInstallerDim`, context);
   const dim = new InstallerDim();
   assert.deepEqual(dim._dim.size, [1200, 800]);
-  assert.equal(group.below, undefined);
-  dim._place();
+  assert.equal(group.below, focused);
+  group.below = undefined;
+  displaySignals.restacked();
   assert.equal(group.below, focused);
   running = false;
   dim._sync();
