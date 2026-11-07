@@ -229,9 +229,11 @@ export const PopupBlurTargets = class PopupBlurTargets {
     }
 
     add(targets, target) {
+        // shortcut: GNOME 51 draws square popup blur here; restore it when native blur supports corner-radius.
         if (
             this.actor.is_internal_actor(target)
             || !this.actor.watch_actor(target)
+            || this.has_style_class(target, 'snap-assistant')
             || targets.seen.has(target)
         )
             return;

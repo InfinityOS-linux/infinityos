@@ -124,6 +124,84 @@ textarea {
   background: var(--infinity-ink);
 }
 
+#infinityos-installer-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #050407;
+  font-family: "Infinity Plex", "IBM Plex Sans", sans-serif;
+  opacity: 1;
+  transition: opacity 450ms ease;
+}
+
+#infinityos-installer-intro.is-finished {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.infinityos-intro-frame {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(90vw, 640px);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 400ms ease, transform 400ms ease;
+  text-align: center;
+  font-size: clamp(1.5rem, 3vw, 2.6rem);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.infinityos-intro-frame.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+.infinityos-intro-flags {
+  display: inline-flex;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.infinityos-intro-flag {
+  display: inline-block;
+  width: 32px;
+  height: 24px;
+  overflow: hidden;
+  font-size: 0;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.infinityos-intro-flag-pl {
+  background-image: url("infinityos-flag-pl.svg");
+}
+
+.infinityos-intro-flag-eu {
+  background-image: url("infinityos-flag-eu.svg");
+}
+
+.infinityos-intro-logo {
+  display: block;
+  width: min(65vw, 380px);
+  height: auto;
+  margin-bottom: -12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #infinityos-installer-intro,
+  .infinityos-intro-frame {
+    transition: none;
+  }
+}
+
 .installation-page--loading {
   background: var(--infinity-ink) !important;
   color: var(--infinity-text);
@@ -148,6 +226,17 @@ textarea {
 #installation-wizard .pf-v6-c-wizard__nav {
   background: var(--infinity-panel);
   border-right: 1px solid var(--infinity-border);
+}
+
+@media (min-width: 62rem) {
+  #installation-wizard .pf-v6-c-wizard__nav {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #installation-wizard .pf-v6-c-wizard__nav-list {
+    margin-block: auto;
+  }
 }
 
 @media (min-width: 62rem) {
@@ -221,6 +310,31 @@ textarea {
 
 #installation-wizard .pf-v6-c-wizard__main-body {
   position: relative;
+}
+
+#installation-wizard:is(
+  .anaconda-wizard-step-anaconda-screen-language,
+  .anaconda-wizard-step-anaconda-screen-date-time,
+  .anaconda-wizard-step-anaconda-screen-method,
+  .anaconda-wizard-step-anaconda-screen-storage-configuration,
+  .anaconda-wizard-step-anaconda-screen-accounts
+) .pf-v6-c-wizard__main-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: safe center;
+}
+
+#installation-wizard:is(
+  .anaconda-wizard-step-anaconda-screen-language,
+  .anaconda-wizard-step-anaconda-screen-date-time,
+  .anaconda-wizard-step-anaconda-screen-method,
+  .anaconda-wizard-step-anaconda-screen-storage-configuration,
+  .anaconda-wizard-step-anaconda-screen-accounts
+) .pf-v6-c-wizard__main-body > * {
+  width: min(100%, 64rem);
+  height: auto;
+  flex-shrink: 0;
 }
 
 #installation-wizard .pf-v6-c-wizard__main-body h1 {

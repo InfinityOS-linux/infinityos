@@ -35,8 +35,11 @@ class InstallerBrandingTests(unittest.TestCase):
                 b'cockpit.locale({"undo":[null,"cofnij"],"Quit": [\n  null,\n  "Zako\xc5\x84cz"\n ],'
                 b'"Quit installer?": [null, "Zakoncz instalatora?"],'
                 b'"Storage configuration": [\n  null,\n  "Konfiguracja"\n ]\n});\n'))
-            (webui / "index.html").write_text("<html><head></head></html>")
+            (webui / "index.html").write_text(
+                '<html><head></head><body><div class="ct-page-fill" id="app"></div></body></html>')
             for asset in ("infinityos-installer.css", "infinityos-installer-audio.js",
+                          "infinityos-installer-intro.js", "infinityos-installer-intro-logo.png",
+                          "infinityos-flag-pl.svg", "infinityos-flag-eu.svg",
                           "infinityos-installer-mark.svg", "infinityos-installer-mascot.png",
                           "infinityos-installer-train.png",
                           "infinityos-installer-music.mp3",
@@ -61,6 +64,11 @@ class InstallerBrandingTests(unittest.TestCase):
             self.assertIn('this.title=Pz("Review and install")', result)
             self.assertEqual((webui / "index.html").read_text().count("infinityos-installer.css"), 1)
             self.assertEqual((webui / "index.html").read_text().count("infinityos-installer-audio.js"), 1)
+            self.assertEqual((webui / "index.html").read_text().count("infinityos-installer-intro.js"), 1)
+            self.assertEqual((webui / "index.html").read_text().count('id="infinityos-installer-intro"'), 1)
+            self.assertIn("InfinityTeam presents", (webui / "index.html").read_text())
+            self.assertIn("Proudly made in Poland", (webui / "index.html").read_text())
+            self.assertIn("InfinityOS_02", (webui / "index.html").read_text())
             locale = gzip.decompress((webui / "po.pl.js.gz").read_bytes()).decode()
             self.assertIn("Gdy rozpocznie się restart, wyjmij USB", locale)
             self.assertIn('"Quit": [\n  null,\n  "Zakończ"\n ]', locale)
@@ -113,6 +121,10 @@ class InstallerBrandingTests(unittest.TestCase):
             (webui / "VERSION.txt").write_text("90\n")
             (webui / "infinityos-installer.css").write_text("/* style */")
             (webui / "infinityos-installer-audio.js").write_text("// controls")
+            (webui / "infinityos-installer-intro.js").write_text("// intro")
+            (webui / "infinityos-installer-intro-logo.png").write_bytes(b"test asset")
+            (webui / "infinityos-flag-pl.svg").write_text("<svg/>")
+            (webui / "infinityos-flag-eu.svg").write_text("<svg/>")
             (webui / "infinityos-installer-mark.svg").write_text("<svg/>")
             (webui / "infinityos-installer-mascot.png").write_bytes(b"test asset")
             (webui / "infinityos-installer-train.png").write_bytes(b"test asset")

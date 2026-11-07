@@ -17,6 +17,7 @@ import {
     QuickSettingsPowerManager
 } from './panelComponents.js';
 import VibrancyManager from './vibrancyManager.js';
+import InstallerDim from './installerDim.js';
 import { APP_GRID_WORKSPACE_RATIO, APP_GRID_WORKSPACE_FADE_RANGE, APP_GRID_WORKSPACE_FADE_SNAP } from './constants.js';
 
 const PowerProfilesIface = `<node>
@@ -91,6 +92,11 @@ this._settings.connectObject(
         // Initialize and enable VibrancyManager
         this._vibrancyManager = new VibrancyManager(this, this._settings);
         this._vibrancyManager.enable();
+        try {
+            this._installerDim = new InstallerDim();
+        } catch (error) {
+            console.warn(`[WACK Shell] installer dim unavailable: ${error}`);
+        }
 
         // Initialize QuickSettings power controls manager
         this._qsPowerManager = new QuickSettingsPowerManager(this);
@@ -181,6 +187,8 @@ this._settings.connectObject(
     }
 
     disable() {
+        this._installerDim?.destroy();
+        this._installerDim = null;
         if (this._entranceStartupId) {
             Main.layoutManager.disconnect(this._entranceStartupId);
             this._entranceStartupId = 0;

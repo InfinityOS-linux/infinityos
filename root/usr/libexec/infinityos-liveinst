@@ -20,14 +20,31 @@ if [[ ${1:-} == --restore-terminal ]]; then
 fi
 
 enabled=$(gnome-extensions list --enabled)
+terminal_disabled=false
 if grep -Fqx "$extension" <<< "$enabled"; then
     mkdir -p "${marker%/*}"
     printf '%s\n' "$$" > "$marker"
     gnome-extensions disable "$extension"
-    trap restore_terminal EXIT
-    trap 'exit 129' HUP
-    trap 'exit 130' INT
-    trap 'exit 143' TERM
+    terminal_disabled=true
+fi
+
+dim_marker=
+cleanup() {
+    [[ -z $dim_marker ]] || rm -f "$dim_marker"
+    [[ $terminal_disabled == false ]] || restore_terminal
+}
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+if [[ -n ${XDG_RUNTIME_DIR:-} ]]; then
+    dim_marker="$XDG_RUNTIME_DIR/infinityos-liveinst-dim-$$"
+    if touch "$dim_marker"; then
+        sleep 0.3
+    else
+        dim_marker=
+    fi
 fi
 
 liveinst "$@"
