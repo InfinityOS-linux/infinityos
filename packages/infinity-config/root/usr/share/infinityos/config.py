@@ -16,6 +16,7 @@ from config_backend import (
 )
 from diagnostics import write_report
 from config_ai_page import AiPage
+from config_proton_page import ProtonPage
 
 
 CSS = b"""
@@ -231,6 +232,7 @@ class InfinityConfig(Gtk.Application):
         self.status.set_wrap(True)
         footer.append(self.status)
         card.append(footer)
+        self.proton_page = ProtonPage(self, nav, group)
         self.ai_page = AiPage(self, nav, group)
         self.window.present()
 
