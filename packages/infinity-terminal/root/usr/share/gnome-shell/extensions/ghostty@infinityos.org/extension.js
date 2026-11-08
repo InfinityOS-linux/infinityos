@@ -23,6 +23,7 @@ export default class InfinityTerminal extends Extension {
         this._settings.set_boolean('pinned', false);
         this._window = null;
         this._pendingShow = false;
+        this._firstFrame = null;
         this._sourceId = 0;
         this._placementId = 0;
         this._geometryIds = [];
@@ -111,28 +112,33 @@ export default class InfinityTerminal extends Extension {
         });
         this._focusId = global.display.connect('notify::focus-window', () => {
             const window = this._findWindow();
-            if (!this._settings.get_boolean('pinned') && window && !window.minimized &&
+            if (!this._firstFrame && !this._settings.get_boolean('pinned') && window && !window.minimized &&
                 global.display.focus_window !== window)
                 this._hide(window);
         });
         this._windowCreatedId = global.display.connect('window-created', (_display, window) => {
+            const actor = window.get_compositor_private();
+            let hasFrame = false;
             const clear = () => {
-                for (const id of this._pendingWindows.get(window) ?? [])
-                    window.disconnect(id);
+                for (const [object, id] of this._pendingWindows.get(window) ?? [])
+                    object.disconnect(id);
                 this._pendingWindows.delete(window);
             };
             const check = () => {
                 if (!this._isGhosTTY(window))
                     return;
                 clear();
-                this._track(window, true);
+                this._track(window, true, !!actor && !hasFrame);
             };
             // Wayland sets the application ID after window-created.
-            this._pendingWindows.set(window, [
-                window.connect('notify::gtk-application-id', check),
-                window.connect('notify::wm-class', check),
-                window.connect('unmanaged', clear),
-            ]);
+            const signals = [
+                [window, window.connect('notify::gtk-application-id', check)],
+                [window, window.connect('notify::wm-class', check)],
+                [window, window.connect('unmanaged', clear)],
+            ];
+            if (actor)
+                signals.push([actor, actor.connect('first-frame', () => { hasFrame = true; })]);
+            this._pendingWindows.set(window, signals);
             check();
         });
 
@@ -170,11 +176,12 @@ export default class InfinityTerminal extends Extension {
         global.stage.disconnect(this._outsideClickId);
         global.display.disconnect(this._focusId);
         global.display.disconnect(this._windowCreatedId);
-        for (const [window, ids] of this._pendingWindows) {
-            for (const id of ids)
-                window.disconnect(id);
+        for (const signals of this._pendingWindows.values()) {
+            for (const [object, id] of signals)
+                object.disconnect(id);
         }
         this._pendingWindows.clear();
+        this._clearFirstFrame();
         if (this._unmanagedId && this._window)
             this._window.disconnect(this._unmanagedId);
         if (this._minimizedId && this._window)
@@ -323,6 +330,10 @@ export default class InfinityTerminal extends Extension {
     }
 
     _showTerminal() {
+        if (this._firstFrame) {
+            this._pendingShow = true;
+            return;
+        }
         const window = this._findWindow();
         if (!window || window.minimized)
             this._toggle();
@@ -344,7 +355,19 @@ export default class InfinityTerminal extends Extension {
         }
     }
 
-    _track(window, fresh) {
+    _clearFirstFrame() {
+        if (this._firstFrame) {
+            this._firstFrame.actor.disconnect(this._firstFrame.id);
+            this._firstFrame = null;
+        }
+    }
+
+    _track(window, fresh, waitForFrame = false) {
+        this._clearFirstFrame();
+        if (this._sourceId) {
+            GLib.Source.remove(this._sourceId);
+            this._sourceId = 0;
+        }
         if (this._unmanagedId && this._window)
             this._window.disconnect(this._unmanagedId);
         if (this._minimizedId && this._window)
@@ -356,13 +379,15 @@ export default class InfinityTerminal extends Extension {
             window.connect('position-changed', () => this._enforcePlacement(window)),
             window.connect('size-changed', () => this._enforcePlacement(window)),
         ];
-        if (fresh && !this._pendingShow) {
+        if (fresh) {
             const actor = window.get_compositor_private();
             if (actor) {
+                actor.remove_all_transitions();
                 actor.opacity = 0;
                 Main.wm.skipNextEffect(actor);
             }
-            window.minimize();
+            if (!this._pendingShow && !waitForFrame)
+                window.minimize();
         }
         this._icon.opacity = window.minimized ? 112 : 255;
         this._minimizedId = window.connect('notify::minimized', () => {
@@ -370,6 +395,11 @@ export default class InfinityTerminal extends Extension {
             Main.overview._overview.controls._workspacesDisplay._updateWorkspacesViews();
         });
         this._unmanagedId = window.connect('unmanaged', () => {
+            this._clearFirstFrame();
+            if (this._sourceId) {
+                GLib.Source.remove(this._sourceId);
+                this._sourceId = 0;
+            }
             this._window = null;
             this._resize = null;
             this._setResizeCursor(false);
@@ -378,7 +408,8 @@ export default class InfinityTerminal extends Extension {
             this._minimizedId = 0;
             this._geometryIds = [];
         });
-        this._sourceId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+        const ready = () => {
+            this._clearFirstFrame();
             this._sourceId = 0;
             this._place(window);
             if (this._pendingShow) {
@@ -391,7 +422,15 @@ export default class InfinityTerminal extends Extension {
                 window.minimize();
             }
             return GLib.SOURCE_REMOVE;
-        });
+        };
+        const actor = window.get_compositor_private();
+        if (waitForFrame && actor) {
+            // Cold starts may draw after the entire slide would have finished.
+            this._place(window);
+            this._firstFrame = {actor, id: actor.connect('first-frame', ready)};
+        } else {
+            this._sourceId = GLib.idle_add(GLib.PRIORITY_DEFAULT, ready);
+        }
     }
 
     _enforcePlacement(window) {
@@ -432,6 +471,10 @@ export default class InfinityTerminal extends Extension {
     }
 
     _toggle() {
+        if (this._firstFrame) {
+            this._pendingShow = !this._pendingShow;
+            return;
+        }
         const window = this._findWindow();
         if (!window) {
             this._pendingShow = true;
@@ -467,6 +510,10 @@ export default class InfinityTerminal extends Extension {
     }
 
     _hide(window) {
+        if (this._firstFrame && window === this._window) {
+            this._pendingShow = false;
+            return;
+        }
         const actor = window.get_compositor_private();
         if (!actor) {
             window.minimize();
