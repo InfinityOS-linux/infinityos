@@ -677,6 +677,19 @@ class LauncherBackendTests(unittest.TestCase):
                     backend.install(app, home)
             self.assertEqual(config.read_text(), "infinity-gemma-12b\n")
 
+    def test_custom_config_model_remains_available_for_removal_in_setup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            marker = home / ".config/infinityos/local-ai-model"
+            marker.parent.mkdir(parents=True)
+            marker.write_text("infinity-config-1000")
+            apps = backend.configured_apps(home)
+            custom = next(app for app in apps if app.source == "infinity-config-1000")
+            self.assertEqual(custom.kind, "local-model")
+            with patch.object(backend.shutil, "which", return_value=None):
+                backend.deactivate_local_model(home)
+            self.assertEqual(backend.configured_apps(home), backend.APPS)
+
 
 if __name__ == "__main__":
     unittest.main()

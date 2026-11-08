@@ -1,0 +1,79 @@
+#!/usr/bin/python3
+"""Copy Ollama storage, then switch its system service; never delete weights."""
+import os
+from pathlib import Path
+import pwd
+import shlex
+import subprocess
+import sys
+
+DROPIN = Path('/etc/systemd/system/ollama.service.d/90-infinity-models.conf')
+
+
+def run(*args):
+    return subprocess.run(args, check=True, capture_output=True, text=True, timeout=3600).stdout.strip()
+
+
+def storage_path():
+    environment = run('systemctl', 'show', 'ollama.service', '-p', 'Environment', '--value')
+    values = dict(item.split('=', 1) for item in shlex.split(environment) if '=' in item)
+    return Path(values.get('OLLAMA_MODELS', '/usr/share/ollama/.ollama/models'))
+
+
+def move(destination):
+    if os.geteuid() != 0 or not os.environ.get('PKEXEC_UID'):
+        raise ValueError('Administrator authentication is required')
+    caller = int(os.environ['PKEXEC_UID'])
+    if caller == 0 or run('systemctl', 'show', 'ollama.service', '-p', 'User', '--value') != 'ollama':
+        raise ValueError('Only the standard Ollama service is supported')
+    target = Path(destination)
+    if not target.is_absolute() or any(c in str(target) for c in '\r\n%'):
+        raise ValueError('Invalid destination')
+    target = target.resolve(strict=True)
+    source = storage_path().resolve(strict=True)
+    if target == source or source in target.parents or target in source.parents:
+        raise ValueError('Choose a separate empty folder')
+    # Hold the checked directory open: no privileged path-based ownership change.
+    descriptor = os.open(target, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        if os.fstat(descriptor).st_uid != caller or os.listdir(descriptor):
+            raise ValueError('Choose an empty folder owned by your account')
+        service = pwd.getpwnam('ollama')
+        os.fchown(descriptor, -1, service.pw_gid)
+        os.fchmod(descriptor, 0o2770)
+    finally:
+        os.close(descriptor)
+    run('runuser', '-u', 'ollama', '--', 'test', '-w', str(target))
+    old = DROPIN.read_bytes() if DROPIN.exists() else None
+    run('systemctl', 'stop', 'ollama.service')
+    try:
+        # Copy with the service's permissions, never with root's file access.
+        run('runuser', '-u', 'ollama', '--', 'cp', '-a', '--no-preserve=ownership', '--', str(source) + '/.', str(target))
+        DROPIN.parent.mkdir(parents=True, exist_ok=True)
+        escaped = str(target).replace('\\', '\\\\').replace('"', '\\"')
+        DROPIN.write_text('[Service]\nEnvironment="OLLAMA_MODELS=' + escaped + '"\n')
+        run('systemctl', 'daemon-reload')
+        run('systemctl', 'start', 'ollama.service')
+        if storage_path() != target:
+            raise RuntimeError('Another service override takes precedence')
+    except Exception:
+        if old is None:
+            DROPIN.unlink(missing_ok=True)
+        else:
+            DROPIN.write_bytes(old)
+        run('systemctl', 'daemon-reload')
+        run('systemctl', 'restart', 'ollama.service')
+        raise
+
+
+if __name__ == '__main__':
+    try:
+        if sys.argv[1:] == ['--show']:
+            print(storage_path())
+        elif len(sys.argv) == 2:
+            move(sys.argv[1])
+        else:
+            raise ValueError('Usage: infinity-ai-storage --show | DIRECTORY')
+    except Exception:
+        print('Could not change model storage. The original model files were kept.', file=sys.stderr)
+        sys.exit(1)

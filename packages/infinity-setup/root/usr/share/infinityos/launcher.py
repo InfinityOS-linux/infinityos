@@ -13,7 +13,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk
 
-from launcher_backend import (APPS, active_local_model, available, deactivate_local_model,
+from launcher_backend import (APPS, active_local_model, configured_apps, available, deactivate_local_model,
                               install, installed, installed_flatpaks,
                               open_lutris_installer, removable, uninstall)
 from launcher_i18n import tr
@@ -311,7 +311,7 @@ class InfinitySetup(Gtk.Application):
         body.append(page_heading)
         previous_group = None
         selected_model = active_local_model()
-        for app in (item for item in APPS if item.category == section):
+        for app in (item for item in configured_apps() if item.category == section):
             if app.group != previous_group:
                 if previous_group:
                     body.append(Gtk.Separator())

@@ -152,6 +152,15 @@ def active_local_model(home=None):
     return path.read_text(encoding="utf-8").strip() if path.exists() else None
 
 
+def configured_apps(home=None):
+    """Keep a model selected in Config removable from Setup."""
+    model = active_local_model(home)
+    if model and model not in LOCAL_MODELS:
+        return (*APPS, App("AI", model, "local-model", model,
+                          "Manage this model in InfinityConfig.", group="Local models", icon="infinity-ai"))
+    return APPS
+
+
 def deactivate_local_model(home=None):
     """Stop selecting a local model without deleting its downloaded weights."""
     (Path(home or Path.home()) / ".config/infinityos/local-ai-model").unlink(missing_ok=True)
@@ -766,7 +775,7 @@ def _install_epic_appimage(app, home):
 
 
 def _install_local_model(app, home):
-    model = LOCAL_MODELS[app.source]
+    model = LOCAL_MODELS.get(app.source)
 
     ollama = ollama_binary()
     needs_model = not ollama or subprocess.run([ollama, "show", app.source],
@@ -774,6 +783,8 @@ def _install_local_model(app, home):
                                                stderr=subprocess.DEVNULL, check=False).returncode != 0
     # Fail before installing runtimes when the selected weights cannot fit.
     if needs_model:
+        if model is None:
+            raise RuntimeError("Import this model again in InfinityConfig.")
         if shutil.disk_usage(home).free < model.disk_gb * 1_000_000_000:
             raise RuntimeError(f"At least {model.disk_gb} GB of free disk space is required.")
         # Fedora's Ollama can predate newly released GGUF architectures. The

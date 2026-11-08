@@ -15,6 +15,7 @@ from config_backend import (
     slider_to_percent,
 )
 from diagnostics import write_report
+from config_ai_page import AiPage
 
 
 CSS = b"""
@@ -230,6 +231,7 @@ class InfinityConfig(Gtk.Application):
         self.status.set_wrap(True)
         footer.append(self.status)
         card.append(footer)
+        self.ai_page = AiPage(self, nav, group)
         self.window.present()
 
     def _sync_color_scheme(self, *_args):

@@ -30,7 +30,7 @@ class LocalAiWrapperTests(unittest.TestCase):
 
             def run(command, **kwargs):
                 if command[1] == "show":
-                    return SimpleNamespace(returncode=0)
+                    return SimpleNamespace(returncode=0, stdout="")
                 settings = json.loads(kwargs["env"]["OPENCODE_CONFIG_CONTENT"])
                 self.assertEqual(settings["model"], "ollama/infinity-qwen-9b")
                 model_options = settings["provider"]["ollama"]["models"]["infinity-qwen-9b"]["options"]
@@ -56,7 +56,7 @@ class LocalAiWrapperTests(unittest.TestCase):
             binary.touch()
             with patch.object(wrapper.Path, "home", return_value=home), \
                  patch.object(wrapper.shutil, "which", side_effect=lambda name: "/usr/bin/ollama" if name == "ollama" else None), \
-                 patch.object(wrapper.subprocess, "run", return_value=SimpleNamespace(returncode=0)), \
+                 patch.object(wrapper.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout="")), \
                  patch.object(wrapper.os, "execve") as execute, \
                  patch.object(wrapper.sys, "argv", ["infinity-local-ai", "--edit"]):
                 wrapper.main()
@@ -65,6 +65,26 @@ class LocalAiWrapperTests(unittest.TestCase):
             self.assertEqual(settings["permission"]["external_directory"], "allow")
             self.assertEqual(settings["permission"]["bash"], "ask")
             self.assertEqual(execute.call_args.args[1][-1], "ollama/infinity-gemma-12b")
+
+    def test_custom_model_uses_saved_limits_without_weakening_permissions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            marker = home / ".config/infinityos/local-ai-model"
+            marker.parent.mkdir(parents=True)
+            marker.write_text("infinity-config-1000")
+            binary = home / ".local/bin/opencode"
+            binary.parent.mkdir(parents=True)
+            binary.touch()
+            with patch.object(wrapper.Path, "home", return_value=home), \
+                 patch.object(wrapper.shutil, "which", return_value="/usr/bin/ollama"), \
+                 patch.object(wrapper.Path, "exists", return_value=True), \
+                 patch.object(wrapper.subprocess, "run", return_value=SimpleNamespace(returncode=0, stdout="num_ctx 4096\nnum_predict 1024\ntemperature 0.5\n")), \
+                 patch.object(wrapper.os, "execve") as execute, \
+                 patch.object(wrapper.sys, "argv", ["infinity-local-ai"]):
+                wrapper.main()
+            settings = json.loads(execute.call_args.args[2]["OPENCODE_CONFIG_CONTENT"])
+            self.assertEqual(settings["provider"]["ollama"]["models"]["infinity-config-1000"]["limit"], {"context": 4096, "output": 1024})
+            self.assertEqual(settings["permission"]["bash"], "ask")
 
 
 if __name__ == "__main__":

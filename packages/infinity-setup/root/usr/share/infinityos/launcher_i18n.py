@@ -4,6 +4,7 @@ import locale
 
 
 POLISH = {
+    "Manage this model in InfinityConfig.": "Zarządzaj tym modelem w InfinityConfig.",
     "Assistants and command-line tools": "Asystenci i narzędzia wiersza poleceń",
     "Everyday essentials": "Niezbędne aplikacje na co dzień",
     "Games, launchers and friends": "Gry, launchery i komunikacja",
