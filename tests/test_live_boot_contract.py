@@ -88,17 +88,22 @@ class LiveBootContractTests(unittest.TestCase):
         self.assertNotIn("com.infinityos.GhosTTY.desktop", favorites)
         self.assertIn("dash2dock-animated@infinityos.org", defaults)
 
-    def test_mascot_is_used_by_installer_and_boot_animation(self):
-        source = REPO / "assets/infinityos-mascot.png"
-        frame = REPO / "root/usr/share/plymouth/themes/infinityos/throbber-0001.png"
-        for path in (source, frame):
+    def test_horizon_boot_frames_are_small_and_animate(self):
+        theme = REPO / "root/usr/share/plymouth/themes/infinityos"
+        frames = sorted(theme.glob("horizon-*.png"))
+        self.assertEqual({p.name for p in frames}, {f"horizon-{i}.png" for i in range(90)})
+        self.assertLess(sum(p.stat().st_size for p in frames), 6 * 1024 * 1024)
+        for path in frames:
             data = path.read_bytes()
-            self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
-            self.assertEqual(data[25], 6)  # RGBA
-        self.assertFalse((REPO / "root/usr/share/icons/hicolor/scalable/apps/infinity-installer.svg").exists())
-        self.assertEqual(unpack(">II", frame.read_bytes()[16:24]), (280, 270))
-        self.assertNotEqual(frame.read_bytes(),
-                            (REPO / "root/usr/share/plymouth/themes/infinityos/throbber-0013.png").read_bytes())
+            self.assertEqual(unpack(">II", data[16:24]), (480, 270))
+            self.assertEqual(data[25], 6)
+        self.assertNotEqual((theme / "horizon-0.png").read_bytes(),
+                            (theme / "horizon-89.png").read_bytes())
+        script = (theme / "infinityos.script").read_text()
+        self.assertIn("Math.Min(frame + 1, 89)", script)
+        for callback in ("Password", "Question", "Normal"):
+            self.assertIn(f"SetDisplay{callback}Function", script)
+        self.assertFalse(list(theme.glob("throbber-*.png")))
 
     def test_live_boot_has_quiet_default_and_visible_diagnostics(self):
         finalizer = (REPO / "scripts/finalize-infinity-iso").read_text()
@@ -108,14 +113,14 @@ class LiveBootContractTests(unittest.TestCase):
         self.assertIn("rd.systemd.show_status=false",
                       (REPO / "scripts/finalize-infinity-disk").read_text())
 
-    def test_welcome_uses_mascot_and_refind_uses_original_symbol(self):
+    def test_welcome_uses_horizon_and_refind_uses_original_symbol(self):
         setup = (REPO / "config.sh").read_text()
         self.assertIn("iconName: 'infinityos-welcome'", setup)
         self.assertIn("Icon=infinity-installer", setup)
         verifier = (REPO / "scripts/verify-infinity-iso").read_text()
         self.assertIn("iconName: 'infinityos-welcome'", verifier)
         welcome_icon = REPO / "root/usr/share/icons/hicolor/256x256/apps/infinityos-welcome.png"
-        self.assertEqual(welcome_icon.read_bytes(), (
+        self.assertNotEqual(welcome_icon.read_bytes(), (
             REPO / "root/usr/share/cockpit/anaconda-webui/infinityos-installer-mascot.png"
         ).read_bytes())
         self.assertNotEqual(welcome_icon.read_bytes(), (

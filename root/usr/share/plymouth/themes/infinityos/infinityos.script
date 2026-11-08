@@ -1,0 +1,65 @@
+Window.SetBackgroundTopColor(0, 0, 0);
+Window.SetBackgroundBottomColor(0, 0, 0);
+logo = Sprite();
+frame = 0;
+last_frame = -1;
+prompt_sprite = Sprite();
+answer_sprite = Sprite();
+message_sprite = Sprite();
+
+fun centered_text(sprite, text, y)
+{
+    image = Image.Text(text, 1, 1, 1);
+    sprite.SetImage(image);
+    sprite.SetPosition(Window.GetX() + (Window.GetWidth() - image.GetWidth()) / 2,
+                       Window.GetY() + y, 100);
+}
+
+fun refresh()
+{
+    if (frame != last_frame) {
+        image = Image("horizon-" + frame + ".png");
+        width = Math.Min(480, Window.GetWidth());
+        image = image.Scale(width, width * 270 / 480);
+        logo.SetImage(image);
+        logo.SetPosition(Window.GetX() + (Window.GetWidth() - image.GetWidth()) / 2,
+                         Window.GetY() + (Window.GetHeight() - image.GetHeight()) / 2, 0);
+        global.last_frame = frame;
+    }
+    # Hold the last frame; returning from a password prompt never restarts the intro.
+    global.frame = Math.Min(frame + 1, 89);
+}
+Plymouth.SetRefreshRate(15);
+Plymouth.SetRefreshFunction(refresh);
+
+fun normal()
+{
+    logo.SetOpacity(1);
+    prompt_sprite.SetOpacity(0);
+    answer_sprite.SetOpacity(0);
+}
+fun question(prompt, answer)
+{
+    logo.SetOpacity(0);
+    centered_text(prompt_sprite, prompt, Window.GetHeight() / 2 - 40);
+    centered_text(answer_sprite, answer, Window.GetHeight() / 2 + 10);
+    prompt_sprite.SetOpacity(1);
+    answer_sprite.SetOpacity(1);
+}
+fun password(prompt, bullets)
+{
+    answer = "";
+    for (i = 0; i < bullets; i++) answer += "*";
+    question(prompt, answer);
+}
+fun message(text)
+{
+    centered_text(message_sprite, text, Window.GetHeight() - 60);
+    message_sprite.SetOpacity(1);
+}
+fun hide_message(text) { message_sprite.SetOpacity(0); }
+Plymouth.SetDisplayNormalFunction(normal);
+Plymouth.SetDisplayPasswordFunction(password);
+Plymouth.SetDisplayQuestionFunction(question);
+Plymouth.SetDisplayMessageFunction(message);
+Plymouth.SetHideMessageFunction(hide_message);

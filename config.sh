@@ -48,9 +48,6 @@ EOF
 		dnf -y remove mediawriter
 	fi
 	if command -v plymouth-set-default-theme >/dev/null; then
-		for image in bullet capslock entry keyboard keymap-render lock; do
-			cp -f "/usr/share/plymouth/themes/spinner/$image.png" /usr/share/plymouth/themes/infinityos/
-		done
 		plymouth-set-default-theme infinityos
 	fi
 	install -d /usr/share/icons /usr/share/licenses/kora
@@ -253,6 +250,7 @@ EOF
 			-e "s/iconName: 'infinityos-logo'/iconName: 'infinityos-welcome'/" \
 			-e "s/iconName: 'infinity-installer'/iconName: 'infinityos-welcome'/" "$welcome"
 		grep -Fq "iconName: 'infinityos-welcome'" "$welcome"
+		python3 /usr/libexec/infinityos-patch-welcome "$welcome"
 		sed -i -e 's/^Name=Welcome to Fedora$/Name=Welcome to Infinity OS/' \
 			-e 's/^Icon=fedora-logo-icon$/Icon=infinity-installer/' \
 			-e 's/^Icon=infinityos-logo$/Icon=infinity-installer/' \

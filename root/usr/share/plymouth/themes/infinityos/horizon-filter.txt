@@ -1,0 +1,1 @@
+fps=15,scale=480:270:flags=lanczos,format=gbrap,geq=r='255*r(X,Y)/max(1,max(r(X,Y),max(g(X,Y),b(X,Y))))':g='255*g(X,Y)/max(1,max(r(X,Y),max(g(X,Y),b(X,Y))))':b='255*b(X,Y)/max(1,max(r(X,Y),max(g(X,Y),b(X,Y))))':a='max(r(X,Y),max(g(X,Y),b(X,Y)))',format=rgba

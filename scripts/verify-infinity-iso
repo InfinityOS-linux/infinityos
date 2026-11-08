@@ -158,7 +158,7 @@ grep -Fqx 'Icon=infinity-installer' \
     exit 1
 }
 [[ -s "$rootpoint/usr/share/icons/hicolor/256x256/apps/infinityos-welcome.png" ]] || {
-    echo 'Infinity OS welcome mascot is missing from ISO' >&2
+    echo 'Infinity OS welcome logo is missing from ISO' >&2
     exit 1
 }
 grep -Fqx 'Icon=infinity-installer' \
@@ -168,7 +168,15 @@ grep -Fqx 'Icon=infinity-installer' \
 }
 grep -Fq "iconName: 'infinityos-welcome'" \
     "$rootpoint/usr/share/anaconda/gnome/fedora-welcome" || {
-    echo 'Live welcome dialog does not use the Infinity mascot' >&2
+    echo 'Live welcome dialog does not use the Infinity logo' >&2
+    exit 1
+}
+grep -Fq '// Infinity OS Horizon' "$rootpoint/usr/share/anaconda/gnome/fedora-welcome" || {
+    echo 'Live welcome animation is missing' >&2
+    exit 1
+}
+[[ -s "$rootpoint/usr/share/plymouth/themes/infinityos/horizon-89.png" ]] || {
+    echo 'Horizon boot frames are missing' >&2
     exit 1
 }
 [[ -f "$rootpoint/etc/infinityos/liveinstall-boot-pending" ]] || {

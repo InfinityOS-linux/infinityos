@@ -35,6 +35,7 @@
 		<package name="generic-logos"/>
 		<package name="generic-release-notes"/>
 		<package name="plymouth-theme-spinner"/>
+		<package name="plymouth-plugin-script"/>
 		<ignore name="fedora-release"/>
 		<ignore name="fedora-release-workstation"/>
 		<ignore name="fedora-logos"/>

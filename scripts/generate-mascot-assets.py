@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Render the boot animation and welcome icon from the mascot."""
+"""Render the installer mascot asset."""
 
 from pathlib import Path
-import math
 
-from PIL import Image, ImageDraw, ImageFilter, ImageOps
+from PIL import Image, ImageOps
 
 
 repo = Path(__file__).resolve().parents[1]
@@ -24,24 +23,4 @@ def centered_icon(size, inset):
 
 
 webui_mascot = repo / "root/usr/share/cockpit/anaconda-webui/infinityos-installer-mascot.png"
-welcome_icon = repo / "root/usr/share/icons/hicolor/256x256/apps/infinityos-welcome.png"
-for destination in (webui_mascot, welcome_icon):
-    centered_icon(256, round(256 * 0.07)).save(destination, optimize=True)
-
-theme = repo / "root/usr/share/plymouth/themes/infinityos"
-mascot = ImageOps.contain(source, (205, 175), Image.Resampling.LANCZOS)
-frame_size = (280, 270)
-shadow = Image.new("L", frame_size)
-ImageDraw.Draw(shadow).ellipse((62, 210, 218, 224), fill=90)
-shadow = shadow.filter(ImageFilter.GaussianBlur(9))
-
-for frame in range(48):
-    float_offset = round(2 * math.sin(2 * math.pi * frame / 48))
-    position = ((frame_size[0] - mascot.width) // 2, 24 + float_offset)
-    image = Image.new("RGBA", frame_size, (12, 8, 20, 0))
-    image.putalpha(shadow)
-    image.alpha_composite(mascot, position)
-    image.save(theme / f"throbber-{frame + 1:04d}.png", optimize=True)
-
-if (theme / "throbber-0001.png").read_bytes() == (theme / "throbber-0013.png").read_bytes():
-    raise RuntimeError("The mascot frames do not animate")
+centered_icon(256, round(256 * 0.07)).save(webui_mascot, optimize=True)
