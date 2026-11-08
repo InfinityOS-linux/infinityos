@@ -24,7 +24,12 @@ class ProtonPage:
         self.started = False
         self.generation = 0
         self.catalog = {}
-        tab = Gtk.ToggleButton(label='Proton', hexpand=True)
+        tab = Gtk.ToggleButton(hexpand=True)
+        tab_content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        tab_content.set_halign(Gtk.Align.CENTER)
+        tab_content.append(Gtk.Image.new_from_icon_name('input-gaming-symbolic'))
+        tab_content.append(Gtk.Label(label='Proton'))
+        tab.set_child(tab_content)
         tab.add_css_class('infinity-tab')
         tab.set_group(group)
         tab.connect('toggled', app._select_tab, 'Proton')

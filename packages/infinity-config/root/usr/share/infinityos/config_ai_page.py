@@ -30,7 +30,12 @@ class AiPage:
         self.local_model = None
         self.busy = False
         self.generation = 0
-        self.tab = Gtk.ToggleButton(label='AI', hexpand=True)
+        self.tab = Gtk.ToggleButton(hexpand=True)
+        tab_content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        tab_content.set_halign(Gtk.Align.CENTER)
+        tab_content.append(Gtk.Image.new_from_icon_name('utilities-terminal-symbolic'))
+        tab_content.append(Gtk.Label(label='AI'))
+        self.tab.set_child(tab_content)
         self.tab.add_css_class('infinity-tab')
         self.tab.set_group(group)
         self.tab.connect('toggled', app._select_tab, 'AI')
