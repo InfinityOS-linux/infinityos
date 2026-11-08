@@ -18,6 +18,8 @@ from diagnostics import write_report
 from config_ai_i18n import tr as ai_tr
 from config_ai_page import AiPage
 from config_proton_page import ProtonPage
+from config_backups_page import BackupsPage
+from config_backups_i18n import tr as backups_tr
 
 
 CSS = b"""
@@ -235,15 +237,20 @@ class InfinityConfig(Gtk.Application):
         card.append(footer)
         self.proton_page = ProtonPage(self, nav, group)
         self.ai_page = AiPage(self, nav, group)
+        self.backups_page = BackupsPage(self, nav, group)
         self.window.connect("close-request", self._close_requested)
         self.window.present()
 
     def _close_requested(self, *_args):
+        if self.backups_page.busy:
+            self.status.set_text(backups_tr("Wait for the current backup operation to finish."))
+            return True
         if self.ai_page.busy:
             self.status.set_text(ai_tr('Wait for the current AI operation to finish.'))
             return True
         if self.proton_page.close():
             return True
+        self.backups_page.alive = False
         self.ai_page.close()
         return False
 

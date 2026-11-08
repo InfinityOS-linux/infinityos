@@ -1,0 +1,90 @@
+#!/usr/bin/python3
+"""List and delete recovery points; creation and restoration remain offline."""
+import fcntl
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import xml.etree.ElementTree as ET
+
+SNAPSHOTS = Path('/.snapshots')
+READY = Path('/var/lib/infinityos/backups-ready')
+LOCK = Path('/run/infinityos-backup.lock')
+
+
+def run(*args):
+    return subprocess.run(args, check=True, capture_output=True, text=True).stdout.strip()
+
+
+def snapshot_id(value):
+    if not re.fullmatch(r'[1-9][0-9]*', value):
+        raise ValueError('Invalid snapshot number')
+    return value
+
+
+def snapshots():
+    if not READY.exists():
+        return {'ready': False, 'snapshots': []}
+    records = []
+    numbers = set()
+    for path in SNAPSHOTS.iterdir():
+        match = re.fullmatch(r'(?:var-(?:in-root-)?)?([1-9][0-9]*)', path.name)
+        if match:
+            numbers.add(match[1])
+    for number in numbers:
+        directory = SNAPSHOTS / number
+        try:
+            info = ET.parse(directory / 'info.xml').getroot()
+            date = info.findtext('date', '')
+            description = info.findtext('description', '')
+        except (OSError, ET.ParseError):
+            date, description = '', ''
+        complete = (directory / 'snapshot').is_dir() and ((SNAPSHOTS / f'var-{number}').is_dir() or (SNAPSHOTS / f'var-in-root-{number}').is_file())
+        records.append(dict(number=number, date=date, description=description, complete=complete))
+    return {'ready': True, 'snapshots': sorted(records, key=lambda row: int(row['number']), reverse=True)}
+
+
+def delete(number):
+    number = snapshot_id(number)
+    if not READY.exists():
+        raise ValueError('Backups are not initialized')
+    root = SNAPSHOTS / number / 'snapshot'
+    companion = SNAPSHOTS / f'var-{number}'
+    # Refuse direct boots/mounts of a snapshot, including the default boot subvolume.
+    active = {run('btrfs', 'inspect-internal', 'rootid', path) for path in ('/', '/var')}
+    default = run('btrfs', 'subvolume', 'get-default', str(SNAPSHOTS)).split()
+    if len(default) < 2 or default[0] != 'ID' or not default[1].isdigit():
+        raise ValueError('Cannot identify the default boot subvolume')
+    active.add(default[1])
+    for path in (root, companion):
+        if path.exists() and run('btrfs', 'inspect-internal', 'rootid', str(path)) in active:
+            raise ValueError('Cannot delete an active or default boot snapshot')
+    # Delete the root first: a failed Snapper deletion must keep its /var backup.
+    # An orphan companion can be removed on retry after a partial deletion.
+    if root.exists():
+        run('snapper', '-c', 'root', 'delete', number)
+    if companion.exists():
+        run('btrfs', 'subvolume', 'delete', str(companion))
+    (SNAPSHOTS / f'var-in-root-{number}').unlink(missing_ok=True)
+
+
+def main(args):
+    if os.geteuid() != 0:
+        raise ValueError('Administrator authentication is required')
+    if args != ['list'] and not (len(args) == 2 and args[0] == 'delete'):
+        raise ValueError('Usage: infinityos-backups-manage list | delete NUMBER')
+    with LOCK.open('w') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if args[0] == 'delete':
+            delete(args[1])
+        print(json.dumps(snapshots()))
+
+
+if __name__ == '__main__':
+    try:
+        main(sys.argv[1:])
+    except (OSError, ValueError, subprocess.CalledProcessError) as exc:
+        print(exc.stderr.strip() if isinstance(exc, subprocess.CalledProcessError) and exc.stderr else str(exc), file=sys.stderr)
+        sys.exit(1)

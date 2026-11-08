@@ -30,7 +30,7 @@ Infinity OS styled update window from the GNOME top panel.
 
 %install
 cp -a usr %{buildroot}/
-python3 -m py_compile %{buildroot}/usr/libexec/infinityos-upgrade-release %{buildroot}/usr/libexec/infinityos-offline-update
+python3 -m py_compile %{buildroot}/usr/libexec/infinityos-upgrade-release %{buildroot}/usr/libexec/infinityos-offline-update %{buildroot}/usr/libexec/infinityos-backups-manage
 
 %post
 # Complete backups are made offline; hourly root-only snapshots cannot restore /var.
@@ -52,6 +52,7 @@ systemctl --global enable infinity-updater.timer >/dev/null 2>&1 || :
 /usr/libexec/infinityos-upgrade-release
 /usr/libexec/__pycache__/infinityos-upgrade-release*.pyc
 /usr/libexec/__pycache__/infinityos-offline-update*.pyc
+/usr/libexec/__pycache__/infinityos-backups-manage*.pyc
 /usr/share/infinityos/updater/
 /usr/share/applications/org.infinityos.Updater.desktop
 /usr/share/icons/hicolor/512x512/apps/org.infinityos.Updater.png

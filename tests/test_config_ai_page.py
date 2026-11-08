@@ -65,6 +65,7 @@ class AiPageTests(unittest.TestCase):
         with patch.object(self.ui, 'selected_ai', return_value=()):
             app.proton_page = ProtonPage(app, nav, group)
             app.ai_page = self.ui.AiPage(app, nav, group)
+        app.backups_page = SimpleNamespace(busy=False, alive=True)
         app.window.connect('close-request', lambda *_: InfinityConfig._close_requested(app))
         generation = app.ai_page.generation
         for ai_busy, proton_busy in ((True, False), (False, True), (True, True)):

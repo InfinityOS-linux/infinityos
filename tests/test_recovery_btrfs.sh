@@ -124,4 +124,15 @@ mount "$(findmnt -n -o SOURCE -T "$top" | cut -d '[' -f1)" "$base/boot"
 [[ $(cat "$base/boot/var/lib/infinity-recovery-test/version") == 2 ]]
 [[ $(cat "$top/home/test/document") == after ]]
 umount "$base/boot"
-echo 'PASS: real offline RPM update, separate and integrated /var restore, /home preserved.'
+# Config and the recovery menu share deletion of complete snapshot pairs.
+chroot "$target" /usr/libexec/infinityos-backups-manage list > "$base/snapshots.json"
+python3 -c 'import json,sys; rows=json.load(open(sys.argv[1])); assert rows["ready"] and all(r["complete"] for r in rows["snapshots"])' "$base/snapshots.json"
+chroot "$target" /usr/libexec/infinityos-backups-manage delete "$number" > /dev/null
+[[ ! -e $target/.snapshots/$number/snapshot && ! -e $target/.snapshots/var-in-root-$number ]]
+for companion in "$target"/.snapshots/var-[0-9]*; do
+    [[ -d $companion ]] || continue
+    id=${companion##*/var-}
+    chroot "$target" /usr/libexec/infinityos-backups-manage delete "$id" > /dev/null
+    [[ ! -e $companion && ! -e $target/.snapshots/$id/snapshot ]]
+done
+echo 'PASS: real offline RPM update, separate and integrated /var restore, /home preserved, paired snapshot deletion.'

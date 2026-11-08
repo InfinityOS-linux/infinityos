@@ -73,11 +73,7 @@ while true; do
 		c) read -r -p 'Description: ' description
 		   /usr/libexec/infinityos-backups-snapshot "${description:-Manual backup}" || true ;;
 		d) read -r -p 'Snapshot number to delete: ' number
-		   if [[ $number =~ ^[1-9][0-9]*$ ]]; then
-               if snapper -c root delete "$number"; then
-                   if [[ -d /.snapshots/var-$number ]]; then btrfs subvolume delete "/.snapshots/var-$number"; fi
-                   rm -f "/.snapshots/var-in-root-$number"
-               fi; else echo 'Invalid number'; fi ;;
+		   /usr/libexec/infinityos-backups-manage delete "$number" > /dev/null || true ;;
 		r) read -r -p 'Snapshot number to restore: ' number
 		   read -r -p "Restore snapshot $number and reboot? Type RESTORE: " confirmation
 		   if [[ $confirmation == RESTORE ]]; then

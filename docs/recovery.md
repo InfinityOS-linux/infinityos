@@ -12,6 +12,15 @@ must be mounted separately; unsupported layouts stop the backup before updating.
 include `/home`, EFI firmware, device firmware or the EFI system partition. It is
 not a substitute for an external backup against disk failure.
 
+## Desktop management
+
+Open **InfinityConfig → Backups** to list recovery points with their dates,
+descriptions and completeness. Refresh requires administrator authentication.
+Delete asks for confirmation and removes both the root snapshot and its `/var`
+companion. Active/default boot snapshots are protected; incomplete leftovers from
+a failed deletion remain listed so deletion can be retried. Creating and restoring
+backups remain offline through the boot menu.
+
 ## Restore
 
 1. Restart and select **Backups** in the Infinity OS boot menu.
@@ -30,7 +39,7 @@ be handled before creating a complete backup.
 
 Snapshots use Snapper's number retention policy. Orphaned `/var` companions are
 removed on the next successful backup. Deleting a complete snapshot in the Backups
-menu removes both parts. Restored writable roots are retained for recovery and are
+menu or InfinityConfig removes both parts. Restored writable roots are retained for recovery and are
 not automatically deleted.
 
 ## Tests
@@ -54,3 +63,8 @@ naciśnij **r**, podaj numer i wpisz **RESTORE**. Następnie uruchom ponownie ko
 Przywrócone zostają system i dane usług w `/var`; pliki w `/home` zostają zachowane.
 Stare kopie obejmujące tylko system nie nadają się do takiego przywracania. Kopia na
 tym samym dysku nie chroni przed awarią dysku — ważne pliki kopiuj także poza komputer.
+
+W **InfinityConfig → Kopie zapasowe** możesz odświeżać listę migawek, sprawdzać
+ich daty, opisy i kompletność oraz usuwać je po potwierdzeniu. Operacje wymagają
+uwierzytelnienia administratora. Usunięcie obejmuje system i przypisaną kopię `/var`;
+aktywne migawki są chronione. Tworzenie i przywracanie pozostają w menu rozruchowym.

@@ -12,7 +12,7 @@ Requires:       gsettings-desktop-schemas
 Requires:       gnome-extensions-app
 Requires:       gnome-control-center
 Requires:       infinity-setup >= 1.0.0-%{release}
-Requires:       infinity-updater
+Requires:       infinity-updater >= 1.1.0-%{release}
 Requires:       infinityos-shell-extensions
 
 %description
@@ -25,7 +25,7 @@ Infinity Config adjusts Infinity OS desktop and dock settings.
 
 %install
 cp -a usr %{buildroot}/
-python3 -m py_compile %{buildroot}/usr/libexec/infinity-ai-storage %{buildroot}/usr/share/infinityos/config_ai*.py %{buildroot}/usr/share/infinityos/config_proton*.py %{buildroot}/usr/share/infinityos/config_backend.py %{buildroot}/usr/share/infinityos/diagnostics.py
+python3 -m py_compile %{buildroot}/usr/libexec/infinity-ai-storage %{buildroot}/usr/share/infinityos/config_ai*.py %{buildroot}/usr/share/infinityos/config_proton*.py %{buildroot}/usr/share/infinityos/config_backups*.py %{buildroot}/usr/share/infinityos/config_backend.py %{buildroot}/usr/share/infinityos/diagnostics.py
 
 %files
 %license /usr/share/licenses/infinity-config/COPYING
@@ -35,6 +35,8 @@ python3 -m py_compile %{buildroot}/usr/libexec/infinity-ai-storage %{buildroot}/
 /usr/share/infinityos/config_backend.py
 /usr/share/infinityos/config_ai*.py
 /usr/share/infinityos/config_proton*.py
+/usr/share/infinityos/config_backups*.py
+/usr/share/infinityos/__pycache__/config_backups*.pyc
 /usr/share/infinityos/__pycache__/config_proton*.pyc
 /usr/share/infinityos/__pycache__/config_ai*.pyc
 /usr/libexec/infinity-ai-storage
