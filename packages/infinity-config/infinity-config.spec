@@ -24,7 +24,7 @@ Infinity Config adjusts Infinity OS desktop and dock settings.
 
 %install
 cp -a usr %{buildroot}/
-python3 -m py_compile %{buildroot}/usr/share/infinityos/config_ai*.py %{buildroot}/usr/share/infinityos/config_proton*.py %{buildroot}/usr/share/infinityos/config_backend.py %{buildroot}/usr/share/infinityos/diagnostics.py
+python3 -m py_compile %{buildroot}/usr/libexec/infinity-ai-storage %{buildroot}/usr/share/infinityos/config_ai*.py %{buildroot}/usr/share/infinityos/config_proton*.py %{buildroot}/usr/share/infinityos/config_backend.py %{buildroot}/usr/share/infinityos/diagnostics.py
 
 %files
 %license /usr/share/licenses/infinity-config/COPYING
