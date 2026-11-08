@@ -42,6 +42,13 @@ import sys
 from pathlib import Path
 
 root = Path(sys.argv[1])
+# Every animation frame and its renderer must reach the image together.
+from struct import unpack
+for frame in range(90):
+    data = (root / f'usr/share/plymouth/themes/infinityos/horizon-{frame}.png').read_bytes()
+    assert data[:8] == b'\x89PNG\r\n\x1a\n'
+    assert unpack('>II', data[16:24]) == (480, 270)
+assert (root / 'usr/lib64/plymouth/script.so').is_file()
 version = (root / 'usr/share/infinityos/image-release-version').read_text().strip()
 title = {'1.0': 'InfinityOS_01', '2.0': 'InfinityOS_02'}.get(version, f'InfinityOS_{version}')
 assert f'PRETTY_NAME="{title}"' in (root / 'etc/os-release').read_text()

@@ -114,6 +114,10 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
     "$source_root/usr/libexec/infinityos-tint-system-icons"
   install -m 0644 "$repo/root/usr/share/icons/hicolor/scalable/apps/infinityos-logo.svg" \
     "$source_root/usr/share/icons/hicolor/scalable/apps/infinityos-logo.svg"
+  for mark in infinityos-panel-mark infinityos-panel-mark-v2 infinityos-symbolic; do
+    install -m 0644 "$repo/root/usr/share/icons/hicolor/scalable/apps/$mark.svg" \
+      "$source_root/usr/share/icons/hicolor/scalable/apps/$mark.svg"
+  done
   install -m 0644 "$repo/root/usr/share/icons/hicolor/256x256/apps/infinityos-logo.png" \
     "$source_root/usr/share/icons/hicolor/256x256/apps/infinityos-logo.png"
   cp -a "$fedora_snapshot/glib-2.0/schemas/." \

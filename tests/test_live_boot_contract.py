@@ -113,17 +113,17 @@ class LiveBootContractTests(unittest.TestCase):
         self.assertIn("rd.systemd.show_status=false",
                       (REPO / "scripts/finalize-infinity-disk").read_text())
 
-    def test_welcome_uses_horizon_and_refind_uses_original_symbol(self):
+    def test_welcome_and_installer_share_horizon_branding(self):
         setup = (REPO / "config.sh").read_text()
         self.assertIn("iconName: 'infinityos-welcome'", setup)
         self.assertIn("Icon=infinity-installer", setup)
         verifier = (REPO / "scripts/verify-infinity-iso").read_text()
         self.assertIn("iconName: 'infinityos-welcome'", verifier)
         welcome_icon = REPO / "root/usr/share/icons/hicolor/256x256/apps/infinityos-welcome.png"
-        self.assertNotEqual(welcome_icon.read_bytes(), (
+        self.assertEqual(welcome_icon.read_bytes(), (
             REPO / "root/usr/share/cockpit/anaconda-webui/infinityos-installer-mascot.png"
         ).read_bytes())
-        self.assertNotEqual(welcome_icon.read_bytes(), (
+        self.assertEqual(welcome_icon.read_bytes(), (
             REPO / "root/usr/share/icons/hicolor/256x256/apps/infinity-installer.png"
         ).read_bytes())
         generator = (REPO / "scripts/generate-mascot-assets.py").read_text()

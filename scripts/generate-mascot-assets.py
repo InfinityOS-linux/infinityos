@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the installer mascot asset."""
+"""Render the installer Horizon logo asset."""
 
 from pathlib import Path
 
@@ -7,8 +7,8 @@ from PIL import Image, ImageOps
 
 
 repo = Path(__file__).resolve().parents[1]
-source = Image.open(repo / "assets/infinityos-mascot.png").convert("RGBA")
-# Ignore very faint extraction noise when finding the mascot's bounds.
+source = Image.open(repo / "assets/infinityos-horizon.png").convert("RGBA")
+# Ignore very faint extraction noise when finding the logo's bounds.
 bounds = source.getchannel("A").point(lambda alpha: 255 if alpha > 32 else 0).getbbox()
 if not bounds:
     raise RuntimeError("Mascot image has no visible pixels")
