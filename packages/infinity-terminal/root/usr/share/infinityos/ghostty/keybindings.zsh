@@ -3,10 +3,10 @@
 # https://zsh.sourceforge.io/Doc/Release/Zsh-Line-Editor.html
 [[ -o interactive && ${TERM:-} == xterm-ghostty ]] || return 0
 
-# Keep the mascot even when an existing user has a personal Fastfetch config.
+# Keep the Horizon logo even when an existing user has a personal Fastfetch config.
 fastfetch() {
     command fastfetch --kitty-direct /usr/share/infinityos/ghostty/mascot.png \
-        --logo-width 20 --logo-height 10 "$@"
+        --logo-width 20 --logo-height 0 "$@"
 }
 
 _infinity_select() {
