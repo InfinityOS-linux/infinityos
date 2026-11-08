@@ -35,6 +35,7 @@ python3 -m py_compile %{buildroot}/usr/share/infinityos/config_ai*.py %{buildroo
 /usr/share/infinityos/config_ai*.py
 /usr/share/infinityos/__pycache__/config_ai*.pyc
 /usr/libexec/infinity-ai-storage
+/usr/libexec/__pycache__/infinity-ai-storage*.pyc
 /usr/share/infinityos/diagnostics.py
 /usr/share/infinityos/__pycache__/config_backend*.pyc
 /usr/share/infinityos/__pycache__/diagnostics*.pyc
