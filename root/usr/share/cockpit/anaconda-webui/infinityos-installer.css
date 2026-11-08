@@ -113,6 +113,32 @@ textarea {
   font-weight: 600;
 }
 
+#app :is(.pf-v6-c-page__header, .pf-v6-c-masthead) {
+  position: relative;
+}
+
+#app :is(.pf-v6-c-page__header, .pf-v6-c-masthead) h1 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max-content;
+  max-width: calc(100% - 20rem);
+  margin: 0;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
+@media (max-width: 700px) {
+  #app :is(.pf-v6-c-page__header, .pf-v6-c-masthead) h1 {
+    position: static;
+    max-width: 100%;
+    transform: none;
+  }
+}
+
 #installation-wizard {
   --pf-v6-c-wizard__nav--lg--Width: 18.5rem;
   background: var(--infinity-ink);
@@ -131,10 +157,10 @@ textarea {
   display: grid;
   place-items: center;
   color: #fff;
-  background: #050407;
+  background: radial-gradient(ellipse 50% 45% at 50% 50%, #15101f 0%, #08060d 70%, #050407 100%);
   font-family: "Infinity Plex", "IBM Plex Sans", sans-serif;
   opacity: 1;
-  transition: opacity 450ms ease;
+  transition: opacity 800ms ease-in-out;
 }
 
 #infinityos-installer-intro.is-finished {
@@ -142,37 +168,96 @@ textarea {
   pointer-events: none;
 }
 
+.infinityos-intro-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  color: #d7c8e9;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 400ms ease, visibility 0s linear 400ms;
+}
+
+.infinityos-intro-loader img {
+  width: 84px;
+  height: 84px;
+}
+
+.infinityos-intro-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #5a476d;
+  border-top-color: var(--infinity-accent);
+  border-radius: 50%;
+  animation: infinityos-intro-spin 1s linear infinite;
+}
+
+#infinityos-installer-intro.is-ready .infinityos-intro-loader {
+  opacity: 0;
+  visibility: hidden;
+}
+
+@keyframes infinityos-intro-spin {
+  to { transform: rotate(360deg); }
+}
+
 .infinityos-intro-frame {
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  width: min(90vw, 640px);
+  gap: 18px;
+  width: min(90vw, 720px);
   opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 400ms ease, transform 400ms ease;
+  filter: blur(8px);
+  transform: translateY(18px) scale(0.98);
+  transition: opacity 800ms ease-in-out, filter 800ms ease-in-out,
+    transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
   text-align: center;
-  font-size: clamp(1.5rem, 3vw, 2.6rem);
+  font-size: clamp(1.6rem, 3vw, 2.8rem);
   font-weight: 500;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .infinityos-intro-frame.is-visible {
   opacity: 1;
+  filter: blur(0);
   transform: none;
+}
+
+.infinityos-intro-presents {
+  color: #d7c8e9;
+  font-size: clamp(1.4rem, 2.4vw, 2.2rem);
+  letter-spacing: 0.04em;
+}
+
+.infinityos-intro-title {
+  gap: 0;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+
+.infinityos-intro-title > span {
+  white-space: nowrap;
+}
+
+.infinityos-intro-version {
+  color: var(--infinity-accent);
 }
 
 .infinityos-intro-flags {
   display: inline-flex;
-  gap: 10px;
+  gap: 16px;
   white-space: nowrap;
 }
 
 .infinityos-intro-flag {
   display: inline-block;
-  width: 32px;
-  height: 24px;
+  width: 42px;
+  height: 30px;
   overflow: hidden;
   font-size: 0;
   background-position: center;
@@ -190,15 +275,20 @@ textarea {
 
 .infinityos-intro-logo {
   display: block;
-  width: min(65vw, 380px);
+  width: min(65vw, 420px);
   height: auto;
-  margin-bottom: -12px;
+  margin-bottom: -20px;
 }
 
 @media (prefers-reduced-motion: reduce) {
   #infinityos-installer-intro,
-  .infinityos-intro-frame {
+  .infinityos-intro-frame,
+  .infinityos-intro-loader {
     transition: none;
+  }
+
+  .infinityos-intro-spinner {
+    animation: none;
   }
 }
 
@@ -310,6 +400,8 @@ textarea {
 
 #installation-wizard .pf-v6-c-wizard__main-body {
   position: relative;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 #installation-wizard:is(
@@ -332,7 +424,7 @@ textarea {
   .anaconda-wizard-step-anaconda-screen-storage-configuration,
   .anaconda-wizard-step-anaconda-screen-accounts
 ) .pf-v6-c-wizard__main-body > * {
-  width: min(100%, 64rem);
+  width: min(100%, 48rem);
   height: auto;
   flex-shrink: 0;
 }
@@ -973,45 +1065,71 @@ body:has(#installation-quit-confirm-dialog) .pf-v6-c-backdrop {
 
 #installation-quit-confirm-dialog {
   --pf-v6-c-modal-box--BackgroundColor: var(--infinity-panel);
+  box-sizing: border-box;
+  width: min(92vw, 540px);
   color: var(--infinity-text);
-  background: var(--infinity-panel);
-  border: 1px solid var(--infinity-border);
-  border-radius: 10px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  background: radial-gradient(circle at 0 0, #2a2035, var(--infinity-panel) 65%);
+  border: 1px solid #59496c;
+  border-radius: 18px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55);
   font-family: "Infinity Plex", "IBM Plex Sans", sans-serif;
+  overflow: hidden;
+}
+
+#installation-quit-confirm-dialog .pf-v6-c-modal-box__header {
+  padding: 30px 32px 16px;
 }
 
 #installation-quit-confirm-dialog :is(.pf-v6-c-modal-box__title,
   .pf-v6-c-modal-box__title-text) {
   color: var(--infinity-text);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+#installation-quit-confirm-dialog .pf-v6-c-modal-box__title-icon {
+  color: var(--infinity-accent);
 }
 
 #installation-quit-confirm-dialog .pf-v6-c-modal-box__body {
   color: var(--infinity-muted);
+  padding: 0 32px 28px;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 #installation-quit-confirm-dialog .pf-v6-c-modal-box__footer {
   border-top: 1px solid var(--infinity-border);
+  padding: 20px 32px 28px;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 #installation-quit-confirm-dialog .pf-v6-c-button {
-  border-radius: 8px;
+  min-height: 42px;
+  border-radius: 9px;
 }
 
 #installation-quit-confirm-btn {
-  background: var(--infinity-active) !important;
-  border-color: var(--infinity-active) !important;
-  color: #fff !important;
+  order: 2;
+  background: var(--infinity-field) !important;
+  border: 1px solid var(--infinity-border) !important;
+  color: var(--infinity-text) !important;
 }
 
 #installation-quit-confirm-btn:hover {
-  background: #8562b3 !important;
+  background: var(--infinity-hover) !important;
 }
 
 #installation-quit-confirm-cancel-btn {
-  background: var(--infinity-field);
-  border: 1px solid var(--infinity-border);
-  color: var(--infinity-text);
+  order: 1;
+  background: var(--infinity-active) !important;
+  border: 1px solid var(--infinity-active) !important;
+  color: #fff !important;
+}
+
+#installation-quit-confirm-cancel-btn:hover {
+  background: #8562b3 !important;
 }
 
 /* Center 44px controls within the 64px installer header. */

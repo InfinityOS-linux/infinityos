@@ -262,6 +262,19 @@ class UpdaterTests(unittest.TestCase):
             ('PhotoCraft', ['python3', '/usr/share/infinityos/updater/github_update.py',
                             app.source])])
 
+    def test_new_craft_rpms_are_tracked_by_infinity_updater(self):
+        installed = {name: ('0.1.0', '1') for name in
+                     ('craft-anything', 'materialcraft', 'solidcraft', 'texturecraft')}
+        with patch.object(github_update, '_installed', return_value=installed), \
+             patch.object(github_update, 'latest_rpm_asset',
+                          return_value=({'tag_name': 'v0.2.0'}, {})), \
+             patch.object(github_update, '_newer', return_value=True):
+            updates, errors = github_update.check_github_updates()
+        self.assertEqual(errors, [])
+        self.assertEqual({item['name'] for item in updates},
+                         {'Craft Anything', 'MaterialCraft', 'SolidCraft', 'TextureCraft'})
+        self.assertEqual(len(updater.install_commands(updates)), 4)
+
     def test_setup_rpm_version_comparison_uses_rpm_ordering(self):
         rpm = SimpleNamespace(labelCompare=Mock(return_value=1))
         with patch.dict(sys.modules, {'rpm': rpm}):

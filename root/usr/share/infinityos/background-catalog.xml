@@ -2,6 +2,51 @@
 <!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">
 <wallpapers>
   <wallpaper deleted="false">
+    <name>Infinity OS — Horyzont</name>
+    <filename>/usr/share/backgrounds/infinityos/light-02-horyzont.svg</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/dark-02-horyzont.svg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#f8f6fa</pcolor>
+    <scolor>#0d0d19</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Infinity OS — Pętla</name>
+    <filename>/usr/share/backgrounds/infinityos/light-01-petla.svg</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/dark-01-petla.svg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#f7f5fa</pcolor>
+    <scolor>#0b0b15</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Infinity OS — Portal</name>
+    <filename>/usr/share/backgrounds/infinityos/light-03-portal.svg</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/dark-03-portal.svg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#f8f6fa</pcolor>
+    <scolor>#0d0b17</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Infinity OS — Wstęga</name>
+    <filename>/usr/share/backgrounds/infinityos/light-04-wstega.svg</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/dark-04-wstega.svg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#f8f6fa</pcolor>
+    <scolor>#0c0d19</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>Infinity OS — Przepływ</name>
+    <filename>/usr/share/backgrounds/infinityos/light-05-przeplyw.svg</filename>
+    <filename-dark>/usr/share/backgrounds/infinityos/dark-05-przeplyw.svg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#f8f7fa</pcolor>
+    <scolor>#0b0d18</scolor>
+  </wallpaper>
+  <wallpaper deleted="false">
     <name>Default Background</name>
     <filename>/usr/share/backgrounds/infinityos/infinityos-light.png</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/infinityos-dark.png</filename-dark>

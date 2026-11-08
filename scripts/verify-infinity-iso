@@ -43,15 +43,18 @@ from pathlib import Path
 
 root = Path(sys.argv[1])
 version = (root / 'usr/share/infinityos/image-release-version').read_text().strip()
-title = 'InfinityOS_01' if version == '1.0' else f'InfinityOS_{version}'
+title = {'1.0': 'InfinityOS_01', '2.0': 'InfinityOS_02'}.get(version, f'InfinityOS_{version}')
 assert f'PRETTY_NAME="{title}"' in (root / 'etc/os-release').read_text()
 webui = root / 'usr/share/cockpit/anaconda-webui'
 assert 'infinityos-installer.css' in (webui / 'index.html').read_text()
 assert 'infinityos-installer-audio.js' in (webui / 'index.html').read_text()
 assert 'infinityos-installer-intro.js' in (webui / 'index.html').read_text()
 assert 'id="infinityos-installer-intro"' in (webui / 'index.html').read_text()
+assert 'class="infinityos-intro-loader"' in (webui / 'index.html').read_text()
 assert (webui / 'infinityos-installer-audio.js').stat().st_size > 1000
 assert (webui / 'infinityos-installer-intro.js').stat().st_size > 1000
+assert 'window.localStorage.getItem(storageKey)' in (webui / 'infinityos-installer-intro.js').read_text()
+assert 'infinityos-installer-intro-start' in (webui / 'infinityos-installer-audio.js').read_text()
 assert (webui / 'infinityos-installer-intro-logo.png').stat().st_size > 1000
 assert (webui / 'infinityos-flag-pl.svg').stat().st_size > 100
 assert (webui / 'infinityos-flag-eu.svg').stat().st_size > 100
@@ -78,7 +81,7 @@ assert 'y.spawn(["systemctl","reboot"],{superuser:"require"})' in bundle
 assert 'jo("Reboot to installed system")' in bundle
 assert 'When reboot begins, remove the installation USB before the next boot.' in bundle
 locale = gzip.decompress((webui / 'po.pl.js.gz').read_bytes()).decode()
-assert 'Gdy rozpocznie się restart, wyjmij USB' in locale
+assert 'Naciśnij przycisk poniżej, aby uruchomić ponownie! Wyjmij też USB z instalatorem, nie będzie już potrzebne.' in locale
 assert '"Reboot to installed system": [null, "Uruchom ponownie do zainstalowanego systemu"]' in locale
 for english, polish in (
     ('Language and layout', 'Język i układ'),

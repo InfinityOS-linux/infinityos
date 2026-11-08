@@ -55,6 +55,10 @@ test('installer dim follows the live marker and is removed after exit', () => {
   group.below = undefined;
   displaySignals.restacked();
   assert.equal(group.below, focused);
+  const installer = { get_parent: () => group };
+  global.display.focus_window = { get_compositor_private: () => installer };
+  dim._sync();
+  assert.equal(group.below, installer);
   running = false;
   dim._sync();
   assert.equal(dim._dim, null);

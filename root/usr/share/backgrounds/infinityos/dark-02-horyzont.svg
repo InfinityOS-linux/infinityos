@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="2160" viewBox="0 0 1600 900" role="img" aria-label="InfinityOS inspired abstract wallpaper, dark-02-horyzont">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0D0D19"/><stop offset="1" stop-color="#1A1830"/></linearGradient>
+  <linearGradient id="flow" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#777FB5"/><stop offset=".53" stop-color="#9077BD"/><stop offset="1" stop-color="#B49ACD"/></linearGradient>
+  <linearGradient id="flowReverse" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#B49ACD"/><stop offset=".52" stop-color="#9077BD"/><stop offset="1" stop-color="#777FB5"/></linearGradient>
+  <radialGradient id="ambient"><stop stop-color="#9077BD" stop-opacity=".16"/><stop offset="1" stop-color="#9077BD" stop-opacity="0"/></radialGradient>
+
+</defs>
+<path d="M0 0H1600V900H0Z" fill="url(#bg)"/>
+
+<path d="M540 900C797 710 901 625 1060 398C1216 175 1404 104 1600 148V900Z" fill="url(#ambient)"/>
+<path d="M365 900C611 780 756 729 906 541C1090 309 1301 216 1600 220V900Z" fill="#777FB5" opacity=".13"/>
+<path d="M545 900C765 805 936 629 1080 451C1257 233 1456 230 1600 289V900Z" fill="url(#flow)" opacity=".81"/>
+<path d="M786 900C981 756 1022 608 1222 512C1370 441 1499 429 1600 460V900Z" fill="#9077BD" opacity=".39"/>
+<path d="M1000 900C1146 784 1233 704 1373 661C1459 635 1536 639 1600 655V900Z" fill="#B49ACD" opacity=".52"/>
+<path d="M589 889C801 784 971 604 1113 432C1270 241 1452 233 1597 290" fill="none" stroke="#F2EBF8" stroke-opacity=".49" stroke-width="3"/>
+
+</svg>

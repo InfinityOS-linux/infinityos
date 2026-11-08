@@ -6,11 +6,12 @@
         return;
     window.infinityosInstallerAudio = true;
 
-    const fadeSeconds = 14;
+    const fadeInSeconds = 6;
+    const fadeOutSeconds = 14;
     const track = new URL('infinityos-installer-music.mp3', document.currentScript.src);
     const audio = document.createElement('audio');
     audio.src = track.href;
-    audio.preload = 'none';
+    audio.preload = 'auto';
     audio.loop = true;
     audio.volume = 0;
     audio.hidden = true;
@@ -60,7 +61,7 @@
     let level = 45;
     let lastNonZeroLevel = level;
     let muted = false;
-    let welcomeReady = false;
+    let musicReady = false;
     let volumeTimer;
 
     function updateLabels() {
@@ -81,9 +82,9 @@
     }
 
     function updateVolume() {
-        const fadeIn = Math.min(1, Math.max(0, audio.currentTime / fadeSeconds));
+        const fadeIn = Math.min(1, Math.max(0, audio.currentTime / fadeInSeconds));
         const fadeOut = Number.isFinite(audio.duration) && audio.duration > 0
-            ? Math.min(1, Math.max(0, (audio.duration - audio.currentTime) / fadeSeconds))
+            ? Math.min(1, Math.max(0, (audio.duration - audio.currentTime) / fadeOutSeconds))
             : 1;
         audio.volume = (level / 100) * Math.min(fadeIn, fadeOut);
         audio.muted = muted;
@@ -99,7 +100,7 @@
     }
 
     function startMusic() {
-        if (!welcomeReady || muted || !audio.paused)
+        if (!musicReady || muted || !audio.paused)
             return;
         const attempt = audio.play();
         if (attempt && typeof attempt.then === 'function') {
@@ -160,16 +161,19 @@
 
     document.addEventListener('pointerdown', startMusic, true);
     document.addEventListener('keydown', startMusic, true);
+    window.addEventListener('infinityos-installer-intro-start', () => {
+        musicReady = true;
+        startMusic();
+    });
     function activateOnWelcome() {
         if (document.querySelector('#infinityos-installer-intro') &&
             !window.infinityosInstallerIntroComplete)
             return;
         if (!document.querySelector('#installation-wizard.anaconda-wizard-step-anaconda-screen-language'))
             return;
-        welcomeReady = true;
+        musicReady = true;
         controls.hidden = false;
         updateLabels();
-        audio.preload = 'auto';
         welcomeObserver.disconnect();
         startMusic();
     }

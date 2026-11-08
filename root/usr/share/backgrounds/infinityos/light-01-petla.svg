@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="2160" viewBox="0 0 1600 900" role="img" aria-label="InfinityOS inspired abstract wallpaper, light-01-petla">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F7F5FA"/><stop offset="1" stop-color="#EEEBF5"/></linearGradient>
+  <linearGradient id="flow" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7887B6"/><stop offset=".53" stop-color="#9278B8"/><stop offset="1" stop-color="#B593C5"/></linearGradient>
+  <linearGradient id="flowReverse" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#B593C5"/><stop offset=".52" stop-color="#9278B8"/><stop offset="1" stop-color="#7887B6"/></linearGradient>
+  <radialGradient id="ambient"><stop stop-color="#9278B8" stop-opacity=".16"/><stop offset="1" stop-color="#9278B8" stop-opacity="0"/></radialGradient>
+
+</defs>
+<path d="M0 0H1600V900H0Z" fill="url(#bg)"/>
+
+<defs><filter id="glow" x="-30%" y="-60%" width="160%" height="220%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="23"/></filter></defs>
+<path d="M800 450C665 246 470 201 345 280C215 362 240 548 360 624C490 705 665 626 800 450C935 274 1110 195 1240 276C1360 352 1385 538 1255 620C1130 699 935 654 800 450" fill="none" stroke="#9278B8" stroke-opacity=".24" stroke-width="118" stroke-linecap="round" filter="url(#glow)"/>
+<path d="M800 450C665 246 470 201 345 280C215 362 240 548 360 624C490 705 665 626 800 450C935 274 1110 195 1240 276C1360 352 1385 538 1255 620C1130 699 935 654 800 450" fill="none" stroke="#76658C" stroke-opacity=".22" stroke-width="82" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M800 450C665 246 470 201 345 280C215 362 240 548 360 624C490 705 665 626 800 450C935 274 1110 195 1240 276C1360 352 1385 538 1255 620C1130 699 935 654 800 450" fill="none" stroke="url(#flow)" stroke-width="72" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M351 370C395 269 572 260 687 379" fill="none" stroke="#FFFFFF" stroke-opacity=".21" stroke-width="2" stroke-linecap="round"/>
+<path d="M914 372C1037 246 1213 266 1261 370" fill="none" stroke="#FFFFFF" stroke-opacity=".21" stroke-width="2" stroke-linecap="round"/>
+
+</svg>

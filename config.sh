@@ -216,6 +216,7 @@ EOF
 		# Keep the installed system's release name; the post-install hook restores it.
 		installer_name="InfinityOS_${release_version}"
 		[[ $release_version == 1.0 ]] && installer_name=InfinityOS_01
+		[[ $release_version == 2.0 ]] && installer_name=InfinityOS_02
 		sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"$installer_name\"/" /etc/os-release
 		grep -Fqx "PRETTY_NAME=\"$installer_name\"" /etc/os-release
 		if [[ "$(uname -m)" == x86_64 || "$(uname -m)" == aarch64 ]]; then
