@@ -10,25 +10,37 @@ def patch(source):
         return source
     if source.count(marker) != 1 or "iconName: 'infinityos-welcome'" not in source:
         raise ValueError("Unsupported Anaconda welcome layout")
-    return "import Gdk from 'gi://Gdk?version=4.0';\n" + source.replace(marker, '''        // Infinity OS Horizon: reuse boot frames and stop on the final logo.
-        statusPage.add_css_class('infinity-horizon');
-        const logoStyle = new Gtk.CssProvider();
-        logoStyle.load_from_string('.infinity-horizon .icon { -gtk-icon-size: 224px; }');
-        Gtk.StyleContext.add_provider_for_display(this.get_display(), logoStyle,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+    return "import Gdk from 'gi://Gdk?version=4.0';\nimport Graphene from 'gi://Graphene';\n" + source.replace(marker, '''        // Infinity OS Horizon: reuse boot frames and stop on the final logo.
+        statusPage.set_icon_name(null);
+        const logo = new Gtk.Picture({can_shrink: true, content_fit: Gtk.ContentFit.CONTAIN});
+        const logoFrame = new Gtk.AspectFrame({ratio: 8 / 3, obey_child: false, child: logo});
+        const layout = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL,
+            valign: Gtk.Align.CENTER, margin_top: 24, margin_bottom: 24});
+        layout.append(logoFrame);
+        layout.append(statusPage);
+        const welcome = new Adw.Clamp({maximum_size: 600, tightening_threshold: 500,
+            margin_start: 24, margin_end: 24, child: layout});
         let started = null;
         let previousFrame = -1;
-        statusPage.add_tick_callback((_widget, clock) => {
+        logo.add_tick_callback((_widget, clock) => {
             started ??= clock.get_frame_time();
             const frame = Math.min(89, Math.floor((clock.get_frame_time() - started) / 1000000 * 15));
             if (frame !== previousFrame) {
-                statusPage.set_paintable(Gdk.Texture.new_from_filename(
-                    `/usr/share/plymouth/themes/infinityos/horizon-${frame}.png`));
+                const texture = Gdk.Texture.new_from_filename(
+                    `/usr/share/plymouth/themes/infinityos/horizon-${frame}.png`);
+                // Crop only empty vertical margins; keep the shared boot frames.
+                const snapshot = new Gtk.Snapshot();
+                const bounds = new Graphene.Rect();
+                bounds.init(0, -45, 480, 270);
+                snapshot.append_texture(texture, bounds);
+                const size = new Graphene.Size();
+                size.init(480, 180);
+                logo.set_paintable(snapshot.to_paintable(size));
                 previousFrame = frame;
             }
             return frame < 89;
         });
-''' + marker)
+''' + '        this.content.set_child(welcome);')
 
 
 if __name__ == '__main__':
