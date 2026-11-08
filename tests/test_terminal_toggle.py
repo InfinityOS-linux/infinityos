@@ -57,7 +57,7 @@ class TerminalToggleTests(unittest.TestCase):
         keys = {key.get("name"): key.get("type") for key in schema.iter("key")}
         self.assertEqual(keys["toggle-request"], "x")
         source = (EXTENSION / "extension.js").read_text()
-        self.assertIn("changed::toggle-request', () => this._toggle()", source)
+        self.assertIn("_connectRequest('toggle-request', () => this._toggle()", source)
         self.assertIn("this._settings.disconnect(this._toggleRequestId)", source)
 
     def test_new_terminal_window_stays_hidden_without_toggle_request(self):

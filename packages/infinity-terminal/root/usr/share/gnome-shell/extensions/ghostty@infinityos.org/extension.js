@@ -48,8 +48,8 @@ export default class InfinityTerminal extends Extension {
             if (window && !window.minimized)
                 this._hide(window);
         });
-        this._toggleRequestId = this._settings.connect('changed::toggle-request', () => this._toggle());
-        this._showRequestId = this._settings.connect('changed::show-request', () => this._showTerminal());
+        this._toggleRequestId = this._connectRequest('toggle-request', () => this._toggle());
+        this._showRequestId = this._connectRequest('show-request', () => this._showTerminal());
         const getRunning = Shell.AppSystem.prototype.get_running;
         this._getRunning = getRunning;
         this._filteredRunning = function () {
@@ -145,8 +145,6 @@ export default class InfinityTerminal extends Extension {
         const existing = this._findWindow();
         if (existing)
             this._track(existing, true);
-        else if (GLib.get_user_name() !== 'liveuser')
-            this._spawn();
     }
 
     disable() {
@@ -345,6 +343,17 @@ export default class InfinityTerminal extends Extension {
         return global.get_window_actors()
             .map(actor => actor.meta_window)
             .find(window => this._isGhosTTY(window)) ?? null;
+    }
+
+    _connectRequest(key, action) {
+        let previous = this._settings.get_int64(key);
+        return this._settings.connect(`changed::${key}`, () => {
+            const value = this._settings.get_int64(key);
+            const requested = value > 0 && value !== previous;
+            previous = value;
+            if (requested)
+                action();
+        });
     }
 
     _spawn() {
