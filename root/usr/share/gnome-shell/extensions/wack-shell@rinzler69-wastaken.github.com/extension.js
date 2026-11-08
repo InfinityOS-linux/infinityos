@@ -610,7 +610,7 @@ if (global.wackDockSnapshots) {
             const bmsConflict = this._vibrancyManager ? this._vibrancyManager._bmsHasPanelBlur() : false;
             let brightness = 1.0;
             if (!bmsConflict) {
-                brightness = (effectiveStyle === 2) ? 0.80 : (isDark ? 0.90 : 0.95);
+                brightness = (effectiveStyle === 2) ? 1.0 : (isDark ? 0.90 : 0.95);
             }
             global.wack_panel_cached_brightness = brightness;
         }

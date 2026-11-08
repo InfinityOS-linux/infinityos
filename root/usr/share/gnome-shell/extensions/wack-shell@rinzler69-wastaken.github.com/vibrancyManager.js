@@ -266,7 +266,7 @@ export default class VibrancyManager {
                 const effectiveStyle = (style === 2 && !isDark) ? 2 : 1;
                 const resolvedMode = blurMode === 3 ? (this._isWallpaperLenient() ? 2 : 1) : blurMode;
                 const blurRadius = resolvedMode === 1 ? RADIUS_LINEAR : RADIUS_LENIENT;
-                const brightness = effectiveStyle === 2 ? 0.80 : (isDark ? 0.90 : 0.95);
+                const brightness = effectiveStyle === 2 ? 1.0 : (isDark ? 0.90 : 0.95);
 
                 const { targetUri, targetFilePath } = await resolveWallpaperSource(uri);
                 const { mtime, size } = await getFileMtimeAndSize(targetFilePath);
@@ -538,7 +538,7 @@ export default class VibrancyManager {
             brightness = 1.0;
         } else {
             radius = resolvedBlurMode === 1 ? RADIUS_LINEAR : RADIUS_LENIENT;
-            brightness = (effectiveStyle === 2) ? 0.80 : (isDark ? 0.90 : 0.95);
+            brightness = (effectiveStyle === 2) ? 1.0 : (isDark ? 0.90 : 0.95);
         }
 
         this._regeneratePanelStrip();
@@ -922,7 +922,7 @@ export default class VibrancyManager {
         if (bmsConflict) {
             targetClass = useVenturaLight ? 'panel-ventura-light' : 'panel-bigsur';
             this._panelBackdropOverlayTint = isDark ? null :
-                (useVenturaLight ? 'rgba(250, 247, 255, 0.88)' : 'rgba(44, 30, 64, 0.82)');
+                (useVenturaLight ? 'rgba(250, 247, 255, 0.96)' : 'rgba(44, 30, 64, 0.82)');
             if (useVenturaLight)
                 panelCSS = 'background-color: transparent !important;';
         } else if (isOverview || isLockscreen) {
@@ -930,7 +930,7 @@ export default class VibrancyManager {
         } else if (useVenturaLight) {
             targetClass = 'panel-ventura-light';
             panelCSS = 'background-color: transparent !important;';
-            this._panelBackdropOverlayTint = 'rgba(250, 247, 255, 0.88)';
+            this._panelBackdropOverlayTint = 'rgba(250, 247, 255, 0.96)';
         } else {
             targetClass = 'panel-bigsur';
             panelCSS = isDark ? 'background-color: transparent !important;' :
@@ -996,7 +996,7 @@ export default class VibrancyManager {
             brightness = 1.0;
         } else {
             radius = resolvedBlurMode === 1 ? RADIUS_LINEAR : RADIUS_LENIENT;
-            brightness = (effectiveStyle === 2) ? 0.80 : (isDark ? 0.90 : 0.95);
+            brightness = (effectiveStyle === 2) ? 1.0 : (isDark ? 0.90 : 0.95);
         }
         this._vibrancyStyleActive = true;
 

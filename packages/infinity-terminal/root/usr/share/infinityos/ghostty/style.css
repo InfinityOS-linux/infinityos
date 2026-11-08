@@ -28,3 +28,23 @@ tabbar tab.needs-attention {
   color: #ffffff;
   border-top: 2px solid #eb536f;
 }
+
+@media (prefers-color-scheme: light) {
+  tabbar {
+    background-color: #f0eaf7;
+    color: #30283f;
+    border-top: 1px solid #b49acb;
+    border-bottom: 1px solid #d8cce5;
+  }
+
+  tabbar tab:selected {
+    background-color: #d6c4ed;
+    color: #30283f;
+  }
+
+  tabbar tab.needs-attention {
+    background-color: #f5dce4;
+    color: #87213e;
+    border-top-color: #a82b4c;
+  }
+}
