@@ -182,8 +182,8 @@ textarea {
 }
 
 .infinityos-intro-loader img {
-  width: 84px;
-  height: 84px;
+  width: min(70vw, 420px);
+  height: auto;
 }
 
 .infinityos-intro-spinner {

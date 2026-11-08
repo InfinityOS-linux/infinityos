@@ -1,6 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-  <g fill="none" stroke="#25212f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M16 16C12 8 3 5 3 16s9 8 13 0c4-8 13-11 13 0s-9 8-13 0Z"/>
-    <path d="M2 16h28"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <path d="M83 256C83 174 188 153 255 256c67 103 174 82 174 0s-107-103-174 0C188 359 83 338 83 256Z"
+        fill="none" stroke="#585560" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M64 256h384" fill="none" stroke="#585560" stroke-width="18" stroke-linecap="round"/>
 </svg>
