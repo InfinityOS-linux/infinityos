@@ -502,8 +502,8 @@ export default class InfinityTerminal extends Extension {
             this._sourceId = 0;
             const actor = window.get_compositor_private();
             if (actor) {
-                actor.ease({translation_y: 0, duration: 150,
-                    mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+                actor.ease({translation_y: 0, duration: 250,
+                    mode: Clutter.AnimationMode.EASE_IN_CUBIC});
             }
             return GLib.SOURCE_REMOVE;
         });
@@ -522,7 +522,7 @@ export default class InfinityTerminal extends Extension {
         actor.remove_all_transitions();
         actor.ease({
             translation_y: -window.get_frame_rect().height,
-            duration: 120,
+            duration: 250,
             mode: Clutter.AnimationMode.EASE_IN_CUBIC,
             onComplete: () => {
                 Main.wm.skipNextEffect(actor);
