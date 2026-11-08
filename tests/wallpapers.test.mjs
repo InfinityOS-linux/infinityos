@@ -14,17 +14,24 @@ const pairs = [
   ['Przepływ', '05-przeplyw'],
 ];
 
-test('new SVG pairs lead the wallpaper catalog', () => {
+test('SVG pairs lead the GNOME 51 sorted wallpaper list', () => {
   const catalog = read('root/usr/share/infinityos/background-catalog.xml');
-  let previous = 0;
-  for (const [name, stem] of pairs) {
-    const entry = catalog.indexOf(`<name>Infinity OS — ${name}</name>`);
-    assert.ok(entry > previous && entry < catalog.indexOf('<name>Default Background</name>'));
-    assert.ok(catalog.includes(`<filename>/usr/share/backgrounds/infinityos/light-${stem}.svg</filename>`));
-    assert.ok(catalog.includes(`<filename-dark>/usr/share/backgrounds/infinityos/dark-${stem}.svg</filename-dark>`));
+  const entries = [...catalog.matchAll(/<wallpaper deleted="false">([\s\S]*?)<\/wallpaper>/g)]
+    .map(([, xml]) => ({
+      name: xml.match(/<name>(.*?)<\/name>/)[1],
+      file: xml.match(/<filename>(.*?)<\/filename>/)[1],
+      dark: xml.match(/<filename-dark>(.*?)<\/filename-dark>/)[1],
+    }));
+  assert.equal(entries.filter(item => item.name === 'Default Background').length, 1);
+  // GNOME 51 bg-wallpapers-source.c: Default Background first, then strcmp.
+  entries.push({ name: 'Adwaita', file: 'stock.svg' }, { name: 'Blobs', file: 'stock.svg' });
+  entries.sort((a, b) => a.name === 'Default Background' ? -1 :
+    b.name === 'Default Background' ? 1 : Buffer.compare(Buffer.from(a.name), Buffer.from(b.name)));
+  for (const [index, [, stem]] of pairs.entries()) {
+    assert.equal(entries[index].file, `/usr/share/backgrounds/infinityos/light-${stem}.svg`);
+    assert.equal(entries[index].dark, `/usr/share/backgrounds/infinityos/dark-${stem}.svg`);
     assert.ok(existsSync(join(repo, folder, `light-${stem}.svg`)));
     assert.ok(existsSync(join(repo, folder, `dark-${stem}.svg`)));
-    previous = entry;
   }
 });
 

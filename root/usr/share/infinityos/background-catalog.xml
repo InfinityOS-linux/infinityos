@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">
 <wallpapers>
+  <!-- GNOME sorts Default Background first, then names; XML order alone is ignored. -->
   <wallpaper deleted="false">
-    <name>Infinity OS — Horyzont</name>
+    <name>Default Background</name>
     <filename>/usr/share/backgrounds/infinityos/light-02-horyzont.svg</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/dark-02-horyzont.svg</filename-dark>
     <options>zoom</options>
@@ -11,7 +12,7 @@
     <scolor>#0d0d19</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>Infinity OS — Pętla</name>
+    <name>01 Infinity OS — Pętla</name>
     <filename>/usr/share/backgrounds/infinityos/light-01-petla.svg</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/dark-01-petla.svg</filename-dark>
     <options>zoom</options>
@@ -20,7 +21,7 @@
     <scolor>#0b0b15</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>Infinity OS — Portal</name>
+    <name>02 Infinity OS — Portal</name>
     <filename>/usr/share/backgrounds/infinityos/light-03-portal.svg</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/dark-03-portal.svg</filename-dark>
     <options>zoom</options>
@@ -29,7 +30,7 @@
     <scolor>#0d0b17</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>Infinity OS — Wstęga</name>
+    <name>03 Infinity OS — Wstęga</name>
     <filename>/usr/share/backgrounds/infinityos/light-04-wstega.svg</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/dark-04-wstega.svg</filename-dark>
     <options>zoom</options>
@@ -38,7 +39,7 @@
     <scolor>#0c0d19</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>Infinity OS — Przepływ</name>
+    <name>04 Infinity OS — Przepływ</name>
     <filename>/usr/share/backgrounds/infinityos/light-05-przeplyw.svg</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/dark-05-przeplyw.svg</filename-dark>
     <options>zoom</options>
@@ -47,7 +48,7 @@
     <scolor>#0b0d18</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>Default Background</name>
+    <name>05 Infinity OS — Original</name>
     <filename>/usr/share/backgrounds/infinityos/infinityos-light.png</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/infinityos-dark.png</filename-dark>
     <options>zoom</options>
@@ -56,7 +57,7 @@
     <scolor>#1b1429</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>01 Infinity OS — Flow</name>
+    <name>06 Infinity OS — Flow</name>
     <filename>/usr/share/backgrounds/infinityos/infinityos-flow-light.png</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/infinityos-flow-dark.png</filename-dark>
     <options>zoom</options>
@@ -65,7 +66,7 @@
     <scolor>#130e20</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>02 Infinity OS — Nocturne</name>
+    <name>07 Infinity OS — Nocturne</name>
     <filename>/usr/share/backgrounds/infinityos/infinityos-nocturne.png</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/infinityos-nocturne.png</filename-dark>
     <options>zoom</options>
@@ -74,7 +75,7 @@
     <scolor>#0d0915</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>03 Infinity OS — Monolith</name>
+    <name>08 Infinity OS — Monolith</name>
     <filename>/usr/share/backgrounds/infinityos/infinityos-monolith.png</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/infinityos-monolith.png</filename-dark>
     <options>zoom</options>
@@ -83,7 +84,7 @@
     <scolor>#0c0912</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>04 Infinity OS — Violet Veil</name>
+    <name>09 Infinity OS — Violet Veil</name>
     <filename>/usr/share/backgrounds/infinityos/infinityos-veil.png</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/infinityos-veil.png</filename-dark>
     <options>zoom</options>
@@ -92,7 +93,7 @@
     <scolor>#0c0912</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>05 Infinity OS — Lavender Mist</name>
+    <name>10 Infinity OS — Lavender Mist</name>
     <filename>/usr/share/backgrounds/infinityos/infinityos-mist.png</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/infinityos-mist.png</filename-dark>
     <options>zoom</options>
@@ -101,7 +102,7 @@
     <scolor>#d8c9ed</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>06 Infinity OS — Glass Light</name>
+    <name>11 Infinity OS — Glass Light</name>
     <filename>/usr/share/backgrounds/infinityos/infinityos-glass-light.jpg</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/infinityos-glass-light.jpg</filename-dark>
     <options>zoom</options>
@@ -110,7 +111,7 @@
     <scolor>#c7b0df</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>07 Infinity OS — Glass Dark</name>
+    <name>12 Infinity OS — Glass Dark</name>
     <filename>/usr/share/backgrounds/infinityos/infinityos-glass-dark.jpg</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/infinityos-glass-dark.jpg</filename-dark>
     <options>zoom</options>
@@ -119,7 +120,7 @@
     <scolor>#261341</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>08 Infinity OS — Topography Light</name>
+    <name>13 Infinity OS — Topography Light</name>
     <filename>/usr/share/backgrounds/infinityos/infinityos-topography-light.jpg</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/infinityos-topography-light.jpg</filename-dark>
     <options>zoom</options>
@@ -128,7 +129,7 @@
     <scolor>#b5a1d3</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>09 Infinity OS — Topography Dark</name>
+    <name>14 Infinity OS — Topography Dark</name>
     <filename>/usr/share/backgrounds/infinityos/infinityos-topography-dark.jpg</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/infinityos-topography-dark.jpg</filename-dark>
     <options>zoom</options>
@@ -137,7 +138,7 @@
     <scolor>#332448</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>10 Infinity OS — Prism Light</name>
+    <name>15 Infinity OS — Prism Light</name>
     <filename>/usr/share/backgrounds/infinityos/infinityos-prism-light.jpg</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/infinityos-prism-light.jpg</filename-dark>
     <options>zoom</options>
@@ -146,7 +147,7 @@
     <scolor>#c4b7dc</scolor>
   </wallpaper>
   <wallpaper deleted="false">
-    <name>11 Infinity OS — Orbits Dark</name>
+    <name>16 Infinity OS — Orbits Dark</name>
     <filename>/usr/share/backgrounds/infinityos/infinityos-orbits-dark.jpg</filename>
     <filename-dark>/usr/share/backgrounds/infinityos/infinityos-orbits-dark.jpg</filename-dark>
     <options>zoom</options>
