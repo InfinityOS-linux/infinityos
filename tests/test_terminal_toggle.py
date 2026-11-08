@@ -59,6 +59,8 @@ class TerminalToggleTests(unittest.TestCase):
         source = (EXTENSION / "extension.js").read_text()
         self.assertIn("_connectRequest('toggle-request', () => this._toggle()", source)
         self.assertIn("this._settings.disconnect(this._toggleRequestId)", source)
+        verifier = (ROOT.parents[2] / "scripts/verify-infinity-iso").read_text()
+        self.assertIn("this._connectRequest('toggle-request', () => this._toggle())", verifier)
 
     def test_new_terminal_window_stays_hidden_without_toggle_request(self):
         source = (EXTENSION / "extension.js").read_text()

@@ -343,7 +343,7 @@ grep -qx 'Exec=infinity-terminal --toggle' \
     echo 'InfinityTerminal dock launcher does not request the drop-down panel' >&2
     exit 1
 }
-grep -Fq 'changed::toggle-request' \
+grep -Fq "this._connectRequest('toggle-request', () => this._toggle())" \
     "$rootpoint/usr/share/gnome-shell/extensions/ghostty@infinityos.org/extension.js" || {
     echo 'InfinityTerminal drop-down controller missing from ISO' >&2
     exit 1
