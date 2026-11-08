@@ -546,8 +546,13 @@ class InfinitySetup(Gtk.Application):
                     if mode == "steam" and not enabled]
         later_tv = [(mode, enabled) for mode, enabled in tv_changes
                     if (mode, enabled) not in early_tv]
+        replacing_model = any(app.kind == "local-model" and enabled for app, enabled in changes)
+        old_models = [app for app, enabled in changes if app.kind == "local-model" and not enabled]
+        # The model installer restores the previous marker if its readiness check fails.
+        app_changes = [(app, enabled) for app, enabled in changes
+                       if not (replacing_model and app.kind == "local-model" and not enabled)]
         operations = ([("tv", mode, enabled) for mode, enabled in early_tv] +
-                      [("app", app, enabled) for app, enabled in changes] +
+                      [("app", app, enabled) for app, enabled in app_changes] +
                       [("tv", mode, enabled) for mode, enabled in later_tv])
         total = len(operations)
         steam_tv_selected = ("steam", True) in tv_changes
@@ -583,6 +588,9 @@ class InfinitySetup(Gtk.Application):
                 if kind == "app" and item.source == "com.valvesoftware.Steam" and enabled:
                     steam_install_failed = True
             else:
+                if kind == "app" and item.kind == "local-model" and enabled:
+                    for old in old_models:
+                        GLib.idle_add(self._installed, old, False)
                 GLib.idle_add(self._tv_applied if kind == "tv" else self._installed,
                               item, enabled)
         GLib.idle_add(self._finished, errors)
@@ -611,7 +619,7 @@ class InfinitySetup(Gtk.Application):
             self.status.set_text(tr("Could not apply changes:\n") + "\n".join(errors))
             for app, switch in self.switches.items():
                 switch.set_sensitive(available(app) and
-                                     (app.kind == "local-model" or not installed(app) or removable(app)))
+                                     (app.kind == "local-model" or not self.initial_active[app] or removable(app)))
             for switch in self.tv_switches.values():
                 switch.set_sensitive(True)
             for button, app in self.installer_buttons:
