@@ -18,6 +18,7 @@ def main():
     result = {'status': 'failed', 'snapshot': None}
     try:
         with (directory / 'offline-update.log').open('w') as log:
+            os.fchmod(log.fileno(), 0o600)
             backup = subprocess.run(['/usr/libexec/infinityos-backups-snapshot'],
                                     text=True, stdout=subprocess.PIPE, stderr=log, check=True)
             number = next((line for line in backup.stdout.splitlines() if line.isdecimal()), None)

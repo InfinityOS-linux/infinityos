@@ -17,10 +17,14 @@ def offline_status(directory=Path('/var/lib/infinityos'), trigger=Path('/system-
         if not isinstance(result, dict):
             return {}
         if result.get('status') == 'failed':
-            with (directory / 'offline-update.log').open('rb') as log:
-                log.seek(0, 2)
-                log.seek(max(0, log.tell() - 16000))
-                result['log'] = log.read().decode('utf-8', errors='replace')
+            result['log'] = result.get('error', '')
+            try:
+                with (directory / 'offline-update.log').open('rb') as log:
+                    log.seek(0, 2)
+                    log.seek(max(0, log.tell() - 16000))
+                    result['log'] = log.read().decode('utf-8', errors='replace')
+            except OSError:
+                pass  # Keep the public error summary when the detailed root log is private.
         return result
     except (OSError, ValueError):
         return {}

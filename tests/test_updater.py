@@ -420,6 +420,8 @@ class UpdaterTests(unittest.TestCase):
             result = checker.offline_status(root, trigger)
             self.assertEqual(result['snapshot'], '17')
             self.assertEqual(result['log'], 'Transaction failed')
+            (root / 'offline-update.log').unlink()
+            self.assertEqual(checker.offline_status(root, trigger)['status'], 'failed')
             trigger.symlink_to(root)
             self.assertEqual(checker.offline_status(root, trigger), {'pending': True})
 
