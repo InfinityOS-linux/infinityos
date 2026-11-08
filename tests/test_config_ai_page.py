@@ -53,6 +53,31 @@ class AiPageTests(unittest.TestCase):
                 page.close()
             window.destroy()
 
+    def test_blocked_close_keeps_both_pages_alive(self):
+        from config import InfinityConfig
+        from config_proton_page import ProtonPage
+        stack = Gtk.Stack()
+        stack.add_named(Gtk.Box(), 'Desktop')
+        app = SimpleNamespace(window=Gtk.Window(), stack=stack, status=Gtk.Label(),
+                              _select_tab=lambda *_: None)
+        nav, group = Gtk.Box(), Gtk.ToggleButton()
+        with patch.object(self.ui, 'selected_ai', return_value=()):
+            app.proton_page = ProtonPage(app, nav, group)
+            app.ai_page = self.ui.AiPage(app, nav, group)
+        app.window.connect('close-request', lambda *_: InfinityConfig._close_requested(app))
+        generation = app.ai_page.generation
+        for ai_busy, proton_busy in ((True, False), (False, True), (True, True)):
+            app.ai_page.busy = ai_busy
+            app.proton_page.busy = proton_busy
+            self.assertTrue(app.window.emit('close-request'))
+            self.assertTrue(app.proton_page.alive)
+            self.assertEqual(app.ai_page.generation, generation)
+        app.ai_page.busy = app.proton_page.busy = False
+        self.assertFalse(InfinityConfig._close_requested(app))
+        self.assertFalse(app.proton_page.alive)
+        self.assertGreater(app.ai_page.generation, generation)
+        app.window.destroy()
+
     def test_local_controls_and_translations_render(self):
         import config_ai_i18n
         page = object.__new__(self.ui.AiPage)

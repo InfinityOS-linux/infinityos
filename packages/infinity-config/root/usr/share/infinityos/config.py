@@ -15,6 +15,7 @@ from config_backend import (
     slider_to_percent,
 )
 from diagnostics import write_report
+from config_ai_i18n import tr as ai_tr
 from config_ai_page import AiPage
 from config_proton_page import ProtonPage
 
@@ -234,7 +235,17 @@ class InfinityConfig(Gtk.Application):
         card.append(footer)
         self.proton_page = ProtonPage(self, nav, group)
         self.ai_page = AiPage(self, nav, group)
+        self.window.connect("close-request", self._close_requested)
         self.window.present()
+
+    def _close_requested(self, *_args):
+        if self.ai_page.busy:
+            self.status.set_text(ai_tr('Wait for the current AI operation to finish.'))
+            return True
+        if self.proton_page.close():
+            return True
+        self.ai_page.close()
+        return False
 
     def _sync_color_scheme(self, *_args):
         if self.color_settings.get_string("color-scheme") == "prefer-dark":

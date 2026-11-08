@@ -45,7 +45,6 @@ class AiPage:
         app.stack.add_named(scroller, 'AI')
         self.poll()
         self.timer = GLib.timeout_add_seconds(2, self.poll)
-        app.window.connect('close-request', self.close)
 
     def close(self, *_args):
         GLib.source_remove(self.timer)

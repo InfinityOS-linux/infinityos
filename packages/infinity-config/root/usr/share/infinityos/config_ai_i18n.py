@@ -2,6 +2,7 @@
 import locale
 
 POLISH = {
+    'Wait for the current AI operation to finish.': 'Poczekaj na zakończenie bieżącej operacji AI.',
     'Accounts and local models': 'Konta i modele lokalne',
     'Refresh': 'Odśwież', 'Sign in': 'Zaloguj', 'Sign out': 'Wyloguj',
     'Provider usage': 'Zużycie u dostawcy', 'Not signed in': 'Nie zalogowano',

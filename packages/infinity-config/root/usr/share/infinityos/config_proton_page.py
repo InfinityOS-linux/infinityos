@@ -37,7 +37,6 @@ class ProtonPage:
         scroll.set_child(self.body)
         app.stack.add_named(scroll, 'Proton')
         app.stack.connect('notify::visible-child-name', self.selected)
-        app.window.connect('close-request', self.close)
 
     def selected(self, *_args):
         if self.app.stack.get_visible_child_name() == 'Proton' and not self.started:

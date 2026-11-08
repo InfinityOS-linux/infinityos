@@ -113,7 +113,10 @@ def releases(provider, arch=None):
     result = []
     for release in data:
         if not release.get('draft') and not release.get('prerelease'):
-            asset = release_asset(provider, release, arch)
+            try:
+                asset = release_asset(provider, release, arch)
+            except ValueError:
+                continue  # An unverified release must not hide verified alternatives.
             if asset:
                 result.append(asset)
     return result

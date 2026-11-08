@@ -32,6 +32,14 @@ def archive(path, entries=None):
 
 
 class ProtonTests(unittest.TestCase):
+    def test_unverified_release_does_not_hide_verified_releases(self):
+        valid = {'tag_name': 'v11', 'assets': [asset()]}
+        unverified = {'tag_name': 'v10', 'assets': [{**asset(), 'digest': None}]}
+        response = io.BytesIO(json.dumps([valid, unverified]).encode())
+        with patch.object(proton.urllib.request, 'urlopen', return_value=response):
+            available = proton.releases('Proton-Cachy', 'x86_64')
+        self.assertEqual([item['tag'] for item in available], ['v11'])
+
     def test_cachy_and_ge_select_matching_architecture_not_optimized_x64(self):
         for provider in proton.PROVIDERS:
             data = {'tag_name': 'v11', 'assets': [asset(provider, 'x86_64'), asset(provider, 'aarch64')]}
