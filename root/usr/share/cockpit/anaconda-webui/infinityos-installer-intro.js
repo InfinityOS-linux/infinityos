@@ -13,24 +13,41 @@
     const gap = reducedMotion ? 0 : 620;
     const storageKey = 'infinityos-installer-intro-start';
     app.inert = true;
+    let startedAt = 0;
+    try {
+        const saved = Number(window.localStorage.getItem(storageKey));
+        if (saved > 0 && saved <= Date.now())
+            startedAt = saved;
+    } catch (_) {
+        // Storage may be unavailable in private sessions.
+    }
 
     async function waitForWizard() {
-        const ready = () => document.querySelector('#installation-wizard.anaconda-wizard-step-anaconda-screen-language');
+        const ready = () => document.querySelector(startedAt ? '#installation-wizard'
+            : '#installation-wizard.anaconda-wizard-step-anaconda-screen-language');
         while (true) {
-            if (!ready())
-                await new Promise(resolve => {
-                    const observer = new MutationObserver(() => {
-                        if (!ready())
-                            return;
+            if (!ready()) {
+                const appeared = await new Promise(resolve => {
+                    const finish = available => {
                         observer.disconnect();
-                        resolve();
+                        clearTimeout(timeout);
+                        resolve(available);
+                    };
+                    const observer = new MutationObserver(() => {
+                        if (ready())
+                            finish(true);
                     });
+                    // Do not hide Anaconda errors behind a permanent preloader.
+                    const timeout = setTimeout(() => finish(false), 20000);
                     observer.observe(app, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
                 });
+                if (!appeared)
+                    return false;
+            }
             // Anaconda mounts the language page once before its own locale reload.
             await pause(1500);
             if (ready())
-                return;
+                return true;
         }
     }
 
@@ -44,18 +61,17 @@
 
     (async () => {
         try {
-            await waitForWizard();
+            if (!await waitForWizard())
+                return;
             intro.classList.add('is-ready');
             await pause(reducedMotion ? 0 : 400);
-            let startedAt = Date.now();
-            try {
-                const saved = Number(window.localStorage.getItem(storageKey));
-                if (saved > 0 && saved <= startedAt)
-                    startedAt = saved;
-                else
+            if (!startedAt) {
+                startedAt = Date.now();
+                try {
                     window.localStorage.setItem(storageKey, String(startedAt));
-            } catch (_) {
-                // Private storage can be unavailable; the intro still runs for this page.
+                } catch (_) {
+                    // The intro still runs for this page without storage.
+                }
             }
             window.dispatchEvent(new Event('infinityos-installer-intro-start'));
             let offset = 0;

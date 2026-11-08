@@ -5,7 +5,8 @@ import vm from 'node:vm';
 
 const source = readFileSync(new URL('../root/usr/share/cockpit/anaconda-webui/infinityos-installer-audio.js', import.meta.url), 'utf8');
 
-test('installer music starts with the ready intro and survives later steps', () => {
+for (const restored of [false, true]) {
+test(`installer controls work after intro on ${restored ? 'a restored later step' : 'the welcome step'}`, () => {
   let welcomeVisible = false;
   let introVisible = true;
   let playCount = 0;
@@ -53,7 +54,7 @@ test('installer music starts with the ready intro and survives later steps', () 
     createElement: tag => new Element(tag),
     querySelector: selector => selector === '#installation-quit-btn'
       ? quitButton : selector === '#infinityos-installer-intro'
-        ? (introVisible ? {} : null) : (welcomeVisible ? {} : null),
+        ? (introVisible ? {} : null) : selector === '#installation-wizard' ? {} : (welcomeVisible ? {} : null),
     addEventListener(type, callback) {
       (this.listeners[type] ??= []).push(callback);
     },
@@ -88,6 +89,7 @@ test('installer music starts with the ready intro and survives later steps', () 
   observers[0].callback();
   assert.equal(playCount, 1);
   introVisible = false;
+  welcomeVisible = !restored;
   window.infinityosInstallerIntroComplete = true;
   window.listeners['infinityos-installer-intro-complete'][0]();
   assert.equal(playCount, 1);
@@ -111,3 +113,4 @@ test('installer music starts with the ready intro and survives later steps', () 
   assert.equal(audio.paused, false);
   assert.equal(appended.length, 2);
 });
+}

@@ -169,7 +169,9 @@
         if (document.querySelector('#infinityos-installer-intro') &&
             !window.infinityosInstallerIntroComplete)
             return;
-        if (!document.querySelector('#installation-wizard.anaconda-wizard-step-anaconda-screen-language'))
+        const wizard = window.infinityosInstallerIntroComplete ? '#installation-wizard'
+            : '#installation-wizard.anaconda-wizard-step-anaconda-screen-language';
+        if (!document.querySelector(wizard))
             return;
         musicReady = true;
         controls.hidden = false;

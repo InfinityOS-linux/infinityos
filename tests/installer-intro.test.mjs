@@ -85,7 +85,8 @@ test('preloader holds the first card until the wizard survives startup', async (
     window: {dispatchEvent: event => { if (event.type === 'infinityos-installer-intro-complete') complete(); }},
     matchMedia: () => ({matches: false}),
     MutationObserver: class {constructor(callback) { onMutation = callback; } observe() {} disconnect() {}},
-    setTimeout: callback => { pending.push(callback); return pending.length; },
+    setTimeout: (callback, delay) => { if (delay !== 20000) pending.push(callback); return pending.length; },
+    clearTimeout() {},
     Event: class {constructor(type) { this.type = type; }},
   });
   await Promise.resolve();
@@ -175,4 +176,41 @@ test('intro releases the installer if the animation fails', async () => {
   await done;
   assert.equal(intro.removed, true);
   assert.equal(app.inert, false);
+});
+
+test('completed intro does not block a restored later wizard step', async () => {
+  const intro = {classList: {add() {}}, querySelectorAll: () => [], remove() { this.removed = true; }};
+  const app = {inert: false};
+  vm.runInNewContext(source, {
+    document: {querySelector: selector => selector === '#infinityos-installer-intro' ? intro
+      : selector === '#app' ? app : selector === '#installation-wizard' ? {} : null},
+    window: {localStorage: {getItem: () => '1000'}, dispatchEvent() {}},
+    Date: {now: () => 100000}, matchMedia: () => ({matches: false}),
+    MutationObserver: class {observe() {} disconnect() {}},
+    setTimeout: (fn, delay) => { if (delay !== 20000) queueMicrotask(fn); return 1; }, clearTimeout() {},
+    Event: class {constructor(type) { this.type = type; }},
+  });
+  for (let i = 0; i < 20; i++) await Promise.resolve();
+  assert.equal(intro.removed, true);
+  assert.equal(app.inert, false);
+});
+
+test('missing wizard cannot leave an error page hidden behind the intro forever', async () => {
+  const intro = {querySelectorAll: () => [], remove() { this.removed = true; }};
+  const app = {inert: false};
+  let timeout;
+  let disconnected = false;
+  vm.runInNewContext(source, {
+    document: {querySelector: s => s === '#infinityos-installer-intro' ? intro : s === '#app' ? app : null},
+    window: {dispatchEvent() {}}, matchMedia: () => ({matches: false}),
+    MutationObserver: class {observe() {} disconnect() { disconnected = true; }},
+    setTimeout: (fn, delay) => { if (delay === 20000) timeout = fn; return 1; }, clearTimeout() {},
+    Event: class {constructor(type) { this.type = type; }},
+  });
+  assert.equal(typeof timeout, 'function');
+  timeout();
+  for (let i = 0; i < 10; i++) await Promise.resolve();
+  assert.equal(intro.removed, true);
+  assert.equal(app.inert, false);
+  assert.equal(disconnected, true);
 });
