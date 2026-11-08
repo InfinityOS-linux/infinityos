@@ -690,6 +690,21 @@ class LauncherBackendTests(unittest.TestCase):
                 backend.deactivate_local_model(home)
             self.assertEqual(backend.configured_apps(home), backend.APPS)
 
+    def test_craft_member_removal_never_requests_other_packages(self):
+        for app in (a for a in backend.APPS if a.source in backend.CRAFT_SUITE):
+            with patch.object(backend, "installed", return_value=True), patch.object(backend, "_run") as run:
+                self.assertTrue(backend.removable(app))
+                backend.uninstall(app)
+                run.assert_called_once_with(["pkexec", "rpm", "-e", "--", app.source.rsplit("/", 1)[-1]])
+
+    def test_craft_dependency_failure_is_not_forced_or_cascaded(self):
+        app = next(a for a in backend.APPS if a.name == "PDFCraft")
+        with patch.object(backend, "installed", return_value=True), \
+             patch.object(backend, "_run", side_effect=RuntimeError("dependency required")) as run:
+            with self.assertRaises(RuntimeError):
+                backend.uninstall(app)
+            self.assertEqual(run.call_count, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

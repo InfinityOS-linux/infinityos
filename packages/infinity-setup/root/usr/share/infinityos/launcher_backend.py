@@ -37,6 +37,9 @@ class LocalModel(NamedTuple):
     disk_gb: int
 
 
+CRAFT_SUITE = {"storytold/pdfcraft", "storytold/wordcraft", "storytold/gridcraft", "storytold/deckcraft"}
+
+
 LOCAL_MODELS = {
     "infinity-qwen-9b": LocalModel("hf.co/unsloth/Qwen3.5-9B-GGUF:UD-Q5_K_XL", 10),
     "infinity-gemma-12b": LocalModel("hf.co/unsloth/gemma-4-12b-it-GGUF:UD-Q4_K_XL", 11),
@@ -171,7 +174,9 @@ def deactivate_local_model(home=None):
 
 
 def removable(app, home=None):
-    """Allow removal of Steam and user-prefix CLI installations."""
+    """Allow removal of managed clients and individual CraftSuite applications."""
+    if app.kind == "github-rpm" and app.source in CRAFT_SUITE:
+        return installed(app, home)
     if app.source == "com.valvesoftware.Steam":
         if os.uname().machine == "aarch64":
             return installed(app, home)
@@ -200,6 +205,10 @@ def uninstall(app, home=None):
     if not removable(app, home):
         raise ValueError(f"No removable installation for {app.name}.")
     home = Path(home or Path.home())
+    if app.kind == "github-rpm" and app.source in CRAFT_SUITE:
+        # rpm refuses dependent removals instead of cascading to other apps.
+        _run(["pkexec", "rpm", "-e", "--", app.package or app.source.rsplit("/", 1)[-1]])
+        return
     if app.source == "com.valvesoftware.Steam":
         if os.uname().machine == "aarch64":
             # Keep steamapps and user settings while removing the managed client.

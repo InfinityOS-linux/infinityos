@@ -13,7 +13,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk
 
-from launcher_backend import (APPS, active_local_model, configured_apps, available, deactivate_local_model,
+from launcher_backend import (APPS, CRAFT_SUITE, active_local_model, configured_apps, available, deactivate_local_model,
                               install, installed, installed_flatpaks,
                               open_lutris_installer, removable, uninstall)
 from launcher_i18n import tr
@@ -303,12 +303,15 @@ class InfinitySetup(Gtk.Application):
         scroller.set_margin_end(28)
         body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         body.set_margin_bottom(16)
+        body.set_margin_end(12)
         scroller.set_child(body)
         page_heading = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         page_heading.set_margin_bottom(7)
         page_heading.append(label(tr(section), "infinity-page-title"))
         page_heading.append(label(tr(description), "infinity-muted"))
         body.append(page_heading)
+        if section == "Office":
+            self._add_craft_suite(body)
         previous_group = None
         selected_model = active_local_model()
         for app in (item for item in configured_apps() if item.category == section):
@@ -392,6 +395,11 @@ class InfinitySetup(Gtk.Application):
                 switch.connect("notify::active", self._steam_toggled)
             row.append(switch)
             body.append(row)
+        if section == "Office":
+            for app, switch in self.switches.items():
+                if app.source in CRAFT_SUITE:
+                    switch.connect("notify::active", self._sync_craft_suite)
+            self._sync_craft_suite()
         if section == "TV Mode":
             for mode, name, description, icon_name in (
                     ("esde", "EmulationStation (ES-DE)",
@@ -471,6 +479,40 @@ class InfinitySetup(Gtk.Application):
             self.save_button.set_sensitive(True)
         return False
 
+    def _add_craft_suite(self, body):
+        self.syncing_suite = False
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
+        row.add_css_class("infinity-row")
+        row.append(app_icon_cell(Gtk.Image.new_from_icon_name("x-office-document-symbolic")))
+        details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3, hexpand=True)
+        details.append(label("CraftSuite", "infinity-app-name"))
+        description = label(tr("Install PDFCraft, WordCraft, GridCraft and DeckCraft. Manage each app separately."), "infinity-muted")
+        description.set_wrap(True)
+        details.append(description)
+        row.append(details)
+        self.suite_switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+        self.suite_switch.connect("notify::active", self._craft_suite_toggled)
+        row.append(self.suite_switch)
+        body.append(row)
+
+    def _craft_suite_toggled(self, switch, *_args):
+        if self.syncing_suite:
+            return
+        self.syncing_suite = True
+        for app, member in self.switches.items():
+            if app.source in CRAFT_SUITE and member.get_sensitive():
+                member.set_active(switch.get_active())
+        self.syncing_suite = False
+        self._sync_craft_suite()
+
+    def _sync_craft_suite(self, *_args):
+        if self.syncing_suite:
+            return
+        self.syncing_suite = True
+        members = [switch for app, switch in self.switches.items() if app.source in CRAFT_SUITE]
+        self.suite_switch.set_active(len(members) == len(CRAFT_SUITE) and all(s.get_active() for s in members))
+        self.syncing_suite = False
+
     def _save(self, _button):
         changes = [(app, switch.get_active()) for app, switch in self.switches.items()
                    if switch.get_sensitive() and
@@ -482,6 +524,7 @@ class InfinitySetup(Gtk.Application):
             self._complete()
             return
         self.busy = True
+        self.suite_switch.set_sensitive(False)
         self.save_button.set_sensitive(False)
         self.progress.set_visible(True)
         self.progress_source = GLib.timeout_add(80, self._pulse_progress)
@@ -564,6 +607,7 @@ class InfinitySetup(Gtk.Application):
             self.progress_source = 0
         self.progress.set_visible(False)
         if errors:
+            self.suite_switch.set_sensitive(True)
             self.status.set_text(tr("Could not apply changes:\n") + "\n".join(errors))
             for app, switch in self.switches.items():
                 switch.set_sensitive(available(app) and

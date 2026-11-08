@@ -4,6 +4,8 @@ import locale
 
 
 POLISH = {
+    "Install PDFCraft, WordCraft, GridCraft and DeckCraft. Manage each app separately.":
+        "Zainstaluj PDFCraft, WordCraft, GridCraft i DeckCraft. Zarządzaj każdą aplikacją osobno.",
     "Manage this model in InfinityConfig.": "Zarządzaj tym modelem w InfinityConfig.",
     "Assistants and command-line tools": "Asystenci i narzędzia wiersza poleceń",
     "Everyday essentials": "Niezbędne aplikacje na co dzień",
