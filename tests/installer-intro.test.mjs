@@ -61,3 +61,42 @@ test('intro releases the installer if the animation fails', async () => {
   assert.equal(intro.removed, true);
   assert.equal(app.inert, false);
 });
+
+test('intro resumes after a page reload and does not replay completed cards', async () => {
+  const storage = new Map();
+  let now = 100000;
+  const run = (shown, schedule, complete) => {
+    const frames = Array.from({ length: 3 }, (_, index) => ({
+      classList: { add() { shown.push(index); }, remove() {} }, setAttribute() {},
+    }));
+    const intro = { classList: { add() {} }, querySelectorAll: () => frames, remove() {} };
+    vm.runInNewContext(source, {
+      document: { querySelector: selector => selector === '#infinityos-installer-intro' ? intro : {} },
+      window: {
+        localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) },
+        dispatchEvent: complete,
+      },
+      Date: { now: () => now }, matchMedia: () => ({ matches: false }),
+      setTimeout: schedule,
+      Event: class {},
+    });
+  };
+  const first = [];
+  run(first, () => 1, () => {});
+  assert.deepEqual(first, [0]);
+  now += 1800;
+  const resumed = [];
+  await new Promise(resolve => run(resumed, (callback, delay) => {
+    now += delay;
+    queueMicrotask(callback);
+    return 1;
+  }, resolve));
+  assert.deepEqual(resumed, [1, 2]);
+  const completed = [];
+  await new Promise(resolve => run(completed, (callback, delay) => {
+    now += delay;
+    queueMicrotask(callback);
+    return 1;
+  }, resolve));
+  assert.deepEqual(completed, []);
+});

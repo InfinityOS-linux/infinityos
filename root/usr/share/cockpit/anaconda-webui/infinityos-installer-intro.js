@@ -39,16 +39,40 @@
         await pause(duration);
         frame.classList.remove('is-visible');
         frame.setAttribute('aria-hidden', 'true');
-        await pause(reducedMotion ? 0 : 400);
     }
 
     (async () => {
         try {
-            await show(frames[0], reducedMotion ? 300 : 1300);
-            await show(frames[1], reducedMotion ? 300 : 1300);
-            frames[2].classList.add('is-visible');
-            frames[2].setAttribute('aria-hidden', 'false');
-            await Promise.all([pause(reducedMotion ? 300 : 1300), waitForWizard()]);
+            const duration = reducedMotion ? 300 : 1300;
+            const gap = reducedMotion ? 0 : 400;
+            const storageKey = 'infinityos-installer-intro-start';
+            let startedAt = Date.now();
+            try {
+                const saved = Number(window.localStorage.getItem(storageKey));
+                if (saved > 0 && saved <= startedAt)
+                    startedAt = saved;
+                else
+                    window.localStorage.setItem(storageKey, String(startedAt));
+            } catch (_) {
+                // Private storage can be unavailable; the intro still runs for this page.
+            }
+            for (let index = 0; index < frames.length; index++) {
+                const offset = index * (duration + gap);
+                const elapsed = Date.now() - startedAt;
+                if (elapsed < offset)
+                    await pause(offset - elapsed);
+                const remaining = offset + duration - (Date.now() - startedAt);
+                if (remaining <= 0)
+                    continue;
+                if (index < frames.length - 1) {
+                    await show(frames[index], remaining);
+                } else {
+                    frames[index].classList.add('is-visible');
+                    frames[index].setAttribute('aria-hidden', 'false');
+                    await pause(remaining);
+                }
+            }
+            await waitForWizard();
             intro.classList.add('is-finished');
             await pause(reducedMotion ? 0 : 450);
         } finally {
