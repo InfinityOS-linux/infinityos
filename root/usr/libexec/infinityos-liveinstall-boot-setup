@@ -82,7 +82,7 @@ rm -rf "$esp/EFI/infinityos" "$esp/EFI/systemd" "$esp/loader" /boot/grub2
 
 systemctl enable infinityos-snapper-setup.service infinityos-backups-setup.service \
     infinityos-backups-entry.service infinityos-backups-entry.path \
-    snapper-timeline.timer snapper-cleanup.timer
+    snapper-cleanup.timer
 # The copied live sysconfig file otherwise blocks snapperd under SELinux.
 restorecon /etc/sysconfig/snapper
 

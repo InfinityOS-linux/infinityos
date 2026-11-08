@@ -22,6 +22,20 @@ i18n = importlib.util.module_from_spec(I18N_SPEC)
 I18N_SPEC.loader.exec_module(i18n)
 
 
+def epic_package():
+    payload = io.BytesIO()
+    with tarfile.open(fileobj=payload, mode='w:gz') as archive:
+        for name, content in (
+                ('usr/bin/EpicGamesLauncher', b'\x7fELF\x02' + b'0' * 13 + b'\x3e\x00'),
+                ('usr/lib/epic-games-launcher/libEOSSDK-Linux-Shipping.so', b'runtime')):
+            info = tarfile.TarInfo(name)
+            info.size = len(content)
+            archive.addfile(info, io.BytesIO(content))
+    data = payload.getvalue()
+    header = f'{"data.tar.gz/":<16}{0:<12}{0:<6}{0:<6}{100644:<8}{len(data):<10}`\n'.encode()
+    return b'!<arch>\n' + header + data
+
+
 class LauncherBackendTests(unittest.TestCase):
     def test_every_catalog_description_has_a_polish_translation(self):
         missing = [app.name for app in backend.APPS if app.description not in i18n.POLISH]
@@ -48,22 +62,35 @@ class LauncherBackendTests(unittest.TestCase):
         self.assertEqual(epic.website, "https://launcher.epicgames.com/")
         self.assertFalse(backend.available(epic, "aarch64"))
 
-    def test_epic_appimage_uses_official_download_and_creates_launcher(self):
+    def test_nexus_uses_verified_appimages_and_upstream_icon(self):
+        app = next(a for a in backend.APPS if a.name == 'Nexus Launcher (Gamepass)')
+        self.assertEqual(app.kind, 'github-appimage')
+        self.assertEqual(app.source, 'domsvoboda/xodus-nexus')
+        self.assertTrue((CATALOG_DIR / 'launcher-icons/nexus-launcher.png').is_file())
+        for arch, asset_arch in (('aarch64', 'arm64'), ('x86_64', 'x86_64')):
+            asset = {'name': f'Xodus-Nexus-0.4.3-{asset_arch}.AppImage',
+                     'browser_download_url': f'https://github.com/{app.source}/releases/download/v0.4.3/app',
+                     'digest': 'sha256:' + '1' * 64}
+            response = io.BytesIO(json.dumps({'assets': [asset]}).encode())
+            with patch.object(backend.urllib.request, 'urlopen', return_value=response):
+                self.assertEqual(backend.latest_appimage_asset(app, arch)[1], asset)
+
+    def test_epic_native_uses_official_download_and_creates_launcher(self):
         epic = next(app for app in backend.APPS if app.name == "Epic Games Launcher")
-        response = io.BytesIO(b"\x7fELF\x02\x01\x01\x00AI\x02" + b"0" * 4096)
-        response.geturl = lambda: "https://content-download-egs.distro.on.epicgames.com/EpicGamesLauncher-x86_64.AppImage"
+        response = io.BytesIO(epic_package())
+        response.geturl = lambda: "https://content-download-egs.distro.on.epicgames.com/EpicGamesLauncher-x86_64.deb"
         response.headers = {"Content-Length": str(len(response.getvalue()))}
-        with tempfile.TemporaryDirectory() as directory, patch.object(backend.urllib.request, "urlopen", return_value=response):
+        with tempfile.TemporaryDirectory() as directory, patch.object(backend.urllib.request, "urlopen", return_value=response), patch.object(backend, "_run"):
             home = Path(directory)
             self.assertFalse(backend.installed(epic, home))
             backend.install(epic, home)
             self.assertTrue(backend.installed(epic, home))
-            self.assertIn("EpicGamesLauncher.AppImage", (home / ".local/share/applications/epic-games-launcher.desktop").read_text())
+            self.assertIn("current/usr/bin/EpicGamesLauncher", (home / ".local/share/applications/epic-games-launcher.desktop").read_text())
 
     def test_epic_incomplete_download_does_not_install(self):
         epic = next(app for app in backend.APPS if app.name == "Epic Games Launcher")
-        response = io.BytesIO(b"\x7fELF\x02\x01\x01\x00AI\x02" + b"0" * 4096)
-        response.geturl = lambda: "https://content-download-egs.distro.on.epicgames.com/EpicGamesLauncher-x86_64.AppImage"
+        response = io.BytesIO(epic_package())
+        response.geturl = lambda: "https://content-download-egs.distro.on.epicgames.com/EpicGamesLauncher-x86_64.deb"
         response.headers = {"Content-Length": str(len(response.getvalue()) + 1)}
         with tempfile.TemporaryDirectory() as directory, patch.object(backend.urllib.request, "urlopen", return_value=response):
             home = Path(directory)
@@ -676,6 +703,14 @@ class LauncherBackendTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "agent unavailable"):
                     backend.install(app, home)
             self.assertEqual(config.read_text(), "infinity-gemma-12b\n")
+
+    def test_downloaded_custom_models_remain_listed_without_active_ai(self):
+        with tempfile.TemporaryDirectory() as home:
+            apps = backend.configured_apps(home, ('custom:q4', 'infinity-qwen-9b:latest'))
+            custom = next(a for a in apps if a.source == 'custom:q4')
+            self.assertEqual(custom.group, 'Downloaded models')
+            self.assertEqual(sum(a.source.startswith('infinity-qwen-9b') for a in apps), 1)
+            self.assertIsNone(backend.active_local_model(home))
 
     def test_custom_config_model_remains_available_for_removal_in_setup(self):
         with tempfile.TemporaryDirectory() as directory:

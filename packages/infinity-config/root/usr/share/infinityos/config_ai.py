@@ -2,22 +2,12 @@
 import json
 import os
 from pathlib import Path
-import re
 import selectors
 import subprocess
 import time
-import urllib.request
+import uuid
 
-
-def selected_ai(home=None):
-    home = Path(home or Path.home())
-    selected = [name for name in ("codex", "claude")
-                if (home / f".local/bin/{name}").is_file()
-                and (home / f".local/share/applications/infinityos-{name}.desktop").is_file()]
-    marker = home / ".config/infinityos/local-ai-model"
-    if marker.is_file() and marker.read_text().strip():
-        selected.append("local")
-    return tuple(selected)
+from launcher_backend import active_local_model, selected_ai, ollama, downloaded_local_models, valid_model
 
 
 def provider_command(provider, action):
@@ -105,32 +95,16 @@ def provider_status(provider):
                         "planType": status.get("subscriptionType")} if status["loggedIn"] else None}
 
 
-def ollama(path, data=None, timeout=30):
-    request = urllib.request.Request("http://127.0.0.1:11434/api/" + path,
-                                     data=json.dumps(data).encode() if data is not None else None,
-                                     headers={"Content-Type": "application/json"})
-    # Local requests must never travel through a configured HTTP proxy.
-    with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(request, timeout=timeout) as response:
-        result = json.load(response)
-    if "error" in result:
-        raise RuntimeError("Ollama request failed")
-    return result
-
-
-def valid_model(name):
-    return isinstance(name, str) and len(name) <= 200 and bool(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]*", name)) and ".." not in name
-
-
 def local_status(home=None):
     home = Path(home or Path.home())
-    model = (home / '.config/infinityos/local-ai-model').read_text().strip()
+    model = active_local_model(home)
     details = ollama('show', {'model': model})
     parameters = {}
     for line in details.get('parameters', '').splitlines():
         fields = line.split()
         if len(fields) == 2:
             parameters[fields[0]] = fields[1]
-    return {'model': model, 'models': [m['name'] for m in ollama('tags')['models']],
+    return {'model': model, 'models': downloaded_local_models(),
             'context': int(parameters.get('num_ctx', 65536)),
             'output': max(1, int(parameters.get('num_predict', 8192))),
             'temperature': float(parameters.get('temperature', 0.8))}
@@ -143,8 +117,8 @@ def select_local(model, context, output, temperature, home=None):
     marker = home / '.config/infinityos/local-ai-model'
     previous = marker.read_text()  # Never enable AI that Setup has disabled.
     ollama('show', {'model': model})
-    # Per-user alias avoids changing models used by other local accounts.
-    alias = f'infinity-config-{os.getuid()}'
+    # A new alias preserves the working model if creation or selection fails.
+    alias = f'infinity-config-{os.getuid()}-{uuid.uuid4().hex}'
     ollama('create', {'model': alias, 'from': model, 'stream': False,
                      'parameters': {'num_ctx': context, 'num_predict': output, 'temperature': temperature}}, timeout=300)
     if not marker.exists() or marker.read_text() != previous:

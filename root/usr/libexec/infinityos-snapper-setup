@@ -6,7 +6,7 @@ if ! snapper -c root get-config >/dev/null 2>&1; then
 fi
 
 snapper -c root set-config \
-	TIMELINE_CREATE=yes \
+	TIMELINE_CREATE=no \
 	TIMELINE_CLEANUP=yes \
 	TIMELINE_LIMIT_HOURLY=5 \
 	TIMELINE_LIMIT_DAILY=7 \

@@ -4,6 +4,17 @@ import locale
 
 
 POLISH = {
+    "Firmware updated. Restart may be required.": "Oprogramowanie urządzeń zaktualizowano. Może być wymagany restart.",
+    'Error details': 'Szczegóły błędu',
+    'The last system update failed. Retry the update or restore system and /var from Backups in the boot menu. /home is preserved.':
+        'Ostatnia aktualizacja systemu nie powiodła się. Ponów aktualizację lub przywróć system i /var przez Backups w menu rozruchowym. /home zostaje zachowany.',
+
+    'Updates prepared. Restart to back up the system and /var, then install.':
+        'Aktualizacje przygotowane. Uruchom ponownie, aby wykonać kopię systemu i /var, a następnie zainstalować.',
+    'Infinity OS {version} prepared. Restart to back up and install.':
+        'Infinity OS {version} przygotowany. Uruchom ponownie, aby wykonać kopię i zainstalować.',
+    'After restart, system and /var are backed up before updating. /home is preserved.':
+        'Po restarcie, przed aktualizacją, powstaje kopia systemu i /var. /home zostaje zachowany.',
     'Infinity OS Updates': 'Aktualizacje Infinity OS',
     'System packages · Flatpaks · Device firmware':
         'Pakiety systemowe · Flatpaki · Oprogramowanie urządzeń',

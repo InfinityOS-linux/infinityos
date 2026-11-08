@@ -177,6 +177,8 @@ class UpdaterTests(unittest.TestCase):
     def test_release_helper_downloads_before_install_and_marks_success_last(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            transaction = root / 'transaction.json'
+            transaction.write_text('transaction')
             os_release = root / 'os-release'
             os_release.write_text('NAME="Infinity OS"\nPRETTY_NAME="Infinity OS 44"\n'
                                   'ID=infinityos\nVERSION_ID=44\n')
@@ -200,14 +202,20 @@ class UpdaterTests(unittest.TestCase):
                     upgrade_release.Path, 'is_file', return_value=True), patch.object(
                     upgrade_release, 'REPO_FILE', root / 'infinityos.repo'), patch.object(
                     upgrade_release, 'MARKER', root / 'infinityos-release'), patch.object(
-                    upgrade_release, 'OS_RELEASE', os_release):
+                    upgrade_release, 'OS_RELEASE', os_release), patch.object(
+                    upgrade_release, 'PENDING', root / 'pending.json'), patch.object(
+                    upgrade_release, 'TRANSACTION', transaction):
                 upgrade_release.main(['upgrader', '1.1', '44'])
+                self.assertFalse((root / 'infinityos-release').exists())
+                import hashlib
+                digest = hashlib.sha256(transaction.read_bytes()).hexdigest()
+                with patch.object(upgrade_release.Path, 'read_text', side_effect=[
+                        (root / 'pending.json').read_text(), digest, os_release.read_text()]):
+                    upgrade_release.finish()
 
             commands = [args for kind, args in events if kind == 'run']
-            self.assertEqual(commands[4][0], 'snapper')
-            self.assertIn('--downloadonly', commands[5])
-            self.assertEqual(commands[6][-1], 'distro-sync')
-            self.assertEqual(events[7], ('write', 'infinityos.repo'))
+            self.assertIn('--offline', commands[4])
+            self.assertEqual(commands[5][-2:], ['offline', 'reboot'])
             self.assertEqual(events[-1], ('write', 'infinityos-release'))
             self.assertEqual((root / 'infinityos-release').read_text(), '1.1\n')
             self.assertIn('INFINITYOS_VERSION_ID=1.1', os_release.read_text())
@@ -217,7 +225,7 @@ class UpdaterTests(unittest.TestCase):
         outputs = ['btrfs\n', '', '', 'aarch64\n', '8\n', '']
 
         def run(args, **_kwargs):
-            if args[-1] == 'distro-sync':
+            if 'distro-sync' in args:
                 raise CalledProcessError(1, args)
             return type('R', (), {'stdout': outputs.pop(0)})()
 
@@ -396,13 +404,24 @@ class UpdaterTests(unittest.TestCase):
             ('System packages', 'Root snapshot #17 created', None, None),
             ('System packages', 'Downloading', 1, 2)])
 
-    def test_privileged_upgrade_creates_snapshot_before_dnf(self):
+    def test_privileged_upgrade_prepares_offline_without_installing_live(self):
         script = (SOURCE.parents[2] / 'libexec/infinityos-upgrade-system').read_text()
-        self.assertLess(script.index('number=$(snapper'), script.index('exec dnf'))
-        self.assertIn('RPM upgrade stopped: could not create', script)
-        self.assertIn('dnf -y upgrade --refresh --no-best --skip-unavailable', script)
-        self.assertNotIn('--best ', script)
+        self.assertIn('dnf -y upgrade --offline', script)
+        self.assertIn('DNF_SYSTEM_UPGRADE_NO_REBOOT=1', script)
+        self.assertNotIn('snapper -c', script)
         self.assertNotIn('--allowerasing', script)
+
+    def test_offline_failure_and_pending_state_are_visible(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            trigger = root / 'trigger'
+            (root / 'offline-update-result.json').write_text('{"status":"failed","snapshot":"17"}')
+            (root / 'offline-update.log').write_text('Transaction failed')
+            result = checker.offline_status(root, trigger)
+            self.assertEqual(result['snapshot'], '17')
+            self.assertEqual(result['log'], 'Transaction failed')
+            trigger.symlink_to(root)
+            self.assertEqual(checker.offline_status(root, trigger), {'pending': True})
 
     def test_update_command_streams_carriage_return_progress(self):
         events = []

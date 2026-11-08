@@ -30,6 +30,9 @@ if [[ "$package" == infinity-config ]]; then
   install -m 0644 "$repo/COPYING" \
     "$work/source/$package-$version/usr/share/licenses/infinity-config/COPYING"
 elif [[ "$package" == infinity-updater ]]; then
+  install -d "$work/source/$package-$version/usr/libexec" "$work/source/$package-$version/usr/lib/systemd/system"
+  install -m 0755 "$repo"/root/usr/libexec/infinityos-backups-* "$work/source/$package-$version/usr/libexec/"
+  install -m 0644 "$repo"/root/usr/lib/systemd/system/infinityos-backups* "$work/source/$package-$version/usr/lib/systemd/system/"
   install -d "$work/source/$package-$version/usr/share/licenses/infinity-updater"
   install -m 0644 "$repo/COPYING" \
     "$work/source/$package-$version/usr/share/licenses/infinity-updater/COPYING"

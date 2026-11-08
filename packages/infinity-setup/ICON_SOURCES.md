@@ -20,3 +20,7 @@ InfinityOS artwork.
 
 InfinitySetup app icon: original purple package artwork generated with OpenAI ImageGen,
 approved for InfinityOS on 2026-11-03. Stored as infinity-setup.png with alpha transparency.
+
+Nexus Launcher (Gamepass): original upstream icon from
+https://github.com/domsvoboda/xodus-nexus/blob/main/assets/icon.png
+(downloaded 2026-11-08; Git blob 5c6711d8789f9b5dd8f4931af2bb45e09ed4c64c).

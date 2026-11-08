@@ -1,5 +1,8 @@
 import importlib.util
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "packages/infinity-setup/root/usr/share/infinityos"))
+import launcher_backend
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -11,6 +14,21 @@ spec.loader.exec_module(ai)
 
 
 class ConfigAiTests(unittest.TestCase):
+    def test_setup_and_config_use_the_same_selection(self):
+        self.assertIs(ai.selected_ai, launcher_backend.selected_ai)
+        app = next(a for a in launcher_backend.APPS if a.kind == "npm" and "openai" in a.source)
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            binary = home / '.local/bin/codex'
+            binary.parent.mkdir(parents=True)
+            binary.touch()
+            self.assertFalse(launcher_backend.installed(app, home))
+            desktop = home / '.local/share/applications/infinityos-codex.desktop'
+            desktop.parent.mkdir(parents=True)
+            desktop.touch()
+            self.assertTrue(launcher_backend.installed(app, home))
+            self.assertEqual(ai.selected_ai(home), ('codex',))
+
     def test_tab_requires_setup_selection_and_disappears_on_removal(self):
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
@@ -61,6 +79,18 @@ class ConfigAiTests(unittest.TestCase):
                 ai.select_local('new', 4096, 1024, 0.5, directory)
             self.assertTrue(marker.read_text().startswith('infinity-config-'))
             self.assertEqual(api.call_args.args[1]['parameters']['num_ctx'], 4096)
+
+    def test_changing_settings_does_not_overwrite_the_active_model(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / '.config/infinityos/local-ai-model'
+            marker.parent.mkdir(parents=True)
+            old = f'infinity-config-{ai.os.getuid()}'
+            marker.write_text(old)
+            with patch.object(ai, 'ollama', side_effect=[{}, RuntimeError('creation failed')]) as api:
+                with self.assertRaises(RuntimeError):
+                    ai.select_local(old, 4096, 1024, 0.5, directory)
+            self.assertNotEqual(api.call_args.args[1]['model'], old)
+            self.assertEqual(marker.read_text(), old)
 
     def test_settings_cannot_reenable_ai_removed_during_request(self):
         with tempfile.TemporaryDirectory() as directory:

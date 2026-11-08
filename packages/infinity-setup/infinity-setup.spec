@@ -14,6 +14,7 @@ Requires:       gdk-pixbuf2
 Requires:       util-linux
 Requires:       cage
 Requires:       dbus-daemon
+Requires:       kernel-modules-core
 
 %description
 InfinitySetup offers first-login application choices for Infinity OS.
@@ -62,6 +63,7 @@ if [ -f /etc/infinityos/refind-installed ] && mountpoint -q /boot/efi; then
 fi
 
 %files
+/usr/lib/modules-load.d/infinityos-ntsync.conf
 %dir /etc/gamescope
 %dir /etc/gamescope/scripts
 %license /usr/share/licenses/infinity-setup/COPYING

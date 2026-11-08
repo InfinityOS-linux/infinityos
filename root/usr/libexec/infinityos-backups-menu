@@ -9,6 +9,10 @@ restore_snapshot() (
 	[[ $number =~ ^[1-9][0-9]*$ ]] || { echo 'Invalid snapshot number'; return 1; }
 	source="/.snapshots/$number/snapshot"
 	[[ -d $source ]] || { echo 'Snapshot does not exist'; return 1; }
+	[[ -d /.snapshots/var-$number || -f /.snapshots/var-in-root-$number ]] || { echo 'This older or incomplete backup does not include /var; restore cancelled.'; return 1; }
+	if [[ ! -f /.snapshots/var-in-root-$number ]]; then
+        [[ $(btrfs property get -ts "/.snapshots/var-$number" ro) == 'ro=true' ]] || return 1
+    fi
 	[[ $(btrfs property get -ts "$source" ro) == 'ro=true' ]] || { echo 'Snapshot is not read-only'; return 1; }
 	device=$(findmnt -n -o SOURCE /)
 	device=${device%%\[*}
@@ -19,8 +23,17 @@ restore_snapshot() (
 	target="$top/infinityos-roots/restore-$(date +%Y%m%d-%H%M%S)-$number"
 	if [[ -e $target ]]; then echo 'Restore destination already exists'; return 1; fi
 	# Keep a recovery point for the exact state before switching the boot root.
-	snapper -c root create -d "Before restoring snapshot $number"
+	/usr/libexec/infinityos-backups-snapshot "Before restoring snapshot $number"
 	btrfs subvolume snapshot "$source" "$target"
+	if [[ ! -f /.snapshots/var-in-root-$number ]]; then
+	btrfs subvolume snapshot "/.snapshots/var-$number" "$target-var"
+	# This root references its own /var; selecting the root switches both together.
+	awk '$2 != "/var"' "$target/etc/fstab" > "$target/etc/fstab.new"
+	printf 'UUID=%s /var btrfs defaults,compress=zstd:1,subvol=%s 0 0\n' "$uuid" "${target#"$top/"}-var" >> "$target/etc/fstab.new"
+	cat "$target/etc/fstab.new" > "$target/etc/fstab"
+	rm "$target/etc/fstab.new"
+	fi
+	rm -f "$target/system-update" "$target/etc/system-update" "$target/etc/infinityos-release-pending.json"
 	mkdir -p "$target/.snapshots"
 	/usr/libexec/infinityos-backups-fstab "$target/etc/fstab" "$uuid"
 	cp -a /etc/kernel/cmdline "$target/etc/kernel/cmdline"
@@ -49,7 +62,8 @@ restore_snapshot() (
 while true; do
 	clear
 	echo 'Infinity OS — Backups (Btrfs root snapshots)'
-	echo 'Home and /var are separate volumes and are not restored.'
+	echo 'Complete backups restore the system and /var. /home is preserved.'
+	echo 'Older root-only backups cannot restore /var and cannot be selected.'
 	echo
 	snapper -c root list
 	echo
@@ -57,12 +71,22 @@ while true; do
 	read -r -p '> ' action || action=b
 	case $action in
 		c) read -r -p 'Description: ' description
-		   snapper -c root create -d "${description:-Manual backup}" || true ;;
+		   /usr/libexec/infinityos-backups-snapshot "${description:-Manual backup}" || true ;;
 		d) read -r -p 'Snapshot number to delete: ' number
-		   if [[ $number =~ ^[1-9][0-9]*$ ]]; then snapper -c root delete "$number" || true; else echo 'Invalid number'; fi ;;
+		   if [[ $number =~ ^[1-9][0-9]*$ ]]; then
+               if snapper -c root delete "$number"; then
+                   if [[ -d /.snapshots/var-$number ]]; then btrfs subvolume delete "/.snapshots/var-$number"; fi
+                   rm -f "/.snapshots/var-in-root-$number"
+               fi; else echo 'Invalid number'; fi ;;
 		r) read -r -p 'Snapshot number to restore: ' number
 		   read -r -p "Restore snapshot $number and reboot? Type RESTORE: " confirmation
-		   if [[ $confirmation == RESTORE ]]; then restore_snapshot "$number"; fi ;;
+		   if [[ $confirmation == RESTORE ]]; then
+               set +e
+               restore_snapshot "$number"
+               result=$?
+               set -e
+               if [[ $result -ne 0 ]]; then echo 'Restore failed; see the error above.'; fi
+           fi ;;
 		b) systemctl reboot ;;
 		*) echo 'Unknown command' ;;
 	esac

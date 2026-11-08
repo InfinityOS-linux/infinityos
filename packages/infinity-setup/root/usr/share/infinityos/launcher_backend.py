@@ -47,6 +47,8 @@ LOCAL_MODELS = {
 }
 
 GITHUB_APPIMAGES = {
+    "domsvoboda/xodus-nexus": ("Xodus-Nexus.AppImage", "org.infinityos.NexusLauncher.desktop",
+                              "/usr/share/infinityos/launcher-icons/nexus-launcher.png"),
     "cyb3rl00m/safe-disk-cleaner": ("SafeDiskCleaner.AppImage", "io.github.cyb3rl00m.SafeDiskCleaner.desktop",
                                     "/usr/share/infinityos/launcher-icons/io.github.cyb3rl00m.SafeDiskCleaner.svg"),
     "InukaAsith/TwinDesk": ("TwinDesk.AppImage", "org.infinityos.TwinDesk.desktop",
@@ -95,8 +97,9 @@ APPS = (
     App("System", "OpenRazer", "dnf", "openrazer-meta", "Enable and configure Razer gaming devices.", website="https://github.com/openrazer/openrazer", group="Device tools", icon="openrazer"),
     App("System", "WinBoat", "winboat-rpm", "winboat-org/winboat", "Run Windows easily on this system.", True, website="https://github.com/winboat-org/winboat", group="Windows apps", icon="winboat", package="winboat"),
     App("Gaming", "Steam", "flatpak", "com.valvesoftware.Steam", "Buy, install and play games from Steam.", group="Game launchers", icon="applications-games-symbolic"),
-    App("Gaming", "Epic Games Launcher", "epic-appimage", "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncher-x86_64.AppImage", "Install and play games from Epic Games.", True, website="https://launcher.epicgames.com/", group="Game launchers", icon="epic-games-launcher"),
+    App("Gaming", "Epic Games Launcher", "epic-native", "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncher-x86_64.deb", "Install the new native Epic Games Launcher Preview.", True, website="https://launcher.epicgames.com/", group="Game launchers", icon="epic-games-launcher"),
     App("Gaming", "Blizzard Battle.net", "lutris-installer", "battlenet-standard", "Install and play Blizzard games through Lutris.", True, website="https://download.battle.net/", group="Game launchers", icon="battle-net"),
+    App("Gaming", "Nexus Launcher (Gamepass)", "github-appimage", "domsvoboda/xodus-nexus", "Play supported Game Pass and Microsoft Store games. Requires a purchase or subscription. ARM support is experimental.", website="https://github.com/domsvoboda/xodus-nexus", group="Game launchers", icon="nexus-launcher"),
     App("Gaming", "Heroic Games Launcher", "flatpak", "com.heroicgameslauncher.hgl", "Install and play games from Epic, GOG and Amazon.", True, group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Lutris", "flatpak", "net.lutris.Lutris", "Install and manage games from many stores.", True, group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Faugus Launcher", "flatpak", "io.github.Faugus.faugus-launcher", "Run Windows games on Linux with Wine.", True, group="Game launchers", icon="applications-games-symbolic"),
@@ -152,16 +155,59 @@ def available(app, arch=None):
 
 def active_local_model(home=None):
     path = Path(home or Path.home()) / ".config/infinityos/local-ai-model"
-    return path.read_text(encoding="utf-8").strip() if path.exists() else None
+    try:
+        return path.read_text(encoding="utf-8").strip() or None
+    except FileNotFoundError:
+        return None
 
 
-def configured_apps(home=None):
-    """Keep a model selected in Config removable from Setup."""
+def selected_ai(home=None):
+    home = Path(home or Path.home())
+    selected = [name for name in ("codex", "claude")
+                if (home / f".local/bin/{name}").is_file()
+                and (home / f".local/share/applications/infinityos-{name}.desktop").is_file()]
+    if active_local_model(home):
+        selected.append("local")
+    return tuple(selected)
+
+
+def ollama(path, data=None, timeout=30):
+    request = urllib.request.Request("http://127.0.0.1:11434/api/" + path,
+                                     data=json.dumps(data).encode() if data is not None else None,
+                                     headers={"Content-Type": "application/json"})
+    # Local requests must never travel through a configured HTTP proxy.
+    with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(request, timeout=timeout) as response:
+        result = json.load(response)
+    if "error" in result:
+        raise RuntimeError("Ollama request failed")
+    return result
+
+
+
+def valid_model(name):
+    return isinstance(name, str) and len(name) <= 200 and bool(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]*", name)) and ".." not in name
+
+
+
+def downloaded_local_models():
+    models = ollama('tags', timeout=2)['models']
+    if not isinstance(models, list):
+        raise ValueError('Invalid local model list')
+    return tuple(m['name'] for m in models if isinstance(m, dict) and valid_model(m.get('name')))
+
+
+def configured_apps(home=None, models=()):
+    """Active selection and downloaded weights are independent state."""
     model = active_local_model(home)
+    custom = ()
     if model and model not in LOCAL_MODELS:
-        return (*APPS, App("AI", model, "local-model", model,
-                          "Manage this model in InfinityConfig.", group="Local models", icon="infinity-ai"))
-    return APPS
+        custom = (App("AI", model, "local-model", model,
+                      "Manage this model in InfinityConfig.", group="Active custom model", icon="infinity-ai"),)
+    known = {name.removesuffix(":latest") for name in (*LOCAL_MODELS, model or "")}
+    downloaded = tuple(App("AI", name, "local-model", name,
+                           "Manage this model in InfinityConfig.", group="Downloaded models", icon="infinity-ai")
+                       for name in sorted(set(models)) if name.removesuffix(":latest") not in known)
+    return (*custom, *APPS, *downloaded)
 
 
 def deactivate_local_model(home=None):
@@ -255,16 +301,15 @@ def installed(app, home=None, flatpak_ids=None):
     if app.source == "com.valvesoftware.Steam" and os.uname().machine == "aarch64":
         return (os.access(home / ".local/share/Steam/steamrtarm64/steam", os.X_OK) and
                 (home / ".local/share/applications/steam-arm64.desktop").is_file())
-    if app.kind == "epic-appimage":
-        return ((home / ".local/bin/EpicGamesLauncher.AppImage").is_file() and
+    if app.kind == "epic-native":
+        return ((home / ".local/share/infinityos/epic-launcher/current/usr/bin/EpicGamesLauncher").is_file() and
                 (home / ".local/share/applications/epic-games-launcher.desktop").is_file())
     if app.kind == "github-appimage":
         binary, desktop = appimage_paths(app, home)
         return binary.is_file() and desktop.is_file()
     if app.kind == "local-model":
         ollama = ollama_binary()
-        opencode = shutil.which("opencode") or (home / ".local/bin/opencode")
-        return bool(ollama and Path(opencode).exists() and subprocess.run(
+        return bool(ollama and subprocess.run(
             [ollama, "show", app.source], stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL, check=False).returncode == 0)
     if app.kind == "flatpak":
@@ -277,7 +322,7 @@ def installed(app, home=None, flatpak_ids=None):
         )
     if app.kind == "npm":
         command = "claude" if "anthropic" in app.source else "codex"
-        return (home / ".local/bin" / command).exists() or shutil.which(command) is not None
+        return command in selected_ai(home)
     if app.kind == "driver":
         return _driver_module_installed(app.source, DRIVERS[app.source][4]) and (
             app.source != "xone" or _xone_firmware_valid())
@@ -475,7 +520,8 @@ def latest_appimage_asset(app, arch):
     with urllib.request.urlopen(request, timeout=30) as response:
         release = json.load(response)
     assets = [asset for asset in release.get("assets", ())
-              if asset["name"].endswith(f"-{arch}.AppImage")]
+              if asset["name"].endswith(tuple(f"-{name}.AppImage" for name in
+                  (("aarch64", "arm64") if arch == "aarch64" else (arch,))))]
     if len(assets) != 1:
         raise RuntimeError(f"No unique {arch} AppImage in the latest {app.name} release.")
     asset = assets[0]
@@ -558,11 +604,14 @@ def install(app, home=None, *, defer_system_dependencies=False):
         _install_arm_steam(home, install_dependencies=not defer_system_dependencies)
     elif app.kind == "local-model":
         _install_local_model(app, home)
-    elif app.kind == "epic-appimage":
-        _install_epic_appimage(app, home)
+    elif app.kind == "epic-native":
+        _install_epic_native(app, home)
     elif app.kind == "github-appimage":
         if app.source not in GITHUB_APPIMAGES:
             raise ValueError(f"No AppImage installation source for {app.name}.")
+        if app.source == "domsvoboda/xodus-nexus":
+            _run(["pkexec", "dnf", "-y", "install", "curl", "tar", "xz", "fuse",
+                  "webkit2gtk4.1", "gtk3", "nss", "libXtst", "alsa-lib", "desktop-file-utils"])
         _install_github_appimage(app, home)
     elif app.kind == "flatpak":
         _run(["flatpak", "remote-add", "--user", "--if-not-exists", "flathub",
@@ -749,38 +798,78 @@ def open_lutris_installer(app):
     )
 
 
-def _install_epic_appimage(app, home):
-    binary = home / ".local/bin/EpicGamesLauncher.AppImage"
+def _install_epic_native(app, home):
+    root = home / ".local/share/infinityos/epic-launcher"
+    root.mkdir(parents=True, exist_ok=True)
     desktop = home / ".local/share/applications/epic-games-launcher.desktop"
-    binary.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(dir=binary.parent, delete=False) as output:
-        temporary = Path(output.name)
+    with tempfile.TemporaryDirectory(dir=root, prefix=".download-") as directory:
+        directory = Path(directory)
+        package = directory / "launcher.deb"
+        request = urllib.request.Request(app.source, headers={"User-Agent": "InfinitySetup"})
+        with urllib.request.urlopen(request, timeout=60) as response, package.open("wb") as output:
+            url = urllib.parse.urlsplit(response.geturl())
+            if url.scheme != "https" or not (url.hostname or "").endswith(".epicgames.com"):
+                raise RuntimeError("Unexpected Epic Games download URL.")
+            expected_size = response.headers.get("Content-Length")
+            shutil.copyfileobj(response, output)
+        if expected_size and package.stat().st_size != int(expected_size):
+            raise RuntimeError("Epic Games download size did not match server metadata.")
+        payload = None
+        with package.open("rb") as archive:
+            if archive.read(8) != b"!<arch>\n":
+                raise RuntimeError("Epic Games download is not a Debian package.")
+            while header := archive.read(60):
+                if len(header) != 60 or header[58:] != b"`\n":
+                    raise RuntimeError("Invalid Debian archive header.")
+                size = int(header[48:58])
+                if not 0 <= size <= 512 * 1024 * 1024:
+                    raise RuntimeError("Unexpected Debian archive member size.")
+                if header[:16].strip().rstrip(b"/").startswith(b"data.tar."):
+                    payload = archive.read(size)
+                    if len(payload) != size:
+                        raise RuntimeError("Incomplete Debian archive.")
+                    break
+                archive.seek(size + size % 2, 1)
+        if payload is None:
+            raise RuntimeError("Epic Games package has no application payload.")
+        extracted = directory / "app"
+        with tarfile.open(fileobj=io.BytesIO(payload)) as archive:
+            archive.extractall(extracted, filter="data")
+        binary = extracted / "usr/bin/EpicGamesLauncher"
+        with binary.open("rb") as executable:
+            header = executable.read(20)
+        if header[:5] != b"\x7fELF\x02" or header[18:20] != b"\x3e\x00":
+            raise RuntimeError("Epic Games package is not a Linux x64 application.")
+        if not (extracted / "usr/lib/epic-games-launcher/libEOSSDK-Linux-Shipping.so").is_file():
+            raise RuntimeError("Epic Games package is missing its runtime library.")
+        _run(["pkexec", "dnf", "-y", "install", "webkit2gtk4.1", "gtk3", "libayatana-appindicator-gtk3"])
+        binary.chmod(0o755)
+        with package.open("rb") as downloaded:
+            version = hashlib.file_digest(downloaded, "sha256").hexdigest()
+        destination = root / version
+        if not destination.exists():
+            extracted.rename(destination)
+        desktop.parent.mkdir(parents=True, exist_ok=True)
+        previous = desktop.read_bytes() if desktop.exists() else None
+        temporary = desktop.with_suffix(".tmp")
+        temporary.write_text(
+            "[Desktop Entry]\nType=Application\nName=Epic Games Launcher\n"
+            f'Exec="{root}/current/usr/bin/EpicGamesLauncher" %u\n'
+            "Icon=/usr/share/infinityos/launcher-icons/epic-games-launcher.svg\n"
+            "Terminal=false\nCategories=Game;\nStartupWMClass=EpicGamesLauncher\n"
+            "MimeType=x-scheme-handler/com.epicgames.launcher;\n", encoding="utf-8")
+        link = directory / "current"
+        link.symlink_to(destination.name)
         try:
-            request = urllib.request.Request(app.source, headers={"User-Agent": "InfinitySetup"})
-            with urllib.request.urlopen(request, timeout=60) as response:
-                url = urllib.parse.urlsplit(response.geturl())
-                if url.scheme != "https" or not (url.hostname or "").endswith(".epicgames.com"):
-                    raise RuntimeError("Unexpected Epic Games download URL.")
-                expected_size = response.headers.get("Content-Length")
-                shutil.copyfileobj(response, output)
-            output.flush()
-            with temporary.open("rb") as downloaded:
-                header = downloaded.read(11)
-                if temporary.stat().st_size < 4096 or header[:4] != b"\x7fELF" or header[8:] != b"AI\x02":
-                    raise RuntimeError("Epic Games download is not an AppImage.")
-            if expected_size and temporary.stat().st_size != int(expected_size):
-                raise RuntimeError("Epic Games download size did not match server metadata.")
-            temporary.chmod(0o755)
-            os.replace(temporary, binary)
-        finally:
-            temporary.unlink(missing_ok=True)
-    desktop.parent.mkdir(parents=True, exist_ok=True)
-    desktop.write_text(
-        "[Desktop Entry]\nType=Application\nName=Epic Games Launcher\n"
-        f'Exec=env APPIMAGE_EXTRACT_AND_RUN=1 "{binary}"\n'
-        "Icon=applications-games\nCategories=Game;\n",
-        encoding="utf-8",
-    )
+            temporary.replace(desktop)
+            link.replace(root / "current")
+        except Exception:
+            if previous is None:
+                desktop.unlink(missing_ok=True)
+            else:
+                desktop.write_bytes(previous)
+            raise
+
 
 
 def _install_local_model(app, home):

@@ -102,6 +102,12 @@ assert '#installation-quit-confirm-dialog' in css
 assert '#toggle-kebab' in css
 assert '.installation-page--loading' in css
 PY
+[[ $(cat "$rootpoint/usr/lib/modules-load.d/infinityos-ntsync.conf") == ntsync ]] || {
+    echo 'NTSYNC is not enabled by default' >&2; exit 1;
+}
+[[ -n $(find "$rootpoint/usr/lib/modules" -name 'ntsync.ko*' -print -quit) ]] || {
+    echo 'NTSYNC kernel module missing from ISO' >&2; exit 1;
+}
 for required in \
     usr/libexec/infinityos-audit-install \
     usr/libexec/infinityos-audit-desktop \

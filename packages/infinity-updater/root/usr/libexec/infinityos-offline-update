@@ -1,0 +1,55 @@
+#!/usr/bin/python3
+"""Use DNF's offline transaction with a required, complete recovery point."""
+import json
+import hashlib
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+
+def main():
+    trigger = Path('/system-update')
+    pending = Path('/usr/lib/sysimage/libdnf5/offline')
+    if not trigger.is_symlink() or trigger.resolve() != pending:
+        return 0
+    directory = Path('/var/lib/infinityos')
+    directory.mkdir(parents=True, exist_ok=True)
+    result = {'status': 'failed', 'snapshot': None}
+    try:
+        with (directory / 'offline-update.log').open('w') as log:
+            backup = subprocess.run(['/usr/libexec/infinityos-backups-snapshot'],
+                                    text=True, stdout=subprocess.PIPE, stderr=log, check=True)
+            number = next((line for line in backup.stdout.splitlines() if line.isdecimal()), None)
+            if not number:
+                raise RuntimeError('Backup did not return a snapshot number')
+            result['snapshot'] = number
+            digest = hashlib.sha256((pending / 'transaction.json').read_bytes()).hexdigest()
+            subprocess.run(['/usr/bin/dnf5', 'offline', '_execute'], check=True,
+                           stdout=log, stderr=subprocess.STDOUT,
+                           env={**os.environ, 'DNF_SYSTEM_UPGRADE_NO_REBOOT': '1'})
+            # This root-owned marker prevents a release being finalized before DNF succeeds.
+            marker = Path('/run/infinityos-offline-success')
+            marker.write_text(digest)
+            marker.chmod(0o600)
+            try:
+                subprocess.run(['/usr/libexec/infinityos-upgrade-release', '--finish'],
+                               check=True, stdout=log, stderr=subprocess.STDOUT)
+            finally:
+                marker.unlink(missing_ok=True)
+        result['status'] = 'success'
+    except Exception as error:
+        result['error'] = str(error)
+        trigger.unlink(missing_ok=True)
+    temporary = directory / 'offline-update-result.tmp'
+    temporary.write_text(json.dumps(result) + '\n')
+    temporary.replace(directory / 'offline-update-result.json')
+    if result['status'] != 'success':
+        print('Offline update failed. Use Backups to restore system + /var.', file=sys.stderr)
+        return 1  # DNF's existing failure service cleans the trigger and reboots.
+    subprocess.run(['systemctl', 'reboot', '--no-block'], check=True)
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

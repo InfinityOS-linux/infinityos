@@ -11,6 +11,7 @@ Requires:       gtk4
 Requires:       gsettings-desktop-schemas
 Requires:       gnome-extensions-app
 Requires:       gnome-control-center
+Requires:       infinity-setup >= 1.0.0-%{release}
 Requires:       infinity-updater
 Requires:       infinityos-shell-extensions
 

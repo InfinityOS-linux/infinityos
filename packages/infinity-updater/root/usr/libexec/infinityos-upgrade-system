@@ -15,20 +15,18 @@ if [[ ! -f /etc/snapper/configs/root ]] || ! mountpoint -q /.snapshots; then
     exit 1
 fi
 
-# Print the number while it is still visible in the update progress stream.
-# Snapper's number cleanup policy bounds how many single snapshots are kept.
-number=$(snapper -c root create -t single -c number -p \
-    -d "Before Infinity OS update $(date -u +%Y-%m-%dT%H:%M:%SZ)") || {
-    echo 'RPM upgrade stopped: could not create the pre-update snapshot.' >&2
+if [[ -e /etc/infinityos-release-pending.json ]]; then
+    echo 'A release upgrade is pending. Retry that release or restore its recovery snapshot first.' >&2
     exit 1
-}
-[[ $number =~ ^[1-9][0-9]*$ ]] || {
-    echo 'RPM upgrade stopped: Snapper did not return a snapshot number.' >&2
-    exit 1
-}
-printf 'Infinity OS root snapshot #%s created.\n' "$number"
-if [[ $# -eq 2 ]]; then
-    exec dnf -y install "$2"
 fi
-# Dependency conflicts in one package must not block unrelated upgrades.
-exec dnf -y upgrade --refresh --no-best --skip-unavailable
+if [[ -e /system-update || -L /system-update ]]; then
+    echo 'An update is already prepared. Restart to complete it before preparing another.' >&2
+    exit 1
+fi
+if [[ $# -eq 2 ]]; then
+    dnf -y install --offline -- "$2"
+else
+    dnf -y upgrade --offline --refresh --no-best --skip-unavailable
+fi
+DNF_SYSTEM_UPGRADE_NO_REBOOT=1 dnf -y offline reboot
+printf 'System update prepared. Restart to back up the system and /var, then install. /home will be preserved.\n'

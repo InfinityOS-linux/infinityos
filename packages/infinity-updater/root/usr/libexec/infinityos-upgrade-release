@@ -2,6 +2,8 @@
 """Privileged, fail-closed Infinity OS release upgrade (same Fedora base)."""
 
 import os
+import json
+import hashlib
 from pathlib import Path
 import re
 import subprocess
@@ -16,6 +18,8 @@ from release import (available_release, installed_version, load_manifest,
 REPO_FILE = Path('/etc/yum.repos.d/infinityos.repo')
 MARKER = Path('/etc/infinityos-release')
 OS_RELEASE = Path('/etc/os-release')
+PENDING = Path('/etc/infinityos-release-pending.json')
+TRANSACTION = Path('/usr/lib/sysimage/libdnf5/offline/transaction.json')
 
 
 def run(args, *, capture=False):
@@ -61,22 +65,33 @@ def main(argv):
 
     arch = run(['rpm', '--eval', '%{_arch}'], capture=True).stdout.strip()
     target_url = repository_url(requested, requested_fedora, arch)
-    snapshot = run(['snapper', '-c', 'root', 'create', '-t', 'single', '-c', 'number', '-p',
-                    '-d', f'Before Infinity OS {requested} upgrade'], capture=True).stdout.strip()
-    if not snapshot.isdecimal() or int(snapshot) < 1:
-        raise ValueError('Could not create a Btrfs recovery snapshot')
-    print(f'Infinity OS root snapshot #{snapshot} created.', flush=True)
-
     command = ['dnf', '-y', '--refresh', '--disable-repo=infinityos',
                f'--repofrompath=infinityos-next,{target_url}',
                '--setopt=infinityos-next.gpgcheck=1',
                '--setopt=infinityos-next.repo_gpgcheck=1',
                '--setopt=infinityos-next.gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos']
-    print(f'Downloading Infinity OS {requested} packages...', flush=True)
-    run(command + ['distro-sync', '--downloadonly'])
-    print(f'Installing Infinity OS {requested} packages...', flush=True)
-    run(command + ['distro-sync'])
+    if Path('/system-update').is_symlink():
+        raise ValueError('Another system update is pending; restart first')
+    if PENDING.exists() and json.loads(PENDING.read_text()).get('version') != requested:
+        raise ValueError('Retry the pending release or restore its recovery snapshot first')
+    print(f'Preparing Infinity OS {requested} packages...', flush=True)
+    run(command + ['distro-sync', '--offline'])
+    write_atomic(PENDING, json.dumps({'version': requested, 'fedora': requested_fedora, 'arch': arch,
+                                      'transaction': hashlib.sha256(TRANSACTION.read_bytes()).hexdigest()}))
+    run(['env', 'DNF_SYSTEM_UPGRADE_NO_REBOOT=1', 'dnf', '-y', 'offline', 'reboot'])
+    print('Release prepared. Restart to back up and install.', flush=True)
 
+
+def finish():
+    if os.geteuid() != 0 or not Path('/run/infinityos-offline-success').is_file():
+        raise ValueError('Release completion requires a successful offline transaction')
+    if not PENDING.exists():
+        return
+    pending = json.loads(PENDING.read_text())
+    if Path('/run/infinityos-offline-success').read_text() != pending['transaction']:
+        raise ValueError('The completed transaction does not match the pending release')
+    requested, requested_fedora, arch = pending['version'], pending['fedora'], pending['arch']
+    target_url = repository_url(requested, requested_fedora, arch)
     repo = (f'[infinityos]\nname=Infinity OS {requested} - $basearch\n'
             f'baseurl={target_url.replace(arch, "$basearch")}\n'
             'enabled=1\ngpgcheck=1\nrepo_gpgcheck=1\n'
@@ -95,11 +110,12 @@ def main(argv):
     # the transaction and the remaining release files have succeeded.
     write_atomic(MARKER, requested + '\n')
     print(f'Infinity OS {requested} installed. Restart to use the new release.', flush=True)
+    PENDING.unlink()
 
 
 if __name__ == '__main__':
     try:
-        main(sys.argv)
+        finish() if sys.argv[1:] == ["--finish"] else main(sys.argv)
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         print(f'Infinity OS release upgrade stopped: {error}', file=sys.stderr)
         sys.exit(1)

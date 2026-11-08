@@ -30,9 +30,12 @@ Infinity OS styled update window from the GNOME top panel.
 
 %install
 cp -a usr %{buildroot}/
-python3 -m py_compile %{buildroot}/usr/libexec/infinityos-upgrade-release
+python3 -m py_compile %{buildroot}/usr/libexec/infinityos-upgrade-release %{buildroot}/usr/libexec/infinityos-offline-update
 
 %post
+# Complete backups are made offline; hourly root-only snapshots cannot restore /var.
+systemctl disable --now snapper-timeline.timer >/dev/null 2>&1 || :
+systemctl enable dnf5-offline-transaction.service >/dev/null 2>&1 || :
 # Previous releases enabled a one-shot Bazaar installer. Stop it during RPM upgrades.
 systemctl disable --now infinityos-bazaar-install.timer >/dev/null 2>&1 || :
 systemctl --global enable infinity-updater.timer >/dev/null 2>&1 || :
@@ -42,8 +45,13 @@ systemctl --global enable infinity-updater.timer >/dev/null 2>&1 || :
 /usr/share/infinityos/build-revisions/infinity-updater
 /usr/bin/infinity-updater
 /usr/libexec/infinityos-upgrade-system
+/usr/libexec/infinityos-offline-update
+/usr/libexec/infinityos-backups-*
+/usr/lib/systemd/system/infinityos-backups*
+/usr/lib/systemd/system/dnf5-offline-transaction.service.d/
 /usr/libexec/infinityos-upgrade-release
 /usr/libexec/__pycache__/infinityos-upgrade-release*.pyc
+/usr/libexec/__pycache__/infinityos-offline-update*.pyc
 /usr/share/infinityos/updater/
 /usr/share/applications/org.infinityos.Updater.desktop
 /usr/share/icons/hicolor/512x512/apps/org.infinityos.Updater.png

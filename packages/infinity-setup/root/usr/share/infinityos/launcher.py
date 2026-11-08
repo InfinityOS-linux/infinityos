@@ -14,7 +14,7 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk
 
 from launcher_backend import (APPS, CRAFT_SUITE, active_local_model, configured_apps, available, deactivate_local_model,
-                              install, installed, installed_flatpaks,
+                              install, installed, installed_flatpaks, selected_ai, downloaded_local_models,
                               open_lutris_installer, removable, uninstall)
 from launcher_i18n import tr
 from launcher_tv import enabled as tv_enabled, set_enabled as set_tv_enabled
@@ -284,6 +284,29 @@ class InfinitySetup(Gtk.Application):
         self.card.set_opacity(0)
         self.window.present()
         self._animate(opening=True)
+        self.ai_selection = (selected_ai(), active_local_model(), self.ai_models)
+        self.window.connect("notify::is-active", self._refresh_ai)
+
+    def _refresh_ai(self, *_args):
+        if not self.window.is_active() or self.busy or self.closing:
+            return
+        try:
+            models = downloaded_local_models()
+        except (OSError, ValueError, KeyError, RuntimeError):
+            models = self.ai_models
+        selection = (selected_ai(), active_local_model(), models)
+        if selection == self.ai_selection:
+            return
+        visible = self.stack.get_visible_child_name()
+        old = self.stack.get_child_by_name("ai")
+        for app in list(self.switches):
+            if app.category == "AI":
+                del self.switches[app], self.initial_active[app], self.notes[app]
+        self.stack.remove(old)
+        self.stack.add_named(self._page("AI", SECTIONS[0][2]), "ai")
+        self.stack.set_visible_child_name(visible)
+        self.ai_selection = selection
+        self.status.set_text(tr("AI changed in InfinityConfig. Review your selection again."))
 
     def _sync_color_scheme(self, *_args):
         if self.color_settings.get_string("color-scheme") == "prefer-dark":
@@ -314,7 +337,15 @@ class InfinitySetup(Gtk.Application):
             self._add_craft_suite(body)
         previous_group = None
         selected_model = active_local_model()
-        for app in (item for item in configured_apps() if item.category == section):
+        catalog = APPS
+        if section == "AI":
+            try:
+                models = downloaded_local_models()
+            except (OSError, ValueError, KeyError, RuntimeError):
+                models = ()
+            self.ai_models = models
+            catalog = configured_apps(models=models)
+        for app in (item for item in catalog if item.category == section):
             if app.group != previous_group:
                 if previous_group:
                     body.append(Gtk.Separator())
@@ -383,7 +414,11 @@ class InfinitySetup(Gtk.Application):
             self.initial_active[app] = initial
             switch.set_sensitive(supported and (app.kind == "local-model" or
                                                 not already or removable(app)))
-            if already and app.kind != "local-model":
+            if app.kind == "local-model":
+                status.set_text(tr("Active local model") if initial else
+                                tr("Downloaded; inactive") if already else tr("Not downloaded"))
+                status.set_visible(True)
+            elif already:
                 status.set_text(tr("Installed"))
                 status.set_visible(True)
             elif not supported:
@@ -624,6 +659,7 @@ class InfinitySetup(Gtk.Application):
                 switch.set_sensitive(True)
             for button, app in self.installer_buttons:
                 button.set_sensitive(available(app))
+            self.save_button.set_label(tr("Retry pending changes"))
             self.save_button.set_sensitive(True)
         else:
             self._complete()

@@ -1,0 +1,52 @@
+#!/bin/bash
+# Called only from the offline update service or the recovery boot.
+set -euo pipefail
+[[ $EUID -eq 0 ]] || exit 2
+if systemctl is-active --quiet multi-user.target; then
+    echo 'Create a system + /var backup from the Backups boot menu or during an offline update.' >&2
+    exit 1
+fi
+mountpoint -q /home || { echo '/home must be mounted separately so restoration preserves personal files.' >&2; exit 1; }
+[[ $(findmnt -n -o UUID -T /var) == $(findmnt -n -o UUID -T /) ]] || {
+    echo 'System and /var must use the same Btrfs filesystem.' >&2; exit 1;
+}
+[[ $(findmnt -n -o FSTYPE -T /var) == btrfs ]] || { echo '/var must be Btrfs' >&2; exit 1; }
+[[ -z $(findmnt -rn -o TARGET | awk '$0 ~ /^\/var\//') ]] || {
+    echo '/var contains additional mounts. Backup stopped rather than omit their data.' >&2; exit 1;
+}
+[[ -z $(btrfs subvolume list -o /var) ]] || {
+    echo '/var contains nested subvolumes. Backup stopped rather than omit their data.' >&2; exit 1;
+}
+var_in_root=false
+if [[ $(btrfs inspect-internal rootid /var) == $(btrfs inspect-internal rootid /) ]]; then
+    var_in_root=true
+else
+    btrfs subvolume show /var >/dev/null
+fi
+mountpoint -q /.snapshots
+exec 9>/run/infinityos-backup.lock
+flock -x 9
+sync
+number=$(snapper -c root create -t single -c number -p -d "System + /var: ${1:-Before offline update}")
+[[ $number =~ ^[1-9][0-9]*$ ]] || exit 1
+if $var_in_root; then
+    touch "/.snapshots/var-in-root-$number"
+elif ! btrfs subvolume snapshot -r /var "/.snapshots/var-$number"; then
+    snapper -c root delete "$number"
+    exit 1
+fi
+sync
+printf '%s\n' "$number"
+# Snapper retains root snapshots; remove companions only after their root is gone.
+for companion in /.snapshots/var-*; do
+    [[ -e $companion ]] || continue
+    id=${companion##*/var-}
+    [[ $id =~ ^[1-9][0-9]*$ ]] || continue
+    if [[ ! -d /.snapshots/$id/snapshot ]]; then btrfs subvolume delete "$companion" >/dev/null; fi
+done
+for marker in /.snapshots/var-in-root-*; do
+    [[ -f $marker ]] || continue
+    id=${marker##*/var-in-root-}
+    [[ $id =~ ^[1-9][0-9]*$ ]] || continue
+    if [[ ! -d /.snapshots/$id/snapshot ]]; then rm "$marker"; fi
+done

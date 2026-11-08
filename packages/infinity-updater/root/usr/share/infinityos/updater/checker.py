@@ -9,6 +9,23 @@ from release import available_release, installed_version, load_manifest
 from github_update import check_github_updates
 
 
+def offline_status(directory=Path('/var/lib/infinityos'), trigger=Path('/system-update')):
+    if trigger.is_symlink():
+        return {'pending': True}
+    try:
+        result = json.loads((directory / 'offline-update-result.json').read_text())
+        if not isinstance(result, dict):
+            return {}
+        if result.get('status') == 'failed':
+            with (directory / 'offline-update.log').open('rb') as log:
+                log.seek(0, 2)
+                log.seek(max(0, log.tell() - 16000))
+                result['log'] = log.read().decode('utf-8', errors='replace')
+        return result
+    except (OSError, ValueError):
+        return {}
+
+
 def state_path():
     cache = Path(os.environ.get('XDG_CACHE_HOME', Path.home() / '.cache'))
     return cache / 'infinityos' / 'updates.json'

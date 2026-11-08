@@ -2,7 +2,7 @@ import sys
 import threading
 from datetime import datetime
 
-from checker import check_updates, read_state, save_state
+from checker import check_updates, read_state, save_state, offline_status
 from i18n import tr, update_count
 from progress import run_update_command
 
@@ -270,8 +270,7 @@ def main():
                     version=release['version']), xalign=0)
                 title.add_css_class('update-name')
                 card.append(title)
-                message = (tr('First install current system packages, then download and install the new release. '
-                              'A Btrfs recovery snapshot is created before each system transaction.')
+                message = (tr('After restart, system and /var are backed up before updating. /home is preserved.')
                            if release.get('supported') else
                            tr('This release changes the Fedora base and needs a dedicated migration path.'))
                 detail = Gtk.Label(label=message, xalign=0, wrap=True)
@@ -306,9 +305,24 @@ def main():
                 warning.set_wrap(True)
                 warning.add_css_class('muted')
                 self.items.append(warning)
-            self.apply.set_sensitive(bool(updates) and not self.busy)
+            offline = offline_status()
+            if offline.get('pending'):
+                message = tr('Updates prepared. Restart to back up the system and /var, then install.')
+            elif offline.get('status') == 'failed':
+                message = tr('The last system update failed. Retry the update or restore system and /var from Backups in the boot menu. /home is preserved.')
+                if offline.get('snapshot'):
+                    message += " #" + str(offline['snapshot'])
+                details = Gtk.Expander(label=tr('Error details'))
+                text = Gtk.Label(label=offline.get('log', ''), xalign=0, wrap=True, selectable=True)
+                details.set_child(text)
+                self.items.append(details)
+            else:
+                message = ''
+            if message:
+                self.items.append(Gtk.Label(label=message, xalign=0, wrap=True))
+            self.apply.set_sensitive(bool(updates) and not self.busy and not offline.get("pending"))
             self.release_apply.set_visible(bool(release))
-            self.release_apply.set_sensitive(bool(release and release.get('supported')) and not self.busy)
+            self.release_apply.set_sensitive(bool(release and release.get('supported')) and not self.busy and not offline.get('pending'))
             self.refresh.set_sensitive(not self.busy)
             if not self.busy:
                 checked_at = self.state.get('checked_at')
@@ -403,29 +417,19 @@ def main():
 
             def work():
                 errors = []
-                completed_system_updates = False
-                extensions_installed = False
-                snapshot = None
-
-                def report(label, phase, current, total):
-                    nonlocal snapshot
-                    if label == 'System packages' and phase.startswith('Root snapshot #'):
-                        snapshot = phase.partition('#')[2].partition(' ')[0]
-                    self.report_progress(label, phase, current, total)
-
+                firmware_updated = False
                 for label, args in commands:
-                    result = run_update_command(label, args, report)
+                    result = run_update_command(label, args, self.report_progress)
                     if result.returncode:
                         errors.append(label + ': ' + (result.stderr.strip() or
                                                       result.stdout.strip() or 'Update failed'))
-                    elif label in ('System packages', 'Device firmware'):
-                        completed_system_updates = True
-                        if label == 'System packages' and includes_extension_update(updates):
-                            extensions_installed = True
+                    elif label == 'Device firmware':
+                        firmware_updated = True
+                prepared = offline_status().get('pending', False)
                 self.report_progress('Remaining updates', 'Checking', None, None)
                 try:
                     state = check_updates()
-                    if state.get('rpm_check_ok'):
+                    if state.get('rpm_check_ok') and not prepared:
                         pending = pending_rpm_names(updates, state['updates'])
                         if pending:
                             errors.append(tr('RPM updates waiting for compatible dependencies: {packages}').format(
@@ -436,14 +440,11 @@ def main():
                     GLib.idle_add(self.finish_error, str(error))
                 else:
                     notice = (tr('Some updates could not be installed.') if errors else
-                              tr('System updates installed. Restart may be required.')
-                              if completed_system_updates else tr('Updates installed.'))
-                    if extensions_installed:
-                        notice += ' ' + tr('Sign out and back in to use updated extensions.')
-                    recovery = (f'Root snapshot #{snapshot} is available in Backups (Btrfs) in rEFInd. '
-                                '/home, /var and device firmware are not part of this snapshot.'
-                                if snapshot else None)
-                    GLib.idle_add(self.finish_refresh, state, notice, recovery)
+                              tr('Updates prepared. Restart to back up the system and /var, then install.')
+                              if prepared else tr('Firmware updated. Restart may be required.')
+                              if firmware_updated else tr('Updates installed.'))
+                    GLib.idle_add(self.finish_refresh, state, notice)
+
 
             threading.Thread(target=work, daemon=True).start()
 
@@ -463,29 +464,16 @@ def main():
             self.render()
 
             def work():
-                snapshot = None
-
-                def report(label, phase, current, total):
-                    nonlocal snapshot
-                    if phase.startswith('Root snapshot #'):
-                        snapshot = phase.partition('#')[2].partition(' ')[0]
-                    self.report_progress(label, phase, current, total)
-
                 try:
                     # The privileged release helper repeats the signed-manifest
                     # and pending-RPM checks before switching repositories.
-                    current = run_update_command('Current system packages',
-                                                 ['pkexec', '/usr/libexec/infinityos-upgrade-system'], report)
-                    if current.returncode:
-                        raise RuntimeError(current.stderr.strip() or current.stdout.strip() or
-                                           'Current package update failed')
                     self.report_progress('Current system packages', 'Checking', None, None)
                     state = check_updates()
                     if not state.get('rpm_check_ok') or any(item['kind'] == 'RPM' for item in state['updates']):
                         raise RuntimeError('Current RPM updates are still pending; release upgrade stopped')
                     installed = run_update_command(f'Infinity OS {version}',
                                                    ['pkexec', '/usr/libexec/infinityos-upgrade-release',
-                                                    version, str(fedora)], report)
+                                                    version, str(fedora)], self.report_progress)
                     if installed.returncode:
                         raise RuntimeError(installed.stderr.strip() or installed.stdout.strip() or
                                            'Release upgrade failed')
@@ -494,12 +482,9 @@ def main():
                 except Exception as error:
                     GLib.idle_add(self.finish_error, str(error))
                 else:
-                    recovery = (f'Root snapshot #{snapshot} is available in Backups (Btrfs) in rEFInd. '
-                                '/home, /var and device firmware are not part of this snapshot.'
-                                if snapshot else None)
                     GLib.idle_add(self.finish_refresh, state,
-                                  tr('Infinity OS {version} installed. Restart to use the new release.').format(
-                                      version=version), recovery)
+                                  tr('Infinity OS {version} prepared. Restart to back up and install.').format(
+                                      version=version))
 
             threading.Thread(target=work, daemon=True).start()
 
