@@ -148,8 +148,6 @@ quit_title_translation = re.compile(
 locale, count = quit_title_translation.subn(r'\1Zakończyć instalację?\2', locale)
 if count != 1:
     raise RuntimeError(f"Anaconda WebUI Polish quit title changed: expected one match, got {count}")
-bundle.write_bytes(gzip.compress(source.encode("utf-8"), compresslevel=9, mtime=0))
-polish.write_bytes(gzip.compress(locale.encode("utf-8"), compresslevel=9, mtime=0))
 
 index = WEBUI / "index.html"
 html = index.read_text(encoding="utf-8")
@@ -184,4 +182,6 @@ if 'id="infinityos-installer-intro"' not in html:
     )
     html = replace_once(html, '<div class="ct-page-fill" id="app"></div>',
                         intro + '<div class="ct-page-fill" id="app"></div>', "intro overlay")
+bundle.write_bytes(gzip.compress(source.encode("utf-8"), compresslevel=9, mtime=0))
+polish.write_bytes(gzip.compress(locale.encode("utf-8"), compresslevel=9, mtime=0))
 index.write_text(html, encoding="utf-8")

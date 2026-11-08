@@ -48,6 +48,17 @@ class InstallerBrandingTests(unittest.TestCase):
                           *(f"infinityos-step-{name}.svg" for name in (
                               "language", "time", "method", "storage", "accounts", "review"))):
                 (webui / asset).write_bytes(b"test asset")
+            original_html = (webui / "index.html").read_text()
+            originals = {name: (webui / name).read_bytes()
+                         for name in ("index.js.gz", "po.pl.js.gz")}
+            (webui / "index.html").write_text("<html><body></body></html>")
+            failed = subprocess.run([sys.executable, str(SCRIPT), str(webui)],
+                                    capture_output=True, text=True)
+            self.assertNotEqual(failed.returncode, 0)
+            self.assertIn("HTML head", failed.stderr)
+            for name, content in originals.items():
+                self.assertEqual((webui / name).read_bytes(), content)
+            (webui / "index.html").write_text(original_html)
             for _ in range(2):
                 subprocess.run([sys.executable, str(SCRIPT), str(webui)], check=True)
             result = gzip.decompress((webui / "index.js.gz").read_bytes()).decode()

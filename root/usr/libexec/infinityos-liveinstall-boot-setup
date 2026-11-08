@@ -27,6 +27,7 @@ else
     version=${version##*/}
 fi
 [[ $version =~ ^[A-Za-z0-9._+-]+$ ]] || { echo 'Invalid kernel version' >&2; exit 1; }
+source_kernel="/usr/lib/modules/$version/vmlinuz"
 kernel="/boot/vmlinuz-$version"
 initrd="/boot/initramfs-$version.img"
 if [[ ! -s $kernel ]]; then
