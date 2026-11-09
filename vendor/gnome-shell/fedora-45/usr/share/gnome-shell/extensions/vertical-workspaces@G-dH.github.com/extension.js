@@ -179,22 +179,34 @@ export default class VShell extends Extension.Extension {
             width: global.screen_width,
             height: global.screen_height,
         });
-        Main.layoutManager.addChrome(this._screenCover);
+        // Keep the cover outside uiGroup, whose opacity GNOME changes during startup.
+        global.stage.add_child(this._screenCover);
+        this._screenCover.add_constraint(new Clutter.BindConstraint({
+            source: global.stage,
+            coordinate: Clutter.BindCoordinate.ALL,
+        }));
 
         this._startupConId = Main.layoutManager.connect('startup-complete', () => {
-            // Move the screen cover above all other actors
-            Main.layoutManager.uiGroup.set_child_above_sibling(this._screenCover, null);
             Me.run.timeouts.startupAnimation = GLib.idle_add(GLib.PRIORITY_LOW, () => {
-                this._screenCover.destroy();
-                this._screenCover = null;
                 Me.run.timeouts.startupAnimation1 = GLib.idle_add(GLib.PRIORITY_LOW, () => {
                     Me.run.delayedStartup = false;
-                    Main.overview._overview.controls.realizeAppDisplayAndFinishStartup();
+                    try {
+                        Main.overview._overview.controls.realizeAppDisplayAndFinishStartup(
+                            () => this._fadeStartupCover());
+                    } catch (error) {
+                        this._fadeStartupCover();
+                        logError(error);
+                    }
                     Me.run.timeouts.startupAnimation1 = null;
                     return GLib.SOURCE_REMOVE;
                 });
                 Me.run.delayedStartup = true;
-                this._activateVShell();
+                try {
+                    this._activateVShell();
+                } catch (error) {
+                    this._fadeStartupCover();
+                    logError(error);
+                }
                 // Since VShell has been activated with a delay, move it in extensionOrder
                 let extensionOrder = Main.extensionManager._extensionOrder;
                 const idx = extensionOrder.indexOf(this.metadata.uuid);
@@ -204,6 +216,22 @@ export default class VShell extends Extension.Extension {
                 Me.run.timeouts.startupAnimation = null;
                 return GLib.SOURCE_REMOVE;
             });
+        });
+    }
+
+    _fadeStartupCover() {
+        const cover = this._screenCover;
+        if (!cover)
+            return;
+        cover.ease({
+            opacity: 0,
+            duration: 600,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                cover.destroy();
+                if (this._screenCover === cover)
+                    this._screenCover = null;
+            },
         });
     }
 

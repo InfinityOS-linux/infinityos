@@ -899,14 +899,18 @@ const ControlsManagerCommon = {
         }
     },
 
-    realizeAppDisplayAndFinishStartup() {
+    realizeAppDisplayAndFinishStartup(onComplete) {
+        const finish = () => {
+            this._finishStartupSequence();
+            onComplete?.();
+        };
         const appDisplayModule = Me.Modules.appDisplayModule;
         if (!appDisplayModule.enabled) {
-            this._finishStartupSequence();
+            finish();
             return;
         }
         // Realize app grid for smoother first animation (if the option is enabled)
-        appDisplayModule._repopulateAppDisplay(false, this._finishStartupSequence.bind(this));
+        appDisplayModule._repopulateAppDisplay(false, finish);
     },
 
     _finishStartupSequence() {

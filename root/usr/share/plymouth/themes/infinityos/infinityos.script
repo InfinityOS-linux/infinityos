@@ -19,7 +19,7 @@ fun refresh()
 {
     if (frame != last_frame) {
         image = Image("horizon-" + frame + ".png");
-        width = Math.Min(480, Window.GetWidth());
+        width = Math.Min(480, Window.GetWidth()) * 0.6;
         image = image.Scale(width, width * 270 / 480);
         logo.SetImage(image);
         logo.SetPosition(Window.GetX() + (Window.GetWidth() - image.GetWidth()) / 2,
