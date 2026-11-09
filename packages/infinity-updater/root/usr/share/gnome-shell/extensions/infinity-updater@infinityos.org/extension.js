@@ -61,9 +61,8 @@ export default class InfinityUpdater extends Extension {
         try {
             Gio.Subprocess.new(['systemctl', '--user', 'start', 'infinity-updater.timer'],
                 Gio.SubprocessFlags.NONE);
-            if (!GLib.file_test(this._stateFile, GLib.FileTest.EXISTS))
-                Gio.Subprocess.new(['systemctl', '--user', 'start', 'infinity-updater.service'],
-                    Gio.SubprocessFlags.NONE);
+            Gio.Subprocess.new(['systemctl', '--user', 'start', 'infinity-updater.service'],
+                Gio.SubprocessFlags.NONE);
         } catch (error) {
             console.warn(`Could not start Infinity OS update checks: ${error}`);
         }
@@ -78,6 +77,22 @@ export default class InfinityUpdater extends Extension {
                 const state = JSON.parse(new TextDecoder().decode(contents));
                 count = Array.isArray(state.updates) ? state.updates.length : 0;
                 release = state.release?.version ?? null;
+                // Offline RPM installation cannot update each user's cached results.
+                try {
+                    const resultPath = '/var/lib/infinityos/offline-update-result.json';
+                    const [resultOk, resultBytes] = GLib.file_get_contents(resultPath);
+                    const result = resultOk ? JSON.parse(new TextDecoder().decode(resultBytes)) : {};
+                    const info = Gio.File.new_for_path(resultPath).query_info(
+                        'time::modified', Gio.FileQueryInfoFlags.NONE, null);
+                    if (result.status === 'success' &&
+                        Date.parse(state.checked_at) < info.get_attribute_uint64('time::modified') * 1000) {
+                        count = Array.isArray(state.updates)
+                            ? state.updates.filter(update => update.kind !== 'RPM').length : 0;
+                        release = null;
+                    }
+                } catch (_error) {
+                    // Without a successful result, keep pending updates visible.
+                }
             }
         } catch (_error) {
             // No completed update check yet.
