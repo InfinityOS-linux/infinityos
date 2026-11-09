@@ -33,9 +33,11 @@ backups remain offline through the boot menu.
 
 Older root-only snapshots cannot restore `/var`, so the new restore command refuses
 them. A snapshot is also refused if its required `/var` companion is missing or writable.
-Backups stop when `/var` contains nested subvolumes, rather than silently excluding
-container or database data. Separate filesystems mounted below `/var` must likewise
-be handled before creating a complete backup.
+Nested subvolumes below `/var`, including systemd machines and portables, are saved
+as read-only companions and restored with their original subvolume layout. They
+are deleted together with their recovery point. Interrupted captures are marked
+incomplete. Separate filesystems mounted below `/var` must still be handled before
+creating a complete backup.
 
 Snapshots use Snapper's number retention policy. Orphaned `/var` companions are
 removed on the next successful backup. Deleting a complete snapshot in the Backups

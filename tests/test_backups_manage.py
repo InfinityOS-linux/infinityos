@@ -52,6 +52,12 @@ class BackupsTests(unittest.TestCase):
         self.ready.unlink()
         self.assertEqual(backend.snapshots(), {'ready': False, 'snapshots': []})
 
+    def test_failed_nested_capture_is_incomplete(self):
+        self.snapshot(2)
+        (self.root / 'nested-2').mkdir()
+        with patch.object(backend, 'run', side_effect=subprocess.CalledProcessError(1, 'check')):
+            self.assertFalse(backend.snapshots()['snapshots'][0]['complete'])
+
     def test_delete_root_before_companion_and_remove_marker(self):
         self.snapshot(2)
         marker = self.root / 'var-in-root-2'

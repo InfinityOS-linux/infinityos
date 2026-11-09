@@ -14,9 +14,6 @@ mountpoint -q /home || { echo '/home must be mounted separately so restoration p
 [[ -z $(findmnt -rn -o TARGET | awk '$0 ~ /^\/var\//') ]] || {
     echo '/var contains additional mounts. Backup stopped rather than omit their data.' >&2; exit 1;
 }
-[[ -z $(btrfs subvolume list -o /var) ]] || {
-    echo '/var contains nested subvolumes. Backup stopped rather than omit their data.' >&2; exit 1;
-}
 var_in_root=false
 if [[ $(btrfs inspect-internal rootid /var) == $(btrfs inspect-internal rootid /) ]]; then
     var_in_root=true
@@ -29,6 +26,7 @@ flock -x 9
 sync
 number=$(snapper -c root create -t single -c number -p -d "System + /var: ${1:-Before offline update}")
 [[ $number =~ ^[1-9][0-9]*$ ]] || exit 1
+/usr/libexec/infinityos-backups-nested save "$number"
 if $var_in_root; then
     touch "/.snapshots/var-in-root-$number"
 elif ! btrfs subvolume snapshot -r /var "/.snapshots/var-$number"; then
@@ -49,4 +47,11 @@ for marker in /.snapshots/var-in-root-*; do
     id=${marker##*/var-in-root-}
     [[ $id =~ ^[1-9][0-9]*$ ]] || continue
     if [[ ! -d /.snapshots/$id/snapshot ]]; then rm "$marker"; fi
+done
+
+for nested in /.snapshots/nested-*; do
+    [[ -d $nested ]] || continue
+    id=${nested##*/nested-}
+    [[ $id =~ ^[1-9][0-9]*$ ]] || continue
+    if [[ ! -d /.snapshots/$id/snapshot ]]; then /usr/libexec/infinityos-backups-nested delete "$id"; fi
 done

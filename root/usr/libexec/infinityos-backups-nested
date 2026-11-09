@@ -1,0 +1,99 @@
+#!/usr/bin/python3
+"""Keep nested /var subvolumes beside their matching offline recovery point."""
+import json
+import os
+from pathlib import Path, PurePosixPath
+import re
+import subprocess
+import sys
+
+BASE = Path('/.snapshots')
+
+
+def run(*args):
+    return subprocess.run(args, check=True, capture_output=True, text=True).stdout.strip()
+
+
+def relative_path(value):
+    path = PurePosixPath(value)
+    if not value or path.is_absolute() or '..' in path.parts or str(path) != value or value == '.':
+        raise ValueError('Invalid nested subvolume path')
+    return path
+
+
+def nested_paths():
+    mount = json.loads(run('findmnt', '-J', '-o', 'FSROOT,TARGET', '-T', '/var'))['filesystems'][0]
+    prefix = PurePosixPath(mount['fsroot']) / os.path.relpath('/var', mount['target'])
+    prefix = str(prefix).lstrip('/').rstrip('/') + '/'
+    rows = run('btrfs', 'subvolume', 'list', '-a', '/var').splitlines()
+    paths = []
+    for row in rows:
+        match = re.fullmatch(r'ID [0-9]+ gen [0-9]+ top level [0-9]+ path (.+)', row)
+        if not match:
+            raise ValueError('Cannot parse Btrfs subvolume list')
+        path = match[1].removeprefix('<FS_TREE>/')
+        if path.startswith(prefix):
+            paths.append(str(relative_path(path[len(prefix):])))
+    return sorted(set(paths), key=lambda p: (len(PurePosixPath(p).parts), p))
+
+
+def manifest(directory):
+    paths = json.loads((directory / 'paths.json').read_text())
+    if not isinstance(paths, list) or any(not isinstance(p, str) for p in paths):
+        raise ValueError('Invalid nested backup manifest')
+    for path in paths:
+        relative_path(path)
+    if paths != sorted(set(paths), key=lambda p: (len(PurePosixPath(p).parts), p)):
+        raise ValueError('Invalid nested backup order')
+    for index in range(len(paths)):
+        if run('btrfs', 'property', 'get', '-ts', str(directory / str(index)), 'ro') != 'ro=true':
+            raise ValueError('Nested backup is missing or not read-only')
+    return paths
+
+
+def main(args):
+    if os.geteuid() != 0 or len(args) < 2 or not re.fullmatch(r'[1-9][0-9]*', args[1]):
+        raise ValueError('Administrator and snapshot number required')
+    action, number = args[:2]
+    directory = BASE / f'nested-{number}'
+    if action == 'save' and len(args) == 2:
+        directory.mkdir(mode=0o700)
+        paths = nested_paths()
+        for index, path in enumerate(paths):
+            source = Path('/var') / path
+            if source.resolve() != source:
+                raise ValueError('Nested subvolume path contains a symbolic link')
+            run('btrfs', 'subvolume', 'snapshot', '-r', str(source), str(directory / str(index)))
+        # A missing manifest marks interrupted captures as incomplete.
+        (directory / 'paths.json').write_text(json.dumps(paths) + '\n')
+    elif action == 'restore' and len(args) == 3:
+        if not directory.exists():
+            return  # Backups made before nested subvolumes were supported.
+        target = Path(args[2])
+        for index, path in enumerate(manifest(directory)):
+            destination = target / path
+            if destination.resolve() != destination:
+                raise ValueError('Restore destination contains a symbolic link')
+            destination.rmdir()  # Snapshots leave an empty stub for each child subvolume.
+            run('btrfs', 'subvolume', 'snapshot', str(directory / str(index)), str(destination))
+    elif action == 'delete' and len(args) == 2:
+        if not directory.exists():
+            return
+        for child in directory.iterdir():
+            if child.name.isdecimal():
+                run('btrfs', 'subvolume', 'delete', str(child))
+        (directory / 'paths.json').unlink(missing_ok=True)
+        directory.rmdir()
+    elif action == 'check' and len(args) == 2:
+        if directory.exists():
+            manifest(directory)
+    else:
+        raise ValueError('Usage: infinityos-backups-nested save|check|delete NUMBER | restore NUMBER TARGET_VAR')
+
+
+if __name__ == '__main__':
+    try:
+        main(sys.argv[1:])
+    except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as error:
+        print(error.stderr.strip() if isinstance(error, subprocess.CalledProcessError) and error.stderr else str(error), file=sys.stderr)
+        sys.exit(1)

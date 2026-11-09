@@ -14,6 +14,7 @@ restore_snapshot() (
         [[ $(btrfs property get -ts "/.snapshots/var-$number" ro) == 'ro=true' ]] || return 1
     fi
 	[[ $(btrfs property get -ts "$source" ro) == 'ro=true' ]] || { echo 'Snapshot is not read-only'; return 1; }
+	/usr/libexec/infinityos-backups-nested check "$number"
 	device=$(findmnt -n -o SOURCE /)
 	device=${device%%\[*}
 	uuid=$(blkid -s UUID -o value "$device")
@@ -32,6 +33,11 @@ restore_snapshot() (
 	printf 'UUID=%s /var btrfs defaults,compress=zstd:1,subvol=%s 0 0\n' "$uuid" "${target#"$top/"}-var" >> "$target/etc/fstab.new"
 	cat "$target/etc/fstab.new" > "$target/etc/fstab"
 	rm "$target/etc/fstab.new"
+	fi
+	if [[ -f /.snapshots/var-in-root-$number ]]; then
+		/usr/libexec/infinityos-backups-nested restore "$number" "$target/var"
+	else
+		/usr/libexec/infinityos-backups-nested restore "$number" "$target-var"
 	fi
 	rm -f "$target/system-update" "$target/etc/system-update" "$target/etc/infinityos-release-pending.json"
 	mkdir -p "$target/.snapshots"

@@ -90,12 +90,20 @@ printf '%%_pkgverify_level digest\n' > "$target/etc/rpm/macros.recovery-fixture"
 chroot "$target" rpm -i /tmp/infinity-recovery-test-1-1.noarch.rpm
 mkdir -p "$target/home/test"
 echo before > "$target/home/test/document"
+# Default systemd subvolumes, including a nested child and a path with spaces.
+for path in lib/machines lib/portables 'lib/machines/test guest'; do
+    mkdir -p "$(dirname "$target/var/$path")"
+    rmdir "$target/var/$path" 2>/dev/null || true
+    btrfs subvolume create "$target/var/$path"
+    echo original > "$target/var/$path/data"
+done
 chroot "$target" /usr/libexec/infinityos-upgrade-system --local-rpm /tmp/infinity-recovery-test-2-1.noarch.rpm
 [[ $(cat "$target/usr/share/infinity-recovery-test/version") == 1 ]]
 chroot "$target" /usr/libexec/infinityos-offline-update
 [[ $(cat "$target/usr/share/infinity-recovery-test/version") == 2 ]]
 [[ $(cat "$target/var/lib/infinity-recovery-test/version") == 2 ]]
 echo after > "$target/home/test/document"
+for path in lib/machines lib/portables 'lib/machines/test guest'; do echo changed > "$target/var/$path/data"; done
 number=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["snapshot"])' "$target/var/lib/infinityos/offline-update-result.json")
 # Exercise the production restore function, without its interactive menu loop.
 sed '/^while true; do/,$d' "$repo/root/usr/libexec/infinityos-backups-menu" > "$target/tmp/restore"
@@ -108,31 +116,45 @@ var_subvol=$(awk '$2 == "/var" { print $4 }' "$restored/etc/fstab" | sed 's/.*su
 [[ $(cat "$restored/usr/share/infinity-recovery-test/version") == 1 ]]
 [[ $(cat "$top/$var_subvol/lib/infinity-recovery-test/version") == 1 ]]
 [[ $(cat "$top/home/test/document") == after ]]
+for path in lib/machines lib/portables 'lib/machines/test guest'; do
+    [[ $(cat "$top/$var_subvol/$path/data") == original ]]
+    btrfs subvolume show "$top/$var_subvol/$path" >/dev/null
+done
 [[ ! -e $restored/system-update && ! -L $restored/system-update ]]
 umount "$base/boot"
 # Anaconda may keep /var inside the root subvolume instead of mounting it separately.
 umount "$target/var"
 cp -a "$top/var/." "$target/var/"
-sed -i '\| /var |d' "$target/etc/fstab"
+# cp preserves data but not subvolume boundaries; recreate those boundaries.
+for path in lib/machines lib/portables 'lib/machines/test guest'; do
+    mv "$target/var/$path" "$target/var/$path.old"
+    btrfs subvolume create "$target/var/$path"
+    cp -a "$target/var/$path.old/." "$target/var/$path/"
+    rm -rf "$target/var/$path.old"
+done
+sed -i '\| /var |d'  "$target/etc/fstab"
 number=$(chroot "$target" /usr/libexec/infinityos-backups-snapshot 'Integrated /var test' | tail -1)
 [[ -f $target/.snapshots/var-in-root-$number ]]
 echo modified > "$target/var/lib/infinity-recovery-test/version"
+echo later > "$target/var/lib/machines/test guest/data"
 sed '/^while true; do/,$d' "$repo/root/usr/libexec/infinityos-backups-menu" > "$target/tmp/restore"
 printf '\nrestore_snapshot %s\n' "$number" >> "$target/tmp/restore"
 printf '\n' | chroot "$target" bash /tmp/restore
 mount "$(findmnt -n -o SOURCE -T "$top" | cut -d '[' -f1)" "$base/boot"
 [[ $(cat "$base/boot/var/lib/infinity-recovery-test/version") == 2 ]]
+[[ $(cat "$base/boot/var/lib/machines/test guest/data") == changed ]]
+btrfs subvolume show "$base/boot/var/lib/machines/test guest" >/dev/null
 [[ $(cat "$top/home/test/document") == after ]]
 umount "$base/boot"
 # Config and the recovery menu share deletion of complete snapshot pairs.
 chroot "$target" /usr/libexec/infinityos-backups-manage list > "$base/snapshots.json"
 python3 -c 'import json,sys; rows=json.load(open(sys.argv[1])); assert rows["ready"] and all(r["complete"] for r in rows["snapshots"])' "$base/snapshots.json"
 chroot "$target" /usr/libexec/infinityos-backups-manage delete "$number" > /dev/null
-[[ ! -e $target/.snapshots/$number/snapshot && ! -e $target/.snapshots/var-in-root-$number ]]
+[[ ! -e $target/.snapshots/nested-$number && ! -e $target/.snapshots/$number/snapshot && ! -e $target/.snapshots/var-in-root-$number ]]
 for companion in "$target"/.snapshots/var-[0-9]*; do
     [[ -d $companion ]] || continue
     id=${companion##*/var-}
     chroot "$target" /usr/libexec/infinityos-backups-manage delete "$id" > /dev/null
-    [[ ! -e $companion && ! -e $target/.snapshots/$id/snapshot ]]
+    [[ ! -e $target/.snapshots/nested-$id && ! -e $companion && ! -e $target/.snapshots/$id/snapshot ]]
 done
 echo 'PASS: real offline RPM update, separate and integrated /var restore, /home preserved, paired snapshot deletion.'

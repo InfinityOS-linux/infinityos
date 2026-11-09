@@ -30,7 +30,7 @@ def snapshots():
     records = []
     numbers = set()
     for path in SNAPSHOTS.iterdir():
-        match = re.fullmatch(r'(?:var-(?:in-root-)?)?([1-9][0-9]*)', path.name)
+        match = re.fullmatch(r'(?:(?:var-(?:in-root-)?)|nested-)?([1-9][0-9]*)', path.name)
         if match:
             numbers.add(match[1])
     for number in numbers:
@@ -42,6 +42,11 @@ def snapshots():
         except (OSError, ET.ParseError):
             date, description = '', ''
         complete = (directory / 'snapshot').is_dir() and ((SNAPSHOTS / f'var-{number}').is_dir() or (SNAPSHOTS / f'var-in-root-{number}').is_file())
+        if complete and (SNAPSHOTS / f'nested-{number}').exists():
+            try:
+                run('/usr/libexec/infinityos-backups-nested', 'check', number)
+            except subprocess.CalledProcessError:
+                complete = False
         records.append(dict(number=number, date=date, description=description, complete=complete))
     return {'ready': True, 'snapshots': sorted(records, key=lambda row: int(row['number']), reverse=True)}
 
@@ -67,6 +72,8 @@ def delete(number):
         run('snapper', '-c', 'root', 'delete', number)
     if companion.exists():
         run('btrfs', 'subvolume', 'delete', str(companion))
+    if (SNAPSHOTS / f'nested-{number}').exists():
+        run('/usr/libexec/infinityos-backups-nested', 'delete', number)
     (SNAPSHOTS / f'var-in-root-{number}').unlink(missing_ok=True)
 
 
