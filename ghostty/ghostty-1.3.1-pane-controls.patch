@@ -1,0 +1,64 @@
+--- a/src/apprt/gtk/class/surface.zig
++++ b/src/apprt/gtk/class/surface.zig
+@@ -1806,6 +1806,7 @@
+         const priv: *Private = self.private();
+ 
+         const actions = [_]ext.actions.Action(Self){
++            .init("close-pane", actionClosePane, null),
+             .init(
+                 "prompt-title",
+                 actionPromptTitle,
+@@ -2550,6 +2551,15 @@
+ 
+     //---------------------------------------------------------------
+     // Signal Handlers
++
++    pub fn actionClosePane(
++        _: *gio.SimpleAction,
++        _: ?*glib.Variant,
++        self: *Self,
++    ) callconv(.c) void {
++        // Keep the split tree's normal running-process confirmation.
++        self.close();
++    }
+ 
+     pub fn actionPromptTitle(
+         _: *gio.SimpleAction,
+--- a/src/apprt/gtk/ui/1.2/surface.blp
++++ b/src/apprt/gtk/ui/1.2/surface.blp
+@@ -285,6 +285,11 @@
+   }
+ 
+   section {
++    item {
++      label: _("Close Terminal Pane");
++      action: "surface.close-pane";
++    }
++
+     submenu {
+       label: _("Split");
+ 
+--- a/src/apprt/gtk/class/window.zig
++++ b/src/apprt/gtk/class/window.zig
+@@ -486,6 +486,9 @@
+         tab_view.setSelectedPage(page);
+ 
+         if (self.isInfinity()) {
++            const terminal_icon = gio.ThemedIcon.new("utilities-terminal-symbolic");
++            defer terminal_icon.unref();
++            page.setIcon(terminal_icon.as(gio.Icon));
+             if (overrides.title) |title| {
+                 const icon_name: ?[:0]const u8 = if (std.mem.eql(u8, title, "Infinity AI")) icon: {
+                     priv.local_ai_page = page;
+--- a/po/pl.po
++++ b/po/pl.po
+@@ -354,3 +354,9 @@
+ #: src/apprt/gtk/class/window.zig:1708
+ msgid "Ghostty Developers"
+ msgstr "Twórcy Ghostty"
++
++msgid "Preferences…"
++msgstr "Preferencje…"
++
++msgid "Close Terminal Pane"
++msgstr "Zamknij podział terminala"
