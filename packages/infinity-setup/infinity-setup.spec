@@ -34,6 +34,7 @@ if [ -f /etc/infinityos/refind-installed ] && mountpoint -q /boot/efi; then
     for destination in /boot/efi/EFI/refind/infinity-theme /boot/efi/EFI/BOOT/infinity-theme; do
         [ -d "$destination/icons" ] || continue
         install -m 0644 /usr/share/infinityos/refind-theme/theme.conf "$destination/theme.conf" || :
+        install -D -m 0644 /usr/share/infinityos/refind-theme/background/solid-main.png "$destination/background/solid-main.png" || :
         install -m 0644 /usr/share/infinityos/refind-theme/icons/os_infinityos*.png "$destination/icons/" || :
         install -m 0644 /usr/share/infinityos/refind-theme/icons/arrow_*.png "$destination/icons/" || :
     done
@@ -79,6 +80,7 @@ fi
 /usr/share/infinityos/__pycache__/launcher*.pyc
 /usr/share/infinityos/launcher-icons/
 /usr/share/infinityos/refind-theme/theme.conf
+/usr/share/infinityos/refind-theme/background/solid-main.png
 /usr/share/infinityos/refind-theme/icons/arrow_left.png
 /usr/share/infinityos/refind-theme/icons/arrow_right.png
 /usr/share/infinityos/refind-theme/icons/os_infinityos.png
