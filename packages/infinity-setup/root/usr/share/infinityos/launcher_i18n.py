@@ -4,6 +4,9 @@ import locale
 
 
 POLISH = {
+    "Installation complete.": "Instalacja ukończona.",
+    "TV Mode is installed. Open Steam from the desktop to finish its first update.":
+        "TV Mode jest zainstalowany. Otwórz Steam z pulpitu, aby dokończyć jego pierwszą aktualizację.",
     "Install the new native Epic Games Launcher Preview.": "Zainstaluj nowy, natywny Epic Games Launcher Preview.",
     "Play supported Game Pass and Microsoft Store games. Requires a purchase or subscription. ARM support is experimental.":
         "Graj w obsługiwane gry z Game Pass i Microsoft Store. Wymagany zakup lub subskrypcja. Obsługa ARM jest eksperymentalna.",

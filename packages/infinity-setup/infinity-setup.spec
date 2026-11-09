@@ -14,6 +14,7 @@ Requires:       gdk-pixbuf2
 Requires:       util-linux
 Requires:       cage
 Requires:       dbus-daemon
+Requires:       dbus-tools
 Requires:       kernel-modules-core
 
 %description

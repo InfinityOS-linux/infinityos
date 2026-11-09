@@ -48,6 +48,22 @@ class UpdaterTests(unittest.TestCase):
         github.start()
         self.addCleanup(github.stop)
 
+    def test_check_reports_source_before_running_it(self):
+        sources = []
+        def run(args):
+            expected = {'dnf': 'System packages', 'fwupdmgr': 'Device firmware'}
+            if args[0] == 'flatpak':
+                expected['flatpak'] = 'System Flatpaks' if '--system' in args else 'Your Flatpaks'
+            self.assertEqual(sources[-1], expected[args[0]])
+            return SimpleNamespace(returncode=0, stdout='{"Devices": []}', stderr='')
+        with patch.object(checker, '_run', side_effect=run):
+            checker.check_updates(sources.append)
+        self.assertEqual(sources, ['System packages', 'InfinitySetup apps',
+            'System Flatpaks', 'Your Flatpaks', 'Device firmware', 'Infinity OS releases'])
+        with patch.object(i18n.locale, 'getlocale', return_value=('pl_PL', 'UTF-8')):
+            self.assertEqual(i18n.tr('Checking: {source}').format(
+                source=i18n.tr('System packages')), 'Sprawdzanie: Pakiety systemowe')
+
     def test_checks_each_source_and_saves_state(self):
         outputs = [
             type('Result', (), {'returncode': 0, 'stdout': 'firefox|158.0|updates\n', 'stderr': ''})(),

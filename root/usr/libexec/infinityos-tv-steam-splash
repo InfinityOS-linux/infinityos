@@ -12,6 +12,15 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import Gio, GLib, Gtk
 
 
+def update_activation_environment():
+    # The private bus starts before Gamescope creates its display sockets.
+    variables = ['DISPLAY', 'WAYLAND_DISPLAY', 'XAUTHORITY', 'GDK_BACKEND',
+                 'XDG_SESSION_TYPE', 'XDG_CURRENT_DESKTOP']
+    subprocess.run(['dbus-update-activation-environment',
+                    *[f'{name}={os.environ.get(name, "")}' for name in variables]],
+                   check=True, timeout=10)
+
+
 class SteamBoot(Gtk.Application):
     def __init__(self, command):
         super().__init__(application_id='org.infinityos.SteamBoot',
@@ -73,6 +82,7 @@ class SteamBoot(Gtk.Application):
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         sys.exit(2)
+    update_activation_environment()
     app = SteamBoot(sys.argv[1:])
     app.run([sys.argv[0]])
     sys.exit(app.status)

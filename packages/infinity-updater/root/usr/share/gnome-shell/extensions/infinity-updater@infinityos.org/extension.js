@@ -71,14 +71,12 @@ export default class InfinityUpdater extends Extension {
 
     _refresh() {
         let count = 0;
-        let hasErrors = false;
         let release = null;
         try {
             const [ok, contents] = GLib.file_get_contents(this._stateFile);
             if (ok) {
                 const state = JSON.parse(new TextDecoder().decode(contents));
                 count = Array.isArray(state.updates) ? state.updates.length : 0;
-                hasErrors = Array.isArray(state.errors) && state.errors.length > 0;
                 release = state.release?.version ?? null;
             }
         } catch (_error) {
@@ -87,13 +85,9 @@ export default class InfinityUpdater extends Extension {
         const total = count + (release ? 1 : 0);
         this._badge.text = total > 99 ? '99+' : String(total);
         this._badge.visible = total > 0;
-        this._indicator.visible = total > 0 || hasErrors;
-        this._icon.icon_name = hasErrors && total === 0
-            ? 'dialog-warning-symbolic' : 'infinity-update-available-symbolic';
+        this._indicator.visible = total > 0;
         this._indicator.accessible_name = release
             ? `Infinity OS ${release} is available`
-            : hasErrors && count === 0
-            ? 'Infinity OS update check failed'
             : count > 0 ? `${count} Infinity OS updates available`
                 : 'Infinity OS Updates, no updates available';
         if (release && this._notifiedVersion !== release) {

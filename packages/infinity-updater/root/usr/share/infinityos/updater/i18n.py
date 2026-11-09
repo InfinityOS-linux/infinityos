@@ -4,6 +4,13 @@ import locale
 
 
 POLISH = {
+    'Checking: {source}': 'Sprawdzanie: {source}',
+    'System packages': 'Pakiety systemowe',
+    'InfinitySetup apps': 'Aplikacje InfinitySetup',
+    'System Flatpaks': 'Systemowe Flatpaki',
+    'Your Flatpaks': 'Flatpaki użytkownika',
+    'Device firmware': 'Oprogramowanie urządzeń',
+    'Infinity OS releases': 'Wydania Infinity OS',
     "Firmware updated. Restart may be required.": "Oprogramowanie urządzeń zaktualizowano. Może być wymagany restart.",
     'Error details': 'Szczegóły błędu',
     'The last system update failed. Retry the update or restore system and /var from Backups in the boot menu. /home is preserved.':

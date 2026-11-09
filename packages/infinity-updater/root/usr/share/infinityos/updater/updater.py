@@ -347,13 +347,22 @@ def main():
 
             def work():
                 try:
-                    state = check_updates()
+                    state = check_updates(self.report_check)
                 except Exception as error:
                     GLib.idle_add(self.finish_error, str(error))
                 else:
                     GLib.idle_add(self.finish_refresh, state)
 
             threading.Thread(target=work, daemon=True).start()
+
+        def report_check(self, source):
+            print('Checking: ' + source, file=sys.stderr, flush=True)
+            GLib.idle_add(self.show_check_source, source)
+
+        def show_check_source(self, source):
+            if self.checking:
+                self.status.set_text(tr('Checking: {source}').format(source=tr(source)))
+            return GLib.SOURCE_REMOVE
 
         def finish_refresh(self, state, notice=None, recovery=None):
             if self.checking and network_is_offline(self.network_monitor, Gio):

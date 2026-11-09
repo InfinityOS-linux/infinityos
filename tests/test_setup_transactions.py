@@ -11,11 +11,11 @@ SOURCE = Path(__file__).resolve().parents[1] / 'packages/infinity-setup/root/usr
 def controller():
     tree = ast.parse(SOURCE.read_text())
     original = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'InfinitySetup')
-    methods = [n for n in original.body if isinstance(n, ast.FunctionDef) and n.name in ('_install', '_finished', '_refresh_ai')]
+    methods = [n for n in original.body if isinstance(n, ast.FunctionDef) and n.name in ('_install', '_finished', '_refresh_ai', '_complete')]
     module = ast.Module(body=[ast.ClassDef(name='Callbacks', bases=[], keywords=[], body=methods, decorator_list=[])], type_ignores=[])
     context = {'GLib': SimpleNamespace(idle_add=lambda fn, *args: fn(*args), source_remove=Mock()),
                'tr': lambda value: value, 'install': Mock(), 'uninstall': Mock(),
-               'deactivate_local_model': Mock(), 'set_tv_enabled': Mock(),
+               'deactivate_local_model': Mock(), 'set_tv_enabled': Mock(), 'launch_steam': Mock(),
                'available': lambda app: True, 'installed': Mock(return_value=True),
                'removable': Mock(return_value=False)}
     exec(compile(ast.fix_missing_locations(module), str(SOURCE), 'exec'), context)
@@ -27,6 +27,31 @@ def controller():
 
 
 class SetupTransactionsTests(unittest.TestCase):
+    def test_steam_opens_only_after_successful_tv_enable(self):
+        for enabled, failure in ((True, False), (True, True), (False, False)):
+            with self.subTest(enabled=enabled, failure=failure):
+                app, context = controller()
+                app._finished = Mock()
+                if failure:
+                    context['set_tv_enabled'].side_effect = RuntimeError('failed')
+                app._install([], [('steam', enabled)])
+                self.assertEqual(context['launch_steam'].call_count, int(enabled and not failure))
+
+    def test_failed_steam_launch_keeps_tv_marked_installed(self):
+        app, context = controller()
+        app._finished = Mock()
+        context['launch_steam'].side_effect = OSError('missing client')
+        app._install([], [('steam', True)])
+        app._tv_applied.assert_called_once_with('steam', True)
+        self.assertIn('Open Steam from the desktop', app._finished.call_args.args[0][0])
+
+    def test_completion_reports_success_without_closing(self):
+        app, _context = controller()
+        app._begin_close = Mock()
+        app._complete()
+        app.status.set_text.assert_called_once_with('Installation complete.')
+        app._begin_close.assert_not_called()
+
     def test_external_ai_selection_refreshes_only_ai_rows(self):
         app, context = controller()
         ai = ('old',)

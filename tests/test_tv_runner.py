@@ -16,6 +16,7 @@ class TVRunnerTests(unittest.TestCase):
         spec = (ROOT / "packages/infinity-setup/infinity-setup.spec").read_text()
         self.assertIn("Requires:       cage\n", spec)
         self.assertIn("Requires:       dbus-daemon\n", spec)
+        self.assertIn("Requires:       dbus-tools\n", spec)
 
     def _run_with_gamescope_result(self, result, arch="x86_64"):
         with tempfile.TemporaryDirectory() as directory:

@@ -30,6 +30,15 @@ exec(compile(ENTER.read_text(), str(ENTER), "exec"), enter.__dict__)
 
 
 class TVModeTests(unittest.TestCase):
+    def test_first_steam_launch_uses_native_client_for_each_architecture(self):
+        for arch, command in [('x86_64', 'steam'),
+                              ('aarch64', '/tmp/gamer/.local/share/Steam/steamrtarm64/steam')]:
+            with patch.object(launcher_tv.os, 'uname', return_value=SimpleNamespace(machine=arch)), \
+                 patch.object(launcher_tv.subprocess, 'Popen') as spawn:
+                launcher_tv.launch_steam(Path('/tmp/gamer'))
+                spawn.assert_called_once_with([command], stdin=subprocess.DEVNULL,
+                                              start_new_session=True)
+
     def test_enter_policy_is_passwordless_only_for_active_sessions(self):
         policy = ET.parse(ROOT / "root/usr/share/polkit-1/actions/org.infinityos.tv-enter.policy")
         action = policy.find("./action[@id='org.infinityos.tv-modes.enter']")

@@ -17,7 +17,7 @@ from launcher_backend import (APPS, CRAFT_SUITE, active_local_model, configured_
                               install, installed, installed_flatpaks, selected_ai, downloaded_local_models,
                               open_lutris_installer, removable, uninstall)
 from launcher_i18n import tr
-from launcher_tv import enabled as tv_enabled, set_enabled as set_tv_enabled
+from launcher_tv import enabled as tv_enabled, set_enabled as set_tv_enabled, launch_steam
 
 
 MARKER = Path.home() / ".config/infinityos/launcher-complete"
@@ -630,6 +630,11 @@ class InfinitySetup(Gtk.Application):
                         GLib.idle_add(self._installed, old, False)
                 GLib.idle_add(self._tv_applied if kind == "tv" else self._installed,
                               item, enabled)
+                if kind == "tv" and item == "steam" and enabled:
+                    try:
+                        launch_steam()
+                    except OSError as exc:
+                        errors.append(tr("TV Mode is installed. Open Steam from the desktop to finish its first update.") + f"\n{exc}")
         GLib.idle_add(self._finished, errors)
 
     def _tv_applied(self, mode, enabled):
@@ -651,24 +656,24 @@ class InfinitySetup(Gtk.Application):
             GLib.source_remove(self.progress_source)
             self.progress_source = 0
         self.progress.set_visible(False)
+        self.suite_switch.set_sensitive(True)
+        for app, switch in self.switches.items():
+            switch.set_sensitive(available(app) and
+                                 (app.kind == "local-model" or not self.initial_active[app] or removable(app)))
+        for switch in self.tv_switches.values():
+            switch.set_sensitive(True)
+        for button, app in self.installer_buttons:
+            button.set_sensitive(available(app))
+        self.save_button.set_label(tr("Retry pending changes") if errors else tr("Apply"))
+        self.save_button.set_sensitive(True)
         if errors:
-            self.suite_switch.set_sensitive(True)
             self.status.set_text(tr("Could not apply changes:\n") + "\n".join(errors))
-            for app, switch in self.switches.items():
-                switch.set_sensitive(available(app) and
-                                     (app.kind == "local-model" or not self.initial_active[app] or removable(app)))
-            for switch in self.tv_switches.values():
-                switch.set_sensitive(True)
-            for button, app in self.installer_buttons:
-                button.set_sensitive(available(app))
-            self.save_button.set_label(tr("Retry pending changes"))
-            self.save_button.set_sensitive(True)
         else:
             self._complete()
         return False
 
     def _complete(self):
-        self._begin_close()
+        self.status.set_text(tr("Installation complete."))
 
     def _animate(self, opening):
         if not Gtk.Settings.get_default().get_property("gtk-enable-animations"):

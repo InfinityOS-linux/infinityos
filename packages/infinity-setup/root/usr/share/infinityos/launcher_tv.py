@@ -221,6 +221,13 @@ def _finish_esde(home):
     _hide_esde_from_home(home)
 
 
+def launch_steam(home=None):
+    home = Path(home or Path.home())
+    command = (str(home / '.local/share/Steam/steamrtarm64/steam')
+               if os.uname().machine == 'aarch64' else 'steam')
+    subprocess.Popen([command], stdin=subprocess.DEVNULL, start_new_session=True)
+
+
 def set_enabled(mode, active, home=None):
     if mode not in ("esde", "steam"):
         raise ValueError("Unknown TV mode")

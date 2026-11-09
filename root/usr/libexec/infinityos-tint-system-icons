@@ -157,7 +157,12 @@ def white_file_glyphs(svg):
     return ET.tostring(tree, encoding="unicode") + "\n"
 
 def trash_icon(full):
-    paper = '<path d="m19 18 5-5 5 4 4-7 5 7 6-3 2 10H19Z" fill="#dbc7ff"/>' if full else ""
+    paper = ('<g id="infinity-trash-paper">'
+             '<path d="m20 21-2-12 8-2 5 3 2 12Z" fill="#bba6df"/>'
+             '<path d="m26 7 1 5 4-2Z" fill="#8e78b2"/>'
+             '<path d="m30 23 2-15 8 1 4 5-1 8Z" fill="#dbc7ff"/>'
+             '<path d="m40 9-1 5h5Z" fill="#bba6df"/>'
+             '</g>') if full else ""
     return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'
             '<path d="m12 18 5 35a7 7 0 0 0 7 6h16a7 7 0 0 0 7-6l5-35Z" fill="#645394"/>'
             '<ellipse cx="32" cy="18" rx="20" ry="7" fill="#443456"/>' + paper +

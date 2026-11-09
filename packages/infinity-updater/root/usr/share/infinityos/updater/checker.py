@@ -65,7 +65,9 @@ def firmware_updates(result):
     return updates
 
 
-def check_updates():
+def check_updates(report=None):
+    report = report or (lambda _source: None)
+    report("System packages")
     updates = []
     errors = []
     # The user only needs the RPM database for this read-only query. Fresh
@@ -84,11 +86,13 @@ def check_updates():
     else:
         errors.append('RPM: ' + (result.stderr.strip() or 'Could not check updates'))
 
+    report("InfinitySetup apps")
     github_updates, github_errors = check_github_updates()
     updates.extend(github_updates)
     errors.extend(github_errors)
 
     for scope in ('system', 'user'):
+        report('System Flatpaks' if scope == 'system' else 'Your Flatpaks')
         result = _run(['flatpak', 'remote-ls', '--' + scope, '--updates',
                        '--columns=application,version,origin'])
         if result.returncode == 0:
@@ -101,6 +105,7 @@ def check_updates():
             errors.append('Flatpak ' + scope + ': ' +
                           (result.stderr.strip() or 'Could not check updates'))
 
+    report('Device firmware')
     result = _run(['fwupdmgr', 'get-updates', '--json'])
     firmware = firmware_updates(result)
     if result.returncode == 0 and firmware is not None:
@@ -111,6 +116,7 @@ def check_updates():
         errors.append('Firmware: ' + (result.stderr.strip() or result.stdout.strip() or
                                       'Could not check updates'))
 
+    report('Infinity OS releases')
     release = None
     try:
         current, fedora = installed_version()

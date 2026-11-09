@@ -17,6 +17,17 @@ SteamBoot = module['SteamBoot']
 
 
 class SteamSplashTests(unittest.TestCase):
+    def test_portals_receive_compositor_display_without_changing_user_manager(self):
+        update = module['update_activation_environment']
+        with patch.dict('os.environ', {'DISPLAY': ':2', 'WAYLAND_DISPLAY': 'gamescope-0',
+                                      'GDK_BACKEND': 'x11'}, clear=True), \
+             patch.object(update.__globals__['subprocess'], 'run') as run:
+            update()
+        run.assert_called_once_with(['dbus-update-activation-environment',
+            'DISPLAY=:2', 'WAYLAND_DISPLAY=gamescope-0', 'XAUTHORITY=',
+            'GDK_BACKEND=x11', 'XDG_SESSION_TYPE=', 'XDG_CURRENT_DESKTOP='],
+            check=True, timeout=10)
+
     def test_keeps_card_while_client_runs_and_preserves_exit_status(self):
         state = SimpleNamespace(process=Mock(), quit=Mock(), status=1)
         state.process.poll.side_effect = [None, 7]
