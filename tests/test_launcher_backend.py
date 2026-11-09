@@ -391,40 +391,49 @@ class LauncherBackendTests(unittest.TestCase):
                 backend._install_xone_firmware(directory, firmware_dir)
             self.assertTrue(backend._xone_firmware_valid(firmware_dir))
 
-    def test_flatpak_install_starts_only_when_called(self):
+    def test_steam_rpm_installs_freeworld_multilib_before_removing_flatpak(self):
+        steam = next(app for app in backend.APPS if app.name == "Steam")
+        self.assertEqual((steam.kind, steam.package), ("dnf", "steam"))
+        with patch.object(backend.os, "uname", return_value=SimpleNamespace(machine="x86_64")), \
+             patch.object(backend.subprocess, "run", return_value=SimpleNamespace(returncode=1)), \
+             patch.object(backend, "_steam_flatpak_scopes", return_value=["--user", "--system"]), \
+             patch.object(backend, "_run") as run:
+            backend.install(steam)
+        commands = [call.args[0] for call in run.call_args_list]
+        self.assertEqual(commands[0][:6], ["pkexec", "dnf", "--refresh", "-y", "install", "steam"])
+        for package in ("mesa-dri-drivers", "mesa-va-drivers-freeworld", "mesa-vulkan-drivers-freeworld"):
+            for arch in ("i686", "x86_64"):
+                self.assertIn(f"{package}.{arch}", commands[0])
+        self.assertEqual(commands[1], ["flatpak", "uninstall", "--user", "--noninteractive", "--assumeyes", steam.source])
+        self.assertEqual(commands[2], ["pkexec", "flatpak", "uninstall", "--system", "--noninteractive", "--assumeyes", steam.source])
+
+    def test_steam_rpm_failure_does_not_remove_flatpak(self):
+        steam = next(app for app in backend.APPS if app.name == "Steam")
+        with patch.object(backend.subprocess, "run", return_value=SimpleNamespace(returncode=1)), \
+             patch.object(backend, "_steam_flatpak_scopes") as scopes, \
+             patch.object(backend, "_run", side_effect=RuntimeError("download failed")):
+            with self.assertRaisesRegex(RuntimeError, "download failed"):
+                backend._install_steam_rpm(steam)
+        scopes.assert_not_called()
+
+    def test_steam_rpm_uses_installed_nvidia_branch(self):
+        steam = next(app for app in backend.APPS if app.name == "Steam")
+        for driver in ("xorg-x11-drv-nvidia-libs", "xorg-x11-drv-nvidia-470xx-libs"):
+            with self.subTest(driver=driver), \
+                 patch.object(backend.subprocess, "run", side_effect=lambda args, **kw:
+                              SimpleNamespace(returncode=0 if args[-1] == driver + ".x86_64" else 1)), \
+                 patch.object(backend, "_steam_flatpak_scopes", return_value=[]), \
+                 patch.object(backend, "_run") as run:
+                backend._install_steam_rpm(steam)
+            self.assertEqual([p for p in run.call_args.args[0] if p.startswith("xorg-")],
+                             [driver + ".x86_64", driver + ".i686"])
+
+    def test_flatpak_alone_does_not_count_as_native_steam(self):
         steam = next(app for app in backend.APPS if app.name == "Steam")
         with patch.object(backend.os, "uname", return_value=SimpleNamespace(machine="x86_64")), \
-             patch.object(backend, "_install_steam_gl_drivers") as drivers, \
-             patch.object(backend, "_run") as run:
-            self.assertEqual(run.call_count, 0)
-            backend.install(steam)
-        drivers.assert_called_once_with()
-        self.assertEqual(run.call_count, 2)
-        self.assertEqual(run.call_args_list[1].args[0][-1], "com.valvesoftware.Steam")
-
-    def test_steam_installs_matching_nvidia_libraries_for_both_architectures(self):
-        with patch.object(backend.subprocess, "run", return_value=SimpleNamespace(
-                stdout="nvidia-615-78-08\ndefault\nhost\n")), \
-             patch.object(backend, "_run") as run:
-            backend._install_steam_gl_drivers()
-        run.assert_called_once_with([
-            "flatpak", "install", "--user", "--noninteractive", "--assumeyes", "flathub",
-            "org.freedesktop.Platform.GL.nvidia-615-78-08//1.4",
-            "org.freedesktop.Platform.GL32.nvidia-615-78-08//1.4"])
-
-    def test_steam_does_not_install_nvidia_libraries_on_other_gpus(self):
-        with patch.object(backend.subprocess, "run", return_value=SimpleNamespace(
-                stdout="default\nhost\n")), patch.object(backend, "_run") as run:
-            backend._install_steam_gl_drivers()
-        run.assert_not_called()
-
-    def test_system_steam_gl_drivers_use_the_system_scope(self):
-        with patch.object(backend.subprocess, "run", return_value=SimpleNamespace(
-                stdout="nvidia-615-78-08\ndefault\nhost\n")), \
-             patch.object(backend, "_run") as run:
-            backend._install_steam_gl_drivers("--system")
-        self.assertEqual(run.call_args.args[0][:4],
-                         ["pkexec", "flatpak", "install", "--system"])
+             patch.object(backend.subprocess, "run", return_value=SimpleNamespace(returncode=1)) as run:
+            self.assertFalse(backend.installed(steam, flatpak_ids={steam.source}))
+        self.assertEqual(run.call_args.args[0], ["rpm", "-q", "steam"])
 
     def test_bundled_mpv_is_recognized_as_system_package(self):
         mpv = next(app for app in backend.APPS if app.name == "mpv")
@@ -436,28 +445,14 @@ class LauncherBackendTests(unittest.TestCase):
             backend.install(mpv)
         install_command.assert_called_once_with(["pkexec", "dnf", "-y", "install", "mpv"])
 
-    def test_steam_can_be_removed_from_user_and_system_flatpak_scopes(self):
+    def test_steam_rpm_removal_does_not_remove_dependencies(self):
         steam = next(app for app in backend.APPS if app.name == "Steam")
         with patch.object(backend.os, "uname", return_value=SimpleNamespace(machine="x86_64")), \
              patch.object(backend.subprocess, "run", return_value=SimpleNamespace(returncode=0)), \
              patch.object(backend, "_run") as run:
             self.assertTrue(backend.removable(steam))
             backend.uninstall(steam)
-        self.assertEqual([call.args[0] for call in run.call_args_list], [
-            ["flatpak", "uninstall", "--user", "--noninteractive", "--assumeyes", steam.source],
-            ["pkexec", "flatpak", "uninstall", "--system", "--noninteractive", "--assumeyes", steam.source],
-        ])
-
-    def test_steam_removal_uses_only_its_installed_flatpak_scope(self):
-        steam = next(app for app in backend.APPS if app.name == "Steam")
-        scopes = [SimpleNamespace(returncode=1), SimpleNamespace(returncode=0)] * 2
-        with patch.object(backend.os, "uname", return_value=SimpleNamespace(machine="x86_64")), \
-             patch.object(backend.subprocess, "run", side_effect=scopes), \
-             patch.object(backend, "_run") as run:
-            backend.uninstall(steam)
-        run.assert_called_once_with([
-            "pkexec", "flatpak", "uninstall", "--system", "--noninteractive",
-            "--assumeyes", steam.source])
+        run.assert_called_once_with(["pkexec", "rpm", "-e", "--", "steam"])
 
     def test_arm_steam_removal_preserves_games(self):
         steam = next(app for app in backend.APPS if app.name == "Steam")

@@ -96,7 +96,7 @@ APPS = (
     App("System", "OpenLogi", "github-rpm", "AprilNEA/OpenLogi", "Set up Logitech mouse buttons and sensitivity.", website="https://github.com/AprilNEA/OpenLogi", group="Device tools", icon="openlogi"),
     App("System", "OpenRazer", "dnf", "openrazer-meta", "Enable and configure Razer gaming devices.", website="https://github.com/openrazer/openrazer", group="Device tools", icon="openrazer"),
     App("System", "WinBoat", "winboat-rpm", "winboat-org/winboat", "Run Windows easily on this system.", True, website="https://github.com/winboat-org/winboat", group="Windows apps", icon="winboat", package="winboat"),
-    App("Gaming", "Steam", "flatpak", "com.valvesoftware.Steam", "Buy, install and play games from Steam.", group="Game launchers", icon="applications-games-symbolic"),
+    App("Gaming", "Steam", "dnf", "com.valvesoftware.Steam", "Buy, install and play games from Steam.", group="Game launchers", icon="applications-games-symbolic", package="steam"),
     App("Gaming", "Epic Games Launcher", "epic-native", "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncher-x86_64.deb", "Install the new native Epic Games Launcher Preview.", True, website="https://launcher.epicgames.com/", group="Game launchers", icon="epic-games-launcher"),
     App("Gaming", "Blizzard Battle.net", "lutris-installer", "battlenet-standard", "Install and play Blizzard games through Lutris.", True, website="https://download.battle.net/", group="Game launchers", icon="battle-net"),
     App("Gaming", "Nexus Launcher (Gamepass)", "github-appimage", "domsvoboda/xodus-nexus", "Play supported Game Pass and Microsoft Store games. Requires a purchase or subscription. ARM support is experimental.", website="https://github.com/domsvoboda/xodus-nexus", group="Game launchers", icon="nexus-launcher"),
@@ -224,9 +224,7 @@ def removable(app, home=None):
     if app.kind == "github-rpm" and app.source in CRAFT_SUITE:
         return installed(app, home)
     if app.source == "com.valvesoftware.Steam":
-        if os.uname().machine == "aarch64":
-            return installed(app, home)
-        return bool(_steam_flatpak_scopes(app))
+        return installed(app, home)
     if app.kind == "npm":
         command = "claude" if "anthropic" in app.source else "codex"
         return (Path(home or Path.home()) / ".local/bin" / command).exists()
@@ -261,9 +259,7 @@ def uninstall(app, home=None):
             shutil.rmtree(home / ".local/share/Steam/steamrtarm64")
             (home / ".local/share/applications/steam-arm64.desktop").unlink(missing_ok=True)
         else:
-            for scope in _steam_flatpak_scopes(app):
-                command = ["flatpak", "uninstall", scope, "--noninteractive", "--assumeyes", app.source]
-                _run(["pkexec", *command] if scope == "--system" else command)
+            _run(["pkexec", "rpm", "-e", "--", "steam"])
         return
     _run(["npm", "uninstall", "--global", "--prefix", str(home / ".local"), app.source])
     name = "claude" if "anthropic" in app.source else "codex"
@@ -585,16 +581,21 @@ def _install_github_appimage(app, home):
     )
 
 
-def _install_steam_gl_drivers(scope="--user"):
-    """Install the active NVIDIA libraries into the same scope as Steam."""
-    result = subprocess.run(["flatpak", "--gl-drivers"], capture_output=True,
-                            text=True, check=True)
-    for driver in result.stdout.split():
-        if re.fullmatch(r"nvidia-[0-9]+(?:-[0-9]+)+", driver):
-            prefix = ["pkexec"] if scope == "--system" else []
-            _run(prefix + ["flatpak", "install", scope, "--noninteractive", "--assumeyes",
-                  "flathub", f"org.freedesktop.Platform.GL.{driver}//1.4",
-                  f"org.freedesktop.Platform.GL32.{driver}//1.4"])
+def _install_steam_rpm(app):
+    packages = ["steam", "mesa-dri-drivers.x86_64", "mesa-dri-drivers.i686",
+                "mesa-vulkan-drivers-freeworld.x86_64", "mesa-vulkan-drivers-freeworld.i686",
+                "mesa-va-drivers-freeworld.x86_64", "mesa-va-drivers-freeworld.i686"]
+    # Keep the 32-bit NVIDIA libraries on the already installed driver branch.
+    for driver in ("xorg-x11-drv-nvidia-libs", "xorg-x11-drv-nvidia-470xx-libs",
+                   "xorg-x11-drv-nvidia-390xx-libs"):
+        if subprocess.run(["rpm", "-q", f"{driver}.x86_64"], stdout=subprocess.DEVNULL,
+                          stderr=subprocess.DEVNULL, check=False).returncode == 0:
+            packages.extend((f"{driver}.x86_64", f"{driver}.i686"))
+    _run(["pkexec", "dnf", "--refresh", "-y", "install", *packages])
+    # Remove the old launcher only after the RPM transaction succeeds.
+    for scope in _steam_flatpak_scopes(app):
+        command = ["flatpak", "uninstall", scope, "--noninteractive", "--assumeyes", app.source]
+        _run(["pkexec", *command] if scope == "--system" else command)
 
 
 def install(app, home=None, *, defer_system_dependencies=False):
@@ -602,6 +603,8 @@ def install(app, home=None, *, defer_system_dependencies=False):
     home = Path(home or Path.home())
     if app.source == "com.valvesoftware.Steam" and os.uname().machine == "aarch64":
         _install_arm_steam(home, install_dependencies=not defer_system_dependencies)
+    elif app.source == "com.valvesoftware.Steam":
+        _install_steam_rpm(app)
     elif app.kind == "local-model":
         _install_local_model(app, home)
     elif app.kind == "epic-native":
@@ -617,8 +620,6 @@ def install(app, home=None, *, defer_system_dependencies=False):
         _run(["flatpak", "remote-add", "--user", "--if-not-exists", "flathub",
               "https://dl.flathub.org/repo/flathub.flatpakrepo"])
         _run(["flatpak", "install", "--user", "--noninteractive", "--assumeyes", "flathub", app.source])
-        if app.source == "com.valvesoftware.Steam":
-            _install_steam_gl_drivers()
     elif app.kind == "github-rpm":
         with tempfile.TemporaryDirectory(prefix="infinity-setup-") as directory:
             package = _latest_rpm(app, os.uname().machine, directory)

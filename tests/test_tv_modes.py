@@ -214,24 +214,32 @@ class TVModeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, \
              patch.object(launcher_tv, "installed", return_value=True), \
              patch.object(launcher_tv.os, "uname", return_value=SimpleNamespace(machine="x86_64")), \
-             patch.object(launcher_tv, "_steam_flatpak_scopes", return_value=["--user", "--system"]), \
-             patch.object(launcher_tv, "_install_steam_gl_drivers") as drivers, \
              patch.object(launcher_tv, "_missing_packages", return_value=["gamescope"]), \
              patch.object(launcher_tv, "_run") as run:
             launcher_tv.set_enabled("steam", True, Path(directory))
             run.assert_called_once_with(
                 ["pkexec", launcher_tv.CONTROL, "activate", "steam", str(os.getuid())])
-            self.assertEqual(drivers.call_args_list, [call("--user"), call("--system")])
 
-    def test_existing_arm_steam_does_not_install_flatpak_drivers(self):
+    def test_x64_tv_installs_native_client_when_only_flatpak_was_present(self):
+        steam = next(app for app in launcher_tv.APPS if app.name == "Steam")
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(launcher_tv.os, "uname", return_value=SimpleNamespace(machine="x86_64")), \
+             patch.object(launcher_tv, "installed", return_value=False), \
+             patch.object(launcher_tv, "install") as install_client, \
+             patch.object(launcher_tv, "_missing_packages", return_value=["gamescope"]), \
+             patch.object(launcher_tv, "_run") as run:
+            home = Path(directory)
+            launcher_tv.set_enabled("steam", True, home)
+        install_client.assert_called_once_with(steam, home, defer_system_dependencies=True)
+        run.assert_called_once_with(["pkexec", launcher_tv.CONTROL, "activate", "steam", str(os.getuid())])
+
+    def test_existing_arm_steam_can_enable_tv_mode(self):
         with tempfile.TemporaryDirectory() as directory, \
              patch.object(launcher_tv.os, "uname", return_value=SimpleNamespace(machine="aarch64")), \
              patch.object(launcher_tv, "installed", return_value=True), \
-             patch.object(launcher_tv, "_install_steam_gl_drivers") as drivers, \
              patch.object(launcher_tv, "_missing_packages", return_value=[]), \
              patch.object(launcher_tv, "_run"):
             launcher_tv.set_enabled("steam", True, Path(directory))
-        drivers.assert_not_called()
 
     def test_privileged_esde_activation_finishes_as_selected_user(self):
         events = []

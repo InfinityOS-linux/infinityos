@@ -12,7 +12,7 @@ import tempfile
 import urllib.request
 from pathlib import Path
 
-from launcher_backend import APPS, _run, install, installed, _install_steam_gl_drivers, _steam_flatpak_scopes
+from launcher_backend import APPS, _run, install, installed
 
 CONTROL = "/usr/libexec/infinityos-tv-control"
 STATE = Path("/etc/infinityos/tv-modes")
@@ -273,9 +273,6 @@ def set_enabled(mode, active, home=None):
         details = json.loads(existing) if existing else {"packages": []}
         if not installed(steam, home):
             install(steam, home, defer_system_dependencies=True)
-        elif os.uname().machine == "x86_64":
-            for scope in _steam_flatpak_scopes(steam):
-                _install_steam_gl_drivers(scope)
         dependencies = ["gamescope"]
         if os.uname().machine == "aarch64":
             dependencies.extend(("libva", "libvpx", "ibus-libs"))

@@ -27,7 +27,7 @@ class TVRunnerTests(unittest.TestCase):
             client.chmod(0o755)
             commands = {
                 "uname": f"printf '{arch}\\n'\n",
-                "flatpak": "if [ \"$1\" = info ]; then exit 0; fi\n",
+                "steam": "exit 0\n",
                 "gamescope": f'printf x >> "$TV_RUN_TEST_ATTEMPTS"\nexit {result}\n',
                 "cage": 'printf "%s|%s\\n" "$WLR_RENDERER" "$*" > "$TV_RUN_TEST_LOG"\n',
                 "dbus-run-session": 'printf "%s\\n" "$*" >> "$TV_RUN_TEST_BUS_LOG"\nshift\nexec "$@"\n',
@@ -55,7 +55,7 @@ class TVRunnerTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn("gamescope exited early", completed.stderr)
         self.assertEqual(fallback,
-                         "pixman|-- /usr/libexec/infinityos-tv-steam-splash flatpak run --user --system-talk-name=org.freedesktop.login1 com.valvesoftware.Steam -gamepadui -steamos3 -steampal -steamdeck\n")
+                         "pixman|-- /usr/libexec/infinityos-tv-steam-splash steam -gamepadui -steamos3 -steampal -steamdeck\n")
         self.assertEqual(attempts, "x")
         self.assertEqual(bus.count("-- gamescope"), 1)
         self.assertEqual(bus.count("-- cage"), 1)

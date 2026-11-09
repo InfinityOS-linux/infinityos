@@ -139,3 +139,15 @@ Published x86_64 and aarch64 live ISOs boot through rEFInd. The ISO finalizer en
 ## Sources and licensing
 
 Infinity OS is based on Fedora's [KIWI descriptions](https://forge.fedoraproject.org/releng/kiwi-descriptions) from the `f44` branch, ported to Fedora 45 in this branch. Project-authored and Fedora-derived build code follows GPL-3.0-or-later in [`LICENSE`](LICENSE); bundled software, fonts, icons, and artwork retain their own licenses. See [`THIRD_PARTY.md`](THIRD_PARTY.md) for component attribution. The image definition requests `generic-release`, `generic-logos`, and `generic-release-notes` in place of Fedora's identity packages. Review the finished image's package manifest for each new release. The [redistribution review](docs/REDISTRIBUTION.md) records the Fedora Remix, RPM Fusion, codec, NVIDIA, font, and Proview conditions relevant to a release from Poland.
+
+### Steam packaging
+
+InfinitySetup installs Steam from RPM Fusion on x86_64, together with 32-bit and
+64-bit Mesa DRI, Vulkan Freeworld and VA-API Freeworld libraries. If an RPM Fusion
+NVIDIA driver is installed, its matching 32-bit libraries are installed too.
+Steam TV Mode starts the same native client in Gamescope. ARM64 retains the
+separate Valve ARM client. Proton versions managed by InfinityConfig are already
+installed into the native Steam compatibility-tools directory.
+
+When installing the RPM, Setup removes an existing Steam Flatpak only after the
+RPM installation succeeds. It does not migrate Flatpak games or settings.

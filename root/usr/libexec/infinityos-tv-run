@@ -48,16 +48,8 @@ case ${1:-} in
             run_steam "$client" -gamepadui -steamos3 -steampal -steamdeck
             exit $?
         fi
-        if flatpak info --user com.valvesoftware.Steam >/dev/null 2>&1; then
-            scope=--user
-        elif flatpak info --system com.valvesoftware.Steam >/dev/null 2>&1; then
-            scope=--system
-        else
-            echo 'Steam Flatpak is missing' >&2
-            exit 1
-        fi
-        # Allow TV power-menu actions through logind; authorization remains with polkit.
-        run_steam flatpak run "$scope" --system-talk-name=org.freedesktop.login1 com.valvesoftware.Steam -gamepadui -steamos3 -steampal -steamdeck
+        command -v steam >/dev/null 2>&1 || { echo 'Steam RPM is missing' >&2; exit 1; }
+        run_steam steam -gamepadui -steamos3 -steampal -steamdeck
         ;;
     *) echo 'Unknown TV mode' >&2; exit 2 ;;
 esac
