@@ -16,8 +16,8 @@ POLISH = {
     'The last system update failed. Retry the update or restore system and /var from Backups in the boot menu. /home is preserved.':
         'Ostatnia aktualizacja systemu nie powiodła się. Ponów aktualizację lub przywróć system i /var przez Backups w menu rozruchowym. /home zostaje zachowany.',
 
-    'Updates prepared. Restart to back up the system and /var, then install.':
-        'Aktualizacje przygotowane. Uruchom ponownie, aby wykonać kopię systemu i /var, a następnie zainstalować.',
+    'Updates downloaded, restart to update.':
+        'Aktualizacje pobrane, uruchom ponownie, aby zaktualizować.',
     'Infinity OS {version} prepared. Restart to back up and install.':
         'Infinity OS {version} przygotowany. Uruchom ponownie, aby wykonać kopię i zainstalować.',
     'After restart, system and /var are backed up before updating. /home is preserved.':

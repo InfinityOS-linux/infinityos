@@ -307,7 +307,7 @@ def main():
                 self.items.append(warning)
             offline = offline_status()
             if offline.get('pending'):
-                message = tr('Updates prepared. Restart to back up the system and /var, then install.')
+                message = tr('Updates downloaded, restart to update.')
             elif offline.get('status') == 'failed':
                 message = tr('The last system update failed. Retry the update or restore system and /var from Backups in the boot menu. /home is preserved.')
                 if offline.get('snapshot'):
@@ -449,7 +449,7 @@ def main():
                     GLib.idle_add(self.finish_error, str(error))
                 else:
                     notice = (tr('Some updates could not be installed.') if errors else
-                              tr('Updates prepared. Restart to back up the system and /var, then install.')
+                              tr('Updates downloaded, restart to update.')
                               if prepared else tr('Firmware updated. Restart may be required.')
                               if firmware_updated else tr('Updates installed.'))
                     GLib.idle_add(self.finish_refresh, state, notice)
