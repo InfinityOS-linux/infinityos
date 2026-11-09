@@ -1,0 +1,29 @@
+screen_width = 1024; screen_height = 768; loads = 0;
+Window.GetX = fun () { return 0; };
+Window.GetY = fun () { return 0; };
+Window.GetWidth = fun () { return global.screen_width; };
+Window.GetHeight = fun () { return global.screen_height; };
+Window.SetBackgroundTopColor = fun (r,g,b) {};
+Window.SetBackgroundBottomColor = fun (r,g,b) {};
+fun make_image(w,h) {
+    im=[]; im.width=w; im.height=h;
+    im.GetWidth=fun() { return this.width; };
+    im.GetHeight=fun() { return this.height; };
+    im.Scale=fun(w,h) { return make_image(w,h); };
+    return im;
+}
+Image=fun(name) { global.loads++; return make_image(480,270); };
+Sprite=fun() {
+    sp=[];
+    sp.SetImage=fun(im) { this.image=im; };
+    sp.SetPosition=fun(x,y,z) { this.x=x; this.y=y; };
+    sp.SetOpacity=fun(opacity) {};
+    return sp;
+};
+Plymouth.SetRefreshRate=fun(rate) {};
+Plymouth.SetRefreshFunction=fun(callback) {};
+Plymouth.SetDisplayNormalFunction=fun(callback) {};
+Plymouth.SetDisplayPasswordFunction=fun(callback) {};
+Plymouth.SetDisplayQuestionFunction=fun(callback) {};
+Plymouth.SetDisplayMessageFunction=fun(callback) {};
+Plymouth.SetHideMessageFunction=fun(callback) {};

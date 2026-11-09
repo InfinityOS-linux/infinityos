@@ -3,6 +3,10 @@ Window.SetBackgroundBottomColor(0, 0, 0);
 logo = Sprite();
 frame = 0;
 last_frame = -1;
+last_width = -1;
+# Shutdown can unmount the theme directory before playback finishes.
+frames = [];
+for (i = 0; i < 90; i++) frames[i] = Image("horizon-" + i + ".png");
 prompt_sprite = Sprite();
 answer_sprite = Sprite();
 message_sprite = Sprite();
@@ -17,15 +21,17 @@ fun centered_text(sprite, text, y)
 
 fun refresh()
 {
-    if (frame != last_frame) {
-        image = Image("horizon-" + frame + ".png");
-        width = Math.Min(480, Window.GetWidth()) * 0.6;
-        image = image.Scale(width, width * 270 / 480);
+    width = Math.Min(480, Window.GetWidth()) * 0.6;
+    if (width <= 0 || Window.GetHeight() <= 0) return;
+    if (frame != last_frame || width != last_width) {
+        image = frames[frame].Scale(width, width * 270 / 480);
         logo.SetImage(image);
-        logo.SetPosition(Window.GetX() + (Window.GetWidth() - image.GetWidth()) / 2,
-                         Window.GetY() + (Window.GetHeight() - image.GetHeight()) / 2, 0);
         global.last_frame = frame;
+        global.last_width = width;
     }
+    # The display can change after the animation has reached its final frame.
+    logo.SetPosition(Window.GetX() + (Window.GetWidth() - width) / 2,
+                     Window.GetY() + (Window.GetHeight() - width * 270 / 480) / 2, 0);
     # Hold the last frame; returning from a password prompt never restarts the intro.
     global.frame = Math.Min(frame + 1, 89);
 }
