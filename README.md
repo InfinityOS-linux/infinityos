@@ -91,6 +91,8 @@ and stops if any installed Infinity OS RPM comes from another commit. It also
 rejects uncommitted changes. Previously prepared KIWI roots are not release
 inputs; `kiwi-ng system create` on an old root can reproduce old applications.
 
+Each build resolves the latest stable Proview and Iosevka releases, requires upstream SHA-256 digests, and stages their matching license files. Exact versions, download URLs, and checksums are recorded inside the image at `/usr/share/infinityos/upstream-versions.json`. Resolution failure stops the build instead of falling back to an older release.
+
 Build a Live ISO from the repository root:
 
 ```sh

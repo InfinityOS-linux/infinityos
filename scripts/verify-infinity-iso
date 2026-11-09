@@ -42,6 +42,18 @@ import sys
 from pathlib import Path
 
 root = Path(sys.argv[1])
+import hashlib
+import json
+import platform
+upstream = json.loads((root / 'usr/share/infinityos/upstream-versions.json').read_text())
+arch = 'arm64' if platform.machine() == 'aarch64' else 'amd64'
+assets = upstream['proview']['assets']
+asset = next(value for name, value in assets.items() if name.endswith(f'-{arch}.AppImage'))
+with (root / 'opt/proview/Proview.AppImage').open('rb') as stream:
+    assert hashlib.file_digest(stream, 'sha256').hexdigest() == asset['sha256']
+font = next(iter(upstream['iosevka']['assets'].values()))
+assert (root / 'usr/share/fonts/Iosevka-Term/.source-sha256').read_text().strip() == font['sha256']
+print('Verified upstream release manifest and installed assets')
 # Every animation frame and its renderer must reach the image together.
 from struct import unpack
 for frame in range(90):

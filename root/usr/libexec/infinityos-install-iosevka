@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 set -euo pipefail
 
-checksum=1c0b8ac68ca210cc253c1833619d37ed2227d96fbdda0a36231375828b7bd6fb
+checksum=3bd57a66a7f1e429a131d3bc35f4d0f3a8eb722f2fe8f59f595e424bda9a33c9
 destination=/usr/share/fonts/Iosevka-Term
 install -d -m 0755 "$destination"
 if [[ -f "$destination/.source-sha256" ]] &&
@@ -16,7 +16,7 @@ fi
 archive=$(mktemp)
 trap 'rm -f "$archive"' EXIT
 curl --fail --location --retry 3 --output "$archive" \
-    https://github.com/be5invis/Iosevka/releases/download/v34.9.0/PkgTTF-IosevkaTerm-34.9.0.zip
+    https://github.com/be5invis/Iosevka/releases/download/v34.9.1/PkgTTF-IosevkaTerm-34.9.1.zip
 printf '%s  %s\n' "$checksum" "$archive" | sha256sum --check --status
 python3 - "$archive" <<'PY'
 from pathlib import Path

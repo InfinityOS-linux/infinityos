@@ -3,12 +3,12 @@ set -euo pipefail
 
 case "$(uname -m)" in
     aarch64)
-        asset=Proview-v1.4-linux-arm64.AppImage
-        checksum=6e53033875d7aa7a505c189813f5372c43f8e889f588e8907b85a4bc800e6cce
+        asset=Proview-v1.19-linux-arm64.AppImage
+        checksum=f27f9fd94694fb121e37067114cf59d2660b592ce77288d6c84d8c499537562f
         ;;
     x86_64)
-        asset=Proview-v1.4-linux-amd64.AppImage
-        checksum=028eae8e528b4f54583e06ba962355c09b032d6dd84f275e1d6cf5a3b57bd03a
+        asset=Proview-v1.19-linux-amd64.AppImage
+        checksum=5d334286d02a743bdad93513047323c73affbd0b3ff1ad68801ad7c4cd83be2a
         ;;
     *)
         echo "Unsupported Proview architecture: $(uname -m)" >&2
@@ -23,6 +23,6 @@ if [[ -f /opt/proview/Proview.AppImage ]] &&
     exit 0
 fi
 curl --fail --location --retry 3 --output /opt/proview/Proview.AppImage \
-    "https://github.com/emanuelelongo/proview/releases/download/v1.4/$asset"
+    "https://github.com/emanuelelongo/proview/releases/download/v1.19/$asset"
 printf '%s  %s\n' "$checksum" /opt/proview/Proview.AppImage | sha256sum --check --status
 chmod 0755 /opt/proview/Proview.AppImage

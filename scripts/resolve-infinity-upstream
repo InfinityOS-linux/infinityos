@@ -1,0 +1,85 @@
+#!/usr/bin/python3
+"""Resolve stable upstream assets into a disposable KIWI source archive."""
+import json
+from pathlib import Path
+import re
+import sys
+from urllib.request import Request, urlopen
+
+
+def fetch(url):
+    request = Request(url, headers={'User-Agent': 'InfinityOS-image-builder'})
+    with urlopen(request, timeout=60) as response:
+        data = response.read(4 * 1024 * 1024 + 1)
+    if len(data) > 4 * 1024 * 1024:
+        raise ValueError(f'Oversized upstream metadata: {url}')
+    return data
+
+
+def resolve(repo, names):
+    release = json.loads(fetch(f'https://api.github.com/repos/{repo}/releases/latest'))
+    tag = release['tag_name']
+    if release['draft'] or release['prerelease'] or not re.fullmatch(r'v?\d[\w.-]*', tag):
+        raise ValueError(f'Not a supported stable release: {repo} {tag}')
+    assets = {}
+    for name in names(tag.removeprefix('v')):
+        matches = [item for item in release['assets'] if item['name'] == name]
+        if len(matches) != 1:
+            raise ValueError(f'Missing or ambiguous release asset: {name}')
+        asset = matches[0]
+        digest = asset.get('digest') or ''
+        url = asset['browser_download_url']
+        if not re.fullmatch(r'sha256:[0-9a-f]{64}', digest):
+            raise ValueError(f'Missing trusted SHA-256: {name}')
+        if url != f'https://github.com/{repo}/releases/download/{tag}/{name}':
+            raise ValueError(f'Unexpected asset URL: {url}')
+        assets[name] = {'sha256': digest[7:], 'url': url}
+    return {'repository': repo, 'tag': tag, 'assets': assets}
+
+
+def stage(root, proview, iosevka):
+    libexec = root / 'root/usr/libexec'
+    path = libexec / 'infinityos-install-proview'
+    text = path.read_text()
+    version = proview['tag'].removeprefix('v')
+    def replace_asset(match):
+        name = f'Proview-v{version}-linux-{match[1]}.AppImage'
+        return f'asset={name}\n        checksum={proview["assets"][name]["sha256"]}'
+    text, count = re.subn(r'asset=Proview-v[\w.-]+-linux-(arm64|amd64)\.AppImage\n        checksum=[0-9a-f]{64}', replace_asset, text)
+    if count != 2:
+        raise ValueError('Proview installer format changed')
+    text, count = re.subn(r'proview/releases/download/[^/]+/\$asset', f'proview/releases/download/{proview["tag"]}/$asset', text)
+    if count != 1:
+        raise ValueError('Proview download URL missing')
+    path.write_text(text)
+
+    path = libexec / 'infinityos-install-iosevka'
+    name, asset = next(iter(iosevka['assets'].items()))
+    text, count = re.subn(r'^checksum=[0-9a-f]{64}$', f'checksum={asset["sha256"]}', path.read_text(), flags=re.M)
+    if count != 1:
+        raise ValueError('Iosevka checksum missing')
+    text, count = re.subn(r'https://github.com/be5invis/Iosevka/releases/download/\S+', asset['url'], text)
+    if count != 1:
+        raise ValueError('Iosevka download URL missing')
+    path.write_text(text)
+    manifest = root / 'root/usr/share/infinityos/upstream-versions.json'
+    manifest.parent.mkdir(parents=True, exist_ok=True)
+    manifest.write_text(json.dumps({'proview': proview, 'iosevka': iosevka}, indent=2) + '\n')
+
+
+def main():
+    root = Path(sys.argv[1]).resolve()
+    proview = resolve('emanuelelongo/proview', lambda v: [f'Proview-v{v}-linux-{a}.AppImage' for a in ('arm64', 'amd64')])
+    iosevka = resolve('be5invis/Iosevka', lambda v: [f'PkgTTF-IosevkaTerm-{v}.zip'])
+    for component, release, license_name in [('proview', proview, 'LICENSE'), ('iosevka', iosevka, 'LICENSE.md')]:
+        license_text = fetch(f'https://raw.githubusercontent.com/{release["repository"]}/{release["tag"]}/{license_name}')
+        if not license_text.strip():
+            raise ValueError(f'Empty upstream license: {component}')
+        destination = root / f'root/usr/share/licenses/infinityos-{component}' / ('LICENSE.txt' if component == 'proview' else 'LICENSE.md')
+        destination.write_bytes(license_text)
+    stage(root, proview, iosevka)
+    print(f'Latest stable upstream releases: Proview {proview["tag"]}, Iosevka {iosevka["tag"]}')
+
+
+if __name__ == '__main__':
+    main()
