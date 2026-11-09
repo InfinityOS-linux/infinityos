@@ -260,7 +260,7 @@ class UpdaterTests(unittest.TestCase):
                                              {'kind': 'Firmware'}])
         self.assertEqual(commands[0][1], ['pkexec', '/usr/libexec/infinityos-upgrade-system'])
         self.assertEqual(commands[1][1][:3], ['flatpak', 'update', '--user'])
-        self.assertEqual(commands[2][1], ['pkexec', 'fwupdmgr', 'update', '--assume-yes',
+        self.assertEqual(commands[2][1], ['pkexec', '/usr/bin/fwupdmgr', 'update', '--assume-yes',
                                           '--no-reboot-check'])
         self.assertEqual(len(commands), 3)
 

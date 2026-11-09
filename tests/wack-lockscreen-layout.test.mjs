@@ -13,7 +13,7 @@ const WackLayout = runInNewContext(`${source}\nWackLayout`, {
     CUPERTINO_PROMPT_VERTICAL_FRACTION: 0.9575,
 });
 
-function stackPosition(stackHeight) {
+function stackPosition(stackHeight, height = 1080, allocatedWellHeight = 180, naturalWellHeight = 180) {
     let allocated;
     const stack = {
         get_preferred_size: () => [0, 0, 300, stackHeight],
@@ -26,9 +26,9 @@ function stackPosition(stackHeight) {
     const layout = new WackLayout();
     layout._init({
         _lockscreenMode: 'cupertino',
-        _cupertinoRestPrompt: { _userWell: { get_height: () => 180 } },
+        _cupertinoRestPrompt: { _userWell: { get_height: () => allocatedWellHeight, get_preferred_size: () => [0, 0, 80, naturalWellHeight] } },
     }, stack, notifications, null);
-    layout.vfunc_allocate(null, { get_size: () => [1000, 1080] });
+    layout.vfunc_allocate(null, { get_size: () => [1280, height] });
     return allocated.y1;
 }
 
@@ -78,4 +78,18 @@ test('Cupertino reserves independent space for password visibility and submit/sp
     assert.match(rule('.wack-cupertino-prompt .login-dialog-prompt-entry:rtl'), /padding-left: 3em/);
     assert.match(rule('.wack-cupertino-prompt .login-dialog-default-button-well'), /width: 24px/);
     assert.match(rule('.wack-cupertino-prompt .login-dialog-button.next-button'), /padding: 0 !important/);
+});
+
+test('Cupertino avatar anchor ignores inflated previous allocations on short screens', () => {
+    for (const height of [600, 720, 768, 1080]) {
+        const normal = stackPosition(200, height, 96, 96);
+        assert.equal(stackPosition(200, height, 420, 96), normal);
+        assert.equal(stackPosition(200, height, 0, 96), normal);
+        assert.ok(normal >= height / 2);
+        assert.ok(normal + 200 <= height - 24);
+    }
+});
+
+test('Cupertino initial missing avatar measurement does not anchor to the whole prompt', () => {
+    assert.equal(stackPosition(240, 720, 0, 0), stackPosition(240, 720, 96, 96));
 });

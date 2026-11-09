@@ -96,13 +96,13 @@ def install_commands(updates):
             commands.append((item['name'], ['python3',
                 '/usr/share/infinityos/updater/github_update.py', item['source']]))
     if 'Flatpak system' in kinds:
-        commands.append(('System Flatpaks', ['pkexec', 'flatpak', 'update',
+        commands.append(('System Flatpaks', ['pkexec', '/usr/bin/flatpak', 'update',
                                               '--system', '--noninteractive', '--assumeyes']))
     if 'Flatpak user' in kinds:
         commands.append(('Your Flatpaks', ['flatpak', 'update', '--user',
                                             '--noninteractive', '--assumeyes']))
     if 'Firmware' in kinds:
-        commands.append(('Device firmware', ['pkexec', 'fwupdmgr', 'update',
+        commands.append(('Device firmware', ['pkexec', '/usr/bin/fwupdmgr', 'update',
                                              '--assume-yes', '--no-reboot-check']))
     return commands
 

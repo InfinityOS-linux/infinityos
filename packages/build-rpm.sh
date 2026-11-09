@@ -44,6 +44,8 @@ elif [[ "$package" == infinityos-wallpapers ]]; then
     "$work/source/$package-$version/etc/dconf/db/gdm.d"
   cp -a "$repo/root/usr/share/backgrounds/infinityos/." \
     "$work/source/$package-$version/usr/share/backgrounds/infinityos/"
+  install -Dm 0644 "$repo/root/usr/share/infinityos/login-logo.svg" \
+    "$work/source/$package-$version/usr/share/infinityos/login-logo.svg"
   install -m 0644 "$repo/root/etc/dconf/db/gdm.d/00-infinityos" \
     "$work/source/$package-$version/etc/dconf/db/gdm.d/00-infinityos"
   install -m 0755 "$repo/root/usr/libexec/infinityos-style-gdm" \

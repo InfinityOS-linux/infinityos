@@ -36,6 +36,7 @@ rm -f /usr/share/gnome-background-properties/adwaita.xml
 %license /usr/share/licenses/infinityos-wallpapers/COPYING
 /usr/share/infinityos/build-revisions/infinityos-wallpapers
 /usr/share/backgrounds/infinityos/
+/usr/share/infinityos/login-logo.svg
 /usr/share/gnome-background-properties/00-infinityos.xml
 /etc/dconf/db/gdm.d/00-infinityos
 /usr/libexec/infinityos-style-gdm

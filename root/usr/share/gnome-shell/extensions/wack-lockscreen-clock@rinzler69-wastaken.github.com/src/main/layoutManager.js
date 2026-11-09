@@ -46,15 +46,10 @@ class WackLayout extends Clutter.LayoutManager {
         let stackY;
 
         if (this._extension._lockscreenMode === 'cupertino') {
-            // Anchor well height to allocation or preferred size with stack fallback
-            const restPrompt = this._extension._cupertinoRestPrompt;
-            const userWell = restPrompt?._userWell;
-            
-            let wellH = userWell?.get_height() ?? 0;
-            if (wellH === 0) {
-                const [, , , preferredH] = userWell ? userWell.get_preferred_size() : [0, 0, 0, 0];
-                wellH = preferredH > 0 ? preferredH : stackHeight;
-            }
+            // Use content size: the previous allocation can grow during authentication.
+            const userWell = this._extension._cupertinoRestPrompt?._userWell;
+            const [, , , preferredH] = userWell?.get_preferred_size() ?? [0, 0, 0, 0];
+            const wellH = preferredH > 0 ? preferredH : 96;
 
             const anchorH = Math.floor(wellH * 1.3);
             // Keep multi-line authentication errors above the bottom edge.

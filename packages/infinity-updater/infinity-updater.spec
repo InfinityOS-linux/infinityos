@@ -44,6 +44,7 @@ systemctl --global enable infinity-updater.timer >/dev/null 2>&1 || :
 %license /usr/share/licenses/infinity-updater/COPYING
 /usr/share/infinityos/build-revisions/infinity-updater
 /usr/bin/infinity-updater
+/usr/share/polkit-1/rules.d/49-infinityos-updater.rules
 /usr/libexec/infinityos-upgrade-system
 /usr/libexec/infinityos-offline-update
 /usr/libexec/infinityos-backups-*

@@ -32,6 +32,7 @@ export default class InfinityTerminal extends Extension {
         this._resizeCursor = false;
         this._lastEdgePress = null;
         this._resizeGrab = null;
+        this._resizeTick = 0;
         this._resizeHandle = new St.Widget({reactive: true, visible: false,
             accessible_name: 'Resize InfinityTerminal', can_focus: false});
         Main.layoutManager.addChrome(this._resizeHandle);
@@ -165,9 +166,7 @@ export default class InfinityTerminal extends Extension {
         Main.overview.disconnect(this._overviewShowingId);
         global.stage.disconnect(this._gestureEventId);
         global.stage.disconnect(this._resizeEventId);
-        this._resize = null;
-        this._resizeGrab?.dismiss();
-        this._resizeGrab = null;
+        this._finishResize(false);
         Main.layoutManager.removeChrome(this._resizeHandle);
         this._resizeHandle.destroy();
         this._resizeHandle = null;
@@ -224,9 +223,9 @@ export default class InfinityTerminal extends Extension {
         if (this._resizeCursor === active)
             return;
         this._resizeCursor = active;
-        global.display.set_cursor(active
-            ? (Meta.Cursor.SOUTH_RESIZE ?? Meta.Cursor.S_RESIZE)
-            : Meta.Cursor.DEFAULT);
+        this._resizeHandle?.set_cursor_type(active
+            ? Clutter.CursorType.NS_RESIZE
+            : Clutter.CursorType.DEFAULT);
     }
 
     _syncResizeHandle() {
@@ -243,26 +242,47 @@ export default class InfinityTerminal extends Extension {
         }
     }
 
+    _finishResize(save = true) {
+        const resize = this._resize;
+        this._resize = null;
+        if (this._resizeTick) {
+            GLib.Source.remove(this._resizeTick);
+            this._resizeTick = 0;
+        }
+        // Release input before settings or window calls that might throw.
+        const grab = this._resizeGrab;
+        this._resizeGrab = null;
+        grab?.dismiss();
+        this._setResizeCursor(false);
+        if (save && resize) {
+            const monitor = Main.layoutManager.primaryMonitor;
+            if (monitor)
+                this._settings.set_double('height-ratio',
+                    (this._fullHeight ? monitor.height - Main.panel.height
+                        : resize.window.get_frame_rect().height) / monitor.height);
+        }
+    }
+
     _handleResize(event) {
         const type = event.type();
         if (this._resize) {
-            if (type === Clutter.EventType.MOTION) {
-                this._resizeTo(event.get_coords()[1]);
+            if (type === Clutter.EventType.BUTTON_RELEASE && event.get_button() === 1) {
+                try {
+                    this._resizeTo(event.get_coords()[1]);
+                } finally {
+                    this._finishResize();
+                }
                 return Clutter.EVENT_STOP;
             }
-            if (type === Clutter.EventType.BUTTON_RELEASE && event.get_button() === 1) {
-                const monitor = Main.layoutManager.primaryMonitor;
-                if (monitor) {
-                    const height = this._fullHeight
-                        ? monitor.height - Main.panel.height
-                        : this._resize.window.get_frame_rect().height;
-                    this._settings.set_double('height-ratio', height / monitor.height);
+            if (type === Clutter.EventType.MOTION) {
+                if (!(event.get_state() & Clutter.ModifierType.BUTTON1_MASK)) {
+                    this._finishResize();
+                    return Clutter.EVENT_PROPAGATE;
                 }
-                this._resize = null;
-                this._resizeGrab?.dismiss();
-                this._resizeGrab = null;
-                this._syncResizeHandle();
-                this._setResizeCursor(false);
+                return Clutter.EVENT_STOP;
+            }
+            if (type === Clutter.EventType.KEY_PRESS && event.get_key_symbol() === Clutter.KEY_Escape) {
+                this._finishResize();
                 return Clutter.EVENT_STOP;
             }
             return Clutter.EVENT_PROPAGATE;
@@ -273,7 +293,8 @@ export default class InfinityTerminal extends Extension {
         const window = this._findWindow();
         const [x, y] = event.get_coords();
         const rect = window && !window.minimized ? window.get_frame_rect() : null;
-        const edge = !Main.overview.visible && rect && x >= rect.x && x < rect.x + rect.width &&
+        const edge = !Main.overview.visible && this._resizeHandle?.visible && rect &&
+            x >= rect.x && x < rect.x + rect.width &&
             y >= rect.y + rect.height - RESIZE_EDGE && y < rect.y + rect.height;
         this._setResizeCursor(!!edge);
         if (!edge || type !== Clutter.EventType.BUTTON_PRESS || event.get_button() !== 1)
@@ -282,21 +303,38 @@ export default class InfinityTerminal extends Extension {
         const time = event.get_time();
         this._lastEdgePress = {time, x, y};
         this._resize = {window, offset: rect.y + rect.height - y};
-        this._resizeGrab = global.stage.grab(this._resizeHandle);
-        if (previous && time - previous.time >= 0 && time - previous.time < 400 &&
-            Math.hypot(x - previous.x, y - previous.y) < 8) {
-            const monitor = Main.layoutManager.primaryMonitor;
-            if (monitor) {
-                this._resizeTo(monitor.y + monitor.height);
-                this._settings.set_double('height-ratio',
-                    (monitor.height - Main.panel.height) / monitor.height);
+        try {
+            this._resizeGrab = global.stage.grab(this._resizeHandle);
+            if (previous && time - previous.time >= 0 && time - previous.time < 400 &&
+                Math.hypot(x - previous.x, y - previous.y) < 8) {
+                const monitor = Main.layoutManager.primaryMonitor;
+                if (monitor)
+                    this._resizeTo(monitor.y + monitor.height);
+                this._lastEdgePress = null;
+                this._finishResize();
+            } else {
+                // Poll the current pointer once per frame, not every queued motion event.
+                this._resizeTick = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 16, () => {
+                    const [, pointerY, state] = global.get_pointer();
+                    if (!(state & Clutter.ModifierType.BUTTON1_MASK)) {
+                        this._resizeTick = 0;
+                        this._finishResize();
+                        return GLib.SOURCE_REMOVE;
+                    }
+                    try {
+                        this._resizeTo(pointerY);
+                    } catch (error) {
+                        this._resizeTick = 0;
+                        this._finishResize(false);
+                        console.error('InfinityTerminal resize failed', error);
+                        return GLib.SOURCE_REMOVE;
+                    }
+                    return GLib.SOURCE_CONTINUE;
+                });
             }
-            this._resize = null;
-            this._resizeGrab?.dismiss();
-            this._resizeGrab = null;
-            this._syncResizeHandle();
-            this._lastEdgePress = null;
-            this._setResizeCursor(false);
+        } catch (error) {
+            this._finishResize(false);
+            console.error('InfinityTerminal resize failed', error);
         }
         return Clutter.EVENT_STOP;
     }
@@ -315,8 +353,9 @@ export default class InfinityTerminal extends Extension {
         } else {
             if (this._fullHeight)
                 this._resize.window.unmaximize(Meta.MaximizeFlags.BOTH);
-            this._resize.window.move_resize_frame(true, monitor.x, top, monitor.width, height);
-            this._resize.window.move_frame(true, monitor.x, top);
+            const rect = this._resize.window.get_frame_rect();
+            if (rect.x !== monitor.x || rect.y !== top || rect.width !== monitor.width || rect.height !== height)
+                this._resize.window.move_resize_frame(true, monitor.x, top, monitor.width, height);
         }
         this._fullHeight = full;
         this._syncResizeHandle();
@@ -370,6 +409,7 @@ export default class InfinityTerminal extends Extension {
     }
 
     _hideForOverview() {
+        this._finishResize();
         if (this._resizeHandle) this._resizeHandle.visible = false;
         this._pendingShow = false;
         const window = this._findWindow();
@@ -492,9 +532,7 @@ export default class InfinityTerminal extends Extension {
                 this._sourceId = 0;
             }
             this._window = null;
-            this._resize = null;
-            this._resizeGrab?.dismiss();
-            this._resizeGrab = null;
+            this._finishResize(false);
             this._syncResizeHandle();
             this._setResizeCursor(false);
             this._icon.opacity = 112;
@@ -606,6 +644,7 @@ export default class InfinityTerminal extends Extension {
     }
 
     _hide(window) {
+        this._finishResize();
         if (this._resizeHandle) this._resizeHandle.visible = false;
         if (this._firstFrame && window === this._window) {
             this._pendingShow = false;

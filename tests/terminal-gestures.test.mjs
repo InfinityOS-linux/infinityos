@@ -20,6 +20,7 @@ function fixture(open = false) {
             TouchpadGesturePhase: {BEGIN: 0, UPDATE: 1, END: 2, CANCEL: 3},
             EVENT_STOP: true, EVENT_PROPAGATE: false},
     });
+    controller._resizeCursor = false;
     controller._findWindow = () => window;
     controller._hide = () => {events.push('hide'); window.minimized = true;};
     controller._showTerminal = () => {events.push('show'); window.minimized = false;};
