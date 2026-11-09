@@ -21,6 +21,7 @@ tar -xzf "$archive" -C "$work/source"
 patch -d "$work/source/ghostty-1.3.1" -p1 < "$repo/ghostty/ghostty-1.3.1-infinity.patch"
 patch -d "$work/source/ghostty-1.3.1" -p1 < "$repo/ghostty/ghostty-1.3.1-native-controls.patch"
 patch -d "$work/source/ghostty-1.3.1" -p1 < "$repo/ghostty/ghostty-1.3.1-single-window.patch"
+patch -d "$work/source/ghostty-1.3.1" -p1 < "$repo/ghostty/ghostty-1.3.1-preferences.patch"
 rm -f "$work/source/ghostty-1.3.1/src/apprt/gtk/ghostty_resources.c" \
 	"$work/source/ghostty-1.3.1/src/apprt/gtk/ghostty_resources.h"
 

@@ -14,4 +14,5 @@ export GHOSTTY_RESOURCES_DIR=/usr/share/ghostty
 if [ "$(systemd-detect-virt)" = parallels ]; then
 	export LIBGL_ALWAYS_SOFTWARE=1
 fi
-exec /usr/libexec/infinityos/ghostty --config-file=/usr/share/infinityos/ghostty/config "$@"
+exec /usr/libexec/infinityos/ghostty --config-file=/usr/share/infinityos/ghostty/config \
+    --config-file="?${XDG_CONFIG_HOME:-$HOME/.config}/infinityos/terminal.conf" "$@"

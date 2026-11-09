@@ -1,0 +1,63 @@
+--- a/src/apprt/gtk/class/application.zig
++++ b/src/apprt/gtk/class/application.zig
+@@ -2298,18 +2298,19 @@
+     }
+ 
+     pub fn openConfig(self: *Application) bool {
+-        // Get the config file path
+-        const alloc = self.allocator();
+-        const path = configpkg.edit.openPath(alloc) catch |err| {
+-            log.warn("error getting config file path: {}", .{err});
++        const result = std.process.Child.run(.{
++            .allocator = self.allocator(),
++            .argv = &.{ "gnome-extensions", "prefs", "ghostty@infinityos.org" },
++        }) catch |err| {
++            log.warn("could not open InfinityTerminal preferences: {}", .{err});
+             return false;
+         };
+-        defer alloc.free(path);
+-
+-        // Open it using openURL. "path" isn't actually a URL but
+-        // at the time of writing that works just fine for GTK.
+-        openUrl(self, .{ .kind = .text, .url = path });
+-        return true;
++        defer self.allocator().free(result.stdout);
++        defer self.allocator().free(result.stderr);
++        return switch (result.term) {
++            .Exited => |code| code == 0,
++            else => false,
++        };
+     }
+ 
+     pub fn openUrl(
+--- a/src/apprt/gtk/ui/1.2/surface.blp
++++ b/src/apprt/gtk/ui/1.2/surface.blp
+@@ -354,18 +354,13 @@
+   }
+ 
+   section {
+-    submenu {
+-      label: _("Config");
+-
+-      item {
+-        label: _("Open Configuration");
+-        action: "app.open-config";
+-      }
+-
+-      item {
+-        label: _("Reload Configuration");
+-        action: "app.reload-config";
+-      }
+-    }
+-  }
+-}
++    item {
++      label: _("Preferences…");
++      action: "app.open-config";
++    }
++    item {
++      label: _("Reload Configuration");
++      action: "app.reload-config";
++    }
++  }
++}

@@ -30,6 +30,11 @@ export default class InfinityTerminal extends Extension {
         this._pendingWindows = new Map();
         this._resize = null;
         this._resizeCursor = false;
+        this._lastEdgePress = null;
+        this._resizeGrab = null;
+        this._resizeHandle = new St.Widget({reactive: true, visible: false,
+            accessible_name: 'Resize InfinityTerminal', can_focus: false});
+        Main.layoutManager.addChrome(this._resizeHandle);
         this._fullHeight = false;
         this._indicator = new PanelMenu.Button(0.0, 'Show or hide InfinityTerminal', true);
         this._indicator.accessible_role = Atk.Role.PUSH_BUTTON;
@@ -63,8 +68,8 @@ export default class InfinityTerminal extends Extension {
         this._isOverviewWindow = isOverviewWindow;
         this._filteredOverviewWindow = function (window) {
             return isOverviewWindow.call(this, window) &&
-                !(window.minimized && (window.get_gtk_application_id?.() === APP_ID ||
-                    window.get_wm_class?.() === APP_ID));
+                !(window.get_gtk_application_id?.() === APP_ID ||
+                    window.get_wm_class?.() === APP_ID);
         };
         Workspace.Workspace.prototype._isOverviewWindow = this._filteredOverviewWindow;
         Main.wm.addKeybinding(KEYBINDING, this._settings,
@@ -72,6 +77,7 @@ export default class InfinityTerminal extends Extension {
         this._touchpadSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.peripherals.touchpad'});
         this._gesture = null;
         this._overviewHiddenId = 0;
+        this._overviewShowingId = Main.overview.connect('showing', () => this._hideForOverview());
         this._gestureEventId = global.stage.connect('captured-event',
             (_stage, event) => this._handleGesture(event));
         this._resizeEventId = global.stage.connect('captured-event',
@@ -156,9 +162,15 @@ export default class InfinityTerminal extends Extension {
         if (this._overviewHiddenId)
             Main.overview.disconnect(this._overviewHiddenId);
         this._overviewHiddenId = 0;
+        Main.overview.disconnect(this._overviewShowingId);
         global.stage.disconnect(this._gestureEventId);
         global.stage.disconnect(this._resizeEventId);
         this._resize = null;
+        this._resizeGrab?.dismiss();
+        this._resizeGrab = null;
+        Main.layoutManager.removeChrome(this._resizeHandle);
+        this._resizeHandle.destroy();
+        this._resizeHandle = null;
         this._setResizeCursor(false);
         if (this._reversedWorkspaceUpdateId)
             this._workspaceTouchpad.disconnect(this._reversedWorkspaceUpdateId);
@@ -217,6 +229,20 @@ export default class InfinityTerminal extends Extension {
             : Meta.Cursor.DEFAULT);
     }
 
+    _syncResizeHandle() {
+        if (!this._resizeHandle)
+            return;
+        const window = this._findWindow();
+        const visible = window && !window.minimized && !this._firstFrame &&
+            !Main.overview.visible && window.get_compositor_private()?.opacity > 0;
+        this._resizeHandle.visible = !!visible;
+        if (visible) {
+            const rect = window.get_frame_rect();
+            this._resizeHandle.set_position(rect.x, rect.y + rect.height - RESIZE_EDGE);
+            this._resizeHandle.set_size(rect.width, RESIZE_EDGE);
+        }
+    }
+
     _handleResize(event) {
         const type = event.type();
         if (this._resize) {
@@ -233,6 +259,9 @@ export default class InfinityTerminal extends Extension {
                     this._settings.set_double('height-ratio', height / monitor.height);
                 }
                 this._resize = null;
+                this._resizeGrab?.dismiss();
+                this._resizeGrab = null;
+                this._syncResizeHandle();
                 this._setResizeCursor(false);
                 return Clutter.EVENT_STOP;
             }
@@ -244,12 +273,31 @@ export default class InfinityTerminal extends Extension {
         const window = this._findWindow();
         const [x, y] = event.get_coords();
         const rect = window && !window.minimized ? window.get_frame_rect() : null;
-        const edge = rect && x >= rect.x && x < rect.x + rect.width &&
+        const edge = !Main.overview.visible && rect && x >= rect.x && x < rect.x + rect.width &&
             y >= rect.y + rect.height - RESIZE_EDGE && y < rect.y + rect.height;
         this._setResizeCursor(!!edge);
         if (!edge || type !== Clutter.EventType.BUTTON_PRESS || event.get_button() !== 1)
             return Clutter.EVENT_PROPAGATE;
+        const previous = this._lastEdgePress;
+        const time = event.get_time();
+        this._lastEdgePress = {time, x, y};
         this._resize = {window, offset: rect.y + rect.height - y};
+        this._resizeGrab = global.stage.grab(this._resizeHandle);
+        if (previous && time - previous.time >= 0 && time - previous.time < 400 &&
+            Math.hypot(x - previous.x, y - previous.y) < 8) {
+            const monitor = Main.layoutManager.primaryMonitor;
+            if (monitor) {
+                this._resizeTo(monitor.y + monitor.height);
+                this._settings.set_double('height-ratio',
+                    (monitor.height - Main.panel.height) / monitor.height);
+            }
+            this._resize = null;
+            this._resizeGrab?.dismiss();
+            this._resizeGrab = null;
+            this._syncResizeHandle();
+            this._lastEdgePress = null;
+            this._setResizeCursor(false);
+        }
         return Clutter.EVENT_STOP;
     }
 
@@ -271,6 +319,7 @@ export default class InfinityTerminal extends Extension {
             this._resize.window.move_frame(true, monitor.x, top);
         }
         this._fullHeight = full;
+        this._syncResizeHandle();
     }
 
     _handleGesture(event) {
@@ -281,7 +330,9 @@ export default class InfinityTerminal extends Extension {
 
         const phase = event.get_gesture_phase();
         if (phase === Clutter.TouchpadGesturePhase.BEGIN) {
-            this._gesture = {dx: 0, dy: 0, direction: null};
+            const window = this._findWindow();
+            this._gesture = {dx: 0, dy: 0, direction: null,
+                terminalOpen: this._pendingShow || !!(window && !window.minimized)};
             return Clutter.EVENT_PROPAGATE;
         }
         if (!this._gesture)
@@ -294,21 +345,51 @@ export default class InfinityTerminal extends Extension {
             this._gesture.dy += dy;
             const {dx: totalX, dy: totalY} = this._gesture;
             if (Math.hypot(totalX, totalY) >= SWIPE_DISTANCE)
-                this._gesture.direction = totalY > 0 &&
-                    Math.abs(totalY) > Math.abs(totalX) * 1.25 ? 'down' : 'other';
+                this._gesture.direction = Math.abs(totalY) > Math.abs(totalX) * 1.25
+                    ? (totalY > 0 ? 'down' : 'up') : 'other';
         }
 
-        const handled = this._gesture.direction === 'down';
+        const {direction, terminalOpen} = this._gesture;
+        const handled = direction === 'down' || (direction === 'up' && terminalOpen);
         if (phase === Clutter.TouchpadGesturePhase.END ||
             phase === Clutter.TouchpadGesturePhase.CANCEL) {
             this._gesture = null;
-            if (handled && phase === Clutter.TouchpadGesturePhase.END)
-                this._finishDownGesture();
+            if (handled && phase === Clutter.TouchpadGesturePhase.END) {
+                if (direction === 'down') {
+                    this._finishDownGesture(terminalOpen);
+                } else {
+                    this._pendingShow = false;
+                    const window = this._findWindow();
+                    if (window && !window.minimized)
+                        this._hide(window);
+                    Main.overview.hide();
+                }
+            }
         }
         return handled ? Clutter.EVENT_STOP : Clutter.EVENT_PROPAGATE;
     }
 
-    _finishDownGesture() {
+    _hideForOverview() {
+        if (this._resizeHandle) this._resizeHandle.visible = false;
+        this._pendingShow = false;
+        const window = this._findWindow();
+        if (!window || window.minimized)
+            return;
+        const actor = window.get_compositor_private();
+        if (actor) {
+            actor.remove_all_transitions();
+            Main.wm.skipNextEffect(actor);
+            actor.translation_y = 0;
+        }
+        window.minimize();
+    }
+
+    _finishDownGesture(terminalOpen = false) {
+        if (terminalOpen) {
+            this._hideForOverview();
+            Main.overview.show();
+            return;
+        }
         const controls = Main.overview._overview.controls;
         const appGridOpen = Main.overview.visible &&
             (controls.dash?.showAppsButton?.checked ?? controls._stateAdjustment.value > 1.5);
@@ -385,8 +466,8 @@ export default class InfinityTerminal extends Extension {
             this._window?.disconnect(id);
         this._window = window;
         this._geometryIds = [
-            window.connect('position-changed', () => this._enforcePlacement(window)),
-            window.connect('size-changed', () => this._enforcePlacement(window)),
+            window.connect('position-changed', () => { this._enforcePlacement(window); this._syncResizeHandle(); }),
+            window.connect('size-changed', () => { this._enforcePlacement(window); this._syncResizeHandle(); }),
         ];
         if (fresh) {
             const actor = window.get_compositor_private();
@@ -400,6 +481,7 @@ export default class InfinityTerminal extends Extension {
         }
         this._icon.opacity = window.minimized ? 112 : 255;
         this._minimizedId = window.connect('notify::minimized', () => {
+            this._syncResizeHandle();
             this._icon.opacity = window.minimized ? 112 : 255;
             Main.overview._overview.controls._workspacesDisplay._updateWorkspacesViews();
         });
@@ -411,6 +493,9 @@ export default class InfinityTerminal extends Extension {
             }
             this._window = null;
             this._resize = null;
+            this._resizeGrab?.dismiss();
+            this._resizeGrab = null;
+            this._syncResizeHandle();
             this._setResizeCursor(false);
             this._icon.opacity = 112;
             this._unmanagedId = 0;
@@ -477,6 +562,7 @@ export default class InfinityTerminal extends Extension {
         this._fullHeight = isFullHeight(monitor.height, Main.panel.height, height);
         if (this._fullHeight)
             window.maximize(Meta.MaximizeFlags.BOTH);
+        this._syncResizeHandle();
     }
 
     _toggle() {
@@ -512,13 +598,15 @@ export default class InfinityTerminal extends Extension {
             const actor = window.get_compositor_private();
             if (actor) {
                 actor.ease({translation_y: 0, duration: 250,
-                    mode: Clutter.AnimationMode.EASE_IN_CUBIC});
+                    mode: Clutter.AnimationMode.EASE_IN_CUBIC,
+                    onComplete: () => this._syncResizeHandle()});
             }
             return GLib.SOURCE_REMOVE;
         });
     }
 
     _hide(window) {
+        if (this._resizeHandle) this._resizeHandle.visible = false;
         if (this._firstFrame && window === this._window) {
             this._pendingShow = false;
             return;

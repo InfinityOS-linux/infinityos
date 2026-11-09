@@ -17,12 +17,12 @@ function startup(username, initial = 0) {
     let starts = 0;
     const context = vm.createContext({
         Extension: class {getSettings() { return settings; }},
-        Atk: {Role: {}}, St: {Icon: Widget}, PanelMenu: {Button: Widget},
+        Atk: {Role: {}}, St: {Icon: Widget, Widget}, PanelMenu: {Button: Widget},
         Clutter: {ClickGesture: Widget}, Meta: {KeyBindingFlags: {}},
         GLib: {get_user_name: () => username},
         Gio: {Settings: class {}, Subprocess: {new() { starts++; }}, SubprocessFlags: {}},
         Shell: {AppSystem, ActionMode: {}}, Workspace: {Workspace},
-        Main: {panel: {addToStatusArea() {}}, wm: {addKeybinding() {}}},
+        Main: {layoutManager: {addChrome() {}}, overview: new Widget(), panel: {addToStatusArea() {}}, wm: {addKeybinding() {}}},
         global: {stage: new Widget(), display: new Widget(), get_window_actors: () => []},
     });
     vm.runInContext(source + '\nglobalThis.controller = new InfinityTerminal(); controller.enable();', context);
