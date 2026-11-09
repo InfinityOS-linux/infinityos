@@ -45,3 +45,10 @@ Five Fedora extension snapshots and the GNOME 51 Caffeine release above are stor
 The bundled Flathub remote descriptor (`root/etc/flatpak/remotes.d/flathub.flatpakrepo`) and signing key come from https://flathub.org/repo/flathub.flatpakrepo (retrieved 2026-10-12; SHA-256 `3371dd250e61d9e1633630073fefda153cd4426f72f4afa0c3373ae2e8fea03a`). No Flathub applications are bundled.
 
 Image builds resolve the latest stable Proview and Iosevka releases. The versions above describe the checked-in installer defaults; `/usr/share/infinityos/upstream-versions.json` in each image records the actual upstream tags, source repositories, download URLs, and checksums. Corresponding Source links for distributed images must use those recorded tags.
+
+### Warp panel icon
+
+`warp-symbolic.svg` is from [GNOME Warp](https://gitlab.gnome.org/World/warp),
+`data/icons/app.drey.Warp-symbolic.svg`; copyright The Warp developers,
+distributed under CC0-1.0 as specified by upstream `REUSE.toml`.
+The Warp application is installed from its official Flathub distribution.

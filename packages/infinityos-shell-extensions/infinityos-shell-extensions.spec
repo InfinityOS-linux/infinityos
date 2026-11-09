@@ -2,7 +2,7 @@ Name:           infinityos-shell-extensions
 Version:        1.0.0
 Release:        %{?infinity_release}%{!?infinity_release:1}%{?dist}
 Summary:        Versioned Infinity OS GNOME Shell extensions and desktop defaults
-License:        GPL-3.0-only AND GPL-3.0-or-later AND GPL-2.0-only AND GPL-2.0-or-later AND BSD-2-Clause AND Apache-2.0
+License:        GPL-3.0-only AND GPL-3.0-or-later AND GPL-2.0-only AND GPL-2.0-or-later AND BSD-2-Clause AND Apache-2.0 AND CC0-1.0
 URL:            https://github.com/InfinityOS-linux/infinityos
 Source0:        infinityos-shell-extensions-%{version}.tar.gz
 BuildArch:      noarch

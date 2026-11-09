@@ -18,6 +18,7 @@ import {
 } from './panelComponents.js';
 import VibrancyManager from './vibrancyManager.js';
 import InstallerDim from './installerDim.js';
+import { createWarpButton } from './warpButton.js';
 import { APP_GRID_WORKSPACE_RATIO, APP_GRID_WORKSPACE_FADE_RANGE, APP_GRID_WORKSPACE_FADE_SNAP } from './constants.js';
 
 const PowerProfilesIface = `<node>
@@ -69,6 +70,9 @@ export default class WackShellExtension extends Extension {
         this._logoButton = null;
         this._workspaceButton = null;
         this._appMenuButton = null;
+
+        this._warpButton = createWarpButton(this.path);
+        Main.panel.addToStatusArea('infinity-warp', this._warpButton, 1, 'right');
 
         this._lastHasWindows = Main.sessionMode.hasWindows;
 
@@ -299,6 +303,9 @@ this._settings.connectObject(
             this._appMenuButton.destroy();
             this._appMenuButton = null;
         }
+
+        this._warpButton?.destroy();
+        this._warpButton = null;
 
         // Restore native activities button (if not locked)
         if (!isLockscreen) {
@@ -697,6 +704,11 @@ if (global.wackDockSnapshots) {
         const isLocked = !hasWindows;
         const opacity = isLocked ? 0 : 255;
         const visible = !isLocked;
+        if (this._warpButton) {
+            this._warpButton.visible = visible;
+            this._warpButton.reactive = visible;
+            this._warpButton.can_focus = visible;
+        }
 
         if (this._logoButton) {
             this._logoButton.opacity = opacity;

@@ -102,6 +102,9 @@ EOF
 	install -D -m 0644 /usr/share/infinityos/repos/rounded-blur.repo /etc/yum.repos.d/rounded-blur.repo
 	install -D -m 0644 /usr/share/infinityos/mimeapps.list /etc/xdg/mimeapps.list
 	/usr/libexec/infinityos-install-proview
+	flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+	flatpak install --system --noninteractive --assumeyes flathub app.drey.Warp
+	flatpak info --system app.drey.Warp
 	# systemd applies vendor presets on the first boot of an image with an
 	# uninitialized machine-id. Preserve the services enabled below.
 	cat > /usr/lib/systemd/system-preset/00-infinityos.preset << 'EOF'

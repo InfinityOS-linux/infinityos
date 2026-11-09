@@ -54,6 +54,11 @@ with (root / 'opt/proview/Proview.AppImage').open('rb') as stream:
 font = next(iter(upstream['iosevka']['assets'].values()))
 assert (root / 'usr/share/fonts/Iosevka-Term/.source-sha256').read_text().strip() == font['sha256']
 print('Verified upstream release manifest and installed assets')
+warp_arch = 'aarch64' if arch == 'arm64' else 'x86_64'
+warp = root / f'var/lib/flatpak/app/app.drey.Warp/{warp_arch}/stable/active'
+assert warp.is_dir(), 'Warp Flatpak is missing from the image'
+assert (warp / 'files/share/applications/app.drey.Warp.desktop').is_file()
+print('Verified preinstalled Warp application')
 # Every animation frame and its renderer must reach the image together.
 from struct import unpack
 for frame in range(90):
