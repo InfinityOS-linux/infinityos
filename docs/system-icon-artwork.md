@@ -16,7 +16,8 @@ and third-party theme overrides. The animated dock clears its visual icon clones
 after a debounced TextureCache invalidation; it does not recreate the dash or
 restart its services during RPM transactions.
 
-The revised palette was approved on 2026-11-03 to match the folder icons: subdued
-`#645394` midtones, `#443456` shadows and dusty lavender highlights. White symbols
+The palette was cooled further on 2026-11-09 to match the folder icons:
+`#645394` blue-violet midtones, `#443456` shadows and restrained `#a28bc7`
+highlights, without the previous pink cast. White symbols
 remain bright. The artwork was edited with ImageGen, preserving transparency,
 and downsampled to the existing application and installer icon sizes.
