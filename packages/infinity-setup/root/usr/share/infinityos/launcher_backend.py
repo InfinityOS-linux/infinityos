@@ -47,7 +47,7 @@ LOCAL_MODELS = {
 }
 
 GITHUB_APPIMAGES = {
-    "domsvoboda/xodus-nexus": ("Xodus-Nexus.AppImage", "org.infinityos.NexusLauncher.desktop",
+    "domsvoboda/nexus-launcher": ("Xodus-Nexus.AppImage", "org.infinityos.NexusLauncher.desktop",
                               "/usr/share/infinityos/launcher-icons/nexus-launcher.png"),
     "cyb3rl00m/safe-disk-cleaner": ("SafeDiskCleaner.AppImage", "io.github.cyb3rl00m.SafeDiskCleaner.desktop",
                                     "/usr/share/infinityos/launcher-icons/io.github.cyb3rl00m.SafeDiskCleaner.svg"),
@@ -82,12 +82,12 @@ APPS = (
     App("System", "Opera GX", "flatpak", "com.opera.opera-gx", "Browse the web with tools for gaming.", True, group="Web browsers", icon="web-browser-symbolic"),
     App("System", "Brave", "flatpak", "com.brave.Browser", "Browse the web with built-in ad blocking.", group="Web browsers", icon="web-browser-symbolic"),
     App("System", "VLC", "flatpak", "org.videolan.VLC", "Play videos, music and online streams.", group="Media players", icon="applications-multimedia-symbolic"),
-    App("System", "Spotify", "flatpak", "com.spotify.Client", "Listen to music and podcasts online.", group="Media players", icon="com.spotify.Client"),
+    App("System", "Spotify", "flatpak", "com.spotify.Client", "Listen to music and podcasts online.", True, group="Media players", icon="com.spotify.Client"),
     App("System", "mpv", "dnf", "mpv", "Play videos with a lightweight player.", group="Media players", icon="io.mpv.Mpv"),
     App("System", "qBittorrent", "flatpak", "org.qbittorrent.qBittorrent", "Download and manage torrents.", group="Download managers", icon="folder-download-symbolic"),
     App("System", "Transmission", "flatpak", "com.transmissionbt.Transmission", "Download torrents with a simple app.", group="Download managers", icon="folder-download-symbolic"),
     App("System", "JDownloader 2", "flatpak", "org.jdownloader.JDownloader", "Download files from many websites.", group="Download managers", icon="folder-download-symbolic"),
-    App("System", "Thunderbird", "flatpak", "org.mozilla.Thunderbird", "Manage email, calendars and contacts.", True, group="Email clients", icon="mail-unread-symbolic"),
+    App("System", "Thunderbird", "flatpak", "org.mozilla.thunderbird", "Manage email, calendars and contacts.", True, group="Email clients", icon="mail-unread-symbolic"),
     App("System", "Evolution", "flatpak", "org.gnome.Evolution", "Manage email, calendars and contacts in GNOME.", group="Email clients", icon="mail-unread-symbolic"),
     App("System", "BlueMail", "flatpak", "net.blix.BlueMail", "Read email from several accounts in one inbox.", True, group="Email clients", icon="mail-unread-symbolic"),
     App("System", "Mailspring", "flatpak", "com.getmailspring.Mailspring", "Read and organize email from several accounts.", group="Email clients", icon="mail-unread-symbolic"),
@@ -99,7 +99,7 @@ APPS = (
     App("Gaming", "Steam", "dnf", "com.valvesoftware.Steam", "Buy, install and play games from Steam.", group="Game launchers", icon="applications-games-symbolic", package="steam"),
     App("Gaming", "Epic Games Launcher", "epic-native", "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncher-x86_64.deb", "Install the new native Epic Games Launcher Preview.", True, website="https://launcher.epicgames.com/", group="Game launchers", icon="epic-games-launcher"),
     App("Gaming", "Blizzard Battle.net", "lutris-installer", "battlenet-standard", "Install and play Blizzard games through Lutris.", True, website="https://download.battle.net/", group="Game launchers", icon="battle-net"),
-    App("Gaming", "Nexus Launcher (Gamepass)", "github-appimage", "domsvoboda/xodus-nexus", "Play supported Game Pass and Microsoft Store games. Requires a purchase or subscription. ARM support is experimental.", website="https://github.com/domsvoboda/xodus-nexus", group="Game launchers", icon="nexus-launcher"),
+    App("Gaming", "Nexus Launcher (Gamepass)", "github-appimage", "domsvoboda/nexus-launcher", "Play supported Game Pass and Microsoft Store games. Requires a purchase or subscription. ARM support is experimental.", website="https://github.com/domsvoboda/nexus-launcher", group="Game launchers", icon="nexus-launcher"),
     App("Gaming", "Heroic Games Launcher", "flatpak", "com.heroicgameslauncher.hgl", "Install and play games from Epic, GOG and Amazon.", True, group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Lutris", "flatpak", "net.lutris.Lutris", "Install and manage games from many stores.", True, group="Game launchers", icon="applications-games-symbolic"),
     App("Gaming", "Faugus Launcher", "flatpak", "io.github.Faugus.faugus-launcher", "Run Windows games on Linux with Wine.", True, group="Game launchers", icon="applications-games-symbolic"),
@@ -309,12 +309,14 @@ def installed(app, home=None, flatpak_ids=None):
             [ollama, "show", app.source], stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL, check=False).returncode == 0)
     if app.kind == "flatpak":
+        # Recognize existing Thunderbird installations while new installs use its current ID.
+        ids = (app.source, "org.mozilla.Thunderbird", "org.mozilla.thunderbird_esr") if app.source == "org.mozilla.thunderbird" else (app.source,)
         if flatpak_ids is not None:
-            return app.source in flatpak_ids
+            return any(source in flatpak_ids for source in ids)
         return any(
-            subprocess.run(["flatpak", "info", scope, app.source], stdout=subprocess.DEVNULL,
+            subprocess.run(["flatpak", "info", scope, source], stdout=subprocess.DEVNULL,
                            stderr=subprocess.DEVNULL, check=False).returncode == 0
-            for scope in ("--user", "--system")
+            for scope in ("--user", "--system") for source in ids
         )
     if app.kind == "npm":
         command = "claude" if "anthropic" in app.source else "codex"
@@ -612,7 +614,7 @@ def install(app, home=None, *, defer_system_dependencies=False):
     elif app.kind == "github-appimage":
         if app.source not in GITHUB_APPIMAGES:
             raise ValueError(f"No AppImage installation source for {app.name}.")
-        if app.source == "domsvoboda/xodus-nexus":
+        if app.source == "domsvoboda/nexus-launcher":
             _run(["pkexec", "dnf", "-y", "install", "curl", "tar", "xz", "fuse",
                   "webkit2gtk4.1", "gtk3", "nss", "libXtst", "alsa-lib", "desktop-file-utils"])
         _install_github_appimage(app, home)
@@ -901,7 +903,7 @@ def _install_local_model(app, home):
         if not shutil.which("npm"):
             _run(["pkexec", "dnf", "-y", "install", "nodejs-npm"])
         _run(["npm", "install", "--global", "--prefix", str(home / ".local"),
-              "opencode-ai@1.19.0"])
+              "opencode-ai@1.19.5"])
 
     _run(["pkexec", "systemctl", "enable", "--now", "ollama.service"])
     if needs_model:

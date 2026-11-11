@@ -4,7 +4,6 @@
 import getpass
 import sys
 import threading
-from time import monotonic
 from pathlib import Path
 
 import gi
@@ -159,6 +158,7 @@ class InfinitySetup(Gtk.Application):
         self.opening_installers = 0
         self.closing = False
         self.progress_source = 0
+        self.animation_tick = 0
 
     def do_activate(self):
         if self.window:
@@ -523,7 +523,7 @@ class InfinitySetup(Gtk.Application):
         row.append(app_icon_cell(Gtk.Image.new_from_icon_name("x-office-document-symbolic")))
         details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3, hexpand=True)
         details.append(label("CraftSuite", "infinity-app-name"))
-        description = label(tr("Install PDFCraft, WordCraft, GridCraft and DeckCraft. Manage each app separately."), "infinity-muted")
+        description = label(tr("Install the complete CraftSuite office suite."), "infinity-muted")
         description.set_wrap(True)
         details.append(description)
         row.append(details)
@@ -676,6 +676,9 @@ class InfinitySetup(Gtk.Application):
         self.status.set_text(tr("Installation complete."))
 
     def _animate(self, opening):
+        if self.animation_tick:
+            self.window.remove_tick_callback(self.animation_tick)
+            self.animation_tick = 0
         if not Gtk.Settings.get_default().get_property("gtk-enable-animations"):
             self.shade.set_opacity(1 if opening else 0)
             self.card.set_opacity(1 if opening else 0)
@@ -683,23 +686,35 @@ class InfinitySetup(Gtk.Application):
                 self._finish_close()
             return
 
-        started = monotonic()
-        duration = 0.17 if opening else 0.14
+        started = None
+        shade_start = self.shade.get_opacity()
+        card_start = self.card.get_opacity()
 
-        def frame(_widget, _clock):
-            progress = min((monotonic() - started) / duration, 1)
-            eased = 1 - (1 - progress) ** 3
-            visibility = eased if opening else 1 - eased
-            self.shade.set_opacity(visibility)
-            self.card.set_opacity(visibility)
-            self.card.set_margin_top(round(12 * (1 - visibility)))
-            if progress < 1:
+        def frame(_widget, clock):
+            nonlocal started
+            now = clock.get_frame_time()
+            if started is None:
+                started = now
+            elapsed = (now - started) / 1_000_000
+            if opening:
+                shade_progress = min(elapsed / 0.25, 1)
+                card_progress = min(max((elapsed - 0.25) / 0.32, 0), 1)
+                self.shade.set_opacity(1 - (1 - shade_progress) ** 3)
+                self.card.set_opacity(1 - (1 - card_progress) ** 3)
+                complete = card_progress == 1
+            else:
+                progress = min(elapsed / 0.14, 1)
+                self.shade.set_opacity(shade_start * (1 - progress) ** 3)
+                self.card.set_opacity(card_start * (1 - progress) ** 3)
+                complete = progress == 1
+            if not complete:
                 return True
+            self.animation_tick = 0
             if not opening:
                 self._finish_close()
             return False
 
-        self.window.add_tick_callback(frame)
+        self.animation_tick = self.window.add_tick_callback(frame)
 
     def _begin_close(self):
         if self.closing:

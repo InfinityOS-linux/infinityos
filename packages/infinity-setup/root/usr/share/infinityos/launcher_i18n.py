@@ -16,8 +16,8 @@ POLISH = {
     "Downloaded; inactive": "Pobrany; nieaktywny",
     "Not downloaded": "Niepobrany",
     "Retry pending changes": "Ponów niezastosowane zmiany",
-    "Install PDFCraft, WordCraft, GridCraft and DeckCraft. Manage each app separately.":
-        "Zainstaluj PDFCraft, WordCraft, GridCraft i DeckCraft. Zarządzaj każdą aplikacją osobno.",
+    "Install the complete CraftSuite office suite.":
+        "Zainstaluj cały pakiet biurowy CraftSuite.",
     "Manage this model in InfinityConfig.": "Zarządzaj tym modelem w InfinityConfig.",
     "Assistants and command-line tools": "Asystenci i narzędzia wiersza poleceń",
     "Everyday essentials": "Niezbędne aplikacje na co dzień",

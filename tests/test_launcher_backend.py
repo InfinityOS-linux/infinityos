@@ -44,6 +44,25 @@ class LauncherBackendTests(unittest.TestCase):
         self.assertEqual(i18n.POLISH[winboat.description],
                          "Uruchom w łatwy sposób Windowsa na tym systemie.")
 
+    def test_spotify_is_not_offered_for_unsupported_arm(self):
+        app = next(a for a in backend.APPS if a.name == 'Spotify')
+        self.assertTrue(backend.available(app, 'x86_64'))
+        self.assertFalse(backend.available(app, 'aarch64'))
+
+    def test_thunderbird_uses_current_id_and_recognizes_existing_profiles(self):
+        app = next(a for a in backend.APPS if a.name == 'Thunderbird')
+        self.assertEqual(app.source, 'org.mozilla.thunderbird')
+        for source in ('org.mozilla.thunderbird', 'org.mozilla.Thunderbird', 'org.mozilla.thunderbird_esr'):
+            self.assertTrue(backend.installed(app, flatpak_ids={source}))
+        self.assertFalse(backend.installed(app, flatpak_ids=set()))
+        with patch.object(backend, '_run') as run:
+            backend.install(app)
+        self.assertEqual(run.call_args.args[0][-1], 'org.mozilla.thunderbird')
+
+    def test_craft_suite_copy_is_localized(self):
+        self.assertEqual(i18n.POLISH['Install the complete CraftSuite office suite.'],
+                         'Zainstaluj cały pakiet biurowy CraftSuite.')
+
     def test_game_store_brands_have_bundled_icons(self):
         icons = CATALOG_DIR / "launcher-icons"
         for name in ("Epic Games Launcher", "Blizzard Battle.net"):
@@ -65,7 +84,7 @@ class LauncherBackendTests(unittest.TestCase):
     def test_nexus_uses_verified_appimages_and_upstream_icon(self):
         app = next(a for a in backend.APPS if a.name == 'Nexus Launcher (Gamepass)')
         self.assertEqual(app.kind, 'github-appimage')
-        self.assertEqual(app.source, 'domsvoboda/xodus-nexus')
+        self.assertEqual(app.source, 'domsvoboda/nexus-launcher')
         self.assertTrue((CATALOG_DIR / 'launcher-icons/nexus-launcher.png').is_file())
         for arch, asset_arch in (('aarch64', 'arm64'), ('x86_64', 'x86_64')):
             asset = {'name': f'Xodus-Nexus-0.4.3-{asset_arch}.AppImage',
