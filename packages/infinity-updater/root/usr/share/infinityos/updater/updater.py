@@ -21,6 +21,9 @@ def pending_rpm_names(before, after):
 
 STYLE = b'''
 window.infinity-updater { background: #111018; color: #f4f0fa; }
+window.infinity-updater.csd { box-shadow: -12px 0 28px 0 rgba(0, 0, 0, 0.32); }
+window.infinity-updater.csd.light-mode { box-shadow: -10px 0 26px 0 rgba(27, 17, 43, 0.20); }
+window.infinity-updater > .titlebar { min-height: 0; padding: 0; margin: 0; border: 0; }
 .infinity-results, .infinity-results viewport { background: #111018; }
 .hero { background: #1b1727; border-bottom: 1px solid #3b3152; padding: 20px; }
 .hero-title { font-size: 24px; font-weight: 800; color: #ffffff; }
@@ -154,7 +157,8 @@ def main():
                 Gdk.Display.get_default(), css,
                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
             self.window = Gtk.ApplicationWindow(application=self, title=tr('Infinity OS Updates'))
-            self.window.set_decorated(False)
+            # Keep GTK's shadow surface, but no title bar or window controls.
+            self.window.set_titlebar(Gtk.Box(visible=False))
             self.window.add_css_class('infinity-updater')
             self.color_settings = Gio.Settings.new('org.gnome.desktop.interface')
             self.color_settings.connect('changed::color-scheme', self._sync_color_scheme)
@@ -289,6 +293,8 @@ def main():
             updates = update_rows(self.state.get('updates', []), offline)
             errors = self.state.get('errors', [])
             release = self.state.get('release')
+            empty_state = not (updates or errors or release or offline.get('pending') or offline.get('status') == 'failed')
+            self.items.set_valign(Gtk.Align.CENTER if empty_state else Gtk.Align.FILL)
             if release:
                 card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
                 card.add_css_class('update-card')

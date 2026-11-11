@@ -11,6 +11,8 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
 export default class InfinityUpdater extends Extension {
     enable() {
+        this._focusId = global.display.connect('notify::focus-window',
+            () => this._onFocusChanged());
         this._outsideClickId = global.stage.connect('captured-event',
             (_stage, event) => this._onCapturedEvent(event));
         this._mapId = global.window_manager.connect('map', (_wm, actor) => {
@@ -109,6 +111,23 @@ export default class InfinityUpdater extends Extension {
                 this._hideDrawer(window);
         }
         return Clutter.EVENT_PROPAGATE;
+    }
+
+    _onFocusChanged() {
+        const focused = global.display.focus_window;
+        // Wayland client clicks can bypass stage events; shell clicks use the handler above.
+        if (!focused)
+            return;
+        for (const actor of global.get_window_actors()) {
+            const window = actor.meta_window;
+            if (!this._isUpdater(window) || window.minimized)
+                continue;
+            let owner = focused;
+            while (owner && owner !== window)
+                owner = owner.get_transient_for();
+            if (!owner)
+                this._hideDrawer(window);
+        }
     }
 
     _isUpdater(window) {
@@ -226,6 +245,7 @@ export default class InfinityUpdater extends Extension {
 
     disable() {
         this._closingWindows = null;
+        global.display.disconnect(this._focusId);
         global.stage.disconnect(this._outsideClickId);
         global.window_manager.disconnect(this._mapId);
         global.window_manager.disconnect(this._unminimizeId);

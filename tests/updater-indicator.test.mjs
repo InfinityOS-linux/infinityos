@@ -157,3 +157,28 @@ test('tray restores the existing minimized window without launching another proc
     extension._toggleDrawer(window);
     assert.equal(activated, 1);
 });
+
+for (const [label, target, hidden] of [
+    ['another Wayland app', 'other', true],
+    ['desktop window', 'desktop', true],
+    ['updater itself', 'self', false],
+    ['updater dialog', 'dialog', false],
+    ['nested updater dialog', 'nested', false],
+    ['shell focus', 'shell', false],
+]) {
+    test(`focus dismissal: ${label}`, () => {
+        const window = {minimized: false};
+        const dialog = {get_transient_for: () => window};
+        const focus = {self: window, dialog, nested: {get_transient_for: () => dialog},
+            other: {get_transient_for: () => null}, desktop: {get_transient_for: () => null}, shell: null}[target];
+        let dismissed = false;
+        const extension = vm.runInNewContext(`${source}\nnew InfinityUpdater()`, {
+            Extension: class {},
+            global: {display: {focus_window: focus}, get_window_actors: () => [{meta_window: window}]},
+        });
+        extension._isUpdater = candidate => candidate === window;
+        extension._hideDrawer = () => {dismissed = true;};
+        extension._onFocusChanged();
+        assert.equal(dismissed, hidden);
+    });
+}
