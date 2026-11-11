@@ -92,6 +92,8 @@ release_version=$(</usr/share/infinityos/image-release-version)
 [[ $release_version =~ ^[1-9][0-9]*\.[0-9]+(\.[0-9]+)?$ ]] || exit 1
 sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"Infinity OS $release_version (Fedora 45)\"/" /etc/os-release
 grep -Fqx "PRETTY_NAME=\"Infinity OS $release_version (Fedora 45)\"" /etc/os-release
+# Enable the bundled add-on only in the installed target, before first login.
+install -D -m 0644 /usr/share/infinityos/firefox/installed-policies.json /etc/firefox/policies/policies.json
 # The live-only dconf database is copied with the payload. Installed accounts
 # must use their normal GNOME idle and power defaults.
 printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user

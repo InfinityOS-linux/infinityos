@@ -212,6 +212,17 @@ enable snapper-cleanup.timer
 EOF
 	fi
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Live"* ]]; then
+		# Keep extension first-run pages out of Anaconda's Firefox session.
+		install -D -m 0644 /etc/firefox/policies/policies.json /usr/share/infinityos/firefox/installed-policies.json
+		python3 - /etc/firefox/policies/policies.json << 'FIREFOX_LIVE_POLICY'
+import json
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+policy = json.loads(path.read_text())
+policy['policies'].pop('Extensions', None)
+path.write_text(json.dumps(policy, indent=2) + '\n')
+FIREFOX_LIVE_POLICY
 		# Anaconda WebUI builds its localized title from PRETTY_NAME.
 		# Keep the installed system's release name; the post-install hook restores it.
 		installer_name="InfinityOS_${release_version}"

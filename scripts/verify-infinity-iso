@@ -57,7 +57,9 @@ addon = root / 'usr/share/infinityos/firefox/adblocker-ultimate.xpi'
 with addon.open('rb') as stream:
     assert hashlib.file_digest(stream, 'sha256').hexdigest() == upstream['adblocker_ultimate']['sha256']
 policies = json.loads((root / 'etc/firefox/policies/policies.json').read_text())
-assert '/' + str(addon.relative_to(root)) in policies['policies']['Extensions']['Install']
+assert 'Extensions' not in policies['policies'], 'Live Firefox must not install add-ons'
+installed_policies = json.loads((root / 'usr/share/infinityos/firefox/installed-policies.json').read_text())
+assert '/' + str(addon.relative_to(root)) in installed_policies['policies']['Extensions']['Install']
 assert policies['policies']['Preferences']['browser.uidensity'] == {'Value': 1, 'Status': 'default'}
 assert policies['policies']['Preferences']['browser.compactmode.show'] == {'Value': True, 'Status': 'default'}
 print('Verified upstream release manifest and installed assets')

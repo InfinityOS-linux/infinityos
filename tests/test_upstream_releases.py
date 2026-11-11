@@ -3,6 +3,8 @@ import importlib.util
 import json
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -51,6 +53,27 @@ class UpstreamTests(unittest.TestCase):
             manifest = json.loads((root / 'root/usr/share/infinityos/upstream-versions.json').read_text())
             self.assertEqual(len(manifest['proview']['assets']), 2)
             self.assertEqual(manifest['iosevka']['tag'], 'v9.1')
+
+    def test_live_policy_excludes_addon_until_target_installation(self):
+        config = (ROOT / 'config.sh').read_text()
+        program = config.split("<< 'FIREFOX_LIVE_POLICY'\n", 1)[1].split('\nFIREFOX_LIVE_POLICY', 1)[0]
+        original = ROOT / 'root/etc/firefox/policies/policies.json'
+        hook = (ROOT / 'root/usr/libexec/infinityos-liveinstall-boot-setup').read_text()
+        restore = 'install -D -m 0644 /usr/share/infinityos/firefox/installed-policies.json /etc/firefox/policies/policies.json'
+        self.assertIn(restore, hook)
+        with tempfile.TemporaryDirectory() as directory:
+            live = Path(directory) / 'policies.json'
+            saved = Path(directory) / 'installed-policies.json'
+            shutil.copy(original, live)
+            shutil.copy(live, saved)
+            for _ in range(2):
+                subprocess.run([sys.executable, '-', str(live)], input=program, text=True, check=True)
+            policy = json.loads(live.read_text())['policies']
+            self.assertNotIn('Extensions', policy)
+            expected = json.loads(original.read_text())['policies']
+            self.assertEqual(policy, {k: v for k, v in expected.items() if k != 'Extensions'})
+            subprocess.run(['install', '-m', '0644', str(saved), str(live)], check=True)
+            self.assertEqual(live.read_bytes(), original.read_bytes())
 
     def test_firefox_addon_is_bundled_and_identity_is_checked(self):
         import hashlib
