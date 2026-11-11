@@ -13,6 +13,7 @@ Requires:       glib2
 Requires:       dconf
 Requires:       python3-gobject
 Requires:       librsvg2
+Requires:       gettext
 
 # Adopt the six Fedora extension directories so that only an Infinity OS RPM
 # may update their code. The GPaste service remains Fedora-managed.
@@ -43,6 +44,7 @@ the matching Infinity OS package release.
 cp -a usr etc %{buildroot}/
 
 %posttrans
+/usr/libexec/infinityos-bin-label || :
 glib-compile-schemas /usr/share/glib-2.0/schemas || :
 for uuid in \
     ding@rastersoft.com \
@@ -61,11 +63,15 @@ if test -d /usr/share/icons/kora/places; then
 fi
 gtk-update-icon-cache -f -q /usr/share/icons/hicolor || :
 
+%transfiletriggerin -- /usr/share/locale/en_GB/LC_MESSAGES
+/usr/libexec/infinityos-bin-label || :
+
 %files
 /usr/bin/infinityos-shell-recover
 /usr/libexec/infinityos-enable-global-menu
 /etc/xdg/autostart/infinityos-enable-global-menu.desktop
 /usr/libexec/infinityos-tint-system-icons
+/usr/libexec/infinityos-bin-label
 /usr/share/infinityos/build-revisions/infinityos-shell-extensions
 /usr/share/infinityos/gnome-defaults
 /usr/share/infinityos/blur-defaults

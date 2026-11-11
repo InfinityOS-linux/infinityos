@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Keep GNOME's British English bin labels consistent with the desktop icon.
+set -euo pipefail
+locale_root=${1:-/usr/share/locale}
+temporary=$(mktemp -d)
+trap 'rm -rf "$temporary"' EXIT
+for domain in nautilus gtk40 gvfs glib20; do
+    catalog="$locale_root/en_GB/LC_MESSAGES/$domain.mo"
+    [[ -f "$catalog" && ! -L "$catalog" ]] || continue
+    msgunfmt "$catalog" | msgfilter sed -e 's/Wastebasket/Bin/g' -e 's/wastebasket/bin/g' | \
+        msgfmt -o "$temporary/catalog.mo" -
+    if ! cmp -s "$temporary/catalog.mo" "$catalog"; then
+        cat "$temporary/catalog.mo" > "$catalog"
+    fi
+done

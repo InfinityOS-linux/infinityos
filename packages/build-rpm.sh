@@ -113,6 +113,8 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
     "$source_root/usr/libexec/infinityos-enable-global-menu"
   install -m 0644 "$repo/root/etc/xdg/autostart/infinityos-enable-global-menu.desktop" \
     "$source_root/etc/xdg/autostart/infinityos-enable-global-menu.desktop"
+  install -m 0755 "$repo/root/usr/libexec/infinityos-bin-label" \
+    "$source_root/usr/libexec/infinityos-bin-label"
   install -m 0755 "$repo/root/usr/libexec/infinityos-tint-system-icons" \
     "$source_root/usr/libexec/infinityos-tint-system-icons"
   install -m 0644 "$repo/root/usr/share/icons/hicolor/scalable/apps/infinityos-logo.svg" \
