@@ -230,7 +230,8 @@ export const Services = class {
       trash_action = `rm -rf "${fn.get_path()}"`;
     }
 
-    let content = `[Desktop Entry]\nVersion=1.0\nTerminal=false\nType=Application\nName=Trash\nExec=${open_app} trash:///\nIcon=user-trash\nStartupWMClass=trash-dash2dock-lite\nActions=trash\n\n[Desktop Action trash]\nName=Empty Trash\nExec=${trash_action}\nTerminal=true\n`;
+    const binName = Gio.DesktopAppInfo.new_from_filename('/usr/share/infinityos/bin.desktop')?.get_name() ?? 'Bin';
+    let content = `[Desktop Entry]\nVersion=1.0\nTerminal=false\nType=Application\nName=${binName}\nExec=${open_app} trash:///\nIcon=user-trash\nStartupWMClass=trash-dash2dock-lite\nActions=trash\n\n[Desktop Action trash]\nName=Empty Trash\nExec=${trash_action}\nTerminal=true\n`;
     const [, etag] = fn.replace_contents(
       content,
       null,

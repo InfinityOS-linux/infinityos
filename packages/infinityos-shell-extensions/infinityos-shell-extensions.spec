@@ -70,6 +70,7 @@ gtk-update-icon-cache -f -q /usr/share/icons/hicolor || :
 /usr/share/infinityos/gnome-defaults
 /usr/share/infinityos/blur-defaults
 /usr/share/infinityos/folder-icons/
+/usr/share/infinityos/bin.desktop
 /usr/share/icons/kora/places/scalable/folder-projects.svg
 /usr/share/icons/hicolor/scalable/apps/infinityos-logo.svg
 /usr/share/icons/hicolor/scalable/apps/infinityos-panel-mark.svg

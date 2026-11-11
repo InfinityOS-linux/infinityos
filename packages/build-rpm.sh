@@ -102,6 +102,7 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
     "$source_root/usr/share/gnome-shell/extensions/"
   cp -a "$repo/root/usr/share/gnome-shell/extensions/." \
     "$source_root/usr/share/gnome-shell/extensions/"
+  install -m 0644 "$repo/root/usr/share/infinityos/bin.desktop" "$source_root/usr/share/infinityos/"
   cp -a "$repo/root/usr/share/infinityos/folder-icons" \
     "$source_root/usr/share/infinityos/"
   install -m 0644 "$repo/root/usr/share/infinityos/folder-icons/folder-projects.svg" \

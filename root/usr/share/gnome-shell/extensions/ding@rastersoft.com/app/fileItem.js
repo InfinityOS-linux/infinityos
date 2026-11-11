@@ -36,6 +36,7 @@ const Signals = imports.signals;
 const Gettext = imports.gettext.domain('ding');
 
 const _ = Gettext.gettext;
+const binName = Gio.DesktopAppInfo.new_from_filename('/usr/share/infinityos/bin.desktop')?.get_name() ?? _('Trash');
 
 export var FileItem = class extends desktopIconItem.desktopIconItem {
     constructor(desktopManager, file, fileInfo, fileExtra, custom) {
@@ -161,7 +162,7 @@ export var FileItem = class extends desktopIconItem.desktopIconItem {
         if (this._fileExtra === Enums.FileType.USER_DIRECTORY_TRASH) {
             /** TRANSLATORS: when using a screen reader, this is the text read when the trash folder is
              * highlighted. */
-            filename = _('Trash');
+            filename = binName;
         }
         const specialCases = [
             [
@@ -264,6 +265,8 @@ export var FileItem = class extends desktopIconItem.desktopIconItem {
      ***********************/
 
     _getVisibleName() {
+        if (this._fileExtra === Enums.FileType.USER_DIRECTORY_TRASH)
+            return binName;
         if (this._fileExtra === Enums.FileType.EXTERNAL_DRIVE)
             return this._custom.get_name();
         else if (this._isValidDesktopFile && !this._desktopManager.writableByOthers && !this._writableByOthers && this.trustedDesktopFile)
