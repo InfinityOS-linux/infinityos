@@ -415,7 +415,7 @@ class LauncherBackendTests(unittest.TestCase):
         self.assertEqual((steam.kind, steam.package), ("dnf", "steam"))
         with patch.object(backend.os, "uname", return_value=SimpleNamespace(machine="x86_64")), \
              patch.object(backend.subprocess, "run", return_value=SimpleNamespace(returncode=1)), \
-             patch.object(backend, "_steam_flatpak_scopes", return_value=["--user", "--system"]), \
+             patch.object(backend, "_flatpak_scopes", return_value=["--user", "--system"]), \
              patch.object(backend, "_run") as run:
             backend.install(steam)
         commands = [call.args[0] for call in run.call_args_list]
@@ -429,7 +429,7 @@ class LauncherBackendTests(unittest.TestCase):
     def test_steam_rpm_failure_does_not_remove_flatpak(self):
         steam = next(app for app in backend.APPS if app.name == "Steam")
         with patch.object(backend.subprocess, "run", return_value=SimpleNamespace(returncode=1)), \
-             patch.object(backend, "_steam_flatpak_scopes") as scopes, \
+             patch.object(backend, "_flatpak_scopes") as scopes, \
              patch.object(backend, "_run", side_effect=RuntimeError("download failed")):
             with self.assertRaisesRegex(RuntimeError, "download failed"):
                 backend._install_steam_rpm(steam)
@@ -441,7 +441,7 @@ class LauncherBackendTests(unittest.TestCase):
             with self.subTest(driver=driver), \
                  patch.object(backend.subprocess, "run", side_effect=lambda args, **kw:
                               SimpleNamespace(returncode=0 if args[-1] == driver + ".x86_64" else 1)), \
-                 patch.object(backend, "_steam_flatpak_scopes", return_value=[]), \
+                 patch.object(backend, "_flatpak_scopes", return_value=[]), \
                  patch.object(backend, "_run") as run:
                 backend._install_steam_rpm(steam)
             self.assertEqual([p for p in run.call_args.args[0] if p.startswith("xorg-")],
@@ -790,3 +790,59 @@ class LauncherBackendTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class DiscordRpmTests(unittest.TestCase):
+    def setUp(self):
+        self.app = next(app for app in backend.APPS if app.name == 'Discord')
+
+    def test_install_migrates_launchers_after_rpm_and_keeps_profile(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            profile = home / '.var/app/com.discordapp.Discord/config/discord/settings.json'
+            profile.parent.mkdir(parents=True)
+            profile.write_text('{"keep": true}')
+            with patch.object(backend.os, 'uname', return_value=SimpleNamespace(machine='x86_64')), \
+                 patch.object(backend, '_flatpak_scopes', return_value=['--user', '--system']), \
+                 patch.object(backend, '_run') as run:
+                backend.install(self.app, home)
+            commands = [call.args[0] for call in run.call_args_list]
+            self.assertEqual(commands[0], ['pkexec', 'dnf', '-y', 'install',
+                'https://discord.com/api/download?platform=linux&format=rpm'])
+            self.assertEqual(commands[1], ['flatpak', 'uninstall', '--user', '--noninteractive', '--assumeyes', self.app.source])
+            self.assertEqual(commands[2], ['pkexec', 'flatpak', 'uninstall', '--system', '--noninteractive', '--assumeyes', self.app.source])
+            self.assertEqual(profile.read_text(), '{"keep": true}')
+            self.assertIn('--ozone-platform=wayland', (home / '.local/share/applications/discord.desktop').read_text())
+
+    def test_download_failure_leaves_flatpak_untouched(self):
+        with patch.object(backend.os, 'uname', return_value=SimpleNamespace(machine='x86_64')), \
+             patch.object(backend, '_run', side_effect=RuntimeError('download failed')), \
+             patch.object(backend, '_flatpak_scopes') as scopes:
+            with self.assertRaisesRegex(RuntimeError, 'download failed'):
+                backend.install(self.app)
+            scopes.assert_not_called()
+
+    def test_detects_rpm_not_old_flatpak_and_rejects_arm(self):
+        with patch.object(backend.subprocess, 'run', return_value=SimpleNamespace(returncode=1)) as run:
+            self.assertFalse(backend.installed(self.app, flatpak_ids={self.app.source}))
+            self.assertEqual(run.call_args.args[0], ['rpm', '-q', 'discord'])
+        with patch.object(backend.os, 'uname', return_value=SimpleNamespace(machine='aarch64')), \
+             patch.object(backend, '_run') as run:
+            with self.assertRaisesRegex(RuntimeError, 'requires x64'):
+                backend.install(self.app)
+            run.assert_not_called()
+
+    def test_uninstall_removes_rpm_and_managed_launcher_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            desktop = home / '.local/share/applications/discord.desktop'
+            desktop.parent.mkdir(parents=True)
+            desktop.write_text('[Desktop Entry]\nName=Discord\n')
+            profile = home / '.config/discord/settings.json'
+            profile.parent.mkdir(parents=True)
+            profile.write_text('{}')
+            with patch.object(backend, 'installed', return_value=True), \
+                 patch.object(backend, '_run') as run:
+                backend.uninstall(self.app, home)
+            run.assert_called_once_with(['pkexec', 'rpm', '-e', '--', 'discord'])
+            self.assertFalse(desktop.exists())
+            self.assertTrue(profile.exists())

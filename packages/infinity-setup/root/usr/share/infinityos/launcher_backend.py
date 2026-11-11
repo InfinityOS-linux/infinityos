@@ -108,7 +108,7 @@ APPS = (
     App("Gaming", "ProtonPlus", "flatpak", "com.vysp3r.ProtonPlus", "Install and update tools for Windows games.", website="https://protonplus.vysp3r.com/", group="Game launchers", icon="com.vysp3r.ProtonPlus"),
     App("Gaming", "Xbox Controller · USB / Dongle", "driver", "xone", "Use an Xbox controller by USB or wireless dongle.", website="https://github.com/dlundqvist/xone", group="Xbox Controller", icon="input-gaming-symbolic"),
     App("Gaming", "Xbox Controller · Bluetooth", "driver", "xpadneo", "Use an Xbox controller over Bluetooth.", website="https://github.com/atar-axis/xpadneo", group="Xbox Controller", icon="bluetooth-symbolic"),
-    App("Gaming", "Discord", "flatpak", "com.discordapp.Discord", "Talk with friends by voice and text.", True, group="Communication", icon="mail-message-new-symbolic"),
+    App("Gaming", "Discord", "discord-rpm", "com.discordapp.Discord", "Talk with friends by voice and text.", True, website="https://discord.com/download", group="Communication", icon="com.discordapp.Discord", package="discord"),
     App("Gaming", "Vesktop", "flatpak", "dev.vencord.Vesktop", "Use Discord with extra customization.", group="Communication", icon="mail-message-new-symbolic"),
     App("Gaming", "Bottles", "flatpak", "com.usebottles.bottles", "Run Windows apps in separate Wine environments.", True, group="Other", icon="applications-system-symbolic"),
     App("Creative", "PhotoCraft", "github-rpm", "storytold/photocraft", "The image editor you already know how to use.", website="https://github.com/storytold/photocraft", group="Image", icon="ai.storyteller.photocraft"),
@@ -223,7 +223,7 @@ def removable(app, home=None):
     """Allow removal of managed clients and individual CraftSuite applications."""
     if app.kind == "github-rpm" and app.source in CRAFT_SUITE:
         return installed(app, home)
-    if app.source == "com.valvesoftware.Steam":
+    if app.source == "com.valvesoftware.Steam" or app.kind == "discord-rpm":
         return installed(app, home)
     if app.kind == "npm":
         command = "claude" if "anthropic" in app.source else "codex"
@@ -231,7 +231,7 @@ def removable(app, home=None):
     return False
 
 
-def _steam_flatpak_scopes(app):
+def _flatpak_scopes(app):
     scopes = []
     for scope in ("--user", "--system"):
         try:
@@ -249,6 +249,10 @@ def uninstall(app, home=None):
     if not removable(app, home):
         raise ValueError(f"No removable installation for {app.name}.")
     home = Path(home or Path.home())
+    if app.kind == "discord-rpm":
+        _run(["pkexec", "rpm", "-e", "--", "discord"])
+        (home / ".local/share/applications/discord.desktop").unlink(missing_ok=True)
+        return
     if app.kind == "github-rpm" and app.source in CRAFT_SUITE:
         # rpm refuses dependent removals instead of cascading to other apps.
         _run(["pkexec", "rpm", "-e", "--", app.package or app.source.rsplit("/", 1)[-1]])
@@ -595,7 +599,7 @@ def _install_steam_rpm(app):
             packages.extend((f"{driver}.x86_64", f"{driver}.i686"))
     _run(["pkexec", "dnf", "--refresh", "-y", "install", *packages])
     # Remove the old launcher only after the RPM transaction succeeds.
-    for scope in _steam_flatpak_scopes(app):
+    for scope in _flatpak_scopes(app):
         command = ["flatpak", "uninstall", scope, "--noninteractive", "--assumeyes", app.source]
         _run(["pkexec", *command] if scope == "--system" else command)
 
@@ -607,6 +611,24 @@ def install(app, home=None, *, defer_system_dependencies=False):
         _install_arm_steam(home, install_dependencies=not defer_system_dependencies)
     elif app.source == "com.valvesoftware.Steam":
         _install_steam_rpm(app)
+    elif app.kind == "discord-rpm":
+        if os.uname().machine != "x86_64":
+            raise RuntimeError("Discord's official RPM requires x64.")
+        _run(["pkexec", "dnf", "-y", "install",
+              "https://discord.com/api/download?platform=linux&format=rpm"])
+        desktop = home / ".local/share/applications/discord.desktop"
+        desktop.parent.mkdir(parents=True, exist_ok=True)
+        desktop.write_text(
+            "[Desktop Entry]\nType=Application\nName=Discord\n"
+            "Exec=/usr/bin/discord --ozone-platform=wayland --url -- %u\n"
+            "Icon=discord\nStartupWMClass=discord\nTerminal=false\n"
+            "Categories=Network;InstantMessaging;\nMimeType=x-scheme-handler/discord;\n",
+            encoding="utf-8",
+        )
+        # Keep the Flatpak profile; remove its launcher only after RPM installation succeeds.
+        for scope in _flatpak_scopes(app):
+            command = ["flatpak", "uninstall", scope, "--noninteractive", "--assumeyes", app.source]
+            _run(["pkexec", *command] if scope == "--system" else command)
     elif app.kind == "local-model":
         _install_local_model(app, home)
     elif app.kind == "epic-native":
