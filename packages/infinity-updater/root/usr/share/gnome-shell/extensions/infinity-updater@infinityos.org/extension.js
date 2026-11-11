@@ -2,6 +2,7 @@ import Atk from 'gi://Atk';
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import Meta from 'gi://Meta';
 import St from 'gi://St';
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -10,6 +11,20 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
 export default class InfinityUpdater extends Extension {
     enable() {
+        this._mapId = global.window_manager.connect('map', (_wm, actor) => {
+            if (this._isUpdater(actor.meta_window))
+                this._showDrawer(actor.meta_window);
+        });
+        this._unminimizeId = global.window_manager.connect('unminimize', (_wm, actor) => {
+            if (this._isUpdater(actor.meta_window))
+                this._showDrawer(actor.meta_window);
+        });
+        this._monitorsId = Main.layoutManager.connect('monitors-changed', () => {
+            for (const actor of global.get_window_actors()) {
+                if (this._isUpdater(actor.meta_window))
+                    this._placeDrawer(actor.meta_window);
+            }
+        });
         this._directory = GLib.build_filenamev([GLib.get_user_cache_dir(), 'infinityos']);
         this._stateFile = GLib.build_filenamev([this._directory, 'updates.json']);
         GLib.mkdir_with_parents(this._directory, 0o700);
@@ -30,6 +45,12 @@ export default class InfinityUpdater extends Extension {
         content.add_child(this._badge);
         this._indicator.add_child(content);
         const open = () => {
+            const window = global.get_window_actors().map(actor => actor.meta_window)
+                .find(window => this._isUpdater(window));
+            if (window && !window.minimized) {
+                this._hideDrawer(window);
+                return;
+            }
             try {
                 Gio.Subprocess.new(['/usr/bin/infinity-updater'], Gio.SubprocessFlags.NONE);
             } catch (error) {
@@ -66,6 +87,48 @@ export default class InfinityUpdater extends Extension {
         } catch (error) {
             console.warn(`Could not start Infinity OS update checks: ${error}`);
         }
+    }
+
+    _isUpdater(window) {
+        return window && !window.get_transient_for() &&
+            (window.get_gtk_application_id() === 'org.infinityos.Updater' ||
+             window.get_wm_class() === 'org.infinityos.Updater');
+    }
+
+    _placeDrawer(window) {
+        const area = Main.layoutManager.getWorkAreaForMonitor(window.get_monitor());
+        const width = Math.min(460, area.width);
+        window.unmaximize(Meta.MaximizeFlags.BOTH);
+        window.move_resize_frame(false, area.x + area.width - width, area.y,
+            width, area.height);
+    }
+
+    _showDrawer(window) {
+        this._placeDrawer(window);
+        const actor = window.get_compositor_private();
+        if (!actor)
+            return;
+        actor.remove_all_transitions();
+        actor.scale_x = actor.scale_y = 1;
+        actor.opacity = 255;
+        actor.translation_x = window.get_frame_rect().width;
+        actor.ease({translation_x: 0, duration: St.Settings.get().enable_animations ? 280 : 0,
+            mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+        window.activate(global.get_current_time());
+    }
+
+    _hideDrawer(window) {
+        const actor = window.get_compositor_private();
+        if (!actor)
+            return;
+        actor.remove_all_transitions();
+        actor.ease({translation_x: window.get_frame_rect().width, duration: St.Settings.get().enable_animations ? 220 : 0,
+            mode: Clutter.AnimationMode.EASE_IN_CUBIC,
+            onComplete: () => {
+                Main.wm.skipNextEffect(actor);
+                window.minimize();
+                actor.translation_x = 0;
+            }});
     }
 
     _refresh() {
@@ -113,6 +176,15 @@ export default class InfinityUpdater extends Extension {
     }
 
     disable() {
+        global.window_manager.disconnect(this._mapId);
+        global.window_manager.disconnect(this._unminimizeId);
+        Main.layoutManager.disconnect(this._monitorsId);
+        for (const actor of global.get_window_actors()) {
+            if (this._isUpdater(actor.meta_window)) {
+                actor.remove_all_transitions();
+                actor.translation_x = 0;
+            }
+        }
         if (this._fallbackId)
             GLib.Source.remove(this._fallbackId);
         this._monitor.disconnect(this._monitorId);

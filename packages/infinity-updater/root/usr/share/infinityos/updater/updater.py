@@ -22,8 +22,8 @@ def pending_rpm_names(before, after):
 STYLE = b'''
 window.infinity-updater { background: #111018; color: #f4f0fa; }
 .infinity-results, .infinity-results viewport { background: #111018; }
-.hero { background: #1b1727; border-bottom: 1px solid #3b3152; padding: 28px; }
-.hero-title { font-size: 27px; font-weight: 800; color: #ffffff; }
+.hero { background: #1b1727; border-bottom: 1px solid #3b3152; padding: 20px; }
+.hero-title { font-size: 24px; font-weight: 800; color: #ffffff; }
 .hero-subtitle { color: #b9adcf; }
 .pill { background: #392d58; color: #e4d4ff; border-radius: 999px; padding: 5px 13px; font-weight: 700; }
 .update-card { background: #201b2b; border: 1px solid #3a304d; border-radius: 13px; padding: 13px 16px; }
@@ -142,17 +142,17 @@ def main():
             self.color_settings = Gio.Settings.new('org.gnome.desktop.interface')
             self.color_settings.connect('changed::color-scheme', self._sync_color_scheme)
             self._sync_color_scheme()
-            self.window.set_default_size(700, 620)
+            self.window.set_default_size(460, 680)
 
             layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
             self.window.set_child(layout)
 
             hero = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7)
             hero.add_css_class('hero')
-            title = Gtk.Label(label=tr('Infinity OS Updates'), xalign=0)
+            title = Gtk.Label(label=tr('Infinity OS Updates'), xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER)
             title.add_css_class('hero-title')
             hero.append(title)
-            subtitle = Gtk.Label(label=tr('System packages · Flatpaks · Device firmware'), xalign=0)
+            subtitle = Gtk.Label(label=tr('System packages · Flatpaks · Device firmware'), xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER)
             subtitle.add_css_class('hero-subtitle')
             hero.append(subtitle)
             layout.append(hero)
@@ -181,6 +181,9 @@ def main():
             checking.append(checking_title)
             detail = Gtk.Label(label=tr('Checking package repositories and other sources.'))
             detail.add_css_class('muted')
+            detail.set_wrap(True)
+            detail.set_max_width_chars(36)
+            detail.set_justify(Gtk.Justification.CENTER)
             checking.append(detail)
             self.content.add_named(checking, 'checking')
 
@@ -195,6 +198,9 @@ def main():
             offline.append(offline_title)
             hint = Gtk.Label(label=tr('Connect to the internet and check again.'))
             hint.add_css_class('muted')
+            hint.set_wrap(True)
+            hint.set_max_width_chars(36)
+            hint.set_justify(Gtk.Justification.CENTER)
             offline.append(hint)
             self.content.add_named(offline, 'offline')
             layout.append(self.content)
@@ -205,21 +211,21 @@ def main():
             self.progress.add_css_class('update-progress')
             self.progress.set_visible(False)
             footer.append(self.progress)
-            self.recovery = Gtk.Label(xalign=0)
+            self.recovery = Gtk.Label(xalign=0.5, justify=Gtk.Justification.CENTER)
             self.recovery.add_css_class('muted')
             self.recovery.set_wrap(True)
             self.recovery.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
             self.recovery.set_max_width_chars(80)
             self.recovery.set_visible(False)
             footer.append(self.recovery)
-            self.status = Gtk.Label(xalign=0, hexpand=True)
+            self.status = Gtk.Label(xalign=0.5, hexpand=True, justify=Gtk.Justification.CENTER)
             self.status.add_css_class('muted')
             self.status.set_wrap(True)
             self.status.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
             self.status.set_max_width_chars(80)
             footer.append(self.status)
-            actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12,
-                              halign=Gtk.Align.END)
+            actions = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8,
+                              halign=Gtk.Align.CENTER)
             self.refresh = Gtk.Button(label=tr('Check again'))
             self.refresh.add_css_class('secondary')
             self.refresh.connect('clicked', self.on_refresh)
@@ -267,25 +273,25 @@ def main():
                 card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
                 card.add_css_class('update-card')
                 title = Gtk.Label(label=tr('Infinity OS {version} is available').format(
-                    version=release['version']), xalign=0)
+                    version=release['version']), xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER)
                 title.add_css_class('update-name')
                 card.append(title)
                 message = (tr('After restart, system and /var are backed up before updating. /home is preserved.')
                            if release.get('supported') else
                            tr('This release changes the Fedora base and needs a dedicated migration path.'))
-                detail = Gtk.Label(label=message, xalign=0, wrap=True)
+                detail = Gtk.Label(label=message, xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER)
                 detail.add_css_class('muted')
                 card.append(detail)
                 self.items.append(card)
             count = Gtk.Label(label=update_count(len(updates)), xalign=0)
             count.add_css_class('pill')
-            count_row = Gtk.Box()
+            count_row = Gtk.Box(halign=Gtk.Align.CENTER)
             count_row.append(count)
             self.items.append(count_row)
             if not updates:
                 message = (tr('Could not confirm whether updates are available.') if errors
                            else tr('Your system is up to date.'))
-                empty = Gtk.Label(label=message, xalign=0)
+                empty = Gtk.Label(label=message, xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER)
                 empty.set_margin_top(24)
                 self.items.append(empty)
             for item in updates:
@@ -293,6 +299,7 @@ def main():
                 card.add_css_class('update-card')
                 name = Gtk.Label(label=item['name'], xalign=0)
                 name.add_css_class('update-name')
+                name.set_ellipsize(Pango.EllipsizeMode.END)
                 card.append(name)
                 detail = Gtk.Label(label=f"{item['kind']}  ·  {item['version']}  ·  {item['source']}", xalign=0)
                 detail.add_css_class('muted')
@@ -319,7 +326,7 @@ def main():
             else:
                 message = ''
             if message:
-                self.items.append(Gtk.Label(label=message, xalign=0, wrap=True))
+                self.items.append(Gtk.Label(label=message, xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER))
             self.apply.set_sensitive(bool(updates) and not self.busy and not offline.get("pending"))
             self.release_apply.set_visible(bool(release))
             self.release_apply.set_sensitive(bool(release and release.get('supported')) and not self.busy and not offline.get('pending'))

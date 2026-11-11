@@ -53,3 +53,45 @@ for (const [name, status, checkedAt, remaining] of [
         assert.equal(indicator._badge.text, String(remaining + 1));
     });
 }
+
+function drawer(area) {
+    const calls = [];
+    const actor = {remove_all_transitions() {}, ease(options) { calls.push(options); }};
+    const window = {
+        get_monitor: () => 1,
+        unmaximize() {},
+        move_resize_frame: (...args) => calls.push(args),
+        get_compositor_private: () => actor,
+        get_frame_rect: () => ({width: Math.min(460, area.width)}),
+        activate() {}, minimize: () => calls.push('minimized'),
+    };
+    const extension = vm.runInNewContext(`${source}\nnew InfinityUpdater()`, {
+        Extension: class {}, Meta: {MaximizeFlags: {BOTH: 3}},
+        St: {Settings: {get: () => ({enable_animations: true})}},
+        Clutter: {AnimationMode: {EASE_OUT_CUBIC: 1, EASE_IN_CUBIC: 2}},
+        global: {get_current_time: () => 1},
+        Main: {layoutManager: {getWorkAreaForMonitor: () => area}, wm: {skipNextEffect() {}}},
+    });
+    return {extension, window, actor, calls};
+}
+
+test('drawer opens from the right within the selected monitor work area', () => {
+    const {extension, window, actor, calls} = drawer({x: -1280, y: 32, width: 1280, height: 688});
+    extension._showDrawer(window);
+    assert.deepEqual(calls[0], [false, -460, 32, 460, 688]);
+    assert.equal(actor.translation_x, 460);
+    assert.equal(calls[1].translation_x, 0);
+    assert.equal(calls[1].duration, 280);
+});
+
+test('drawer fits narrow screens and minimizes only after sliding out', () => {
+    const {extension, window, actor, calls} = drawer({x: 0, y: 30, width: 360, height: 610});
+    extension._placeDrawer(window);
+    assert.deepEqual(calls[0], [false, 0, 30, 360, 610]);
+    extension._hideDrawer(window);
+    assert.equal(calls[1].translation_x, 360);
+    assert.equal(calls.includes('minimized'), false);
+    calls[1].onComplete();
+    assert.equal(calls[2], 'minimized');
+    assert.equal(actor.translation_x, 0);
+});
