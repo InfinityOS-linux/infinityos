@@ -65,6 +65,8 @@
 		<ignore name="yelp"/>
 		<ignore name="mediawriter"/>
 		<package name="flatpak"/>
+		<package name="fuse"/>
+		<package name="fuse-libs"/>
 		<package name="python3-gobject"/>
 		<package name="nodejs-npm"/>
 		<ignore name="fedora-flathub-remote"/>
