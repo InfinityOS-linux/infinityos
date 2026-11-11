@@ -518,11 +518,44 @@ class LauncherBackendTests(unittest.TestCase):
     def test_cli_shortcut_is_created_after_successful_install(self):
         codex = next(app for app in backend.APPS if "Codex CLI" in app.name)
         with tempfile.TemporaryDirectory() as directory:
-            with patch.object(backend.shutil, "which", side_effect=lambda name: "/usr/bin/npm" if name == "npm" else None), patch.object(backend, "_run") as run:
+            with patch.object(backend.os, 'uname', return_value=SimpleNamespace(machine='aarch64')), \
+                 patch.object(backend.shutil, "which", side_effect=lambda name: "/usr/bin/npm" if name == "npm" else None), patch.object(backend, "_run") as run:
                 backend.install(codex, directory)
-            self.assertEqual(run.call_args_list[0].args[0][-1], "@openai/codex")
+            self.assertEqual(run.call_args_list[1].args[0][-1], "@openai/codex")
             shortcut = Path(directory) / ".local/share/applications/infinityos-codex.desktop"
             self.assertIn("https://chatgpt.com/codex", shortcut.read_text())
+
+    def test_codex_installs_official_chatgpt_for_each_architecture(self):
+        codex = next(app for app in backend.APPS if app.source == '@openai/codex')
+        for arch in ('x86_64', 'aarch64'):
+            with self.subTest(arch=arch), tempfile.TemporaryDirectory() as directory:
+                with patch.object(backend.os, 'uname', return_value=SimpleNamespace(machine=arch)), \
+                     patch.object(backend.shutil, 'which', return_value='/usr/bin/npm'), \
+                     patch.object(backend, '_run') as run, patch.object(backend.subprocess, 'run') as refresh:
+                    backend.install(codex, directory)
+                self.assertEqual(run.call_args_list[0].args[0], ['pkexec', 'dnf', '-y', 'install',
+                    f'https://persistent.oaistatic.com/codex-app-prod/linux/rpm/latest/chatgpt.{arch}.rpm'])
+                self.assertIn('@openai/codex', run.call_args_list[1].args[0])
+                refresh.assert_called_once()
+                self.assertIn('refresh-cli-tabs', refresh.call_args.args[0])
+
+    def test_chatgpt_rejects_unsupported_architecture_before_installing(self):
+        codex = next(app for app in backend.APPS if app.source == '@openai/codex')
+        with patch.object(backend.os, 'uname', return_value=SimpleNamespace(machine='riscv64')), \
+             patch.object(backend, '_run') as run:
+            with self.assertRaisesRegex(RuntimeError, 'x64 or ARM64'):
+                backend.install(codex)
+            run.assert_not_called()
+
+    def test_chatgpt_failure_stops_before_codex_install(self):
+        codex = next(app for app in backend.APPS if app.source == '@openai/codex')
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(backend.os, 'uname', return_value=SimpleNamespace(machine='x86_64')), \
+             patch.object(backend, '_run', side_effect=RuntimeError('download failed')) as run:
+            with self.assertRaisesRegex(RuntimeError, 'download failed'):
+                backend.install(codex, directory)
+            self.assertEqual(run.call_count, 1)
+            self.assertFalse((Path(directory) / '.local/share/applications/infinityos-codex.desktop').exists())
 
     def test_cli_failure_does_not_create_shortcut(self):
         claude = next(app for app in backend.APPS if "Claude Code CLI" in app.name)

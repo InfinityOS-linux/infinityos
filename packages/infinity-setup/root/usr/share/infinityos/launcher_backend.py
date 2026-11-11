@@ -134,7 +134,7 @@ APPS = (
     App("Programming", "Craft Anything", "github-rpm", "storytold/craft-anything", "See how any website, app or game works, then build your own.", website="https://github.com/storytold/craft-anything", group="Development tools", icon="ai.storyteller.craft-anything"),
     App("Programming", "Docker CE", "dnf", "docker-ce", "Run apps in isolated containers.", group="Development tools", icon="docker"),
     App("AI", "Anthropic Claude + Claude Code CLI", "npm", "@anthropic-ai/claude-code", "Use Claude in the browser and terminal.", website="https://claude.ai/", group="Assistants", icon="infinity-claude"),
-    App("AI", "OpenAI Codex + Codex CLI", "npm", "@openai/codex", "Use Codex in the browser and terminal.", website="https://chatgpt.com/codex", group="Assistants", icon="infinity-codex"),
+    App("AI", "OpenAI Codex + Codex CLI", "npm", "@openai/codex", "Install ChatGPT desktop and Codex CLI with InfinityTerminal integration.", website="https://chatgpt.com/codex", group="Assistants", icon="infinity-codex"),
     App("AI", "Qwen3.5 9B Q5 · 16 GB RAM", "local-model", "infinity-qwen-9b", "Run a local AI coding assistant. Needs 10 GB of disk space.", group="Local models", icon="infinity-ai"),
     App("AI", "Gemma 4 12B Q4 · 32 GB RAM", "local-model", "infinity-gemma-12b", "Run a local AI coding assistant. Needs 11 GB of disk space.", group="Local models", icon="infinity-ai"),
     App("AI", "Qwen3.5 35B A3B Q5 · 64 GB RAM", "local-model", "infinity-qwen-35b", "Run a local AI coding assistant. Needs 30 GB of disk space.", group="Local models", icon="infinity-ai"),
@@ -652,6 +652,13 @@ def install(app, home=None, *, defer_system_dependencies=False):
         else:
             raise ValueError(f"No DNF installation source for {app.name}.")
     elif app.kind == "npm":
+        if app.source == "@openai/codex":
+            arch = os.uname().machine
+            if arch not in ("x86_64", "aarch64"):
+                raise RuntimeError("ChatGPT desktop requires x64 or ARM64.")
+            # The official RPM also configures OpenAI's repository for later updates.
+            _run(["pkexec", "dnf", "-y", "install",
+                  f"https://persistent.oaistatic.com/codex-app-prod/linux/rpm/latest/chatgpt.{arch}.rpm"])
         if not shutil.which("npm"):
             _run(["pkexec", "dnf", "-y", "install", "nodejs-npm"])
         _run(["npm", "install", "--global", "--prefix", str(home / ".local"), app.source])
