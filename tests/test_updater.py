@@ -422,8 +422,11 @@ class UpdaterTests(unittest.TestCase):
 
     def test_privileged_upgrade_prepares_offline_without_installing_live(self):
         script = (SOURCE.parents[2] / 'libexec/infinityos-upgrade-system').read_text()
-        self.assertIn('dnf -y upgrade --offline', script)
-        self.assertIn('DNF_SYSTEM_UPGRADE_NO_REBOOT=1', script)
+        self.assertIn('systemd-inhibit --what=shutdown:sleep', script)
+        self.assertIn('/usr/share/infinityos/updater/pending.py', script)
+        staging = (SOURCE / 'pending.py').read_text()
+        self.assertIn('DNF_SYSTEM_UPGRADE_NO_REBOOT', staging)
+        self.assertIn("['upgrade', '--offline'", staging)
         self.assertNotIn('snapper -c', script)
         self.assertNotIn('--allowerasing', script)
 

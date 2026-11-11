@@ -4,6 +4,7 @@ import locale
 
 
 POLISH = {
+    'Downloaded — installs after restart': 'Pobrano — instalacja po ponownym uruchomieniu',
     'Checking: {source}': 'Sprawdzanie: {source}',
     'System packages': 'Pakiety systemowe',
     'InfinitySetup apps': 'Aplikacje InfinitySetup',

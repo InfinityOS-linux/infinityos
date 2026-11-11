@@ -86,6 +86,22 @@ def network_is_offline(monitor, gio):
                                            gio.NetworkConnectivity.PORTAL))
 
 
+def update_rows(updates, offline):
+    """Keep queued versions visible when a repository no longer lists them."""
+    queued = offline.get('packages', []) if offline.get('pending') else []
+    rows = []
+    for item in updates:
+        ready = item['kind'] == 'RPM' and any(
+            p['name'] == item['name'] and (not item.get('arch') or p['arch'] == item['arch'])
+            and p['version'] == item['version'].removeprefix('0:')
+            for p in queued)
+        rows.append({**item, 'pending': ready})
+    names = {(item['name'], item.get('arch')) for item in updates if item['kind'] == 'RPM'}
+    rows.extend({**item, 'pending': True} for item in queued
+                if (item['name'], item['arch']) not in names and (item['name'], None) not in names)
+    return rows
+
+
 def install_commands(updates):
     kinds = {item['kind'] for item in updates}
     commands = []
@@ -138,6 +154,7 @@ def main():
                 Gdk.Display.get_default(), css,
                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
             self.window = Gtk.ApplicationWindow(application=self, title=tr('Infinity OS Updates'))
+            self.window.set_decorated(False)
             self.window.add_css_class('infinity-updater')
             self.color_settings = Gio.Settings.new('org.gnome.desktop.interface')
             self.color_settings.connect('changed::color-scheme', self._sync_color_scheme)
@@ -252,12 +269,14 @@ def main():
         def render(self):
             if self.checking:
                 self.content.set_visible_child_name('checking')
+                self.apply.set_visible(False)
                 self.apply.set_sensitive(False)
                 self.release_apply.set_visible(False)
                 self.refresh.set_sensitive(False)
                 return
             if self.offline:
                 self.content.set_visible_child_name('offline')
+                self.apply.set_visible(False)
                 self.apply.set_sensitive(False)
                 self.release_apply.set_visible(False)
                 self.refresh.set_sensitive(True)
@@ -266,7 +285,8 @@ def main():
             self.content.set_visible_child_name('results')
             while child := self.items.get_first_child():
                 self.items.remove(child)
-            updates = self.state.get('updates', [])
+            offline = offline_status()
+            updates = update_rows(self.state.get('updates', []), offline)
             errors = self.state.get('errors', [])
             release = self.state.get('release')
             if release:
@@ -300,7 +320,14 @@ def main():
                 name = Gtk.Label(label=item['name'], xalign=0)
                 name.add_css_class('update-name')
                 name.set_ellipsize(Pango.EllipsizeMode.END)
-                card.append(name)
+                title_row = Gtk.Box(spacing=8)
+                name.set_hexpand(True)
+                title_row.append(name)
+                if item.get('pending'):
+                    restart = Gtk.Image.new_from_icon_name('system-reboot-symbolic')
+                    restart.set_tooltip_text(tr('Downloaded — installs after restart'))
+                    title_row.append(restart)
+                card.append(title_row)
                 detail = Gtk.Label(label=f"{item['kind']}  ·  {item['version']}  ·  {item['source']}", xalign=0)
                 detail.add_css_class('muted')
                 detail.set_ellipsize(Pango.EllipsizeMode.END)
@@ -312,7 +339,6 @@ def main():
                 warning.set_wrap(True)
                 warning.add_css_class('muted')
                 self.items.append(warning)
-            offline = offline_status()
             if offline.get('pending'):
                 message = tr('Updates downloaded, restart to update.')
             elif offline.get('status') == 'failed':
@@ -327,7 +353,9 @@ def main():
                 message = ''
             if message:
                 self.items.append(Gtk.Label(label=message, xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER))
-            self.apply.set_sensitive(bool(updates) and not self.busy and not offline.get("pending"))
+            installable = any(not item.get('pending') for item in updates)
+            self.apply.set_visible(installable)
+            self.apply.set_sensitive(installable and not self.busy)
             self.release_apply.set_visible(bool(release))
             self.release_apply.set_sensitive(bool(release and release.get('supported')) and not self.busy and not offline.get('pending'))
             self.refresh.set_sensitive(not self.busy)
@@ -418,7 +446,8 @@ def main():
             return GLib.SOURCE_REMOVE
 
         def on_apply(self, _button):
-            updates = self.state['updates']
+            updates = [item for item in update_rows(self.state['updates'], offline_status())
+                       if not item.get('pending')]
             commands = install_commands(updates)
             if not commands:
                 return

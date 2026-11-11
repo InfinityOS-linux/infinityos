@@ -11,6 +11,8 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
 export default class InfinityUpdater extends Extension {
     enable() {
+        this._outsideClickId = global.stage.connect('captured-event',
+            (_stage, event) => this._onCapturedEvent(event));
         this._mapId = global.window_manager.connect('map', (_wm, actor) => {
             if (this._isUpdater(actor.meta_window))
                 this._showDrawer(actor.meta_window);
@@ -87,6 +89,26 @@ export default class InfinityUpdater extends Extension {
         } catch (error) {
             console.warn(`Could not start Infinity OS update checks: ${error}`);
         }
+    }
+
+    _onCapturedEvent(event) {
+        if (event.type() !== Clutter.EventType.BUTTON_PRESS &&
+            event.type() !== Clutter.EventType.TOUCH_BEGIN)
+            return Clutter.EVENT_PROPAGATE;
+        const source = event.get_source();
+        if (source && this._indicator?.contains(source))
+            return Clutter.EVENT_PROPAGATE;
+        const [x, y] = event.get_coords();
+        for (const actor of global.get_window_actors()) {
+            const window = actor.meta_window;
+            if (!this._isUpdater(window) || window.minimized)
+                continue;
+            const rect = window.get_frame_rect();
+            if (x < rect.x || x >= rect.x + rect.width ||
+                y < rect.y || y >= rect.y + rect.height)
+                this._hideDrawer(window);
+        }
+        return Clutter.EVENT_PROPAGATE;
     }
 
     _isUpdater(window) {
@@ -176,6 +198,7 @@ export default class InfinityUpdater extends Extension {
     }
 
     disable() {
+        global.stage.disconnect(this._outsideClickId);
         global.window_manager.disconnect(this._mapId);
         global.window_manager.disconnect(this._unminimizeId);
         Main.layoutManager.disconnect(this._monitorsId);

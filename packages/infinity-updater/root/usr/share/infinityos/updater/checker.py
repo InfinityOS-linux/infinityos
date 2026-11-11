@@ -7,11 +7,17 @@ from datetime import datetime, timezone
 
 from release import available_release, installed_version, load_manifest
 from github_update import check_github_updates
+from pending import packages as pending_packages
 
 
 def offline_status(directory=Path('/var/lib/infinityos'), trigger=Path('/system-update')):
     if trigger.is_symlink():
-        return {'pending': True}
+        result = {'pending': True}
+        try:
+            result['packages'] = pending_packages(trigger.resolve())
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
+        return result
     try:
         result = json.loads((directory / 'offline-update-result.json').read_text())
         if not isinstance(result, dict):
@@ -75,14 +81,15 @@ def check_updates(report=None):
     with tempfile.TemporaryDirectory(prefix='infinityos-dnf-state-') as state_dir:
         result = _run(['dnf', '--quiet', '--assumeyes', '--refresh',
                        f'--setopt=system_state_dir={state_dir}', 'repoquery', '--upgrades',
-                       '--qf', '%{name}|%{evr}|%{repoid}\n'])
+                       '--qf', '%{name}|%{evr}|%{repoid}|%{arch}\n'])
     rpm_check_ok = result.returncode == 0
     if rpm_check_ok:
         for line in result.stdout.splitlines():
-            fields = line.split('|', 2)
-            if len(fields) == 3:
+            fields = line.split('|', 3)
+            if len(fields) in (3, 4):
                 updates.append({'kind': 'RPM', 'name': fields[0],
-                                'version': fields[1], 'source': fields[2]})
+                                'version': fields[1], 'source': fields[2],
+                                **({'arch': fields[3]} if len(fields) == 4 else {})})
     else:
         errors.append('RPM: ' + (result.stderr.strip() or 'Could not check updates'))
 

@@ -95,3 +95,28 @@ test('drawer fits narrow screens and minimizes only after sliding out', () => {
     assert.equal(calls[2], 'minimized');
     assert.equal(actor.translation_x, 0);
 });
+
+for (const [label, x, y, sourceActor, minimized, hide] of [
+    ['desktop', 100, 100, null, false, true],
+    ['top bar', 900, 10, null, false, true],
+    ['another monitor', 1500, 400, null, false, true],
+    ['inside drawer', 900, 400, null, false, false],
+    ['own indicator', 900, 10, 'indicator', false, false],
+    ['already hidden', 100, 100, null, true, false],
+]) {
+    test(`outside click: ${label}`, () => {
+        const window = {minimized, get_frame_rect: () => ({x: 820, y: 30, width: 460, height: 690})};
+        let hidden = false;
+        const extension = vm.runInNewContext(`${source}\nnew InfinityUpdater()`, {
+            Extension: class {},
+            Clutter: {EventType: {BUTTON_PRESS: 1, TOUCH_BEGIN: 2}, EVENT_PROPAGATE: 0},
+            global: {get_window_actors: () => [{meta_window: window}]},
+        });
+        extension._isUpdater = w => w === window;
+        extension._indicator = {contains: actor => actor === 'indicator'};
+        extension._hideDrawer = () => {hidden = true;};
+        const result = extension._onCapturedEvent({type: () => 1, get_source: () => sourceActor, get_coords: () => [x, y]});
+        assert.equal(result, 0, 'outside clicks still reach the target');
+        assert.equal(hidden, hide);
+    });
+}

@@ -19,14 +19,10 @@ if [[ -e /etc/infinityos-release-pending.json ]]; then
     echo 'A release upgrade is pending. Retry that release or restore its recovery snapshot first.' >&2
     exit 1
 fi
-if [[ -e /system-update || -L /system-update ]]; then
-    echo 'An update is already prepared. Restart to complete it before preparing another.' >&2
-    exit 1
-fi
+args=()
 if [[ $# -eq 2 ]]; then
-    dnf -y install --offline -- "$2"
-else
-    dnf -y upgrade --offline --refresh --no-best --skip-unavailable
+    args+=("$2")
 fi
-DNF_SYSTEM_UPGRADE_NO_REBOOT=1 dnf -y offline reboot
-printf 'System update prepared. Restart to back up the system and /var, then install. /home will be preserved.\n'
+exec systemd-inhibit --what=shutdown:sleep --mode=block --who=InfinityUpdater \
+    --why='Preparing system updates' \
+    python3 /usr/share/infinityos/updater/pending.py "${args[@]}"
