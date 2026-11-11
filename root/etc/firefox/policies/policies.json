@@ -3,6 +3,13 @@
     "EncryptedMediaExtensions": {
       "Enabled": true,
       "Locked": false
+    },
+    "Preferences": {
+      "browser.uidensity": {"Value": 1, "Status": "default"},
+      "browser.compactmode.show": {"Value": true, "Status": "default"}
+    },
+    "Extensions": {
+      "Install": ["/usr/share/infinityos/firefox/adblocker-ultimate.xpi"]
     }
   }
 }

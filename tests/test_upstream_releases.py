@@ -42,7 +42,7 @@ class UpstreamTests(unittest.TestCase):
             dest.mkdir(parents=True)
             for name in ('proview', 'iosevka'):
                 shutil.copy(ROOT / f'root/usr/libexec/infinityos-install-{name}', dest)
-            upstream.stage(root, p, f)
+            upstream.stage(root, p, f, {'version': '4.4.5'})
             for name in ('proview', 'iosevka'):
                 text = (dest / f'infinityos-install-{name}').read_text()
                 self.assertIn('/v9.1/', text)
@@ -51,3 +51,36 @@ class UpstreamTests(unittest.TestCase):
             manifest = json.loads((root / 'root/usr/share/infinityos/upstream-versions.json').read_text())
             self.assertEqual(len(manifest['proview']['assets']), 2)
             self.assertEqual(manifest['iosevka']['tag'], 'v9.1')
+
+    def test_firefox_addon_is_bundled_and_identity_is_checked(self):
+        import hashlib
+        import io
+        from zipfile import ZipFile
+        guid = 'adblockultimate@adblockultimate.net'
+        stream = io.BytesIO()
+        with ZipFile(stream, 'w') as archive:
+            archive.writestr('manifest.json', json.dumps({'version': '4.4.5',
+                'browser_specific_settings': {'gecko': {'id': guid}}}))
+        data = stream.getvalue()
+        asset = {'status': 'public', 'hash': 'sha256:' + hashlib.sha256(data).hexdigest(),
+                 'url': 'https://addons.mozilla.org/firefox/downloads/file/123/addon.xpi'}
+        good = {'guid': guid, 'current_version': {'version': '4.4.5', 'file': asset}}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch.object(upstream, 'fetch', side_effect=[json.dumps(good).encode(), data]):
+                result = upstream.stage_firefox_addon(root)
+            destination = root / 'root/usr/share/infinityos/firefox/adblocker-ultimate.xpi'
+            self.assertEqual(destination.read_bytes(), data)
+            self.assertEqual(result['sha256'], asset['hash'][7:])
+            policy = json.loads((ROOT / 'root/etc/firefox/policies/policies.json').read_text())
+            self.assertEqual(policy['policies']['EncryptedMediaExtensions'], {'Enabled': True, 'Locked': False})
+            self.assertEqual(policy['policies']['Extensions'],
+                {'Install': ['/usr/share/infinityos/firefox/adblocker-ultimate.xpi']})
+            for bad in [dict(good, guid='other'),
+                        dict(good, current_version={'version': '9', 'file': asset}),
+                        dict(good, current_version={'version': '4.4.5', 'file': dict(asset, status='disabled')}),
+                        dict(good, current_version={'version': '4.4.5', 'file': dict(asset, hash='sha256:' + '0' * 64)}),
+                        dict(good, current_version={'version': '4.4.5', 'file': dict(asset, url='https://example.com/addon.xpi')})]:
+                with self.subTest(bad=bad), patch.object(upstream, 'fetch', side_effect=[json.dumps(bad).encode(), data]):
+                    with self.assertRaises(ValueError):
+                        upstream.stage_firefox_addon(root)

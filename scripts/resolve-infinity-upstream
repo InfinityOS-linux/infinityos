@@ -1,17 +1,20 @@
 #!/usr/bin/python3
 """Resolve stable upstream assets into a disposable KIWI source archive."""
+import hashlib
+import io
 import json
 from pathlib import Path
 import re
 import sys
 from urllib.request import Request, urlopen
+from zipfile import ZipFile
 
 
-def fetch(url):
+def fetch(url, limit=4 * 1024 * 1024):
     request = Request(url, headers={'User-Agent': 'InfinityOS-image-builder'})
     with urlopen(request, timeout=60) as response:
-        data = response.read(4 * 1024 * 1024 + 1)
-    if len(data) > 4 * 1024 * 1024:
+        data = response.read(limit + 1)
+    if len(data) > limit:
         raise ValueError(f'Oversized upstream metadata: {url}')
     return data
 
@@ -37,7 +40,34 @@ def resolve(repo, names):
     return {'repository': repo, 'tag': tag, 'assets': assets}
 
 
-def stage(root, proview, iosevka):
+def stage_firefox_addon(root):
+    addon = json.loads(fetch('https://addons.mozilla.org/api/v5/addons/addon/adblocker-ultimate/'))
+    guid = 'adblockultimate@adblockultimate.net'
+    version = addon['current_version']
+    asset = version['file']
+    digest = asset['hash']
+    if (addon['guid'] != guid or asset['status'] != 'public' or
+            not re.fullmatch(r'sha256:[0-9a-f]{64}', digest) or
+            not re.fullmatch(r'https://addons\.mozilla\.org/firefox/downloads/file/\d+/[^/]+\.xpi', asset['url'])):
+        raise ValueError('Unexpected AdBlocker Ultimate metadata')
+    data = fetch(asset['url'], limit=32 * 1024 * 1024)
+    if hashlib.sha256(data).hexdigest() != digest[7:]:
+        raise ValueError('AdBlocker Ultimate SHA-256 mismatch')
+    with ZipFile(io.BytesIO(data)) as archive:
+        if archive.getinfo('manifest.json').file_size > 128 * 1024:
+            raise ValueError('Oversized addon manifest')
+        manifest = json.loads(archive.read('manifest.json'))
+    settings = manifest.get('browser_specific_settings', manifest.get('applications', {}))
+    if settings.get('gecko', {}).get('id') != guid or manifest['version'] != version['version']:
+        raise ValueError('AdBlocker Ultimate identity mismatch')
+    destination = root / 'root/usr/share/infinityos/firefox/adblocker-ultimate.xpi'
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes(data)
+    destination.chmod(0o644)
+    return {'id': guid, 'version': version['version'], 'url': asset['url'], 'sha256': digest[7:]}
+
+
+def stage(root, proview, iosevka, adblocker):
     libexec = root / 'root/usr/libexec'
     path = libexec / 'infinityos-install-proview'
     text = path.read_text()
@@ -64,7 +94,7 @@ def stage(root, proview, iosevka):
     path.write_text(text)
     manifest = root / 'root/usr/share/infinityos/upstream-versions.json'
     manifest.parent.mkdir(parents=True, exist_ok=True)
-    manifest.write_text(json.dumps({'proview': proview, 'iosevka': iosevka}, indent=2) + '\n')
+    manifest.write_text(json.dumps({'proview': proview, 'iosevka': iosevka, 'adblocker_ultimate': adblocker}, indent=2) + '\n')
 
 
 def main():
@@ -77,7 +107,8 @@ def main():
             raise ValueError(f'Empty upstream license: {component}')
         destination = root / f'root/usr/share/licenses/infinityos-{component}' / ('LICENSE.txt' if component == 'proview' else 'LICENSE.md')
         destination.write_bytes(license_text)
-    stage(root, proview, iosevka)
+    adblocker = stage_firefox_addon(root)
+    stage(root, proview, iosevka, adblocker)
     print(f'Latest stable upstream releases: Proview {proview["tag"]}, Iosevka {iosevka["tag"]}')
 
 

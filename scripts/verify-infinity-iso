@@ -53,6 +53,13 @@ with (root / 'opt/proview/Proview.AppImage').open('rb') as stream:
     assert hashlib.file_digest(stream, 'sha256').hexdigest() == asset['sha256']
 font = next(iter(upstream['iosevka']['assets'].values()))
 assert (root / 'usr/share/fonts/Iosevka-Term/.source-sha256').read_text().strip() == font['sha256']
+addon = root / 'usr/share/infinityos/firefox/adblocker-ultimate.xpi'
+with addon.open('rb') as stream:
+    assert hashlib.file_digest(stream, 'sha256').hexdigest() == upstream['adblocker_ultimate']['sha256']
+policies = json.loads((root / 'etc/firefox/policies/policies.json').read_text())
+assert '/' + str(addon.relative_to(root)) in policies['policies']['Extensions']['Install']
+assert policies['policies']['Preferences']['browser.uidensity'] == {'Value': 1, 'Status': 'default'}
+assert policies['policies']['Preferences']['browser.compactmode.show'] == {'Value': True, 'Status': 'default'}
 print('Verified upstream release manifest and installed assets')
 warp_arch = 'aarch64' if arch == 'arm64' else 'x86_64'
 warp = root / f'var/lib/flatpak/app/app.drey.Warp/{warp_arch}/stable/active'
