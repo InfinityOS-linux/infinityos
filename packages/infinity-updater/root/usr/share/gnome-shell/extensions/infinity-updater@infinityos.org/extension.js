@@ -49,8 +49,8 @@ export default class InfinityUpdater extends Extension {
         const open = () => {
             const window = global.get_window_actors().map(actor => actor.meta_window)
                 .find(window => this._isUpdater(window));
-            if (window && !window.minimized) {
-                this._hideDrawer(window);
+            if (window) {
+                this._toggleDrawer(window);
                 return;
             }
             try {
@@ -125,28 +125,55 @@ export default class InfinityUpdater extends Extension {
             width, area.height);
     }
 
+    _toggleDrawer(window) {
+        if (window.minimized) {
+            const actor = window.get_compositor_private();
+            if (actor)
+                Main.wm.skipNextEffect(actor);
+            window.activate(global.get_current_time());
+        } else if (this._closingWindows?.has(window)) {
+            this._showDrawer(window);
+        } else {
+            this._hideDrawer(window);
+        }
+    }
+
     _showDrawer(window) {
         this._placeDrawer(window);
         const actor = window.get_compositor_private();
         if (!actor)
             return;
+        const reversing = this._closingWindows?.delete(window);
         actor.remove_all_transitions();
+        // Cancelling GNOME's restore effect leaves its intermediate actor position.
+        const rect = window.get_buffer_rect();
+        actor.x = rect.x;
+        actor.y = rect.y;
         actor.scale_x = actor.scale_y = 1;
         actor.opacity = 255;
-        actor.translation_x = window.get_frame_rect().width;
+        if (!reversing)
+            actor.translation_x = window.get_frame_rect().width;
         actor.ease({translation_x: 0, duration: St.Settings.get().enable_animations ? 280 : 0,
             mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
         window.activate(global.get_current_time());
     }
 
     _hideDrawer(window) {
+        if (window.minimized || this._closingWindows?.has(window))
+            return;
         const actor = window.get_compositor_private();
         if (!actor)
             return;
+        this._closingWindows ??= new WeakMap();
+        const closing = {};
+        this._closingWindows.set(window, closing);
         actor.remove_all_transitions();
         actor.ease({translation_x: window.get_frame_rect().width, duration: St.Settings.get().enable_animations ? 220 : 0,
             mode: Clutter.AnimationMode.EASE_IN_CUBIC,
             onComplete: () => {
+                if (this._closingWindows?.get(window) !== closing)
+                    return;
+                this._closingWindows.delete(window);
                 Main.wm.skipNextEffect(actor);
                 window.minimize();
                 actor.translation_x = 0;
@@ -198,6 +225,7 @@ export default class InfinityUpdater extends Extension {
     }
 
     disable() {
+        this._closingWindows = null;
         global.stage.disconnect(this._outsideClickId);
         global.window_manager.disconnect(this._mapId);
         global.window_manager.disconnect(this._unminimizeId);

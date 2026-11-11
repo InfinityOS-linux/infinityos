@@ -63,6 +63,7 @@ function drawer(area) {
         move_resize_frame: (...args) => calls.push(args),
         get_compositor_private: () => actor,
         get_frame_rect: () => ({width: Math.min(460, area.width)}),
+        get_buffer_rect: () => ({x: area.x + area.width - Math.min(460, area.width), y: area.y}),
         activate() {}, minimize: () => calls.push('minimized'),
     };
     const extension = vm.runInNewContext(`${source}\nnew InfinityUpdater()`, {
@@ -120,3 +121,39 @@ for (const [label, x, y, sourceActor, minimized, hide] of [
         assert.equal(hidden, hide);
     });
 }
+
+
+test('opening restores actor position after interrupting the GNOME restore effect', () => {
+    const {extension, window, actor} = drawer({x: 0, y: 32, width: 1280, height: 688});
+    actor.x = 0;
+    actor.y = 0;
+    extension._showDrawer(window);
+    assert.equal(actor.x, 820);
+    assert.equal(actor.y, 32);
+});
+
+test('rapid toggle reverses closing and repeated outside clicks do not restart it', () => {
+    const {extension, window, actor, calls} = drawer({x: 0, y: 32, width: 1280, height: 688});
+    extension._hideDrawer(window);
+    const closing = calls.at(-1);
+    extension._hideDrawer(window);
+    assert.equal(calls.at(-1), closing);
+    actor.translation_x = 120;
+    extension._toggleDrawer(window);
+    assert.equal(actor.translation_x, 120, 'reverse from the current position');
+    assert.equal(calls.at(-1).translation_x, 0);
+    closing.onComplete();
+    assert.equal(calls.includes('minimized'), false, 'an obsolete completion must not hide the reopened drawer');
+    extension._toggleDrawer(window);
+    calls.at(-1).onComplete();
+    assert.equal(calls.includes('minimized'), true);
+});
+
+test('tray restores the existing minimized window without launching another process', () => {
+    const {extension, window} = drawer({x: 0, y: 32, width: 1280, height: 688});
+    window.minimized = true;
+    let activated = 0;
+    window.activate = () => activated++;
+    extension._toggleDrawer(window);
+    assert.equal(activated, 1);
+});
