@@ -13,9 +13,14 @@ function fixture() {
     const animations = [];
     const focus = {owner: 'panel', activations: 0};
     const actor = {
-        opacity: 255, translation_y: 0,
+        opacity: 255, translation_y: 0, disposed: false,
         connect(name, callback) { const id = nextId++; signals.set(id, {name, callback}); return id; },
-        disconnect(id) { signals.delete(id); },
+        disconnect(id) { assert.equal(this.disposed, false, 'access to disposed actor'); signals.delete(id); },
+        destroy() {
+            for (const {name, callback} of [...signals.values()])
+                if (name === 'destroy') callback();
+            this.disposed = true; signals.clear();
+        },
         remove_all_transitions() {},
         ease(options) { animations.push({start: this.translation_y, ...options}); },
     };
@@ -171,5 +176,15 @@ test('opening overview before deferred reveal keeps focus out of the terminal', 
     f.flush();
     assert.equal(f.focus.owner, 'overview');
     assert.equal(f.focus.activations, activations);
+    assert.equal(f.animations.length, 0);
+});
+
+test('actor destruction clears a pending first frame before window cleanup', () => {
+    const f = fixture();
+    f.controller._track(f.window, true, true);
+    f.actor.destroy();
+    f.controller._clearFirstFrame();
+    assert.equal(f.controller._firstFrame, null);
+    f.flush();
     assert.equal(f.animations.length, 0);
 });

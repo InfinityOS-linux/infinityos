@@ -143,8 +143,11 @@ export default class InfinityTerminal extends Extension {
                 [window, window.connect('notify::wm-class', check)],
                 [window, window.connect('unmanaged', clear)],
             ];
-            if (actor)
+            if (actor) {
                 signals.push([actor, actor.connect('first-frame', () => { hasFrame = true; })]);
+                // The actor can be destroyed before Meta.Window emits unmanaged.
+                signals.push([actor, actor.connect('destroy', clear)]);
+            }
             this._pendingWindows.set(window, signals);
             check();
         });
@@ -488,6 +491,7 @@ export default class InfinityTerminal extends Extension {
     _clearFirstFrame() {
         if (this._firstFrame) {
             this._firstFrame.actor.disconnect(this._firstFrame.id);
+            this._firstFrame.actor.disconnect(this._firstFrame.destroyId);
             this._firstFrame = null;
         }
     }
@@ -559,7 +563,8 @@ export default class InfinityTerminal extends Extension {
         if (waitForFrame && actor) {
             // Cold starts may draw after the entire slide would have finished.
             this._place(window);
-            this._firstFrame = {actor, id: actor.connect('first-frame', ready)};
+            this._firstFrame = {actor, id: actor.connect('first-frame', ready),
+                destroyId: actor.connect('destroy', () => this._clearFirstFrame())};
         } else {
             this._sourceId = GLib.idle_add(GLib.PRIORITY_DEFAULT, ready);
         }
