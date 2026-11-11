@@ -15,3 +15,6 @@ background-opacity = 0.93
 background-blur = true
 window-padding-x = 12
 window-padding-y = 10
+# Submit password prompts even when the shell leaves application keypad mode enabled.
+# shortcut: keypad Enter acts as Return; remove when keypad mode is reliably reset before commands.
+keybind = kp_enter=text:\r
