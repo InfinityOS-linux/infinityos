@@ -56,6 +56,9 @@ for (const [name, status, checkedAt, remaining] of [
 
 function drawer(area) {
     const calls = [];
+    const timers = new Map();
+    const signals = new Map();
+    let nextId = 1;
     const actor = {remove_all_transitions() {}, ease(options) { calls.push(options); }};
     const window = {
         get_monitor: () => 1,
@@ -64,16 +67,23 @@ function drawer(area) {
         get_compositor_private: () => actor,
         get_frame_rect: () => ({width: Math.min(460, area.width)}),
         get_buffer_rect: () => ({x: area.x + area.width - Math.min(460, area.width), y: area.y}),
-        activate() {}, minimize: () => calls.push('minimized'),
+        activate() { this.minimized = false; },
+        minimize() { this.minimized = true; calls.push('minimized'); },
+        delete: () => calls.push('closed'),
+        connect(name, callback) { const id = nextId++; signals.set(id, {name, callback}); return id; },
+        disconnect(id) { signals.delete(id); },
     };
     const extension = vm.runInNewContext(`${source}\nnew InfinityUpdater()`, {
         Extension: class {}, Meta: {MaximizeFlags: {BOTH: 3}},
+        GLib: {PRIORITY_DEFAULT: 0, SOURCE_REMOVE: false,
+            timeout_add(_priority, delay, callback) { const id = nextId++; timers.set(id, {delay, callback}); return id; },
+            Source: {remove: id => timers.delete(id)}},
         St: {Settings: {get: () => ({enable_animations: true})}},
         Clutter: {AnimationMode: {EASE_OUT_CUBIC: 1, EASE_IN_CUBIC: 2}},
         global: {get_current_time: () => 1},
         Main: {layoutManager: {getWorkAreaForMonitor: () => area}, wm: {skipNextEffect() {}}},
     });
-    return {extension, window, actor, calls};
+    return {extension, window, actor, calls, timers, signals};
 }
 
 test('drawer opens from the right within the selected monitor work area', () => {
@@ -180,5 +190,34 @@ for (const [label, target, hidden] of [
         extension._hideDrawer = () => {dismissed = true;};
         extension._onFocusChanged();
         assert.equal(dismissed, hidden);
+    });
+}
+
+
+test('hidden drawer closes after five seconds, not during its slide animation', () => {
+    const {extension, window, calls, timers, signals} = drawer({x: 0, y: 32, width: 1280, height: 688});
+    extension._hideDrawer(window);
+    assert.equal(timers.size, 0);
+    calls.at(-1).onComplete();
+    const timer = [...timers.values()][0];
+    assert.equal(timer.delay, 5000);
+    assert.equal(calls.includes('closed'), false);
+    timer.callback();
+    assert.equal(calls.at(-1), 'closed');
+    assert.equal(signals.size, 0);
+});
+
+for (const reason of ['reopen', 'unmanaged']) {
+    test(`pending close is cancelled on ${reason}`, () => {
+        const {extension, window, calls, timers, signals} = drawer({x: 0, y: 32, width: 1280, height: 688});
+        extension._hideDrawer(window);
+        calls.at(-1).onComplete();
+        if (reason === 'reopen')
+            extension._showDrawer(window);
+        else
+            [...signals.values()].find(signal => signal.name === 'unmanaged').callback();
+        assert.equal(timers.size, 0);
+        assert.equal(signals.size, 0);
+        assert.equal(calls.includes('closed'), false);
     });
 }

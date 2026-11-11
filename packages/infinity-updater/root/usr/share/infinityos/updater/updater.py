@@ -147,6 +147,7 @@ def main():
 
         def do_activate(self):
             if getattr(self, 'window', None):
+                self.add_window(self.window)
                 self.window.present()
                 if not self.busy:
                     self.on_refresh(None)
@@ -159,6 +160,7 @@ def main():
             self.window = Gtk.ApplicationWindow(application=self, title=tr('Infinity OS Updates'))
             # Keep GTK's shadow surface, but no title bar or window controls.
             self.window.set_titlebar(Gtk.Box(visible=False))
+            self.window.connect('close-request', self.on_close_request)
             self.window.add_css_class('infinity-updater')
             self.color_settings = Gio.Settings.new('org.gnome.desktop.interface')
             self.color_settings.connect('changed::color-scheme', self._sync_color_scheme)
@@ -263,6 +265,14 @@ def main():
             layout.append(footer)
             self.on_refresh(None)
             self.window.present()
+
+        def on_close_request(self, window):
+            if not self.busy:
+                return False
+            # The operation's hold keeps the app alive until its completion releases it.
+            window.set_visible(False)
+            self.remove_window(window)
+            return True
 
         def _sync_color_scheme(self, *_args):
             if self.color_settings.get_string('color-scheme') == 'prefer-dark':

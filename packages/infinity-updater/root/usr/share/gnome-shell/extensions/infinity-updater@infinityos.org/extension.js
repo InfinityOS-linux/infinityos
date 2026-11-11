@@ -146,6 +146,7 @@ export default class InfinityUpdater extends Extension {
 
     _toggleDrawer(window) {
         if (window.minimized) {
+            this._cancelClose(window);
             const actor = window.get_compositor_private();
             if (actor)
                 Main.wm.skipNextEffect(actor);
@@ -158,6 +159,7 @@ export default class InfinityUpdater extends Extension {
     }
 
     _showDrawer(window) {
+        this._cancelClose(window);
         this._placeDrawer(window);
         const actor = window.get_compositor_private();
         if (!actor)
@@ -196,7 +198,31 @@ export default class InfinityUpdater extends Extension {
                 Main.wm.skipNextEffect(actor);
                 window.minimize();
                 actor.translation_x = 0;
+                this._scheduleClose(window);
             }});
+    }
+
+    _cancelClose(window) {
+        const pending = this._closeTimers?.get(window);
+        if (!pending)
+            return;
+        this._closeTimers.delete(window);
+        GLib.Source.remove(pending.timer);
+        window.disconnect(pending.unmanaged);
+    }
+
+    _scheduleClose(window) {
+        this._cancelClose(window);
+        this._closeTimers ??= new Map();
+        const unmanaged = window.connect('unmanaged', () => this._cancelClose(window));
+        const timer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 5000, () => {
+            this._closeTimers.delete(window);
+            window.disconnect(unmanaged);
+            if (window.minimized)
+                window.delete(global.get_current_time());
+            return GLib.SOURCE_REMOVE;
+        });
+        this._closeTimers.set(window, {timer, unmanaged});
     }
 
     _refresh() {
@@ -244,6 +270,8 @@ export default class InfinityUpdater extends Extension {
     }
 
     disable() {
+        for (const window of this._closeTimers?.keys() ?? [])
+            this._cancelClose(window);
         this._closingWindows = null;
         global.display.disconnect(this._focusId);
         global.stage.disconnect(this._outsideClickId);

@@ -551,6 +551,10 @@ export let Dock = GObject.registerClass(
     }
     
     _inspectIcon(c) {
+      if (c.child?.app?.get_id?.() === 'org.infinityos.Updater.desktop') {
+        c.hide();
+        return false;
+      }
       if (!c.visible) return false;
 
       /* release any reference once destroyed */
