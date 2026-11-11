@@ -633,6 +633,11 @@ export default class InfinityTerminal extends Extension {
         window.activate(global.get_current_time());
         this._sourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 25, () => {
             this._sourceId = 0;
+            if (window !== this._window || window.minimized)
+                return GLib.SOURCE_REMOVE;
+            // The panel press must finish before handing keyboard focus to the client.
+            global.stage.set_key_focus(null);
+            window.activate(global.get_current_time());
             const actor = window.get_compositor_private();
             if (actor) {
                 actor.ease({translation_y: 0, duration: 250,
@@ -649,6 +654,10 @@ export default class InfinityTerminal extends Extension {
         if (this._firstFrame && window === this._window) {
             this._pendingShow = false;
             return;
+        }
+        if (this._sourceId) {
+            GLib.Source.remove(this._sourceId);
+            this._sourceId = 0;
         }
         const actor = window.get_compositor_private();
         if (!actor) {

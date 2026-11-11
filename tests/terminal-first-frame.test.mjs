@@ -11,6 +11,7 @@ function fixture() {
     const callbacks = new Map();
     const signals = new Map();
     const animations = [];
+    const focus = {owner: 'panel', activations: 0};
     const actor = {
         opacity: 255, translation_y: 0,
         connect(name, callback) { const id = nextId++; signals.set(id, {name, callback}); return id; },
@@ -24,7 +25,10 @@ function fixture() {
         get_compositor_private: () => actor,
         get_frame_rect: () => ({height: 600}),
         minimize() { this.minimized = true; },
-        unminimize() { this.minimized = false; }, activate() {},
+        unminimize() { this.minimized = false; }, activate() {
+            focus.activations++;
+            if (focus.owner !== 'panel') focus.owner = 'terminal';
+        },
     };
     const schedule = (_priority, callback) => { const id = nextId++; callbacks.set(id, callback); return id; };
     const context = vm.createContext({
@@ -33,13 +37,13 @@ function fixture() {
             Source: {remove(id) { callbacks.delete(id); }}, SOURCE_REMOVE: false},
         Main: {wm: {skipNextEffect() { actor.skipEffect = true; }}},
         Clutter: {AnimationMode: {EASE_OUT_CUBIC: 1, EASE_IN_CUBIC: 2}},
-        global: {get_current_time: () => 0},
+        global: {get_current_time: () => 0, stage: {set_key_focus(value) {focus.owner = value;}}},
     });
     vm.runInContext(source + '\nglobalThis.Controller = InfinityTerminal;', context);
     const controller = new context.Controller();
     Object.assign(controller, {_geometryIds: [], _pendingShow: true, _sourceId: 0,
         _firstFrame: null, _icon: {}, _place() {}, _setResizeCursor() {}});
-    return {controller, actor, window, animations,
+    return {controller, actor, window, animations, focus,
         flush() {
             while (callbacks.size) {
                 const pending = [...callbacks]; callbacks.clear();
@@ -130,5 +134,42 @@ test('clearing a pending first frame disconnects the delayed reveal', () => {
     f.controller._clearFirstFrame();
     f.firstFrame();
     f.flush();
+    assert.equal(f.animations.length, 0);
+});
+
+for (const cold of [false, true]) {
+    test(`opening ${cold ? 'a new' : 'an existing'} terminal gives keyboard focus after panel event`, () => {
+        const f = fixture();
+        f.controller._track(f.window, true, cold);
+        if (cold) f.firstFrame();
+        f.flush();
+        assert.equal(f.focus.owner, 'terminal');
+    });
+}
+
+test('hiding before deferred reveal does not take keyboard focus back', () => {
+    const f = fixture();
+    f.controller._window = f.window;
+    f.controller._reveal(f.window);
+    f.controller._hide(f.window);
+    f.focus.owner = 'other app';
+    const activations = f.focus.activations;
+    f.flush();
+    assert.equal(f.focus.activations, activations);
+    assert.equal(f.focus.owner, 'other app');
+    assert.equal(f.animations.length, 1);
+    assert.equal(f.animations[0].translation_y, -600);
+});
+
+test('opening overview before deferred reveal keeps focus out of the terminal', () => {
+    const f = fixture();
+    f.controller._window = f.window;
+    f.controller._reveal(f.window);
+    f.controller._hideForOverview();
+    f.focus.owner = 'overview';
+    const activations = f.focus.activations;
+    f.flush();
+    assert.equal(f.focus.owner, 'overview');
+    assert.equal(f.focus.activations, activations);
     assert.equal(f.animations.length, 0);
 });
