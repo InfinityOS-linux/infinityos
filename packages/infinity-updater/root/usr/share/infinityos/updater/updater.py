@@ -82,6 +82,7 @@ window.infinity-updater button.restart { background: #b52c3c; color: #ffffff; bo
 window.infinity-updater button.restart label { color: #ffffff; }
 window.infinity-updater button.restart:hover { background: #ce3a4b; }
 window.infinity-updater button.restart:disabled { background: #80515a; }
+window.infinity-updater .update-actions button { padding: 9px 12px; }
 
 '''
 
@@ -194,6 +195,7 @@ def main():
             self.content.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
             self.content.set_transition_duration(260)
             scroll = Gtk.ScrolledWindow(vexpand=True)
+            scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
             scroll.add_css_class('infinity-results')
             self.items = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
             self.items.set_margin_top(22)
@@ -257,20 +259,22 @@ def main():
             self.status.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
             self.status.set_max_width_chars(80)
             footer.append(self.status)
-            actions = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8,
-                              halign=Gtk.Align.CENTER)
+            actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            actions.add_css_class('update-actions')
             self.refresh = Gtk.Button(label=tr('Check again'))
             self.refresh.add_css_class('secondary')
             self.refresh.connect('clicked', self.on_refresh_action)
             actions.append(self.refresh)
+            actions.append(Gtk.Box(hexpand=True))
             self.apply = Gtk.Button(label=tr('Install updates'))
-            self.apply.add_css_class('primary')
+            self.apply.add_css_class('restart')
             self.apply.connect('clicked', self.on_apply)
             actions.append(self.apply)
             self.release_apply = Gtk.Button(label=tr('Upgrade Infinity OS'))
             self.release_apply.add_css_class('primary')
             self.release_apply.connect('clicked', self.on_release)
-            actions.append(self.release_apply)
+            self.release_apply.set_halign(Gtk.Align.END)
+            footer.append(self.release_apply)
             footer.append(actions)
             layout.append(footer)
             self.watch_state()
@@ -400,7 +404,7 @@ def main():
                 warning.add_css_class('muted')
                 self.items.append(warning)
             if offline.get('pending'):
-                message = tr('Updates downloaded, restart to update.')
+                message = ''
             elif offline.get('status') == 'failed':
                 message = tr('The last system update failed. Retry the update or restore system and /var from Backups in the boot menu. /home is preserved.')
                 if offline.get('snapshot'):
@@ -423,7 +427,8 @@ def main():
                 checked_at = self.state.get('checked_at')
                 if checked_at:
                     checked_at = datetime.fromisoformat(checked_at).astimezone().strftime('%d %b %Y, %H:%M')
-                self.status.set_text(tr('Last checked: ') + (checked_at or tr('never')))
+                self.status.set_text(tr('Updates downloaded, restart to update.') if offline.get('pending')
+                                     else tr('Last checked: ') + (checked_at or tr('never')))
 
         def on_refresh_action(self, button):
             if self.busy:
