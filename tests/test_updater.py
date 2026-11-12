@@ -1,4 +1,5 @@
 import importlib.util
+import ast
 import hashlib
 from importlib.machinery import SourceFileLoader
 import sys
@@ -453,6 +454,50 @@ class UpdaterTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertIn(('System packages', 'Downloading', 1, 2), events)
         self.assertIn(('System packages', 'Installing', 2, 2), events)
+
+
+class RestartActionTests(unittest.TestCase):
+    def test_restart_action_rechecks_queue_and_reports_failure(self):
+        method = next(node for node in ast.walk(ast.parse(Path(updater.__file__).read_text()))
+                      if isinstance(node, ast.FunctionDef) and node.name == 'on_refresh_action')
+        for pending, returncode in [(False, 0), (True, 0), (True, 1)]:
+            with self.subTest(pending=pending, returncode=returncode):
+                command = Mock(return_value=SimpleNamespace(returncode=returncode, stdout='', stderr='denied'))
+                state = {'updates': []}
+                namespace = {
+                    'read_state': lambda: state,
+                    'offline_status': lambda: {'pending': pending},
+                    'update_rows': updater.update_rows, 'restart_ready': updater.restart_ready,
+                    'run_update_command': command, 'tr': lambda value: value,
+                    'threading': SimpleNamespace(Thread=lambda target, daemon: SimpleNamespace(start=target)),
+                    'GLib': SimpleNamespace(idle_add=lambda callback, *args: callback(*args)),
+                }
+                exec(compile(ast.Module(body=[method], type_ignores=[]), str(SOURCE), 'exec'), namespace)
+                app = SimpleNamespace(busy=False, restart_ready=True, hold=Mock(), render=Mock(),
+                                      report_progress=Mock(), finish_error=Mock(), finish_refresh=Mock())
+                namespace['on_refresh_action'](app, None)
+                if not pending:
+                    command.assert_not_called()
+                    app.hold.assert_not_called()
+                else:
+                    self.assertEqual(command.call_args.args[1], ['/usr/bin/systemctl', 'reboot'])
+                    app.hold.assert_called_once()
+                    if returncode:
+                        app.finish_error.assert_called_once()
+                        self.assertIn('denied', app.finish_error.call_args.args[0])
+                    else:
+                        app.finish_refresh.assert_called_once_with(state)
+
+    def test_restart_replaces_check_only_when_all_updates_are_queued(self):
+        for rows, offline, expected in [
+            ([], {}, False),
+            ([], {'pending': True}, True),
+            ([{'pending': True}], {'pending': True}, True),
+            ([{'pending': True}, {'pending': False}], {'pending': True}, False),
+            ([{'pending': False}], {}, False),
+        ]:
+            with self.subTest(rows=rows, offline=offline):
+                self.assertEqual(updater.restart_ready(rows, offline), expected)
 
 
 if __name__ == '__main__':

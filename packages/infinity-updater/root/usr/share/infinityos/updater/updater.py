@@ -2,7 +2,7 @@ import sys
 import threading
 from datetime import datetime
 
-from checker import check_updates, read_state, save_state, offline_status
+from checker import check_updates, read_state, save_state, offline_status, state_path
 from i18n import tr, update_count
 from progress import run_update_command
 
@@ -78,6 +78,11 @@ window.infinity-updater.light-mode .update-progress trough { background: #ddd1e9
 window.infinity-updater.light-mode .update-progress progress { background: #604583; }
 window.infinity-updater.light-mode spinner { border-color: #d7c9e7; border-top-color: #604583; }
 window.infinity-updater.light-mode .state-icon { color: #604583; }
+window.infinity-updater button.restart { background: #b52c3c; color: #ffffff; border-radius: 9px; padding: 9px 16px; font-weight: 700; }
+window.infinity-updater button.restart label { color: #ffffff; }
+window.infinity-updater button.restart:hover { background: #ce3a4b; }
+window.infinity-updater button.restart:disabled { background: #80515a; }
+
 '''
 
 
@@ -103,6 +108,10 @@ def update_rows(updates, offline):
     rows.extend({**item, 'pending': True} for item in queued
                 if (item['name'], item['arch']) not in names and (item['name'], None) not in names)
     return rows
+
+
+def restart_ready(updates, offline):
+    return bool(offline.get('pending')) and not any(not item.get('pending') for item in updates)
 
 
 def install_commands(updates):
@@ -144,6 +153,7 @@ def main():
             self.checking = False
             self.offline = False
             self.network_monitor = Gio.NetworkMonitor.get_default()
+            self.state_monitor = None
 
         def do_activate(self):
             if getattr(self, 'window', None):
@@ -251,7 +261,7 @@ def main():
                               halign=Gtk.Align.CENTER)
             self.refresh = Gtk.Button(label=tr('Check again'))
             self.refresh.add_css_class('secondary')
-            self.refresh.connect('clicked', self.on_refresh)
+            self.refresh.connect('clicked', self.on_refresh_action)
             actions.append(self.refresh)
             self.apply = Gtk.Button(label=tr('Install updates'))
             self.apply.add_css_class('primary')
@@ -263,8 +273,38 @@ def main():
             actions.append(self.release_apply)
             footer.append(actions)
             layout.append(footer)
+            self.watch_state()
             self.on_refresh(None)
             self.window.present()
+
+        def watch_state(self):
+            try:
+                directory = state_path().parent
+                directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+                # Watch the directory because saves atomically replace updates.json.
+                self.state_monitor = Gio.File.new_for_path(str(directory)).monitor_directory(
+                    Gio.FileMonitorFlags.NONE, None)
+                self.state_monitor.connect('changed', self.on_state_changed)
+            except (OSError, GLib.Error) as error:
+                print(f'Could not watch update results: {error}', file=sys.stderr)
+
+        def on_state_changed(self, _monitor, file, other_file, _event):
+            if not any(candidate and candidate.get_basename() == 'updates.json'
+                       for candidate in (file, other_file)):
+                return
+            if self.busy:
+                return
+            state = read_state()
+            if state != self.state:
+                self.state = state
+                self.offline = False
+                self.render()
+
+        def do_shutdown(self):
+            if self.state_monitor:
+                self.state_monitor.cancel()
+                self.state_monitor = None
+            Gtk.Application.do_shutdown(self)
 
         def on_close_request(self, window):
             if not self.busy:
@@ -281,6 +321,12 @@ def main():
                 self.window.add_css_class('light-mode')
 
         def render(self):
+            offline = offline_status()
+            updates = update_rows(self.state.get('updates', []), offline)
+            self.restart_ready = restart_ready(updates, offline)
+            self.refresh.set_label(tr('Restart and install' if self.restart_ready else 'Check again'))
+            self.refresh.remove_css_class('secondary' if self.restart_ready else 'restart')
+            self.refresh.add_css_class('restart' if self.restart_ready else 'secondary')
             if self.checking:
                 self.content.set_visible_child_name('checking')
                 self.apply.set_visible(False)
@@ -299,8 +345,6 @@ def main():
             self.content.set_visible_child_name('results')
             while child := self.items.get_first_child():
                 self.items.remove(child)
-            offline = offline_status()
-            updates = update_rows(self.state.get('updates', []), offline)
             errors = self.state.get('errors', [])
             release = self.state.get('release')
             empty_state = not (updates or errors or release or offline.get('pending') or offline.get('status') == 'failed')
@@ -381,6 +425,32 @@ def main():
                     checked_at = datetime.fromisoformat(checked_at).astimezone().strftime('%d %b %Y, %H:%M')
                 self.status.set_text(tr('Last checked: ') + (checked_at or tr('never')))
 
+        def on_refresh_action(self, button):
+            if self.busy:
+                return
+            if not self.restart_ready:
+                self.on_refresh(button)
+                return
+            self.state = read_state()
+            offline = offline_status()
+            if not restart_ready(update_rows(self.state.get('updates', []), offline), offline):
+                self.render()
+                return
+            self.busy = True
+            self.hold()
+            self.render()
+
+            def work():
+                result = run_update_command(tr('Restart and install'),
+                                            ['/usr/bin/systemctl', 'reboot'], self.report_progress)
+                if result.returncode:
+                    message = tr('Could not restart the system.') + '\n' + (result.stderr.strip() or result.stdout.strip())
+                    GLib.idle_add(self.finish_error, message)
+                else:
+                    GLib.idle_add(self.finish_refresh, read_state())
+
+            threading.Thread(target=work, daemon=True).start()
+
         def on_refresh(self, _button):
             if self.busy:
                 return
@@ -418,12 +488,16 @@ def main():
         def finish_refresh(self, state, notice=None, recovery=None):
             if self.checking and network_is_offline(self.network_monitor, Gio):
                 return self.finish_offline()
+            save_error = None
             if self.checking:
                 try:
                     save_state(state)
                 except OSError as error:
-                    state['errors'].append(str(error))
-            self.state = state
+                    save_error = str(error)
+            # A background check may have published a newer result while we were busy.
+            self.state = read_state()
+            if save_error:
+                self.state.setdefault('errors', []).append(save_error)
             self.busy = False
             self.checking = False
             self.offline = False
@@ -452,6 +526,7 @@ def main():
             return GLib.SOURCE_REMOVE
 
         def finish_offline(self):
+            self.state = read_state()
             self.busy = False
             self.checking = False
             self.offline = True
