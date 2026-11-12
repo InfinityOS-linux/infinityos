@@ -1102,14 +1102,8 @@ export default class Dash2DockLiteExt extends Extension {
       }
       let rgba = this._style.rgba(surface);
       ss.push(`background: rgba(${rgba});`);
-      if (this.border_thickness > 0) {
-        let borderColor = this.adaptive_background
-          ? (this._getPreferredColorScheme() === 'dark'
-            ? [1, 1, 1, 0.18] : [0, 0, 0, 0.12])
-          : this.border_color;
-        let border = this._style.rgba(borderColor);
-        ss.push(`border: ${this.border_thickness}px solid rgba(${border});`);
-      }
+      this._updateBorderStyle();
+      ss.push(this._backgroundStyle);
       styles.push(`#d2daBackground { ${ss.join(' ')}}`);
     }
 
@@ -1209,8 +1203,6 @@ export default class Dash2DockLiteExt extends Extension {
     }
 
     this._style.build('custom-d2dl', styles);
-
-    this._updateBorderStyle();
   }
 
   _updateBorderStyle() {
@@ -1224,10 +1216,13 @@ export default class Dash2DockLiteExt extends Extension {
     if (this.border_thickness /* && !this._disable_borders */) {
       let borderColor = this.adaptive_background
         ? (this._getPreferredColorScheme() === 'dark'
-          ? [1, 1, 1, 0.18] : [0, 0, 0, 0.12])
+          ? [0.87, 0.80, 1, 0.32] : [1, 1, 1, 0.65])
         : this.border_color;
       let rgba = this._style.rgba(borderColor);
       border_style = `border: ${this.border_thickness}px solid rgba(${rgba}) !important;`;
+      if (this.adaptive_background && !this.panel_mode) {
+        border_style += ` border-color: rgba(${rgba}) transparent transparent transparent !important;`;
+      }
     }
 
     let panel_borders = '';
