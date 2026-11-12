@@ -35,12 +35,9 @@ SECTIONS = (
 CSS = b"""
 window.infinity-window { background: transparent; }
 box.infinity-shade { background: rgba(6, 4, 11, 0.76); }
-box.infinity-card { background: #17121f; border: 1px solid #715b94; border-radius: 22px; box-shadow: 0 0 64px 8px rgba(100,83,148,0.28), 0 24px 72px rgba(0,0,0,0.65); color: #f3eef8; }
-label.infinity-eyebrow { color: #bb9ce5; font-size: 11px; font-weight: 700; letter-spacing: 2px; }
-label.infinity-title { color: #f8f5fc; font-size: 29px; font-weight: 700; }
-label.infinity-subtitle { color: #ada1bd; font-size: 13px; }
+box.infinity-card { background: #17121f; border: 1px solid #514260; border-radius: 22px; box-shadow: 0 24px 72px rgba(0,0,0,0.55); color: #f3eef8; }
 box.infinity-nav { background: #211a2c; border: 1px solid #3c304e; border-radius: 14px; padding: 5px; }
-button.infinity-tab { background: transparent; border: 1px solid transparent; border-radius: 10px; color: #b8abc9; min-height: 42px; padding: 0 8px; font-size: 13px; font-weight: 600; box-shadow: none; }
+button.infinity-tab { background: transparent; border: 1px solid transparent; border-radius: 10px; color: #b8abc9; min-height: 38px; padding: 0 8px; font-size: 13px; font-weight: 600; box-shadow: none; }
 button.infinity-tab label, button.infinity-tab image { color: #b8abc9; }
 button.infinity-tab:hover { background: #332940; color: #f4ecff; }
 button.infinity-tab:hover label, button.infinity-tab:hover image { color: #f4ecff; }
@@ -48,7 +45,7 @@ button.infinity-tab:checked { background: #66518f; border-color: #9275bd; color:
 button.infinity-tab:checked label, button.infinity-tab:checked image { color: #fff; }
 button.infinity-tab:focus-visible { outline: 2px solid #c3a2ef; outline-offset: -2px; }
 label.infinity-page-title { color: #f0eaf6; font-size: 19px; font-weight: 700; }
-box.infinity-row { background: #211b2b; border: 1px solid #3d314e; border-radius: 12px; padding: 11px 14px; }
+box.infinity-row { background: #211b2b; border: 1px solid #352b43; border-radius: 12px; padding: 12px 14px; }
 box.infinity-row:hover { background: #292136; border-color: #65517d; }
 label.infinity-section { color: #bea7df; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
 label.infinity-app-name { color: #f3eef8; font-weight: 700; }
@@ -58,10 +55,10 @@ button.infinity-save label { color: white; }
 button.infinity-save:hover { background: #8569b8; }
 button.infinity-save:disabled { background: #413451; color: #a99cb8; }
 button.infinity-save:disabled label { color: #a99cb8; }
-button.infinity-close { background: #251d30; border: 1px solid #40334f; border-radius: 20px; color: #d6c9e6; min-width: 34px; min-height: 34px; }
+button.infinity-close { background: #251d30; border: 1px solid #40334f; border-radius: 12px; color: #d6c9e6; min-width: 38px; min-height: 38px; padding: 0; }
 button.infinity-close image { color: #d6c9e6; }
 button.infinity-close:hover { background: #403250; color: white; }
-box.infinity-footer { border-top: 1px solid #392d49; padding-top: 16px; }
+box.infinity-footer { border-top: 1px solid #392d49; padding-top: 12px; }
 label.infinity-muted { color: #a99db8; }
 progressbar.infinity-install-progress trough { min-height: 5px; background: #2d233b; border-radius: 0 0 22px 22px; }
 progressbar.infinity-install-progress progress { min-height: 5px; background: #ad82e9; border-radius: 0 0 22px 22px; }
@@ -69,11 +66,8 @@ button.infinity-link { color: #d7b6ff; }
 button.infinity-link label { color: #d7b6ff; }
 window.infinity-window.light-mode box.infinity-shade { background: rgba(32, 24, 45, 0.28); }
 window.infinity-window.light-mode box.infinity-card { background: #ffffff; border-color: #d5c6e6; color: #291f36; box-shadow: 0 24px 72px rgba(30, 19, 44, 0.22); }
-window.infinity-window.light-mode label.infinity-eyebrow { color: #654287; }
-window.infinity-window.light-mode label.infinity-title,
 window.infinity-window.light-mode label.infinity-page-title,
 window.infinity-window.light-mode label.infinity-app-name { color: #291f36; }
-window.infinity-window.light-mode label.infinity-subtitle,
 window.infinity-window.light-mode label.infinity-muted { color: #5c5269; }
 window.infinity-window.light-mode box.infinity-nav { background: #f2edf8; border-color: #ddd1e9; }
 window.infinity-window.light-mode button.infinity-tab,
@@ -194,35 +188,6 @@ class InfinitySetup(Gtk.Application):
         self.window.set_child(overlay)
         self.card = backdrop
 
-        heading = Gtk.Overlay()
-        heading.set_margin_start(30)
-        heading.set_margin_end(14)
-        heading.set_margin_top(14)
-        heading.set_margin_bottom(20)
-        title_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
-        title_box.set_margin_top(10)
-        title_box.set_margin_end(8)
-        title_box.set_hexpand(True)
-        title_box.set_halign(Gtk.Align.CENTER)
-        eyebrow = label(tr("WELCOME TO INFINITY OS"), "infinity-eyebrow")
-        eyebrow.set_xalign(0.5)
-        title_box.append(eyebrow)
-        title = label("InfinitySetup", "infinity-title")
-        title.set_xalign(0.5)
-        title_box.append(title)
-        subtitle = label(tr("Make it yours. Pick the apps you want, then add more anytime."), "infinity-subtitle")
-        subtitle.set_xalign(0.5)
-        title_box.append(subtitle)
-        heading.set_child(title_box)
-        close = Gtk.Button(icon_name="window-close-symbolic")
-        close.add_css_class("infinity-close")
-        close.set_halign(Gtk.Align.END)
-        close.set_valign(Gtk.Align.START)
-        close.set_tooltip_text(tr("Close"))
-        close.connect("clicked", lambda _button: self.window.close())
-        heading.add_overlay(close)
-        backdrop.append(heading)
-
         self.stack = Gtk.Stack()
         self.stack.set_vexpand(True)
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
@@ -230,9 +195,19 @@ class InfinitySetup(Gtk.Application):
         self.flatpak_ids = installed_flatpaks()
         navigation = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
         navigation.add_css_class("infinity-nav")
-        navigation.set_margin_start(26)
-        navigation.set_margin_end(26)
-        navigation.set_margin_bottom(20)
+        navigation.set_hexpand(True)
+        toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        toolbar.set_margin_start(20)
+        toolbar.set_margin_end(20)
+        toolbar.set_margin_top(20)
+        toolbar.set_margin_bottom(20)
+        toolbar.append(navigation)
+        close = Gtk.Button(icon_name="window-close-symbolic")
+        close.add_css_class("infinity-close")
+        close.set_valign(Gtk.Align.CENTER)
+        close.set_tooltip_text(tr("Close"))
+        close.connect("clicked", lambda _button: self.window.close())
+        toolbar.append(close)
         first = None
         for section, icon, description in SECTIONS:
             tab = Gtk.ToggleButton()
@@ -255,7 +230,7 @@ class InfinitySetup(Gtk.Application):
         if self.tv_switches["steam"].get_active():
             self._steam_tv_toggled(self.tv_switches["steam"], None)
         first.set_active(True)
-        backdrop.append(navigation)
+        backdrop.append(toolbar)
         backdrop.append(self.stack)
 
         footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
@@ -263,7 +238,7 @@ class InfinitySetup(Gtk.Application):
         footer.set_margin_start(28)
         footer.set_margin_end(28)
         footer.set_margin_top(10)
-        footer.set_margin_bottom(22)
+        footer.set_margin_bottom(16)
         self.status = label(tr("Your changes take effect when you click Apply."), "infinity-muted")
         self.status.set_wrap(True)
         self.status.set_hexpand(True)
