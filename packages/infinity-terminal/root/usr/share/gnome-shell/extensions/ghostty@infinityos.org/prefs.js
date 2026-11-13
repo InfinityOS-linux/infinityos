@@ -68,6 +68,16 @@ export default class TerminalPreferences extends ExtensionPreferences {
         const blink = new Adw.SwitchRow({title: tr('Blinking cursor', 'Migający kursor'), active: values['cursor-style-blink']});
         const copy = new Adw.SwitchRow({title: tr('Copy on selection', 'Kopiuj przy zaznaczaniu'), active: values['copy-on-select']});
         group.add(blink); group.add(copy);
+        const behavior = new Adw.PreferencesGroup({title: tr('Window and shortcuts', 'Okno i skróty')});
+        page.add(behavior);
+        const settings = this.getSettings();
+        const monitor = new Adw.SwitchRow({title: tr('Open on current monitor', 'Otwieraj na bieżącym monitorze'),
+            subtitle: tr('Off: primary monitor. On: monitor containing the pointer.',
+                'Wyłączone: monitor główny. Włączone: monitor ze wskaźnikiem.')});
+        settings.bind('use-current-monitor', monitor, 'active', Gio.SettingsBindFlags.DEFAULT);
+        behavior.add(monitor);
+        behavior.add(new Adw.ActionRow({title: tr('Show or hide terminal', 'Pokaż lub ukryj terminal'),
+            subtitle: settings.get_strv('infinity-terminal-toggle').join(', ')}));
         const actions = new Adw.PreferencesGroup(); page.add(actions);
         const apply = new Gtk.Button({label: tr('Apply', 'Zastosuj'), css_classes: ['suggested-action'], halign: Gtk.Align.END});
         actions.add(apply);
@@ -77,15 +87,28 @@ export default class TerminalPreferences extends ExtensionPreferences {
         };
         apply.connect('clicked', () => {
             try {
+                // Re-read so applying appearance never erases concurrent manual edits.
+                let previous = '';
+                let etag = null;
+                try {
+                    const [ok, contents, currentEtag] = file.load_contents(null);
+                    if (ok) {
+                        previous = new TextDecoder().decode(contents);
+                        etag = currentEtag;
+                    }
+                } catch (error) {
+                    if (!error.matches?.(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_FOUND))
+                        throw error;
+                }
                 const content = writePreferences({
                     'font-family': font.get_font_desc().get_family(), 'font-size': size.value,
                     'background-opacity': opacity.value, 'window-padding-x': padding.value,
                     background: custom.active ? hex(background) : '', foreground: custom.active ? hex(foreground) : '',
                     'cursor-style': ['block', 'bar', 'underline'][cursor.selected],
                     'cursor-style-blink': blink.active, 'copy-on-select': copy.active,
-                });
+                }, previous);
                 GLib.mkdir_with_parents(directory, 0o700);
-                file.replace_contents(new TextEncoder().encode(content), null, false, Gio.FileCreateFlags.PRIVATE, null);
+                file.replace_contents(new TextEncoder().encode(content), etag, false, Gio.FileCreateFlags.PRIVATE, null);
                 const process = Gio.Subprocess.new(['gapplication', 'action', 'com.infinityos.GhosTTY', 'reload-config'], Gio.SubprocessFlags.NONE);
                 process.wait_check_async(null, (proc, result) => {
                     let message = tr('Settings applied.', 'Ustawienia zastosowane.');

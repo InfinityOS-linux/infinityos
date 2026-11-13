@@ -2,6 +2,7 @@
 """Privileged, fail-closed Infinity OS release upgrade (same Fedora base)."""
 
 import os
+import fcntl
 import json
 import hashlib
 from pathlib import Path
@@ -20,6 +21,7 @@ MARKER = Path('/etc/infinityos-release')
 OS_RELEASE = Path('/etc/os-release')
 PENDING = Path('/etc/infinityos-release-pending.json')
 TRANSACTION = Path('/usr/lib/sysimage/libdnf5/offline/transaction.json')
+LOCK = Path('/run/infinityos-update.lock')
 
 
 def run(args, *, capture=False):
@@ -39,6 +41,12 @@ def write_atomic(path, content):
 def main(argv):
     if os.geteuid() != 0 or len(argv) != 3:
         raise ValueError('Authorize a versioned Infinity OS upgrade through polkit')
+    with LOCK.open('w') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        prepare(argv)
+
+
+def prepare(argv):
     requested, requested_fedora = argv[1:]
     version_tuple(requested)
     if not requested_fedora.isdecimal():

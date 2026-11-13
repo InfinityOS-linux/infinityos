@@ -6,7 +6,7 @@ import vm from 'node:vm';
 const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/extension.js', import.meta.url), 'utf8')
     .replace(/^import .*;\n/gm, '').replace('export default class', 'class');
 
-function fixture() {
+function fixture(enableAnimations = true) {
     let nextId = 1;
     const callbacks = new Map();
     const signals = new Map();
@@ -37,10 +37,11 @@ function fixture() {
     };
     const schedule = (_priority, callback) => { const id = nextId++; callbacks.set(id, callback); return id; };
     const context = vm.createContext({
+        St: {Settings: {get: () => ({enable_animations: enableAnimations})}},
         Extension: class {},
         GLib: {idle_add: schedule, timeout_add: (p, _delay, callback) => schedule(p, callback),
             Source: {remove(id) { callbacks.delete(id); }}, SOURCE_REMOVE: false},
-        Main: {wm: {skipNextEffect() { actor.skipEffect = true; }}},
+        Main: {layoutManager: {primaryMonitor: {}}, wm: {skipNextEffect() { actor.skipEffect = true; }}},
         Clutter: {AnimationMode: {EASE_OUT_CUBIC: 1, EASE_IN_CUBIC: 2}},
         global: {get_current_time: () => 0, stage: {set_key_focus(value) {focus.owner = value;}}},
     });
@@ -187,4 +188,13 @@ test('actor destruction clears a pending first frame before window cleanup', () 
     assert.equal(f.controller._firstFrame, null);
     f.flush();
     assert.equal(f.animations.length, 0);
+});
+
+test('reduced motion disables slide animation', () => {
+    const f = fixture(false);
+    f.controller._track(f.window, true, true);
+    f.firstFrame();
+    f.flush();
+    assert.ok(f.animations.length > 0);
+    assert.ok(f.animations.every(animation => animation.duration === 0));
 });

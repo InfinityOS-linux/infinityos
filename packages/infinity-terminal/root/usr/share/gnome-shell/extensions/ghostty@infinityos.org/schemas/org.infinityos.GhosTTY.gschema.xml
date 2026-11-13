@@ -5,6 +5,10 @@
       <default>['&lt;Super&gt;t']</default>
       <summary>Show or hide InfinityTerminal</summary>
     </key>
+    <key name="use-current-monitor" type="b">
+      <default>false</default>
+      <summary>Open on the monitor containing the pointer</summary>
+    </key>
     <key name="pinned" type="b">
       <default>false</default>
       <summary>Keep InfinityTerminal visible when focus changes</summary>

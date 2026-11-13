@@ -4,6 +4,10 @@ import locale
 
 
 POLISH = {
+    'History': 'Historia', 'No update history yet.': 'Brak historii aktualizacji.',
+    'Failed': 'Błąd', 'Completed': 'Ukończono',
+    'Downloaded; restart required': 'Pobrano; wymagane ponowne uruchomienie',
+
     'Downloaded — installs after restart': 'Pobrano — instalacja po ponownym uruchomieniu',
     'Checking: {source}': 'Sprawdzanie: {source}',
     'System packages': 'Pakiety systemowe',

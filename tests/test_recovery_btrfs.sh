@@ -47,7 +47,20 @@ cat > "$target/usr/local/bin/systemctl" <<'WRAPPER'
 if [ "$1" = is-active ]; then exit 1; fi
 exit 0
 WRAPPER
-chmod +x "$target/usr/local/bin/"{snapper,systemctl}
+# The test has no logind; execute the inhibited command directly.
+cat > "$target/usr/local/bin/systemd-inhibit" <<'WRAPPER'
+#!/bin/sh
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --) shift; break ;;
+        --*=*) shift ;;
+        --*) shift 2 ;;
+        *) break ;;
+    esac
+done
+exec "$@"
+WRAPPER
+chmod +x "$target/usr/local/bin/"{snapper,systemctl,systemd-inhibit}
 cp "$repo"/root/usr/libexec/infinityos-backups-* "$target/usr/libexec/"
 cp "$repo/root/usr/libexec/infinityos-refind-config" "$target/usr/libexec/"
 cp "$repo"/root/usr/lib/systemd/system/infinityos-backups* "$target/usr/lib/systemd/system/"

@@ -2,6 +2,8 @@
 import locale
 
 POLISH = {
+    'Last complete backup: {date}': 'Ostatnia pełna kopia: {date}',
+
     'Backups': 'Kopie zapasowe',
     'Refresh': 'Odśwież', 'Delete': 'Usuń', 'Cancel': 'Anuluj',
     'Loading snapshots…': 'Wczytywanie migawek…',

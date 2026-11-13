@@ -1,0 +1,47 @@
+InfinityOS: poprawki po audycie, 13.11.2026
+Baza: ad0c2e13561ad589dfd4a8a7da1b41bd6b73dfbe
+Gałąź lokalna: fix/infinity-apps-audit
+
+WPROWADZONE
+1. Polkit: bezhasłowa aktualizacja systemu tylko bez dodatkowych argumentów.
+   Instalowanie wskazanego lokalnego RPM wymaga standardowego uwierzytelnienia administratora.
+2. Kolejka offline: transakcja zawierająca usunięcia lub nieobsługiwane działania
+   nie jest przebudowywana. Oryginalna transakcja pozostaje zachowana.
+3. Zmiana wydania i zwykła aktualizacja używają wspólnej blokady.
+   Znacznik oczekującego wydania jest sprawdzany również pod blokadą.
+4. Setup: okno pojawia się przed odczytem stanu; odczyt w tle.
+   Jedno zapytanie RPM zamiast zapytania dla każdej aplikacji.
+   Wspólny odczyt modeli AI; odświeżanie przy powrocie do okna w tle.
+   Błąd odczytu katalogu pokazuje możliwość ponowienia.
+5. Updater: wspólna blokada sprawdzania i cache 5 minut dla uruchomienia
+   okna oraz usługi użytkownika. Ręczne odświeżenie wymusza sprawdzenie.
+   Ograniczone limity poleceń i budżet sprawdzania GitHub, z raportowaniem błędów.
+6. Terminal: zmiana wyglądu zachowuje pozostałe ustawienia oraz powtarzane
+   skróty keybind. Ponowny odczyt i etag chronią przed nadpisaniem równoległej edycji.
+   Animacja otwierania i zamykania respektuje systemowe wyłączenie animacji.
+7. Config: polskie teksty głównych zakładek i operacji; przywrócenie rozmiaru
+   100% oraz cofnięcie zmian suwaka do wartości sprzed edycji.
+8. CI: obowiązkowy test GTK na Fedora/Xvfb, brak wyświetlacza lub pominięcie
+   testu oznacza błąd. Test odzyskiwania systemu i /var na izolowanym Btrfs
+   blokuje publikację RPM. Testy te nie zostały wykonane lokalnie.
+
+DODATKOWO WDROŻONE W KODZIE
+9. Setup: wyszukiwanie w całym katalogu i filtry: wszystkie, zainstalowane,
+   dostępne oraz zaplanowane zmiany. Podsumowanie w przewijanym oknie przed
+   wykonaniem zmian. Zatrzymywanie po bieżącej operacji z zachowaniem reszty kolejki.
+10. Updater: prywatna historia ostatnich 100 operacji z wynikami źródeł,
+    rozróżniająca ukończenie, pobranie do restartu oraz błąd.
+11. Terminal: wybór monitora głównego lub monitora ze wskaźnikiem, obsługa
+    odłączenia monitora, komunikat o błędzie usługi i podgląd skrótu.
+12. Backups: data ostatniej pełnej kopii, obok istniejącej informacji o zakresie.
+13. Ghostty: cache gotowej binarki według identyfikatora obrazu budującego,
+    platformy, skryptu, Dockerfile i wszystkich poprawek. Cache buildera w CI.
+    Pakiet nadal otrzymuje bieżącą rewizję źródeł.
+14. CI uruchamia kontrole również dla pull requestów przed publikacją.
+
+WERYFIKACJA
+Pełny zestaw źródłowy jest uruchamiany przez scripts/test-infinity-delta source.
+Na Macu pomijane są testy wymagające GTK/Fedora oraz GNU getopt.
+Obowiązkowa walidacja GTK, Btrfs i buildów RPM pozostaje w workflow CI.
+Nie należy utożsamiać zmiany kodu ze skuteczną publikacją RPM lub instalacją
+na komputerach użytkowników. Bieżący wynik wdrożenia podano w odpowiedzi.

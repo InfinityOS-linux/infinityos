@@ -15,6 +15,7 @@ function fixture() {
         move_frame(_user, x, y) {Object.assign(rect, {x, y});},
         maximize() {rect.height = 960;}, unmaximize() {}};
     const handle = {visible: true, set_cursor_type(value) {cursor = value;}, set_position(x, y) {this.x = x; this.y = y;}, set_size() {}};
+    const layout = {primaryMonitor: {x: 0, y: 0, width: 1600, height: 1000}};
     const controller = vm.runInNewContext(`${source}\nnew InfinityTerminal()`, {
         Extension: class {}, clampTerminalHeight, isFullHeight,
         GLib: {PRIORITY_DEFAULT: 0, SOURCE_REMOVE: false, SOURCE_CONTINUE: true,
@@ -23,7 +24,7 @@ function fixture() {
         Clutter: {CursorType: {DEFAULT: 0, NS_RESIZE: 1}, ModifierType: {BUTTON1_MASK: 1}, EventType: {MOTION: 1, BUTTON_PRESS: 2, BUTTON_RELEASE: 3, KEY_PRESS: 4}, KEY_Escape: 27, EVENT_STOP: true, EVENT_PROPAGATE: false},
         Meta: {Cursor: {DEFAULT: 0, SOUTH_RESIZE: 1}, MaximizeFlags: {BOTH: 3}},
         Main: {overview: {visible: false}, panel: {height: 40},
-            layoutManager: {primaryMonitor: {x: 0, y: 0, width: 1600, height: 1000}}},
+            layoutManager: layout},
         global: {get_pointer: () => pointer, display: {set_cursor(value) {cursor = value;}}, stage: {grab(actor) {
             assert.equal(actor, handle); grabs++; return {dismiss() {dismissals++;}};
         }}},
@@ -32,7 +33,7 @@ function fixture() {
         _settings: {set_double(_key, value) {ratio = value;}}});
     const event = (type, y, time) => controller._handleResize({type: () => type,
         get_state: () => pointer[2], get_key_symbol: () => 27, get_coords: () => [500, y], get_button: () => 1, get_time: () => time});
-    return {controller, event, rect, handle, frame(y, held = true) {pointer = [500, y, held ? 1 : 0]; tick?.();},
+    return {controller, event, rect, handle, layout, frame(y, held = true) {pointer = [500, y, held ? 1 : 0]; tick?.();},
         get moves() {return moves;}, get cursor() {return cursor;}, get grabs() {return grabs;},
         get dismissals() {return dismissals;}, get ratio() {return ratio;}};
 }
@@ -95,4 +96,19 @@ test('Escape and window errors release the pointer', () => {
     f.frame(850);
     assert.equal(f.controller._resize, null);
     assert.equal(f.grabs, f.dismissals);
+});
+
+test('current monitor placement omits primary panel and falls back after unplug', () => {
+    const f = fixture();
+    const secondary = {x: 1600, y: 0, width: 1920, height: 1080};
+    f.layout.monitors = [f.layout.primaryMonitor, secondary];
+    f.layout.currentMonitor = secondary;
+    f.controller._settings.get_boolean = () => true;
+    f.controller._settings.get_double = () => 0.5;
+    f.controller._selectMonitor();
+    assert.equal(f.controller._monitor(), secondary);
+    assert.equal(f.controller._panelHeight(), 0);
+    f.layout.monitors = [f.layout.primaryMonitor];
+    assert.equal(f.controller._monitor(), f.layout.primaryMonitor);
+    assert.equal(f.controller._panelHeight(), 40);
 });

@@ -13,7 +13,7 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk
 
 from launcher_backend import (APPS, CRAFT_SUITE, active_local_model, configured_apps, available, deactivate_local_model,
-                              install, installed, installed_flatpaks, selected_ai, downloaded_local_models,
+                              install, installed, installed_flatpaks, catalog_state, selected_ai, downloaded_local_models,
                               open_lutris_installer, removable, uninstall)
 from launcher_i18n import tr
 from launcher_tv import enabled as tv_enabled, set_enabled as set_tv_enabled, launch_steam
@@ -141,6 +141,8 @@ class InfinitySetup(Gtk.Application):
     def __init__(self):
         super().__init__(application_id="org.infinityos.Setup")
         self.window = None
+        self.tabs = {}
+        self.rows = {}
         self.switches = {}
         self.initial_active = {}
         self.notes = {}
@@ -192,7 +194,42 @@ class InfinitySetup(Gtk.Application):
         self.stack.set_vexpand(True)
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         self.stack.set_transition_duration(100)
-        self.flatpak_ids = installed_flatpaks()
+        self.loading_label = label(tr("Reading installed applications…"), "infinity-muted")
+        backdrop.append(self.loading_label)
+        self.retry_catalog = Gtk.Button(label=tr("Retry"))
+        self.retry_catalog.set_visible(False)
+        self.retry_catalog.connect("clicked", lambda _button: self._load_catalog())
+        backdrop.append(self.retry_catalog)
+        self.window.present()
+        self._load_catalog()
+
+    def _load_catalog(self):
+        self.retry_catalog.set_visible(False)
+        self.loading_label.set_text(tr("Reading installed applications…"))
+        def work():
+            try:
+                result = catalog_state()
+            except Exception as error:
+                GLib.idle_add(self._catalog_ready, None, str(error))
+            else:
+                GLib.idle_add(self._catalog_ready, result, None)
+        threading.Thread(target=work, daemon=True).start()
+
+    def _catalog_ready(self, result, error):
+        if self.closing or self.window is None:
+            return False
+        if error:
+            self.loading_label.set_text(tr("Could not read installed applications. Retry.") + "\n" + error)
+            self.retry_catalog.set_visible(True)
+            return False
+        self.flatpak_ids, self.ai_models, self.catalog_status = result
+        self.card.remove(self.loading_label)
+        self.card.remove(self.retry_catalog)
+        self._build_catalog()
+        return False
+
+    def _build_catalog(self):
+        backdrop = self.card
         navigation = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
         navigation.add_css_class("infinity-nav")
         navigation.set_hexpand(True)
@@ -226,11 +263,23 @@ class InfinitySetup(Gtk.Application):
             tab.set_child(tab_content)
             tab.connect("toggled", self._select_tab, section.lower())
             navigation.append(tab)
+            self.tabs[section.lower()] = tab
             self.stack.add_named(self._page(section, description), section.lower())
         if self.tv_switches["steam"].get_active():
             self._steam_tv_toggled(self.tv_switches["steam"], None)
         first.set_active(True)
         backdrop.append(toolbar)
+        searchbar = Gtk.Box(spacing=12)
+        searchbar.set_margin_start(28)
+        searchbar.set_margin_end(28)
+        self.search = Gtk.SearchEntry(placeholder_text=tr("Search all applications"), hexpand=True)
+        self.search.connect("search-changed", self._filter_catalog)
+        self.filter = Gtk.DropDown.new_from_strings([tr(text) for text in
+            ("All applications", "Installed", "Available", "Pending changes")])
+        self.filter.connect("notify::selected", self._filter_catalog)
+        searchbar.append(self.search)
+        searchbar.append(self.filter)
+        backdrop.append(searchbar)
         backdrop.append(self.stack)
 
         footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
@@ -246,6 +295,10 @@ class InfinitySetup(Gtk.Application):
         self.save_button = Gtk.Button(label=tr("Apply"))
         self.save_button.add_css_class("infinity-save")
         self.save_button.connect("clicked", self._save)
+        self.stop_button = Gtk.Button(label=tr("Stop after current operation"))
+        self.stop_button.set_visible(False)
+        self.stop_button.connect("clicked", self._request_stop)
+        footer.append(self.stop_button)
         footer.append(self.save_button)
         backdrop.append(footer)
         self.progress = Gtk.ProgressBar()
@@ -267,9 +320,22 @@ class InfinitySetup(Gtk.Application):
     def _refresh_ai(self, *_args):
         if not self.window.is_active() or self.busy or self.closing:
             return
-        try:
-            models = downloaded_local_models()
-        except (OSError, ValueError, KeyError, RuntimeError):
+        if getattr(self, 'refreshing_ai', False):
+            return
+        self.refreshing_ai = True
+        def work():
+            try:
+                models = downloaded_local_models()
+            except (OSError, ValueError, KeyError, RuntimeError):
+                models = None
+            GLib.idle_add(self._apply_ai_refresh, models)
+        threading.Thread(target=work, daemon=True).start()
+
+    def _apply_ai_refresh(self, models):
+        self.refreshing_ai = False
+        if self.closing or self.window is None or self.busy:
+            return False
+        if models is None:
             models = self.ai_models
         selection = (selected_ai(), active_local_model(), models)
         if selection == self.ai_selection:
@@ -279,11 +345,18 @@ class InfinitySetup(Gtk.Application):
         for app in list(self.switches):
             if app.category == "AI":
                 del self.switches[app], self.initial_active[app], self.notes[app]
+                if hasattr(self, "rows"):
+                    self.rows.pop(app, None)
+        self.ai_models = models
+        for item in configured_apps(models=models):
+            if item.kind == "local-model":
+                self.catalog_status[item] = item.source.removesuffix(":latest") in {m.removesuffix(":latest") for m in models}
         self.stack.remove(old)
         self.stack.add_named(self._page("AI", SECTIONS[0][2]), "ai")
         self.stack.set_visible_child_name(visible)
         self.ai_selection = selection
         self.status.set_text(tr("AI changed in InfinityConfig. Review your selection again."))
+        return False
 
     def _sync_color_scheme(self, *_args):
         if self.color_settings.get_string("color-scheme") == "prefer-dark":
@@ -316,12 +389,7 @@ class InfinitySetup(Gtk.Application):
         selected_model = active_local_model()
         catalog = APPS
         if section == "AI":
-            try:
-                models = downloaded_local_models()
-            except (OSError, ValueError, KeyError, RuntimeError):
-                models = ()
-            self.ai_models = models
-            catalog = configured_apps(models=models)
+            catalog = configured_apps(models=self.ai_models)
         for app in (item for item in catalog if item.category == section):
             if app.group != previous_group:
                 if previous_group:
@@ -334,6 +402,7 @@ class InfinitySetup(Gtk.Application):
 
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
             row.add_css_class("infinity-row")
+            self.rows[app] = row
             icon_name = app.source if app.kind == "flatpak" else app.icon
             private_icon = ICON_DIR / f"{icon_name}.png"
             if not private_icon.is_file():
@@ -385,12 +454,12 @@ class InfinitySetup(Gtk.Application):
                 switch = Gtk.Switch()
             switch.set_valign(Gtk.Align.CENTER)
             supported = available(app)
-            already = supported and installed(app, flatpak_ids=self.flatpak_ids)
+            already = supported and self.catalog_status.get(app, False)
             initial = already if app.kind != "local-model" else app.source == selected_model
             switch.set_active(initial)
             self.initial_active[app] = initial
             switch.set_sensitive(supported and (app.kind == "local-model" or
-                                                not already or removable(app)))
+                                                not already or removable(app, known_installed=already)))
             if app.kind == "local-model":
                 status.set_text(tr("Active local model") if initial else
                                 tr("Downloaded; inactive") if already else tr("Not downloaded"))
@@ -525,6 +594,27 @@ class InfinitySetup(Gtk.Application):
         self.suite_switch.set_active(len(members) == len(CRAFT_SUITE) and all(s.get_active() for s in members))
         self.syncing_suite = False
 
+    def _filter_catalog(self, *_args):
+        query = self.search.get_text().casefold().strip()
+        mode = self.filter.get_selected()
+        matches = []
+        for app, row in self.rows.items():
+            active = self.initial_active.get(app, False)
+            pending = app in self.switches and self.switches[app].get_active() != active
+            visible = (query in (app.name + " " + tr(app.description) + " " + app.category).casefold()
+                       and (mode == 0 or mode == 1 and self.catalog_status.get(app, False)
+                            or mode == 2 and available(app) or mode == 3 and pending))
+            row.set_visible(visible)
+            if visible:
+                matches.append(app.category.lower())
+        if matches and self.stack.get_visible_child_name() not in matches:
+            self.tabs[matches[0]].set_active(True)
+        self.status.set_text(tr("Matching applications: {count}").format(count=len(matches)))
+
+    def _request_stop(self, _button):
+        self.stop_requested = True
+        self.stop_button.set_sensitive(False)
+
     def _save(self, _button):
         changes = [(app, switch.get_active()) for app, switch in self.switches.items()
                    if switch.get_sensitive() and
@@ -535,6 +625,32 @@ class InfinitySetup(Gtk.Application):
         if not changes and not tv_changes:
             self._complete()
             return
+        dialog = Gtk.Dialog(transient_for=self.window, modal=True,
+                            title=tr("Review changes"), default_width=560, default_height=420)
+        lines = [(tr("Install") if enabled else tr("Remove")) + ": " + app.name
+                 for app, enabled in changes]
+        lines += [(tr("Enable") if enabled else tr("Disable")) + ": " + mode
+                  for mode, enabled in tv_changes]
+        scroll = Gtk.ScrolledWindow(vexpand=True)
+        summary = Gtk.Label(label="\n".join(lines), xalign=0, wrap=True,
+                            margin_top=20, margin_bottom=20, margin_start=20, margin_end=20)
+        scroll.set_child(summary)
+        dialog.get_content_area().append(scroll)
+        dialog.add_button(tr("Cancel"), Gtk.ResponseType.CANCEL)
+        dialog.add_button(tr("Apply"), Gtk.ResponseType.ACCEPT)
+        def respond(window, response):
+            window.destroy()
+            if response == Gtk.ResponseType.ACCEPT:
+                self._start_install(changes, tv_changes)
+        dialog.connect("response", respond)
+        dialog.present()
+
+    def _start_install(self, changes, tv_changes):
+        self.search.set_sensitive(False)
+        self.filter.set_sensitive(False)
+        self.stop_requested = False
+        self.stop_button.set_visible(True)
+        self.stop_button.set_sensitive(True)
         self.busy = True
         self.suite_switch.set_sensitive(False)
         self.save_button.set_sensitive(False)
@@ -571,6 +687,9 @@ class InfinitySetup(Gtk.Application):
         steam_tv_disable_failed = False
         steam_install_failed = False
         for index, (kind, item, enabled) in enumerate(operations, 1):
+            if getattr(self, "stop_requested", False):
+                errors.append(tr("Queue stopped. Remaining changes can be retried."))
+                break
             name = (item.name if kind == "app" else
                     "EmulationStation (ES-DE)" if item == "esde" else "Steam Big Picture")
             GLib.idle_add(self.status.set_text, tr("Applying {index}/{total}: {name}…").format(
@@ -623,10 +742,16 @@ class InfinitySetup(Gtk.Application):
                         else tr("Installed") if enabled else "")
         status.set_visible(enabled)
         self.initial_active[app] = enabled
+        if hasattr(self, "catalog_status"):
+            self.catalog_status[app] = enabled
         return False
 
     def _finished(self, errors):
         self.busy = False
+        if hasattr(self, "stop_button"):
+            self.stop_button.set_visible(False)
+            self.search.set_sensitive(True)
+            self.filter.set_sensitive(True)
         if self.progress_source:
             GLib.source_remove(self.progress_source)
             self.progress_source = 0
@@ -634,7 +759,7 @@ class InfinitySetup(Gtk.Application):
         self.suite_switch.set_sensitive(True)
         for app, switch in self.switches.items():
             switch.set_sensitive(available(app) and
-                                 (app.kind == "local-model" or not self.initial_active[app] or removable(app)))
+                                 (app.kind == "local-model" or not self.initial_active[app] or removable(app, known_installed=True)))
         for switch in self.tv_switches.values():
             switch.set_sensitive(True)
         for button, app in self.installer_buttons:

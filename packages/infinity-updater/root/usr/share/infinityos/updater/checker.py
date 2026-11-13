@@ -1,3 +1,4 @@
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -43,7 +44,7 @@ def state_path():
 
 def _run(args):
     try:
-        return subprocess.run(args, capture_output=True, text=True, timeout=240, check=False)
+        return subprocess.run(args, capture_output=True, text=True, timeout=60, check=False)
     except (OSError, subprocess.TimeoutExpired) as error:
         return subprocess.CompletedProcess(args, 1, '', str(error))
 
@@ -155,3 +156,27 @@ def read_state(path=None):
     except (OSError, ValueError):
         return {'checked_at': None, 'updates': [], 'release': None,
                 'rpm_check_ok': False, 'errors': []}
+
+
+def fresh_state(state, max_age=300):
+    try:
+        age = (datetime.now(timezone.utc) - datetime.fromisoformat(state['checked_at'])).total_seconds()
+        return 0 <= age < max_age and not state.get('errors')
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
+def refresh_state(report=None, force=False):
+    """One checker per account; a waiting window reuses the result just published."""
+    path = state_path()
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    before = read_state(path)
+    with (path.parent / 'check.lock').open('a') as lock:
+        os.fchmod(lock.fileno(), 0o600)
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        current = read_state(path)
+        if fresh_state(current) and (not force or current != before):
+            return current
+        result = check_updates(report)
+        save_state(result, path)
+        return result
