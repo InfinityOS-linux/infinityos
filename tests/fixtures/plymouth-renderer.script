@@ -13,6 +13,7 @@ fun make_image(w,h) {
     return im;
 }
 Image=fun(name) { global.loads++; return make_image(480,270); };
+Image.Text=fun(text,r,g,b) { im=make_image(100,20); im.text=text; return im; };
 Sprite=fun() {
     sp=[];
     sp.SetImage=fun(im) { this.image=im; };

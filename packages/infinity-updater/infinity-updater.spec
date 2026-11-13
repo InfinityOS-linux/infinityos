@@ -18,6 +18,7 @@ Requires:       infinityos-repos >= 1.0.0
 Requires:       infinityos-shell-extensions >= 1.0.0
 Requires:       infinity-setup >= 1.0.0
 Requires:       python3-rpm
+Requires:       dracut
 
 %description
 Checks Fedora, Infinity OS, Flatpak, and device firmware updates periodically and provides an
@@ -40,7 +41,14 @@ systemctl enable dnf5-offline-transaction.service >/dev/null 2>&1 || :
 systemctl disable --now infinityos-bazaar-install.timer >/dev/null 2>&1 || :
 systemctl --global enable infinity-updater.timer >/dev/null 2>&1 || :
 
+%posttrans
+# Plymouth loads its theme from initramfs, so refresh existing boot images.
+if ls /boot/initramfs-*.img >/dev/null 2>&1; then
+    dracut --regenerate-all --force
+fi
+
 %files
+/usr/share/plymouth/themes/infinityos/infinityos.script
 %license /usr/share/licenses/infinity-updater/COPYING
 /usr/share/infinityos/build-revisions/infinity-updater
 /usr/bin/infinity-updater

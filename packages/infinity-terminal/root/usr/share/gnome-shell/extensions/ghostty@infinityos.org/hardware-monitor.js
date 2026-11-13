@@ -45,7 +45,7 @@ export class HardwareMonitor {
     }
 
     get height() { return this._settings.get_boolean('monitor-enabled')
-        ? 112 * St.ThemeContext.get_for_stage(global.stage).scale_factor : 0; }
+        ? 72 * St.ThemeContext.get_for_stage(global.stage).scale_factor : 0; }
     get menuOpen() { return this._menu.isOpen; }
     contains(actor) { return actor && (this.actor.contains(actor) || this._menu.actor.contains(actor)); }
 
@@ -136,14 +136,14 @@ export class HardwareMonitor {
         this._cells = [];
         const scroll = new St.ScrollView({x_expand: true, y_expand: true,
             hscrollbar_policy: St.PolicyType.AUTOMATIC, vscrollbar_policy: St.PolicyType.NEVER});
-        const row = new St.BoxLayout({x_expand: true});
+        const row = new St.BoxLayout({x_expand: false, x_align: Clutter.ActorAlign.START});
         scroll.set_child(row);
         this.actor.add_child(scroll);
         for (const id of this._settings.get_strv('monitor-metrics')) {
-            const actor = new St.Button({style_class: 'infinity-monitor-cell', width: 180 * St.ThemeContext.get_for_stage(global.stage).scale_factor, x_expand: true, can_focus: true});
-            const box = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL});
+            const actor = new St.Button({style_class: 'infinity-monitor-cell', width: 128 * St.ThemeContext.get_for_stage(global.stage).scale_factor, x_expand: false, can_focus: true});
+            const box = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, x_expand: true, x_align: Clutter.ActorAlign.FILL});
             const value = new St.Label({style_class: 'infinity-monitor-value', text: 'N/A'});
-            const graph = new St.DrawingArea({height: 28, x_expand: true});
+            const graph = new St.DrawingArea({height: 20, x_expand: true});
             const label = new St.Label({style_class: 'infinity-monitor-label'});
             box.add_child(value); box.add_child(graph); box.add_child(label);
             actor.set_child(box); row.add_child(actor);
@@ -152,10 +152,11 @@ export class HardwareMonitor {
             actor.connect('clicked', () => this._openMenu(this._cells.indexOf(cell)));
             this._cells.push(cell);
         }
-        if (!this._cells.length) {
+        {
             const button = new St.Button({label: tr('Add monitors…', 'Dodaj wskaźniki…'), can_focus: true});
             button.connect('clicked', () => this._openMenu(-1));
             row.add_child(button);
+            this._emptyButton = button;
         }
         this._update(false);
     }
@@ -170,12 +171,14 @@ export class HardwareMonitor {
                 Math.ceil(this._settings.get_int('monitor-history') / this._settings.get_int('monitor-interval'))));
             recorded.add(key);
             cell.metric = metric;
+            cell.actor.visible = !this._settings.get_boolean('monitor-hide-unavailable') || Number.isFinite(metric.value);
             cell.value.text = formatMetric(metric, this._settings.get_boolean('monitor-fahrenheit'));
             cell.label.text = metric.label;
             cell.actor.accessible_name = `${metric.group ?? ''} ${metric.label}: ${cell.value.text}`;
             cell.graph.visible = this._settings.get_boolean('monitor-graphs');
             cell.graph.queue_repaint();
         }
+        this._emptyButton.visible = !this._cells.some(cell => cell.actor.visible);
     }
 
     _paint(cell) {
@@ -237,6 +240,10 @@ export class HardwareMonitor {
             this._menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
         }
         sources(tr('Add monitor', 'Dodaj wskaźnik'), id => save([...ids, id]));
+        if (this._cells.some(cell => !Number.isFinite(cell.metric?.value)))
+            this._menu.addMenuItem(new PopupMenu.PopupMenuItem(
+                tr('Some sensors are not exposed by this system or VM', 'Niektóre czujniki nie są udostępniane przez system lub VM'),
+                {reactive: false}));
         for (const [title, key, options] of [
             [tr('Refresh interval', 'Odświeżanie'), 'monitor-interval', [1, 2, 5, 10]],
             [tr('History length', 'Długość historii'), 'monitor-history', [30, 60, 120, 300]],
@@ -245,7 +252,7 @@ export class HardwareMonitor {
             for (const seconds of options)
                 action(submenu.menu, `${seconds === this._settings.get_int(key) ? '✓ ' : ''}${seconds} s`, () => this._settings.set_int(key, seconds));
         }
-        for (const [label, key] of [[tr('Show graphs', 'Pokaż wykresy'), 'monitor-graphs'], ['Fahrenheit (°F)', 'monitor-fahrenheit']]) {
+        for (const [label, key] of [[tr('Hide unavailable sensors', 'Ukryj niedostępne czujniki'), 'monitor-hide-unavailable'], [tr('Show graphs', 'Pokaż wykresy'), 'monitor-graphs'], ['Fahrenheit (°F)', 'monitor-fahrenheit']]) {
             const item = new PopupMenu.PopupSwitchMenuItem(label, this._settings.get_boolean(key));
             item.connect('toggled', (_item, state) => this._settings.set_boolean(key, state));
             this._menu.addMenuItem(item);

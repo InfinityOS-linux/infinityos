@@ -49,7 +49,7 @@ test('monitor cells use GNOME 51 BoxLayout orientation', async () => {
     }
     const prototype = vm.runInNewContext(`${source}\nHardwareMonitor.prototype`, {
         GLib: {get_language_names: () => ['en']}, global: {stage: {}},
-        Clutter: {Orientation: {VERTICAL: 1}},
+        Clutter: {Orientation: {VERTICAL: 1}, ActorAlign: {START: 0, FILL: 1}},
         St: {BoxLayout: Actor, ScrollView: Actor, Button: Actor, Label: Actor, DrawingArea: Actor,
             PolicyType: {AUTOMATIC: 1, NEVER: 2}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}},
     });
@@ -59,4 +59,53 @@ test('monitor cells use GNOME 51 BoxLayout orientation', async () => {
     monitor._update = () => {};
     monitor._rebuild();
     assert.equal(monitor._cells.length, 1);
+});
+
+test('opening a Shell menu keeps terminal visible; switching apps still hides it', async () => {
+    const {readFileSync} = await import('node:fs');
+    const vm = await import('node:vm');
+    const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/extension.js', import.meta.url), 'utf8');
+    const start = source.indexOf('() => {', source.indexOf('this._focusId ='));
+    const end = source.indexOf('\n        });', start);
+    const global = {display: {focus_window: null}};
+    const callback = vm.runInNewContext(`(function () ${source.slice(start + 6, end)}\n})`, {global});
+    let hidden = 0;
+    const window = {minimized: false};
+    const controller = {_hardware: {menuOpen: false}, _settings: {get_boolean: () => false},
+        _findWindow: () => window, _hide() {hidden++;}};
+    callback.call(controller);
+    assert.equal(hidden, 0);
+    global.display.focus_window = window;
+    callback.call(controller);
+    assert.equal(hidden, 0);
+    global.display.focus_window = {};
+    callback.call(controller);
+    assert.equal(hidden, 1);
+});
+
+test('monitor hides missing readings without forgetting selections and restores recovered sensors', async () => {
+    const {readFileSync} = await import('node:fs');
+    const vm = await import('node:vm');
+    const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/hardware-monitor.js', import.meta.url), 'utf8')
+        .replace(/^import .*;\n/gm, '').replace('export class', 'class');
+    const prototype = vm.runInNewContext(`${source}\nHardwareMonitor.prototype`, {
+        GLib: {get_language_names: () => ['en']}, resolveMetric, formatMetric, appendSample,
+    });
+    let hide = true;
+    const monitor = Object.create(prototype);
+    monitor._settings = {get_int: () => 0, get_boolean: key => key === 'monitor-hide-unavailable' && hide};
+    monitor._metrics = [];
+    monitor._emptyButton = {};
+    monitor._cells = [{id: 'cpu:clock', actor: {}, value: {}, label: {}, graph: {queue_repaint() {}}}];
+    monitor._update(false);
+    assert.equal(monitor._cells[0].actor.visible, false);
+    assert.equal(monitor._emptyButton.visible, true);
+    hide = false;
+    monitor._update(false);
+    assert.equal(monitor._cells[0].actor.visible, true);
+    hide = true;
+    monitor._metrics = [{id: 'cpu:clock', label: 'CPU Clock', value: 2, unit: 'GHz'}];
+    monitor._update(false);
+    assert.equal(monitor._cells[0].actor.visible, true);
+    assert.equal(monitor._emptyButton.visible, false);
 });

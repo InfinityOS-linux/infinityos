@@ -60,6 +60,13 @@ fun password(prompt, bullets)
 }
 fun message(text)
 {
+    # DNF sends scriptlet diagnostics directly to Plymouth, bypassing stdout.
+    if (text.SubString(0, 29) == "Running %posttrans scriptlet:" ||
+        text.SubString(0, 35) == "Running post-transaction scriptlet:")
+        text = "Finalizing updates...";
+    if (text.SubString(0, 28) == "Running %pretrans scriptlet:" ||
+        text.SubString(0, 34) == "Running pre-transaction scriptlet:")
+        text = "Preparing updates...";
     centered_text(message_sprite, text, Window.GetHeight() - 60);
     message_sprite.SetOpacity(1);
 }

@@ -36,6 +36,7 @@
     </key>
     <key name="monitor-interval" type="i"><default>2</default><range min="1" max="10"/><summary>Sampling interval in seconds</summary></key>
     <key name="monitor-history" type="i"><default>60</default><range min="10" max="300"/><summary>History duration in seconds</summary></key>
+    <key name="monitor-hide-unavailable" type="b"><default>true</default><summary>Hide sensors without readings; retain their selections</summary></key>
     <key name="monitor-graphs" type="b"><default>true</default><summary>Draw histories and usage bars</summary></key>
     <key name="monitor-fahrenheit" type="b"><default>false</default><summary>Display Fahrenheit temperatures</summary></key>
     <key name="monitor-cpu-tdp" type="i"><default>0</default><range min="0" max="2000"/><summary>Manually specified CPU TDP in watts; zero means unknown</summary></key>

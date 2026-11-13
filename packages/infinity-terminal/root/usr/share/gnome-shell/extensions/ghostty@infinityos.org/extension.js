@@ -104,7 +104,7 @@ export default class InfinityTerminal extends Extension {
                 });
         }
         this._outsideClickId = global.stage.connect('captured-event', (_stage, event) => {
-            const source = event.get_source();
+            const source = global.stage.get_event_actor(event);
             if (this._settings.get_boolean('pinned') || event.type() !== Clutter.EventType.BUTTON_PRESS ||
                 (source && this._indicator.contains(source)) || this._hardware.contains(source))
                 return Clutter.EVENT_PROPAGATE;
@@ -124,7 +124,7 @@ export default class InfinityTerminal extends Extension {
         this._focusId = global.display.connect('notify::focus-window', () => {
             const window = this._findWindow();
             if (!this._firstFrame && !this._hardware.menuOpen && !this._settings.get_boolean('pinned') && window && !window.minimized &&
-                global.display.focus_window !== window)
+                global.display.focus_window && global.display.focus_window !== window)
                 this._hide(window);
         });
         this._windowCreatedId = global.display.connect('window-created', (_display, window) => {
