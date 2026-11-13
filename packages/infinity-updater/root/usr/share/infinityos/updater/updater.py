@@ -82,10 +82,18 @@ window.infinity-updater.light-mode .update-progress trough { background: #ddd1e9
 window.infinity-updater.light-mode .update-progress progress { background: #604583; }
 window.infinity-updater.light-mode spinner { border-color: #d7c9e7; border-top-color: #604583; }
 window.infinity-updater.light-mode .state-icon { color: #604583; }
-window.infinity-updater button.restart { background: #b52c3c; color: #ffffff; border-radius: 9px; padding: 9px 16px; font-weight: 700; }
+window.infinity-updater button.restart { background: #765caa; color: #ffffff; border-radius: 9px; padding: 9px 16px; font-weight: 700; }
 window.infinity-updater button.restart label { color: #ffffff; }
-window.infinity-updater button.restart:hover { background: #ce3a4b; }
-window.infinity-updater button.restart:disabled { background: #80515a; }
+window.infinity-updater button.restart:hover { background: #8e71c6; }
+window.infinity-updater button.restart:disabled { background: #62566f; }
+@keyframes infinity-action-glow {
+  0%, 100% { box-shadow: 0 0 3px 0 rgba(173, 130, 233, 0.18); }
+  50% { box-shadow: 0 0 10px 2px rgba(173, 130, 233, 0.38); }
+}
+window.infinity-updater.motion-enabled button.restart:not(:disabled) {
+  animation: infinity-action-glow 2800ms ease-in-out infinite;
+}
+window.infinity-updater button.restart:disabled { animation: none; box-shadow: none; }
 window.infinity-updater .update-actions button { padding: 9px 12px; }
 
 '''
@@ -223,6 +231,7 @@ def main():
             self.window.add_css_class('infinity-updater')
             self.color_settings = Gio.Settings.new('org.gnome.desktop.interface')
             self.color_settings.connect('changed::color-scheme', self._sync_color_scheme)
+            self.color_settings.connect('changed::enable-animations', self._sync_color_scheme)
             self._sync_color_scheme()
             self.window.set_default_size(460, 680)
 
@@ -335,13 +344,18 @@ def main():
             self.window.present()
 
         def layout_actions(self, *_args):
+            self.actions.set_start_widget(None)
             self.actions.set_center_widget(None)
             self.actions.set_end_widget(None)
-            if self.apply.get_visible():
-                self.actions.set_center_widget(self.history_button)
-                self.actions.set_end_widget(self.apply)
+            install = self.apply.get_visible()
+            if getattr(self, 'restart_ready', False):
+                self.actions.set_start_widget(self.apply if install else self.history_button)
+                self.actions.set_center_widget(self.history_button if install else None)
+                self.actions.set_end_widget(self.refresh)
             else:
-                self.actions.set_end_widget(self.history_button)
+                self.actions.set_start_widget(self.refresh)
+                self.actions.set_center_widget(self.history_button if install else None)
+                self.actions.set_end_widget(self.apply if install else self.history_button)
 
         def watch_state(self):
             try:
@@ -381,6 +395,10 @@ def main():
             return True
 
         def _sync_color_scheme(self, *_args):
+            if self.color_settings.get_boolean('enable-animations'):
+                self.window.add_css_class('motion-enabled')
+            else:
+                self.window.remove_css_class('motion-enabled')
             if self.color_settings.get_string('color-scheme') == 'prefer-dark':
                 self.window.remove_css_class('light-mode')
             else:
@@ -485,6 +503,7 @@ def main():
             self.release_apply.set_visible(bool(release))
             self.release_apply.set_sensitive(bool(release and release.get('supported')) and not self.busy and not offline.get('pending'))
             self.refresh.set_sensitive(not self.busy)
+            self.layout_actions()
             if not self.busy:
                 checked_at = self.state.get('checked_at')
                 if checked_at:

@@ -30,16 +30,30 @@ class UpdaterActionsTests(unittest.TestCase):
         end = next(i for i, node in enumerate(body) if isinstance(node, ast.Assign)
                    and ast.unparse(node.targets[0]) == 'self.release_apply')
         exec(compile(ast.Module(body=body[start:end], type_ignores=[]), str(source), 'exec'), namespace)
-        for visible in (True, False, True, False):
+        for ready, visible in ((False, True), (True, False), (True, True), (False, False), (False, True)):
+            app.restart_ready = ready
             app.apply.set_visible(visible)
+            app.layout_actions()
             app.actions.allocate(900, 60, -1, None)
-            self.assertIs(app.actions.get_start_widget(), app.refresh)
+            left = (app.apply if visible else app.history_button) if ready else app.refresh
+            right = app.refresh if ready else app.apply if visible else app.history_button
+            self.assertIs(app.actions.get_start_widget(), left)
             self.assertIs(app.actions.get_center_widget(), app.history_button if visible else None)
-            right = app.apply if visible else app.history_button
             self.assertIs(app.actions.get_end_widget(), right)
-            self.assertEqual(app.refresh.get_allocation().x, 0)
+            self.assertEqual(left.get_allocation().x, 0)
             allocation = right.get_allocation()
             self.assertEqual(allocation.x + allocation.width, 900)
             if visible:
                 allocation = app.history_button.get_allocation()
                 self.assertAlmostEqual(allocation.x + allocation.width / 2, 450, delta=1)
+
+    def test_updater_stylesheet_parses_in_gtk(self):
+        source = Path(__file__).resolve().parents[1] / 'packages/infinity-updater/root/usr/share/infinityos/updater/updater.py'
+        tree = ast.parse(source.read_text())
+        style = next(ast.literal_eval(node.value) for node in tree.body
+                     if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'STYLE' for t in node.targets))
+        errors = []
+        provider = Gtk.CssProvider()
+        provider.connect('parsing-error', lambda _provider, _section, error: errors.append(str(error)))
+        provider.load_from_data(style)
+        self.assertEqual(errors, [])
