@@ -1,0 +1,68 @@
+name: Build requested InfinityOS ARM64 ISO
+on:
+  push:
+    branches: [build/arm-iso-cdaf008]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: infinityos-arm-iso-cdaf008
+  cancel-in-progress: false
+jobs:
+  iso:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 180
+    steps:
+      - name: Wait for signed RPM publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 120); do
+            conclusion=$(gh api repos/InfinityOS-linux/infinityos/actions/runs/43481404743 --jq '.conclusion // "pending"')
+            if [[ "$conclusion" == success ]]; then exit 0; fi
+            if [[ "$conclusion" != pending ]]; then echo "RPM publication failed: $conclusion"; exit 1; fi
+            sleep 30
+          done
+          echo 'Timed out waiting for signed RPMs'; exit 1
+      - uses: actions/checkout@v4
+        with:
+          ref: cdaf0082d6d16253aa81a0669764411f37586edd
+      - name: Build and verify a fresh Fedora 45 ARM64 ISO
+        run: |
+          set -euo pipefail
+          sudo modprobe erofs
+          sudo modprobe btrfs
+          mkdir -p "$RUNNER_TEMP/iso-output"
+          docker run --rm --privileged \
+            -v "$PWD:/work" -v "$RUNNER_TEMP/iso-output:/output" -w /work \
+            fedora:45 bash -euo pipefail -c '
+              dnf -y install kiwi kiwi-systemdeps distribution-gpg-keys erofs-utils dosfstools xorriso isomd5sum bsdtar git nodejs curl btrfs-progs acl
+              test "$(uname -m)" = aarch64
+              test "$(scripts/infinityos-source-revision)" = cdaf0082d6d16253aa81a0669764411f37586edd
+              ./kiwi-build --kiwi-file=InfinityOS.kiwi --image-type=iso --image-profile=Infinity-GNOME-Live --output-dir=/output/infinityos
+              images=(/output/infinityos-build/*.iso)
+              test "${#images[@]}" = 1
+              name=InfinityOS-2.0-Fedora45-GNOME51-aarch64-cdaf008-20261113.iso
+              mv "${images[0]}" "/output/$name"
+              cd /output
+              sha256sum "$name" > "$name.sha256"
+              chmod 644 "$name" "$name.sha256"
+            '
+      - uses: actions/upload-artifact@v4
+        with:
+          name: InfinityOS-ARM64-cdaf008
+          path: |
+            ${{ runner.temp }}/iso-output/*.iso
+            ${{ runner.temp }}/iso-output/*.sha256
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 3
+      - name: Preserve build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: InfinityOS-ARM64-build-logs
+          path: ${{ runner.temp }}/iso-output/infinityos-build/*.log
+          if-no-files-found: ignore
+          retention-days: 3
