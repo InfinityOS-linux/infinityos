@@ -12,8 +12,8 @@ fun make_image(w,h) {
     im.Scale=fun(w,h) { return make_image(w,h); };
     return im;
 }
-Image=fun(name) { global.loads++; return make_image(480,270); };
 Image.Text=fun(text,r,g,b) { im=make_image(100,20); im.text=text; return im; };
+Image |= fun(name) { global.loads++; return make_image(480,270); };
 Sprite=fun() {
     sp=[];
     sp.SetImage=fun(im) { this.image=im; };
