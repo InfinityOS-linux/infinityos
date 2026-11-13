@@ -221,3 +221,48 @@ for (const reason of ['reopen', 'unmanaged']) {
         assert.equal(calls.includes('closed'), false);
     });
 }
+
+for (const [appId, id, action, target, expected] of [
+    ['org.gnome.Software', 'offline-updates', 'app.set-mode', 'updated', true],
+    ['org.gnome.Software', 'updates-installed', 'app.set-mode', 'updated', true],
+    ['org.gnome.Software', 'offline-updates', 'app.show-offline-update-error', null, false],
+    ['org.gnome.Software', 'offline-updates', 'app.set-mode', 'updates', false],
+    ['org.gnome.Software', 'updates-available', 'app.set-mode', 'updates', false],
+    ['org.example.Other', 'updates-installed', 'app.set-mode', 'updated', false],
+]) {
+    for (const locale of ['pl_PL.UTF-8', 'en_US.UTF-8']) {
+        test(`completion notification ${appId}/${id}/${action}/${target} in ${locale}`, () => {
+            let opened = false;
+            let dismissed = false;
+            const extension = vm.runInNewContext(`${source}\nnew InfinityUpdater()`, {
+                Extension: class {},
+                GLib: {get_language_names: () => [locale]},
+                MessageTray: {Notification: class { activate() { dismissed = true; } }},
+            });
+            extension._simplifiedNotifications = new WeakSet();
+            extension._notificationOverrides = {overrideMethod(object, name, factory) {
+                object[name] = factory(object[name]);
+            }};
+            const notification = {
+                source: {_appId: appId}, id, title: 'Original', body: 'Details', actions: ['Review'],
+                serialize: () => ({deepUnpack: () => ({
+                    'default-action': {unpack: () => action},
+                    'default-action-target': {unpack: () => target},
+                })}),
+                set(values) { Object.assign(this, values); },
+                clearActions() { this.actions = []; },
+                activate() { opened = true; },
+            };
+            extension._simplifyInstalledNotification(notification);
+            extension._simplifyInstalledNotification(notification);
+            notification.activate();
+            assert.equal(opened, !expected);
+            assert.equal(dismissed, expected);
+            assert.deepEqual(notification.actions, expected ? [] : ['Review']);
+            assert.equal(notification.body, expected ? '' : 'Details');
+            assert.equal(notification.title, expected
+                ? locale.startsWith('pl') ? 'Aktualizacje zostały zainstalowane.' : 'Updates installed.'
+                : 'Original');
+        });
+    }
+}

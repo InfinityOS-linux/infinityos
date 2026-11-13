@@ -33,7 +33,7 @@ POLISH = {
     'System packages · Flatpaks · Device firmware':
         'Pakiety systemowe · Flatpaki · Oprogramowanie urządzeń',
     'Check again': 'Sprawdź ponownie',
-    'Restart and install': 'Uruchom ponownie i zainstaluj',
+    'Restart to update': 'Uruchom ponownie, aby zaktualizować',
     'Could not restart the system.': 'Nie udało się uruchomić systemu ponownie.',
     'Install updates': 'Zainstaluj aktualizacje',
     'Upgrade Infinity OS': 'Zaktualizuj Infinity OS',

@@ -468,7 +468,7 @@ class RestartActionTests(unittest.TestCase):
         for pending, returncode in [(False, 0), (True, 0), (True, 1)]:
             with self.subTest(pending=pending, returncode=returncode):
                 command = Mock(return_value=SimpleNamespace(returncode=returncode, stdout='', stderr='denied'))
-                state = {'updates': []}
+                state = {'updates': [{'kind': 'Flatpak user', 'name': 'not-downloaded'}]}
                 namespace = {
                     'read_state': lambda: state,
                     'offline_status': lambda: {'pending': pending},
@@ -493,16 +493,11 @@ class RestartActionTests(unittest.TestCase):
                     else:
                         app.finish_refresh.assert_called_once_with(state)
 
-    def test_restart_replaces_check_only_when_all_updates_are_queued(self):
-        for rows, offline, expected in [
-            ([], {}, False),
-            ([], {'pending': True}, True),
-            ([{'pending': True}], {'pending': True}, True),
-            ([{'pending': True}, {'pending': False}], {'pending': True}, False),
-            ([{'pending': False}], {}, False),
-        ]:
-            with self.subTest(rows=rows, offline=offline):
-                self.assertEqual(updater.restart_ready(rows, offline), expected)
+    def test_restart_is_available_whenever_a_transaction_is_downloaded(self):
+        for offline, expected in [({}, False), ({'pending': False}, False),
+                                  ({'pending': True}, True)]:
+            with self.subTest(offline=offline):
+                self.assertEqual(updater.restart_ready(offline), expected)
 
 
 if __name__ == '__main__':

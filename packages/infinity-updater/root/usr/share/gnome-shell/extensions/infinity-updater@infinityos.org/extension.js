@@ -5,12 +5,15 @@ import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 import St from 'gi://St';
 
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import {Extension, InjectionManager} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
+import * as NotificationDaemon from 'resource:///org/gnome/shell/ui/notificationDaemon.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 
 export default class InfinityUpdater extends Extension {
     enable() {
+        this._configureUpdateNotifications();
         this._focusId = global.display.connect('notify::focus-window',
             () => this._onFocusChanged());
         this._outsideClickId = global.stage.connect('captured-event',
@@ -90,6 +93,49 @@ export default class InfinityUpdater extends Extension {
                 Gio.SubprocessFlags.NONE);
         } catch (error) {
             console.warn(`Could not start Infinity OS update checks: ${error}`);
+        }
+    }
+
+    _simplifyInstalledNotification(notification) {
+        if (notification.source?._appId !== 'org.gnome.Software')
+            return false;
+        const data = notification.serialize().deepUnpack();
+        const completed = notification.id === 'updates-installed' ||
+            (notification.id === 'offline-updates' &&
+             data['default-action']?.unpack() === 'app.set-mode' &&
+             data['default-action-target']?.unpack() === 'updated');
+        if (!completed)
+            return false;
+        const polish = GLib.get_language_names()[0].split(/[_.@-]/)[0] === 'pl';
+        notification.set({
+            title: polish ? 'Aktualizacje zostały zainstalowane.' : 'Updates installed.',
+            body: '',
+        });
+        notification.clearActions();
+        if (!this._simplifiedNotifications.has(notification)) {
+            this._simplifiedNotifications.add(notification);
+            this._notificationOverrides.overrideMethod(notification, 'activate', () => function () {
+                return MessageTray.Notification.prototype.activate.call(this);
+            });
+        }
+        return true;
+    }
+
+    _configureUpdateNotifications() {
+        this._notificationOverrides = new InjectionManager();
+        this._simplifiedNotifications = new WeakSet();
+        const extension = this;
+        this._notificationOverrides.overrideMethod(
+            NotificationDaemon.GtkNotificationDaemonAppSource.prototype, 'addNotification',
+            original => function (notification) {
+                extension._simplifyInstalledNotification(notification);
+                return original.call(this, notification);
+            });
+        for (const source of Main.messageTray.getSources()) {
+            if (source._appId === 'org.gnome.Software') {
+                for (const notification of source.notifications)
+                    this._simplifyInstalledNotification(notification);
+            }
         }
     }
 
@@ -270,6 +316,8 @@ export default class InfinityUpdater extends Extension {
     }
 
     disable() {
+        this._notificationOverrides?.clear();
+        this._notificationOverrides = null;
         for (const window of this._closeTimers?.keys() ?? [])
             this._cancelClose(window);
         this._closingWindows = null;

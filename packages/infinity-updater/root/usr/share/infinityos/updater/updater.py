@@ -112,8 +112,8 @@ def update_rows(updates, offline):
     return rows
 
 
-def restart_ready(updates, offline):
-    return bool(offline.get('pending')) and not any(not item.get('pending') for item in updates)
+def restart_ready(offline):
+    return bool(offline.get('pending'))
 
 
 def install_commands(updates):
@@ -260,21 +260,22 @@ def main():
             self.status.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
             self.status.set_max_width_chars(80)
             footer.append(self.status)
-            actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            self.actions = Gtk.CenterBox()
+            actions = self.actions
             actions.add_css_class('update-actions')
             self.refresh = Gtk.Button(label=tr('Check again'))
             self.refresh.add_css_class('secondary')
             self.refresh.connect('clicked', self.on_refresh_action)
-            actions.append(self.refresh)
-            history_button = Gtk.Button(label=tr('History'))
+            actions.set_start_widget(self.refresh)
+            self.history_button = Gtk.Button(label=tr('History'))
+            history_button = self.history_button
             history_button.add_css_class('secondary')
             history_button.connect('clicked', self.show_history)
-            actions.append(history_button)
-            actions.append(Gtk.Box(hexpand=True))
             self.apply = Gtk.Button(label=tr('Install updates'))
             self.apply.add_css_class('restart')
             self.apply.connect('clicked', self.on_apply)
-            actions.append(self.apply)
+            self.apply.connect('notify::visible', self.layout_actions)
+            self.layout_actions()
             self.release_apply = Gtk.Button(label=tr('Upgrade Infinity OS'))
             self.release_apply.add_css_class('primary')
             self.release_apply.connect('clicked', self.on_release)
@@ -285,6 +286,15 @@ def main():
             self.watch_state()
             self.on_refresh(None, force=False)
             self.window.present()
+
+        def layout_actions(self, *_args):
+            self.actions.set_center_widget(None)
+            self.actions.set_end_widget(None)
+            if self.apply.get_visible():
+                self.actions.set_center_widget(self.history_button)
+                self.actions.set_end_widget(self.apply)
+            else:
+                self.actions.set_end_widget(self.history_button)
 
         def watch_state(self):
             try:
@@ -332,8 +342,8 @@ def main():
         def render(self):
             offline = offline_status()
             updates = update_rows(self.state.get('updates', []), offline)
-            self.restart_ready = restart_ready(updates, offline)
-            self.refresh.set_label(tr('Restart and install' if self.restart_ready else 'Check again'))
+            self.restart_ready = restart_ready(offline)
+            self.refresh.set_label(tr('Restart to update' if self.restart_ready else 'Check again'))
             self.refresh.remove_css_class('secondary' if self.restart_ready else 'restart')
             self.refresh.add_css_class('restart' if self.restart_ready else 'secondary')
             if self.checking:
@@ -443,7 +453,7 @@ def main():
                 return
             self.state = read_state()
             offline = offline_status()
-            if not restart_ready(update_rows(self.state.get('updates', []), offline), offline):
+            if not restart_ready(offline):
                 self.render()
                 return
             self.busy = True
@@ -451,7 +461,7 @@ def main():
             self.render()
 
             def work():
-                result = run_update_command(tr('Restart and install'),
+                result = run_update_command(tr('Restart to update'),
                                             ['/usr/bin/systemctl', 'reboot'], self.report_progress)
                 if result.returncode:
                     message = tr('Could not restart the system.') + '\n' + (result.stderr.strip() or result.stdout.strip())
