@@ -117,6 +117,14 @@ def stage(local_rpm=None):
             TRIGGER.unlink()
         try:
             subprocess.run(command, check=True)
+            # DNF can succeed without staging anything when candidates are skipped.
+            if not existing:
+                transaction_path = OFFLINE / 'transaction.json'
+                if not transaction_path.exists():
+                    return
+                transaction = json.loads(transaction_path.read_text())
+                if not any(transaction.get(key) for key in ('rpms', 'groups', 'environments')):
+                    return
             if pending:
                 transaction = json.loads((OFFLINE / 'transaction.json').read_text())
                 reasons = {(p['name'], p['arch']): p['reason'] for p in pending}

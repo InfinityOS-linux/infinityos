@@ -111,3 +111,17 @@ class PendingUpdatesTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, 'Another updater'):
                     pending.stage()
             self.assertEqual(str(trigger.readlink()), '/another-updater')
+
+    def test_empty_upgrade_does_not_arm_a_nonexistent_offline_transaction(self):
+        for empty_file in (False, True):
+            with self.subTest(empty_file=empty_file), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                if empty_file:
+                    (root / 'transaction.json').write_text('{"rpms": []}')
+                trigger = root / 'system-update'
+                with patch.object(pending, 'OFFLINE', root), patch.object(pending, 'TRIGGER', trigger), \
+                     patch.object(pending.subprocess, 'run') as run:
+                    pending.stage()
+                    run.assert_called_once()
+                    self.assertIn('upgrade', run.call_args.args[0])
+                    self.assertFalse(trigger.exists())

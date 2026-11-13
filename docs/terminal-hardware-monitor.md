@@ -13,7 +13,7 @@ Right-click any tile to change its sensor/device, move it left or right, remove 
 - RAM: MemTotal minus MemAvailable, in GiB. Disk tiles show used/total GiB for local mount points, including `/`.
 - CPU TDP is **manually supplied from the CPU specification**, not inferred from power consumption. Zero means unknown. Driver power limits have separate labels. AMD APU power can include CPU and GPU; the underlying driver determines the scope.
 
-The standard-library Python reader runs asynchronously outside GNOME Shell. It only runs while the strip is visible, never overlaps a previous sample, bounds NVIDIA queries to two seconds and the reader process to four seconds, and never writes hardware settings. Failed or removed sensors produce N/A and a graph gap. History is bounded and cleared on hiding/configuration changes. This requires `python3-core`, declared by the terminal RPM.
+The standard-library Python reader runs asynchronously outside GNOME Shell. It only runs while the strip is visible, never overlaps a previous sample, bounds NVIDIA queries to two seconds and the reader process to four seconds, and never writes hardware settings. Failed or removed sensors produce N/A and a graph gap. History is bounded and cleared on hiding/configuration changes. This requires `python3`, declared by the terminal RPM.
 
 ## Research
 
