@@ -34,3 +34,29 @@ test('reordering preserves sensor selections and handles first/last boundaries',
     assert.deepEqual(ids, ['a', 'b', 'c']);
     assert.ok(defaultMetrics.includes('memory:used'));
 });
+
+test('monitor cells use GNOME 51 BoxLayout orientation', async () => {
+    const {readFileSync} = await import('node:fs');
+    const vm = await import('node:vm');
+    const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/hardware-monitor.js', import.meta.url), 'utf8')
+        .replace(/^import .*;\n/gm, '').replace('export class', 'class');
+    class Actor {
+        constructor(properties = {}) {
+            if ('vertical' in properties) throw Error('No property vertical on StBoxLayout');
+            Object.assign(this, properties);
+        }
+        add_child() {} set_child() {} connect() {} destroy_all_children() {}
+    }
+    const prototype = vm.runInNewContext(`${source}\nHardwareMonitor.prototype`, {
+        GLib: {get_language_names: () => ['en']}, global: {stage: {}},
+        Clutter: {Orientation: {VERTICAL: 1}},
+        St: {BoxLayout: Actor, ScrollView: Actor, Button: Actor, Label: Actor, DrawingArea: Actor,
+            PolicyType: {AUTOMATIC: 1, NEVER: 2}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}},
+    });
+    const monitor = Object.create(prototype);
+    monitor.actor = new Actor();
+    monitor._settings = {get_strv: () => ['auto:cpu-temp']};
+    monitor._update = () => {};
+    monitor._rebuild();
+    assert.equal(monitor._cells.length, 1);
+});

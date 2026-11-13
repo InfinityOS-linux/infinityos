@@ -88,7 +88,6 @@ export const Services = class {
 
     this._disableNotifications = 0;
 
-    this._deferredMounts = [];
     this._volumeMonitor = Gio.VolumeMonitor.get();
     this._volumeMonitor.connectObject(
       'mount-added',
@@ -179,36 +178,25 @@ export const Services = class {
   }
 
   _commitMounts() {
-    if (this._deferredMounts && this._deferredMounts.length) {
-      let mounts = [...this._deferredMounts];
-      this._deferredMounts = [];
-      mounts.forEach((m) => {
-        this._onMountAdded(null, m);
-      });
-    }
+    this.checkMounts();
   }
 
-  _onMountAdded(monitor, mount) {
-    if (!this.extension.mounted_icon) {
-      return false;
-    }
-
+  _onMountAdded(_monitor, mount) {
     this.last_mounted = mount;
-    let basename = this._getMountName(mount); // mount.get_default_location().get_basename();
-    // let appname = `mount-${this._toSafeFileName(basename)}-dash2dock-lite.desktop`;
-    this.setupMountIcon(mount);
+    this.checkMounts();
     this.extension.animate();
-    return true;
   }
 
-  _onMountRemoved(monitor, mount) {
-    let basename = this._getMountName(mount); //mount.get_default_location().get_basename();
-    let appname = `mount-${this._toSafeFileName(
-      basename
-    )}-dash2dock-lite.desktop`;
-    let mount_id = tempPath(appname);
-    delete this._mounts[mount_id];
+  _onMountRemoved() {
+    // A removed mount may already have lost its drive/name. Reconcile by URI.
+    this.checkMounts();
     this.extension.animate();
+  }
+
+  _mountId(mount) {
+    const uri = mount.get_root().get_uri();
+    const id = GLib.compute_checksum_for_string(GLib.ChecksumType.SHA256, uri, -1);
+    return tempPath(`mount-${id}-dash2dock-lite.desktop`);
   }
 
   update(elapsed) {
@@ -287,28 +275,18 @@ export const Services = class {
   }
 
   setupMountIcon(mount) {
-    let basename = this._getMountName(mount); // mount.get_default_location().get_basename();
-    if (basename.startsWith('/')) {
-      // why does this happen?? issue #125
-      // unhandled... is this why CD's aren't mounted
-      // return;
-    }
-    let label = mount.get_name();
-    let appname = `mount-${this._toSafeFileName(
-      basename
-    )}-dash2dock-lite.desktop`;
-    let fullpath = mount.get_default_location().get_path();
-    let icon = '/usr/share/infinityos/folder-icons/drive-dock.svg';
-    let mount_exec = 'echo "not implemented"';
-    let unmount_exec = `umount ${fullpath}`;
-    let mount_id = tempPath(appname);
-    let fn = Gio.File.new_for_path(mount_id);
-
-    let content = `[Desktop Entry]\nVersion=1.0\nTerminal=false\nType=Application\nName=${label}\nExec=xdg-open ${fullpath}\nIcon=${icon}\nStartupWMClass=mount-${this._toSafeFileName(
-        basename
-      )}-dash2dock-lite\nActions=unmount;\n\n[Desktop Action mount]\nName=Mount\nExec=${mount_exec}\n\n[Desktop Action unmount]\nName=Unmount\nExec=${unmount_exec}\n`;
-    fn.replace_contents(content, null, false, Gio.FileCreateFlags.REPLACE_DESTINATION, null);
-
+    const mount_id = this._mountId(mount);
+    const label = mount.get_name().replace(/[\r\n]/g, ' ');
+    // Desktop Exec expands percent codes; preserve URI escapes as literal percent.
+    const target = '"' + mount.get_root().get_uri()
+      .replace(/["`$\\]/g, character => encodeURIComponent(character))
+      .replace(/%/g, '%%') + '"';
+    const icon = '/usr/share/infinityos/folder-icons/drive-dock.svg';
+    let content = `[Desktop Entry]\nVersion=1.0\nTerminal=false\nType=Application\nName=${label}\nExec=gio open ${target}\nIcon=${icon}\n`;
+    if (mount.can_unmount())
+      content += `Actions=unmount;\n\n[Desktop Action unmount]\nName=Unmount\nExec=gio mount -u ${target}\n`;
+    Gio.File.new_for_path(mount_id).replace_contents(
+      content, null, false, Gio.FileCreateFlags.REPLACE_DESTINATION, null);
     this._mounts[mount_id] = mount;
   }
 
@@ -652,30 +630,19 @@ export const Services = class {
   }
 
   checkMounts() {
-    if (!this.extension.mounted_icon) {
-      this._mounts = [];
-      return;
+    const mounts = this.extension.mounted_icon ? this._volumeMonitor.get_mounts() : [];
+    const active = new Set(mounts.map(mount => this._mountId(mount)));
+    for (const id of Object.keys(this._mounts)) {
+      if (!active.has(id)) {
+        delete this._mounts[id];
+        try { Gio.File.new_for_path(id).delete(null); } catch (_error) { /* Already removed. */ }
+      }
     }
-
-    let mounts = this._volumeMonitor.get_mounts() || [];
-    let mount_ids = mounts.map((mount) => {
-      let basename = this._getMountName(mount);
-      let appname = `mount-${this._toSafeFileName(
-        basename
-      )}-dash2dock-lite.desktop`;
-      return appname;
-    });
-
+    for (const mount of mounts) {
+      if (!this._mounts[this._mountId(mount)])
+        this.setupMountIcon(mount);
+    }
     this.mounts = mounts;
-    mounts.forEach((mount) => {
-      let basename = this._getMountName(mount);
-      let appname = `mount-${this._toSafeFileName(
-        basename
-      )}-dash2dock-lite.desktop`;
-      this._deferredMounts.push(mount);
-    });
-
-    // added devices will subsequently be on mounted events
   }
 
   //! this is out of place - services should only do background process - no rendering

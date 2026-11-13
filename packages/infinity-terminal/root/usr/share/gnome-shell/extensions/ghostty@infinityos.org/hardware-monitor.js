@@ -141,7 +141,7 @@ export class HardwareMonitor {
         this.actor.add_child(scroll);
         for (const id of this._settings.get_strv('monitor-metrics')) {
             const actor = new St.Button({style_class: 'infinity-monitor-cell', width: 180 * St.ThemeContext.get_for_stage(global.stage).scale_factor, x_expand: true, can_focus: true});
-            const box = new St.BoxLayout({vertical: true});
+            const box = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL});
             const value = new St.Label({style_class: 'infinity-monitor-value', text: 'N/A'});
             const graph = new St.DrawingArea({height: 28, x_expand: true});
             const label = new St.Label({style_class: 'infinity-monitor-label'});
