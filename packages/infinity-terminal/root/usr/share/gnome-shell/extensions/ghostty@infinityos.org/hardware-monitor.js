@@ -20,7 +20,9 @@ export class HardwareMonitor {
         this.actor = new St.BoxLayout({reactive: true, visible: false,
             style_class: 'infinity-monitor', accessible_name: tr('Hardware monitors', 'Wskaźniki sprzętowe')});
         Main.layoutManager.addChrome(this.actor);
-        this._menu = new PopupMenu.PopupMenu(this.actor, 0.5, St.Side.TOP);
+        this._menuAnchor = new St.Widget({width: 1, height: 1, opacity: 0, reactive: false});
+        Main.layoutManager.addChrome(this._menuAnchor);
+        this._menu = new PopupMenu.PopupMenu(this._menuAnchor, 0, St.Side.TOP);
         Main.uiGroup.add_child(this._menu.actor);
         this._menu.actor.hide();
         this._menu.actor.set_style('max-height: 650px;');
@@ -38,7 +40,7 @@ export class HardwareMonitor {
         contextClick.connect('recognize', gesture => {
             const source = global.stage.get_event_actor(gesture.get_point_event(0));
             const index = this._cells.findIndex(cell => cell.actor === source || cell.actor.contains(source));
-            this._openMenu(index);
+            this._openMenu(index, gesture.get_point_event(0).get_coords());
         });
         this.actor.add_action_full('hardware-context-menu', Clutter.EventPhase.CAPTURE, contextClick);
         this._rebuild();
@@ -173,7 +175,7 @@ export class HardwareMonitor {
             cell.metric = metric;
             cell.actor.visible = !this._settings.get_boolean('monitor-hide-unavailable') || Number.isFinite(metric.value);
             cell.value.text = formatMetric(metric, this._settings.get_boolean('monitor-fahrenheit'));
-            cell.label.text = metric.label;
+            cell.label.text = metric.label.toUpperCase();
             cell.actor.accessible_name = `${metric.group ?? ''} ${metric.label}: ${cell.value.text}`;
             cell.graph.visible = this._settings.get_boolean('monitor-graphs');
             cell.graph.queue_repaint();
@@ -208,13 +210,17 @@ export class HardwareMonitor {
         } finally { cr.$dispose(); }
     }
 
-    _openMenu(index) {
+    _openMenu(index, coordinates = null) {
+        this._menu.close();
+        const [x, y] = coordinates ?? global.get_pointer();
+        this._menuAnchor.set_position(x, y);
         this._menu.removeAll();
         const ids = this._settings.get_strv('monitor-metrics');
         const save = next => this._settings.set_strv('monitor-metrics', next);
         const action = (menu, label, callback) => {
             const item = new PopupMenu.PopupMenuItem(label);
             item.connect('activate', callback); menu.addMenuItem(item);
+            return item;
         };
         const sources = (title, select) => {
             const parent = new PopupMenu.PopupSubMenuMenuItem(title);
@@ -226,7 +232,12 @@ export class HardwareMonitor {
                     parent.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem(metric.group));
                     groups.set(metric.group, parent.menu);
                 }
-                action(groups.get(metric.group), `${metric.label} (${formatMetric(metric)})`, () => select(metric.id));
+                const selected = this._cells.filter(cell => cell.metric?.id === metric.id);
+                const displayed = selected.some(cell => cell.actor.visible);
+                const hidden = selected.length && !displayed ? tr(' · hidden', ' · ukryty') : '';
+                const item = action(groups.get(metric.group), `${metric.label} (${formatMetric(metric)})${hidden}`, () => select(metric.id));
+                item.setOrnament(displayed ? PopupMenu.Ornament.CHECK
+                    : selected.length ? PopupMenu.Ornament.DOT : PopupMenu.Ornament.NONE);
             }
         };
         if (index >= 0) {
@@ -271,6 +282,8 @@ export class HardwareMonitor {
         this._process?.force_exit();
         this._settings.disconnect(this._settingsId);
         this._menu.destroy();
+        Main.layoutManager.removeChrome(this._menuAnchor);
+        this._menuAnchor.destroy();
         Main.layoutManager.removeChrome(this.actor);
         this.actor.destroy();
     }

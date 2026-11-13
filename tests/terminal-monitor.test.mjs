@@ -109,3 +109,41 @@ test('monitor hides missing readings without forgetting selections and restores 
     assert.equal(monitor._cells[0].actor.visible, true);
     assert.equal(monitor._emptyButton.visible, false);
 });
+
+test('sensor menu follows click coordinates and marks displayed, hidden and unselected sources', async () => {
+    const {readFileSync} = await import('node:fs');
+    const vm = await import('node:vm');
+    const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/hardware-monitor.js', import.meta.url), 'utf8')
+        .replace(/^import .*;\n/gm, '').replace('export class', 'class');
+    const items = [];
+    class Item {
+        constructor(label) { this.label = label; this.menu = {addMenuItem() {}}; items.push(this); }
+        connect() {} setOrnament(value) { this.ornament = value; }
+    }
+    const prototype = vm.runInNewContext(`${source}\nHardwareMonitor.prototype`, {
+        GLib: {get_language_names: () => ['en']}, global: {get_pointer: () => [900, 120, 0]},
+        PopupMenu: {PopupMenuItem: Item, PopupSubMenuMenuItem: Item, PopupSeparatorMenuItem: Item,
+            PopupSwitchMenuItem: Item, Ornament: {CHECK: 'check', DOT: 'dot', NONE: 'none'}},
+        resolveMetric, formatMetric,
+    });
+    const monitor = Object.create(prototype);
+    const ram = {id: 'memory:used', label: 'RAM', group: 'System', value: 2, unit: 'GiB'};
+    const gpu = {id: 'nvidia:GPU-a:temp', label: 'GPU Temp', group: 'GPU', value: null, unit: '°C'};
+    const disk = {id: 'disk:/', label: 'Disk', group: 'Disks', value: 6, unit: 'GiB'};
+    monitor._metrics = [ram, gpu, disk];
+    monitor._cells = [{id: 'memory:used', metric: ram, actor: {visible: true}},
+        {id: 'auto:gpu-temp', metric: gpu, actor: {visible: false}}];
+    monitor._settings = {get_strv: () => ['memory:used', 'auto:gpu-temp'], get_int: () => 0, get_boolean: () => true};
+    monitor._menuAnchor = {set_position(x, y) { this.position = [x, y]; }};
+    monitor._menu = {close() {}, removeAll() {}, addMenuItem() {}, open() {this.opened = true;}};
+    monitor._openMenu(-1, [300, 80]);
+    assert.deepEqual(monitor._menuAnchor.position, [300, 80]);
+    assert.equal(items.find(item => item.label.startsWith('RAM (')).ornament, 'check');
+    const selectedGpu = items.find(item => item.label.startsWith('GPU Temp ('));
+    assert.equal(selectedGpu.ornament, 'dot');
+    assert.ok(selectedGpu.label.endsWith('hidden'));
+    assert.equal(items.find(item => item.label.startsWith('Disk (')).ornament, 'none');
+    assert.equal(monitor._menu.opened, true);
+    monitor._openMenu(-1);
+    assert.deepEqual(monitor._menuAnchor.position, [900, 120]);
+});
