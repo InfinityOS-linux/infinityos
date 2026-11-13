@@ -53,6 +53,7 @@ docker run --rm ${platform_args[@]+"${platform_args[@]}"} \
 mkdir -p "$(dirname "$cache")"
 cache_stage=$(mktemp -d "${cache}.XXXXXX")
 cp -a "$work/install/usr" "$cache_stage/usr"
+chmod 755 "$cache_stage"
 # A complete install tree becomes visible atomically.
 if [[ ! -d "$cache" ]]; then
     mv "$cache_stage" "$cache"

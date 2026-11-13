@@ -115,7 +115,7 @@ jobs:
           sudo env INFINITY_GHOSTTY_BUILDER_IMAGE=infinityos-ghostty-builder:ci \
             INFINITY_TARGET_PLATFORM='${{ matrix.platform }}' \
             INFINITY_PACKAGE_RELEASE="$release" packages/build-rpm.sh infinity-terminal
-          sudo chown -R "$(id -u):$(id -g)" .build/rpm-output
+          sudo chown -R "$(id -u):$(id -g)" .build/rpm-output .build/ghostty-cache
       - uses: actions/upload-artifact@v4
         with:
           name: rpm-infinity-terminal-${{ matrix.arch }}
