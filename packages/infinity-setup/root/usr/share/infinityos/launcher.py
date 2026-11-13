@@ -739,10 +739,12 @@ class InfinitySetup(Gtk.Application):
     def _installed(self, app, enabled):
         status = self.notes[app]
         status.set_text(tr("Active local model") if enabled and app.kind == "local-model"
+                        else tr("Downloaded; inactive") if app.kind == "local-model"
                         else tr("Installed") if enabled else "")
-        status.set_visible(enabled)
+        status.set_visible(enabled or app.kind == "local-model")
         self.initial_active[app] = enabled
-        if hasattr(self, "catalog_status"):
+        if hasattr(self, "catalog_status") and (app.kind != "local-model" or enabled):
+            # Deactivation keeps the downloaded model on disk.
             self.catalog_status[app] = enabled
         return False
 

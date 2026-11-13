@@ -11,7 +11,7 @@ SOURCE = Path(__file__).resolve().parents[1] / 'packages/infinity-setup/root/usr
 def controller():
     tree = ast.parse(SOURCE.read_text())
     original = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'InfinitySetup')
-    methods = [n for n in original.body if isinstance(n, ast.FunctionDef) and n.name in ('_install', '_finished', '_refresh_ai', '_apply_ai_refresh', '_complete')]
+    methods = [n for n in original.body if isinstance(n, ast.FunctionDef) and n.name in ('_install', '_installed', '_finished', '_refresh_ai', '_apply_ai_refresh', '_complete')]
     module = ast.Module(body=[ast.ClassDef(name='Callbacks', bases=[], keywords=[], body=methods, decorator_list=[])], type_ignores=[])
     context = {'threading': SimpleNamespace(Thread=lambda target, daemon: SimpleNamespace(start=target)), 'GLib': SimpleNamespace(idle_add=lambda fn, *args: fn(*args), source_remove=Mock()),
                'tr': lambda value: value, 'install': Mock(), 'uninstall': Mock(),
@@ -28,6 +28,18 @@ def controller():
 
 
 class SetupTransactionsTests(unittest.TestCase):
+    def test_deactivation_preserves_downloaded_model_in_installed_filter(self):
+        from collections import namedtuple
+        app, _context = controller()
+        item = namedtuple('Model', 'kind')('local-model')
+        app.notes = {item: Mock()}
+        app.initial_active = {item: True}
+        app.catalog_status = {item: True}
+        type(app)._installed(app, item, False)
+        self.assertTrue(app.catalog_status[item])
+        self.assertFalse(app.initial_active[item])
+        app.notes[item].set_text.assert_called_once_with('Downloaded; inactive')
+
     def test_stop_finishes_current_operation_and_leaves_next_pending(self):
         app, context = controller()
         first = SimpleNamespace(kind='flatpak', source='first', name='First')
