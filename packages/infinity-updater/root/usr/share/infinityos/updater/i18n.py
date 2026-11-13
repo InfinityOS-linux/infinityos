@@ -4,6 +4,8 @@ import locale
 
 
 POLISH = {
+    'Last system operation: {status}; backup #{snapshot}': 'Ostatnia operacja systemowa: {status}; kopia #{snapshot}',
+    'Restore system and /var from Backups in the boot menu. /home is preserved.': 'System i /var możesz przywrócić przez Backups w menu rozruchowym. /home pozostaje bez zmian.',
     'History': 'Historia', 'No update history yet.': 'Brak historii aktualizacji.',
     'Failed': 'Błąd', 'Completed': 'Ukończono',
     'Downloaded; restart required': 'Pobrano; wymagane ponowne uruchomienie',

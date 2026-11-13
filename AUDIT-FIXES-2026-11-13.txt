@@ -37,7 +37,11 @@ DODATKOWO WDROŻONE W KODZIE
 13. Ghostty: cache gotowej binarki według identyfikatora obrazu budującego,
     platformy, skryptu, Dockerfile i wszystkich poprawek. Cache buildera w CI.
     Pakiet nadal otrzymuje bieżącą rewizję źródeł.
-14. CI uruchamia kontrole również dla pull requestów przed publikacją.
+14. Config: wyszukiwanie ustawień, miejsce na woluminie wag AI i informacja
+    o wpływie kontekstu na pamięć. Terminal: reset wyglądu z zachowaniem skrótów
+    i ściąga istniejących gestów. Setup: etapy z rzeczywistego wyjścia instalatora
+    oraz ostrzeżenie o braku automatycznej migracji Steam/Discord.
+15. CI uruchamia kontrole również dla pull requestów przed publikacją.
 
 WERYFIKACJA
 Pełny zestaw źródłowy jest uruchamiany przez scripts/test-infinity-delta source.

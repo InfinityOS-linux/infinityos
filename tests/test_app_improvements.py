@@ -14,6 +14,17 @@ def load(path, name):
 
 
 class ImprovementsTests(unittest.TestCase):
+    def test_install_progress_reports_real_output_and_keeps_failures(self):
+        import sys
+        import launcher_backend
+        messages = []
+        with launcher_backend.progress_reporting(messages.append):
+            launcher_backend._run([sys.executable, '-c', 'print("Downloading 50%")'])
+            with self.assertRaisesRegex(RuntimeError, 'failed fixture'):
+                launcher_backend._run([sys.executable, '-c', 'import sys; print("failed fixture"); sys.exit(2)'])
+        self.assertIn('Downloading 50%', messages)
+        self.assertIsNone(launcher_backend._progress_reporter.get())
+
     def test_cache_invalidates_image_platform_and_patch_but_not_other_files(self):
         module = load(Path(__file__).resolve().parents[1] / 'ghostty/cache-key.py', 'renderer_cache')
         with tempfile.TemporaryDirectory() as tmp:

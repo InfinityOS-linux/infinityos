@@ -1,5 +1,7 @@
 """Application catalog and deferred installation for InfinitySetup."""
 
+from contextlib import contextmanager
+from contextvars import ContextVar
 import hashlib
 import io
 import json
@@ -356,7 +358,34 @@ def catalog_state(home=None):
     return flatpaks, models, states
 
 
+_progress_reporter = ContextVar('infinity_install_progress', default=None)
+
+
+@contextmanager
+def progress_reporting(callback):
+    token = _progress_reporter.set(callback)
+    try:
+        yield
+    finally:
+        _progress_reporter.reset(token)
+
+
 def _run(command):
+    reporter = _progress_reporter.get()
+    if reporter is not None:
+        output = ''
+        with subprocess.Popen(command, text=True, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, bufsize=1) as process:
+            for line in process.stdout:
+                clean = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", '', line)
+                clean = ''.join(c for c in clean if c.isprintable() or c in '\n\t').strip()
+                if clean:
+                    output = (output + '\n' + clean)[-2000:]
+                    reporter(clean[-200:])
+            code = process.wait()
+        if code:
+            raise RuntimeError(output or f'Command failed with exit code {code}.')
+        return
     result = subprocess.run(command, text=True, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, check=False)
     if result.returncode:

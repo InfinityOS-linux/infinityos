@@ -1,4 +1,5 @@
 """Exercise Setup transaction callbacks without installing apps or requiring GTK."""
+from contextlib import nullcontext
 import ast
 from pathlib import Path
 from types import SimpleNamespace
@@ -11,9 +12,9 @@ SOURCE = Path(__file__).resolve().parents[1] / 'packages/infinity-setup/root/usr
 def controller():
     tree = ast.parse(SOURCE.read_text())
     original = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'InfinitySetup')
-    methods = [n for n in original.body if isinstance(n, ast.FunctionDef) and n.name in ('_install', '_installed', '_finished', '_refresh_ai', '_apply_ai_refresh', '_complete')]
+    methods = [n for n in original.body if isinstance(n, ast.FunctionDef) and n.name in ('_install', '_install_work', '_installed', '_finished', '_refresh_ai', '_apply_ai_refresh', '_complete')]
     module = ast.Module(body=[ast.ClassDef(name='Callbacks', bases=[], keywords=[], body=methods, decorator_list=[])], type_ignores=[])
-    context = {'threading': SimpleNamespace(Thread=lambda target, daemon: SimpleNamespace(start=target)), 'GLib': SimpleNamespace(idle_add=lambda fn, *args: fn(*args), source_remove=Mock()),
+    context = {'progress_reporting': lambda callback: nullcontext(), 'threading': SimpleNamespace(Thread=lambda target, daemon: SimpleNamespace(start=target)), 'GLib': SimpleNamespace(idle_add=lambda fn, *args: fn(*args), source_remove=Mock()),
                'tr': lambda value: value, 'install': Mock(), 'uninstall': Mock(),
                'deactivate_local_model': Mock(), 'set_tv_enabled': Mock(), 'launch_steam': Mock(),
                'configured_apps': lambda **kwargs: (),

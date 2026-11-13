@@ -4,6 +4,10 @@ import locale
 
 
 POLISH = {
+    "Search settings": "Szukaj ustawień", "No matching settings": "Brak pasujących ustawień",
+    "Backups": "Kopie zapasowe",
+    "Unchanged applications: {count}": "Aplikacje bez zmian: {count}",
+    "Flatpak data is kept. Games and profiles are not migrated automatically.": "Dane Flatpak zostaną zachowane. Gry i profile nie są przenoszone automatycznie.",
     "Search all applications": "Szukaj we wszystkich aplikacjach",
     "All applications": "Wszystkie aplikacje",
     "Available": "Dostępne",

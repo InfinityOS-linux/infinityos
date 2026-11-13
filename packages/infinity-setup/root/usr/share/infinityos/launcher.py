@@ -13,7 +13,7 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk
 
 from launcher_backend import (APPS, CRAFT_SUITE, active_local_model, configured_apps, available, deactivate_local_model,
-                              install, installed, installed_flatpaks, catalog_state, selected_ai, downloaded_local_models,
+                              install, progress_reporting, installed, installed_flatpaks, catalog_state, selected_ai, downloaded_local_models,
                               open_lutris_installer, removable, uninstall)
 from launcher_i18n import tr
 from launcher_tv import enabled as tv_enabled, set_enabled as set_tv_enabled, launch_steam
@@ -631,6 +631,10 @@ class InfinitySetup(Gtk.Application):
                  for app, enabled in changes]
         lines += [(tr("Enable") if enabled else tr("Disable")) + ": " + mode
                   for mode, enabled in tv_changes]
+        lines.append(tr("Unchanged applications: {count}").format(count=len(self.switches) - len(changes)))
+        if any(enabled and (app.source == "com.valvesoftware.Steam" or app.kind == "discord-rpm")
+               for app, enabled in changes):
+            lines.append(tr("Flatpak data is kept. Games and profiles are not migrated automatically."))
         scroll = Gtk.ScrolledWindow(vexpand=True)
         summary = Gtk.Label(label="\n".join(lines), xalign=0, wrap=True,
                             margin_top=20, margin_bottom=20, margin_start=20, margin_end=20)
@@ -669,6 +673,12 @@ class InfinitySetup(Gtk.Application):
         return True
 
     def _install(self, changes, tv_changes):
+        def report(line):
+            GLib.idle_add(self.status.set_text, self.operation_label + "\n" + line)
+        with progress_reporting(report):
+            self._install_work(changes, tv_changes)
+
+    def _install_work(self, changes, tv_changes):
         errors = []
         early_tv = [(mode, enabled) for mode, enabled in tv_changes
                     if mode == "steam" and not enabled]
@@ -692,8 +702,9 @@ class InfinitySetup(Gtk.Application):
                 break
             name = (item.name if kind == "app" else
                     "EmulationStation (ES-DE)" if item == "esde" else "Steam Big Picture")
-            GLib.idle_add(self.status.set_text, tr("Applying {index}/{total}: {name}…").format(
-                index=index, total=total, name=name))
+            self.operation_label = tr("Applying {index}/{total}: {name}…").format(
+                index=index, total=total, name=name)
+            GLib.idle_add(self.status.set_text, self.operation_label)
             if kind == "app" and item.source == "com.valvesoftware.Steam" and \
                     not enabled and steam_tv_disable_failed:
                 errors.append(f"{name}: {tr('Could not disable Steam TV Mode; Steam was left installed.')}")

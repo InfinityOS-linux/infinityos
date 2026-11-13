@@ -2,6 +2,10 @@
 import locale
 
 POLISH = {
+    'Free space: {size:.1f} GiB': 'Wolne miejsce: {size:.1f} GiB',
+    'Server reachable. Memory use grows with context size and model architecture; the model name is not a RAM guarantee.': 'Serwer odpowiada. Zużycie pamięci zależy od kontekstu i architektury modelu; nazwa modelu nie gwarantuje wymagań RAM.',
+    'Context budget: {factor:.1f}× 4096 tokens. Actual RAM use depends on the model and cache.': 'Budżet kontekstu: {factor:.1f}× 4096 tokenów. Rzeczywiste zużycie RAM zależy od modelu i cache.',
+
     'Wait for the current AI operation to finish.': 'Poczekaj na zakończenie bieżącej operacji AI.',
     'Accounts and local models': 'Konta i modele lokalne',
     'Refresh': 'Odśwież', 'Sign in': 'Zaloguj', 'Sign out': 'Wyloguj',

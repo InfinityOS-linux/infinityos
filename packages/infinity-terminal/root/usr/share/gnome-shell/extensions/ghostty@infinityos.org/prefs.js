@@ -81,6 +81,19 @@ export default class TerminalPreferences extends ExtensionPreferences {
         const actions = new Adw.PreferencesGroup(); page.add(actions);
         const apply = new Gtk.Button({label: tr('Apply', 'Zastosuj'), css_classes: ['suggested-action'], halign: Gtk.Align.END});
         actions.add(apply);
+        const reset = new Gtk.Button({label: tr('Restore appearance', 'Przywróć wygląd')});
+        reset.connect('clicked', () => {
+            font.set_font_desc(Pango.FontDescription.from_string(defaults['font-family']));
+            size.value = defaults['font-size']; opacity.value = defaults['background-opacity'];
+            padding.value = defaults['window-padding-x']; custom.active = false;
+            cursor.selected = ['block', 'bar', 'underline'].indexOf(defaults['cursor-style']);
+            blink.active = defaults['cursor-style-blink']; copy.active = defaults['copy-on-select'];
+            apply.emit('clicked');
+        });
+        actions.add(reset);
+        behavior.add(new Adw.ActionRow({title: tr('Gestures and controls', 'Gesty i sterowanie'),
+            subtitle: tr('Three fingers down: open; up: hide. Pin keeps the window visible. Drag the bottom edge to resize; double-click it for full height. Use the pane controls to split the terminal.',
+                'Trzy palce w dół: otwórz; w górę: ukryj. Przypięcie utrzymuje widoczność okna. Przeciągnij dolną krawędź, aby zmienić wysokość; dwuklik ustawia pełną wysokość. Użyj przycisków panelu, aby podzielić terminal.')}));
         const hex = button => {
             const rgba = button.get_rgba();
             return '#' + [rgba.red, rgba.green, rgba.blue].map(c => Math.round(c * 255).toString(16).padStart(2, '0')).join('');

@@ -544,6 +544,13 @@ def main():
             scroll = Gtk.ScrolledWindow()
             body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14,
                            margin_top=20, margin_bottom=20, margin_start=20, margin_end=20)
+            offline = offline_status()
+            if offline.get('snapshot'):
+                body.append(Gtk.Label(label=tr('Last system operation: {status}; backup #{snapshot}').format(
+                    status=tr('Completed' if offline.get('status') == 'success' else 'Failed'),
+                    snapshot=offline['snapshot']), xalign=0, wrap=True))
+                body.append(Gtk.Label(label=tr('Restore system and /var from Backups in the boot menu. /home is preserved.'),
+                                      xalign=0, wrap=True))
             entries = read_history()
             for entry in entries:
                 text = entry['time'][:19].replace('T', ' ') + ' UTC · ' + tr(entry['source'])
@@ -582,7 +589,13 @@ def main():
                         record_operation(label, 'Failed' if result.returncode else
                                          'Downloaded; restart required' if offline_status().get('pending') and
                                          any('infinityos-upgrade-system' in arg for arg in args) else 'Completed',
-                                         (result.stderr.strip() or result.stdout.strip()) if result.returncode else '')
+                                         (result.stderr.strip() or result.stdout.strip()) if result.returncode else
+                                         ', '.join(item.get('name', '') for item in updates
+                                                   if item['kind'] == {'System packages': 'RPM',
+                                                       'System Flatpaks': 'Flatpak system',
+                                                       'Your Flatpaks': 'Flatpak user',
+                                                       'Device firmware': 'Firmware'}.get(label)
+                                                   or item.get('name') == label))
                     except OSError as error:
                         errors.append('History: ' + str(error))
                     if result.returncode:
