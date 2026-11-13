@@ -5,11 +5,12 @@ polkit.addRule(function(action, subject) {
         return;
 
     var program = action.lookup('program');
-    if (program === '/usr/libexec/infinityos-upgrade-system' ||
+    var command = action.lookup('command_line');
+    // Local RPMs require normal administrator authentication.
+    if ((program === '/usr/libexec/infinityos-upgrade-system' && command === program) ||
         program === '/usr/libexec/infinityos-upgrade-release')
         return polkit.Result.YES;
 
-    var command = action.lookup('command_line');
     if ((program === '/usr/bin/flatpak' &&
          command === '/usr/bin/flatpak update --system --noninteractive --assumeyes') ||
         (program === '/usr/bin/fwupdmgr' &&

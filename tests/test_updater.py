@@ -38,6 +38,11 @@ spec.loader.exec_module(upgrade_release)
 
 class UpdaterTests(unittest.TestCase):
     def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        lock = patch.object(upgrade_release, "LOCK", Path(directory.name) / "update.lock")
+        lock.start()
+        self.addCleanup(lock.stop)
         current = patch.object(checker, 'installed_version', return_value=('1.0', 44))
         latest = patch.object(checker, 'load_manifest', return_value={
             'version': '1.0', 'fedora_release': 44})

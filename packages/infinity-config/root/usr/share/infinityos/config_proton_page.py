@@ -25,6 +25,7 @@ class ProtonPage:
         self.generation = 0
         self.catalog = {}
         tab = Gtk.ToggleButton(hexpand=True)
+        self.tab = tab
         tab_content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         tab_content.set_halign(Gtk.Align.CENTER)
         tab_content.append(Gtk.Image.new_from_icon_name('input-gaming-symbolic'))

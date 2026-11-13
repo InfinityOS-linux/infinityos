@@ -93,6 +93,9 @@ class BackupsPage:
             self.rows.append(label(tr('Backups are not initialized. Install InfinityOS on Btrfs to use system snapshots.')))
         elif not result['snapshots']:
             self.rows.append(label(tr('No snapshots yet.')))
+        complete = next((record for record in result['snapshots'] if record['complete']), None)
+        if complete:
+            self.rows.append(label(tr('Last complete backup: {date}').format(date=complete['date'])))
         for record in result['snapshots']:
             row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
             row.add_css_class('infinity-row')

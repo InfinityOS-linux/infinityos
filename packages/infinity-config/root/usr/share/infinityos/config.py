@@ -15,6 +15,7 @@ from config_backend import (
     slider_to_percent,
 )
 from diagnostics import write_report
+from launcher_i18n import tr
 from config_ai_i18n import tr as ai_tr
 from config_ai_page import AiPage
 from config_proton_page import ProtonPage
@@ -90,7 +91,7 @@ window.infinity-window.light-mode box.infinity-footer { border-color: #e0d6ea; }
 
 
 def label(text, style=None):
-    widget = Gtk.Label(label=text)
+    widget = Gtk.Label(label=tr(text))
     widget.set_xalign(0)
     if style:
         widget.add_css_class(style)
@@ -113,6 +114,7 @@ class InfinityConfig(Gtk.Application):
         self.controls = {}
         self.syncing = False
         self.writing = False
+        self.undo_values = {}
 
     def do_activate(self):
         if self.window:
@@ -161,7 +163,7 @@ class InfinityConfig(Gtk.Application):
         titles.append(label("Adjust your Infinity OS desktop.", "infinity-subtitle"))
         header.append(titles)
         close = Gtk.Button(icon_name="window-close-symbolic")
-        close.set_tooltip_text("Close Infinity Config")
+        close.set_tooltip_text(tr("Close Infinity Config"))
         close.add_css_class("infinity-close")
         close.set_valign(Gtk.Align.START)
         close.connect("clicked", lambda _button: self.window.close())
@@ -179,6 +181,16 @@ class InfinityConfig(Gtk.Application):
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         card.append(self.stack)
 
+        search = Gtk.SearchEntry(placeholder_text=tr("Search settings"))
+        search.set_margin_start(28)
+        search.set_margin_end(28)
+        self.search_results = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        self.search_results.set_margin_start(28)
+        self.search_results.set_margin_end(28)
+        card.insert_child_after(search, nav)
+        card.insert_child_after(self.search_results, search)
+        search.connect("search-changed", self._search_settings)
+        self.search_tabs = {}
         group = None
         for name, symbol, description in (
             ("Desktop", "user-desktop-symbolic", "Pointer and desktop appearance"),
@@ -189,7 +201,7 @@ class InfinityConfig(Gtk.Application):
             tab_content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
             tab_content.set_halign(Gtk.Align.CENTER)
             tab_content.append(Gtk.Image.new_from_icon_name(symbol))
-            tab_content.append(Gtk.Label(label=name))
+            tab_content.append(Gtk.Label(label=tr(name)))
             button.set_child(tab_content)
             button.set_hexpand(True)
             button.add_css_class("infinity-tab")
@@ -199,6 +211,7 @@ class InfinityConfig(Gtk.Application):
                 group = button
             button.connect("toggled", self._select_tab, name)
             nav.append(button)
+            self.search_tabs[name] = button
             page = self._page(name, description)
             self.stack.add_named(page, name)
             if name == "Desktop":
@@ -238,8 +251,37 @@ class InfinityConfig(Gtk.Application):
         self.proton_page = ProtonPage(self, nav, group)
         self.ai_page = AiPage(self, nav, group)
         self.backups_page = BackupsPage(self, nav, group)
+        self.search_tabs.update(AI=self.ai_page.tab, Proton=self.proton_page.tab, Backups=self.backups_page.tab)
         self.window.connect("close-request", self._close_requested)
         self.window.present()
+
+    def _search_settings(self, entry):
+        while self.search_results.get_first_child():
+            self.search_results.remove(self.search_results.get_first_child())
+        query = entry.get_text().casefold().strip()
+        if not query:
+            return
+        hints = {"AI": "AI model context tokens storage lokalny kontekst pamięć modele dysk",
+                 "Proton": "Proton gaming compatibility gry zgodność",
+                 "Backups": "Backups restore snapshot kopia migawka przywracanie"}
+        def labels(widget):
+            result = widget.get_text() if isinstance(widget, Gtk.Label) else ""
+            child = widget.get_first_child()
+            while child:
+                result += " " + labels(child)
+                child = child.get_next_sibling()
+            return result
+        found = False
+        for name, tab in self.search_tabs.items():
+            page = self.stack.get_child_by_name(name)
+            text = tr(name) + " " + hints.get(name, "") + " " + (labels(page) if page else "")
+            if query in text.casefold():
+                result = Gtk.Button(label=tr(name))
+                result.connect("clicked", lambda _button, tab=tab: tab.set_active(True))
+                self.search_results.append(result)
+                found = True
+        if not found:
+            self.search_results.append(label(tr("No matching settings"), "infinity-muted"))
 
     def _close_requested(self, *_args):
         if self.backups_page.busy:
@@ -296,18 +338,18 @@ class InfinityConfig(Gtk.Application):
         try:
             subprocess.Popen(command, start_new_session=True)
         except OSError as error:
-            self.status.set_text(f"Could not open {command[0]}: {error}")
+            self.status.set_text(tr("Could not open {app}: {error}").format(app=command[0], error=error))
 
     def _save_diagnostics(self, _button):
-        self.status.set_text("Collecting system information…")
+        self.status.set_text(tr("Collecting system information…"))
 
         def work():
             try:
                 path = write_report()
             except OSError as error:
-                GLib.idle_add(self.status.set_text, f"Could not save report: {error}")
+                GLib.idle_add(self.status.set_text, tr("Could not save report: {error}").format(error=error))
             else:
-                GLib.idle_add(self.status.set_text, f"Saved private report: {path}")
+                GLib.idle_add(self.status.set_text, tr("Saved private report: {path}").format(path=path))
 
         threading.Thread(target=work, daemon=True).start()
 
@@ -339,12 +381,22 @@ class InfinityConfig(Gtk.Application):
         self.controls[schema] = (settings, key, scale, value, getter, to_percent,
                                  to_value, value_type)
         row.append(scale)
+        actions = Gtk.Box(spacing=8)
+        reset = Gtk.Button(label=tr("Restore default"))
+        reset.connect("clicked", lambda _button: scale.set_value(percent_to_slider(100)))
+        undo = Gtk.Button(label=tr("Undo"))
+        undo.connect("clicked", self._undo_control, schema)
+        actions.append(reset)
+        actions.append(undo)
+        row.append(actions)
         page.append(row)
 
     def _value_changed(self, scale, schema):
         if self.syncing:
             return
         settings, key, _scale, value, _getter, _to_percent, to_value, value_type = self.controls[schema]
+        # Keep the pre-edit value until Undo, including a continuous slider drag.
+        self.undo_values.setdefault(schema, _getter(key))
         percent = slider_to_percent(scale.get_value())
         value.set_text(f"{percent}%")
         if value_type == "int":
@@ -359,6 +411,14 @@ class InfinityConfig(Gtk.Application):
                 settings.set_double(key, to_value(percent))
             finally:
                 self.writing = False
+
+    def _undo_control(self, _button, schema):
+        if schema not in self.undo_values:
+            return
+        settings, key, _scale, _label, _getter, _percent, _value, value_type = self.controls[schema]
+        value = self.undo_values.pop(schema)
+        setter = settings.set_int if value_type == "int" else settings.set_double
+        setter(key, value)
 
     def _setting_changed(self, _settings, _key, schema):
         if self.writing:

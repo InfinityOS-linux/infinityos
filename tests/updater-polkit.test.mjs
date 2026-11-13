@@ -20,6 +20,11 @@ test('non-admin, inactive and remote sessions do not receive passwordless author
     for (const restriction of [{local: false}, {active: false}, {isInGroup: () => false}])
         assert.equal(authorize(action('/usr/libexec/infinityos-upgrade-system'), {...subject, ...restriction}), undefined);
 });
+test('local RPMs and unexpected arguments require normal authorization', () => {
+    const program = '/usr/libexec/infinityos-upgrade-system';
+    for (const args of [' --local-rpm /tmp/untrusted.rpm', ' --help', ' anything'])
+        assert.equal(authorize(action(program, program + args), subject), undefined);
+});
 test('other programs, actions and Flatpak/firmware operations are not authorized', () => {
     for (const program of ['/bin/sh', '/usr/bin/dnf', '/tmp/infinityos-upgrade-system', '/usr/bin/flatpak', '/usr/bin/fwupdmgr'])
         assert.equal(authorize(action(program), subject), undefined);

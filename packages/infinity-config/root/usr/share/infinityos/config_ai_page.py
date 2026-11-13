@@ -3,6 +3,7 @@ from datetime import datetime
 from pathlib import Path
 import subprocess
 import threading
+import shutil
 
 from gi.repository import GLib, Gtk
 from config_ai import (selected_ai, provider_status, provider_command, local_status,
@@ -127,6 +128,10 @@ class AiPage:
                                                      text=True, timeout=10).stdout.strip()
                 except (OSError, subprocess.SubprocessError):
                     data['storage'] = tr('Storage unavailable')
+                try:
+                    data['free_gib'] = shutil.disk_usage(data['storage']).free / (1024 ** 3)
+                except OSError:
+                    data['free_gib'] = None
         except Exception:
             data = None
 
@@ -234,6 +239,15 @@ class AiPage:
         card.append(button('Apply model settings', apply))
         card.append(button('Import GGUF…', self.choose_model))
         card.append(text(tr('Model storage') + ': ' + data['storage']))
+        if data.get('free_gib') is not None:
+            card.append(text(tr('Free space: {size:.1f} GiB').format(size=data['free_gib'])))
+        card.append(text(tr('Server reachable. Memory use grows with context size and model architecture; the model name is not a RAM guarantee.')))
+        context_cost = text('')
+        def update_cost(*_args):
+            context_cost.set_text(tr('Context budget: {factor:.1f}× 4096 tokens. Actual RAM use depends on the model and cache.').format(factor=controls[0].get_value() / 4096))
+        controls[0].connect('value-changed', update_cost)
+        update_cost()
+        card.append(context_cost)
         card.append(text(tr('Copies all models and restarts Ollama. Old files are kept. Administrator authentication is required.')))
         card.append(button('Copy models to another folder…', self.choose_storage))
 

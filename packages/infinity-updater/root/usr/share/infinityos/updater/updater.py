@@ -1,8 +1,9 @@
 import sys
 import threading
+from history import read_history, record_operation
 from datetime import datetime
 
-from checker import check_updates, read_state, save_state, offline_status, state_path
+from checker import check_updates, read_state, save_state, offline_status, state_path, refresh_state
 from i18n import tr, update_count
 from progress import run_update_command
 
@@ -138,7 +139,7 @@ def install_commands(updates):
 
 def main():
     if '--check' in sys.argv:
-        save_state(check_updates())
+        refresh_state()
         return 0
 
     import gi
@@ -161,7 +162,7 @@ def main():
                 self.add_window(self.window)
                 self.window.present()
                 if not self.busy:
-                    self.on_refresh(None)
+                    self.on_refresh(None, force=False)
                 return
             css = Gtk.CssProvider()
             css.load_from_data(STYLE)
@@ -265,6 +266,10 @@ def main():
             self.refresh.add_css_class('secondary')
             self.refresh.connect('clicked', self.on_refresh_action)
             actions.append(self.refresh)
+            history_button = Gtk.Button(label=tr('History'))
+            history_button.add_css_class('secondary')
+            history_button.connect('clicked', self.show_history)
+            actions.append(history_button)
             actions.append(Gtk.Box(hexpand=True))
             self.apply = Gtk.Button(label=tr('Install updates'))
             self.apply.add_css_class('restart')
@@ -278,7 +283,7 @@ def main():
             footer.append(actions)
             layout.append(footer)
             self.watch_state()
-            self.on_refresh(None)
+            self.on_refresh(None, force=False)
             self.window.present()
 
         def watch_state(self):
@@ -456,7 +461,7 @@ def main():
 
             threading.Thread(target=work, daemon=True).start()
 
-        def on_refresh(self, _button):
+        def on_refresh(self, _button, force=True):
             if self.busy:
                 return
             self.busy = True
@@ -473,7 +478,7 @@ def main():
 
             def work():
                 try:
-                    state = check_updates(self.report_check)
+                    state = refresh_state(self.report_check, force=force)
                 except Exception as error:
                     GLib.idle_add(self.finish_error, str(error))
                 else:
@@ -493,16 +498,8 @@ def main():
         def finish_refresh(self, state, notice=None, recovery=None):
             if self.checking and network_is_offline(self.network_monitor, Gio):
                 return self.finish_offline()
-            save_error = None
-            if self.checking:
-                try:
-                    save_state(state)
-                except OSError as error:
-                    save_error = str(error)
             # A background check may have published a newer result while we were busy.
             self.state = read_state()
-            if save_error:
-                self.state.setdefault('errors', []).append(save_error)
             self.busy = False
             self.checking = False
             self.offline = False
@@ -541,6 +538,33 @@ def main():
             self.release()
             return GLib.SOURCE_REMOVE
 
+        def show_history(self, _button):
+            dialog = Gtk.Window(title=tr('History'), transient_for=self.window, modal=True,
+                                default_width=640, default_height=420)
+            scroll = Gtk.ScrolledWindow()
+            body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14,
+                           margin_top=20, margin_bottom=20, margin_start=20, margin_end=20)
+            offline = offline_status()
+            if offline.get('snapshot'):
+                body.append(Gtk.Label(label=tr('Last system operation: {status}; backup #{snapshot}').format(
+                    status=tr('Completed' if offline.get('status') == 'success' else 'Failed'),
+                    snapshot=offline['snapshot']), xalign=0, wrap=True))
+                body.append(Gtk.Label(label=tr('Restore system and /var from Backups in the boot menu. /home is preserved.'),
+                                      xalign=0, wrap=True))
+            entries = read_history()
+            for entry in entries:
+                text = entry['time'][:19].replace('T', ' ') + ' UTC · ' + tr(entry['source'])
+                text += '\n' + tr(entry['status'])
+                if entry.get('detail'):
+                    text += '\n' + entry['detail']
+                row = Gtk.Label(label=text, xalign=0, wrap=True, selectable=True)
+                body.append(row)
+            if not entries:
+                body.append(Gtk.Label(label=tr('No update history yet.')))
+            scroll.set_child(body)
+            dialog.set_child(scroll)
+            dialog.present()
+
         def on_apply(self, _button):
             updates = [item for item in update_rows(self.state['updates'], offline_status())
                        if not item.get('pending')]
@@ -561,6 +585,19 @@ def main():
                 firmware_updated = False
                 for label, args in commands:
                     result = run_update_command(label, args, self.report_progress)
+                    try:
+                        record_operation(label, 'Failed' if result.returncode else
+                                         'Downloaded; restart required' if offline_status().get('pending') and
+                                         any('infinityos-upgrade-system' in arg for arg in args) else 'Completed',
+                                         (result.stderr.strip() or result.stdout.strip()) if result.returncode else
+                                         ', '.join(item.get('name', '') for item in updates
+                                                   if item['kind'] == {'System packages': 'RPM',
+                                                       'System Flatpaks': 'Flatpak system',
+                                                       'Your Flatpaks': 'Flatpak user',
+                                                       'Device firmware': 'Firmware'}.get(label)
+                                                   or item.get('name') == label))
+                    except OSError as error:
+                        errors.append('History: ' + str(error))
                     if result.returncode:
                         errors.append(label + ': ' + (result.stderr.strip() or
                                                       result.stdout.strip() or 'Update failed'))
@@ -618,6 +655,7 @@ def main():
                     if installed.returncode:
                         raise RuntimeError(installed.stderr.strip() or installed.stdout.strip() or
                                            'Release upgrade failed')
+                    record_operation(f'Infinity OS {version}', 'Downloaded; restart required')
                     state = check_updates()
                     save_state(state)
                 except Exception as error:

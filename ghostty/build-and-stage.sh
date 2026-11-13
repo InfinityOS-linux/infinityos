@@ -6,6 +6,23 @@ repo=$(cd "$(dirname "$0")/.." && pwd)
 revision=$("$repo/scripts/infinityos-source-revision" "$repo")
 work=${INFINITY_GHOSTTY_WORK_DIR:-"$repo/../build/ghostty"}
 mkdir -p "$work/source" "$work/install"
+builder=${INFINITY_GHOSTTY_BUILDER_IMAGE:-infinityos-ghostty-builder:f44}
+platform_args=()
+if [[ -n ${INFINITY_TARGET_PLATFORM:-} ]]; then
+	platform_args=(--platform "$INFINITY_TARGET_PLATFORM")
+fi
+if [[ -z ${INFINITY_GHOSTTY_BUILDER_IMAGE:-} ]]; then
+	docker build ${platform_args[@]+"${platform_args[@]}"} -t "$builder" -f "$repo/ghostty/Dockerfile" "$repo/ghostty"
+fi
+image_id=$(docker image inspect --format '{{.Id}}' "$builder")
+image_arch=$(docker image inspect --format '{{.Architecture}}' "$builder")
+cache_key=$(python3 "$repo/ghostty/cache-key.py" "$image_id" "${INFINITY_TARGET_PLATFORM:-$image_arch}")
+cache=${INFINITY_GHOSTTY_CACHE_DIR:-"$repo/.build/ghostty-cache"}/$cache_key
+if [[ -x "$cache/usr/bin/ghostty" && -d "$cache/usr/share/ghostty" ]]; then
+    rm -rf "$work/install/usr"
+    cp -a "$cache/usr" "$work/install/usr"
+    printf 'Reusing verified renderer identity %s\n' "$cache_key"
+else
 archive="$work/ghostty-1.3.1.tar.gz"
 if [[ ! -f "$archive" ]]; then
 	curl -fL --retry 3 'https://release.files.ghostty.org/1.3.1/ghostty-1.3.1.tar.gz' -o "$archive"
@@ -26,20 +43,24 @@ patch -d "$work/source/ghostty-1.3.1" -p1 < "$repo/ghostty/ghostty-1.3.1-pane-co
 rm -f "$work/source/ghostty-1.3.1/src/apprt/gtk/ghostty_resources.c" \
 	"$work/source/ghostty-1.3.1/src/apprt/gtk/ghostty_resources.h"
 
-builder=${INFINITY_GHOSTTY_BUILDER_IMAGE:-infinityos-ghostty-builder:f44}
-platform_args=()
-if [[ -n ${INFINITY_TARGET_PLATFORM:-} ]]; then
-	platform_args=(--platform "$INFINITY_TARGET_PLATFORM")
-fi
-if [[ -z ${INFINITY_GHOSTTY_BUILDER_IMAGE:-} ]]; then
-	docker build ${platform_args[@]+"${platform_args[@]}"} -t "$builder" -f "$repo/ghostty/Dockerfile" "$repo/ghostty"
-fi
 docker run --rm ${platform_args[@]+"${platform_args[@]}"} \
 	-v "$work/source/ghostty-1.3.1:/src" \
 	-v "$work/install:/out" \
 	-v infinityos-zig-cache:/root/.cache/zig \
 	-w /src "$builder" \
 	bash -lc 'DESTDIR=/out zig build --prefix /usr -Doptimize=ReleaseFast -Dcpu=baseline'
+
+mkdir -p "$(dirname "$cache")"
+cache_stage=$(mktemp -d "${cache}.XXXXXX")
+cp -a "$work/install/usr" "$cache_stage/usr"
+chmod 755 "$cache_stage"
+# A complete install tree becomes visible atomically.
+if [[ ! -d "$cache" ]]; then
+    mv "$cache_stage" "$cache"
+else
+    rm -rf "$cache_stage"
+fi
+fi
 
 target="$description/usr"
 install -d "$target/libexec/infinityos" "$target/share"

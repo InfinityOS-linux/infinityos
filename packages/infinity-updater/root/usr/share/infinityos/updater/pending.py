@@ -61,6 +61,8 @@ def refresh_specs(pending, available, compare, replacing=None):
 
 
 def stage(local_rpm=None):
+    if Path('/etc/infinityos-release-pending.json').exists():
+        raise RuntimeError('A release upgrade is pending. Complete or recover it first.')
     if local_rpm:
         local_rpm = str(Path(local_rpm).resolve(strict=True))
     existing = TRIGGER.is_symlink()
@@ -71,6 +73,9 @@ def stage(local_rpm=None):
         transaction = json.loads((OFFLINE / 'transaction.json').read_text())
         if transaction.get('groups') or transaction.get('environments'):
             raise RuntimeError('A group update is pending. Restart to complete it first.')
+        if any(item.get('action') not in INBOUND | {'Replaced'}
+               for item in transaction.get('rpms', [])):
+            raise RuntimeError('The pending transaction contains removals or unsupported actions. Restart to complete it first.')
     command = ['dnf', '-y']
     if pending:
         import rpm

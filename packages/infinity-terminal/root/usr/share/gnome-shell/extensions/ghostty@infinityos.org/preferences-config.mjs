@@ -14,7 +14,7 @@ export function readPreferences(text) {
     }
     return values;
 }
-export function writePreferences(values) {
+export function writePreferences(values, previous = '') {
     const v = {...defaults, ...values};
     if (!v['font-family'].trim() || /[\r\n\\"#=]/.test(v['font-family']))
         throw new Error('Invalid font family');
@@ -25,7 +25,12 @@ export function writePreferences(values) {
     for (const key of ['background', 'foreground'])
         if (v[key] !== '' && !/^#[0-9a-f]{6}$/i.test(v[key])) throw new Error(`Invalid ${key}`);
     if (!['block', 'bar', 'underline'].includes(v['cursor-style'])) throw new Error('Invalid cursor style');
-    return '# Managed by InfinityTerminal preferences\n' + Object.keys(defaults)
+    const preserved = previous.split('\n').filter(line => {
+        const key = line.match(/^\s*([\w-]+)\s*=/)?.[1];
+        return !(key in defaults) && key !== 'window-padding-y' &&
+            line !== '# Managed by InfinityTerminal preferences';
+    }).join('\n').trimEnd();
+    return (preserved ? preserved + '\n' : '') + '# Managed by InfinityTerminal preferences\n' + Object.keys(defaults)
         .filter(key => v[key] !== '')
         .map(key => `${key} = ${v[key]}`).join('\n') + `\nwindow-padding-y = ${v['window-padding-x']}\n`;
 }

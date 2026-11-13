@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from launcher_backend import (APPS, _latest_rpm, appimage_paths, available, install,
@@ -34,6 +35,7 @@ def _newer(latest, current):
 
 def check_github_updates(home=None):
     updates, errors = [], []
+    deadline = time.monotonic() + 180
     home = Path(home or Path.home())
     try:
         installed_rpms = _installed()
@@ -41,11 +43,15 @@ def check_github_updates(home=None):
         installed_rpms = {}
         errors.append('InfinitySetup RPM: ' + str(error))
     for app in APPS:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            errors.append("InfinitySetup: check timed out; some apps could not be checked")
+            break
         if app.kind == 'github-appimage':
             if not available(app) or not installed(app, home):
                 continue
             try:
-                release, asset = latest_appimage_asset(app, os.uname().machine)
+                release, asset = latest_appimage_asset(app, os.uname().machine, timeout=min(15, remaining))
                 binary, _desktop = appimage_paths(app, home)
                 with binary.open('rb') as current:
                     digest = hashlib.file_digest(current, 'sha256').hexdigest()
@@ -61,7 +67,7 @@ def check_github_updates(home=None):
         if package not in installed_rpms:
             continue
         try:
-            release, _asset = latest_rpm_asset(app, os.uname().machine)
+            release, _asset = latest_rpm_asset(app, os.uname().machine, timeout=min(15, remaining))
             tag = release['tag_name']
             if _newer(tag, installed_rpms[package]):
                 updates.append({'kind': 'InfinitySetup RPM', 'name': app.name,

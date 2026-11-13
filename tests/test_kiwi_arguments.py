@@ -8,6 +8,8 @@ import unittest
 REPO = Path(__file__).resolve().parents[1]
 
 class KiwiArgumentTests(unittest.TestCase):
+    @unittest.skipUnless(subprocess.run(["getopt", "--test"], capture_output=True).returncode == 4,
+                         "GNU getopt required; BSD getopt cannot run the Linux build wrapper")
     def test_extra_arguments_survive_iso_and_isolated_builds(self):
         for isolated in (False, True):
             with self.subTest(isolated=isolated), tempfile.TemporaryDirectory() as directory:

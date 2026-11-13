@@ -3,13 +3,14 @@ name: Publish Infinity OS RPM repository
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: infinityos-rpm-pages
+  group: infinityos-rpm-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -21,6 +22,26 @@ jobs:
       - name: Test source and GNOME extension contracts
         run: |
           scripts/test-infinity-delta source
+
+  verify-fedora:
+    name: Verify GTK and Btrfs recovery on Fedora
+    runs-on: ubuntu-24.04
+    needs: verify-source
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run GTK tests with a display
+        run: |
+          docker run --rm -v "$PWD:/work:ro" -w /work fedora:45 sh -ec '
+            dnf -qy install python3 python3-gobject gtk4 xorg-x11-server-Xvfb dbus-daemon
+            dbus-run-session -- xvfb-run -a python3 tests/run_gtk_tests.py
+          '
+      - name: Run recovery against disposable Btrfs volumes
+        run: |
+          sudo modprobe btrfs
+          docker run --rm --privileged -v "$PWD:/work:ro" -w /work fedora:45 sh -ec '
+            dnf -qy install python3 btrfs-progs snapper rpm-build dnf5 util-linux rsync dosfstools findutils
+            bash tests/test_recovery_btrfs.sh
+          '
 
   build-noarch:
     name: Build ${{ matrix.package }}
@@ -66,13 +87,35 @@ jobs:
             runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Prepare Ghostty builder
+        uses: docker/build-push-action@v6
+        with:
+          context: ghostty
+          file: ghostty/Dockerfile
+          load: true
+          tags: infinityos-ghostty-builder:ci
+          platforms: ${{ matrix.platform }}
+          cache-from: type=gha,scope=ghostty-builder-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=ghostty-builder-${{ matrix.arch }}
+      - name: Identify renderer cache
+        id: renderer
+        run: |
+          image_id=$(docker image inspect --format '{{.Id}}' infinityos-ghostty-builder:ci)
+          key=$(python3 ghostty/cache-key.py "$image_id" '${{ matrix.platform }}')
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: .build/ghostty-cache
+          key: ghostty-${{ matrix.arch }}-${{ steps.renderer.outputs.key }}
       - name: Build RPM
         run: |
           release=$((10000000 + GITHUB_RUN_NUMBER))
           # Ghostty's Docker stage writes root-owned files into the checkout.
-          sudo env INFINITY_TARGET_PLATFORM='${{ matrix.platform }}' \
+          sudo env INFINITY_GHOSTTY_BUILDER_IMAGE=infinityos-ghostty-builder:ci \
+            INFINITY_TARGET_PLATFORM='${{ matrix.platform }}' \
             INFINITY_PACKAGE_RELEASE="$release" packages/build-rpm.sh infinity-terminal
-          sudo chown -R "$(id -u):$(id -g)" .build/rpm-output
+          sudo chown -R "$(id -u):$(id -g)" .build/rpm-output .build/ghostty-cache
       - uses: actions/upload-artifact@v4
         with:
           name: rpm-infinity-terminal-${{ matrix.arch }}
@@ -99,7 +142,7 @@ jobs:
     name: Sign RPMs and prepare Pages
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    needs: [build-noarch, build-terminal, build-gamescope]
+    needs: [verify-fedora, build-noarch, build-terminal, build-gamescope]
     permissions:
       contents: write
       actions: read

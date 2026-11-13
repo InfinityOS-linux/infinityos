@@ -1,5 +1,7 @@
 """Application catalog and deferred installation for InfinitySetup."""
 
+from contextlib import contextmanager
+from contextvars import ContextVar
 import hashlib
 import io
 import json
@@ -219,12 +221,12 @@ def deactivate_local_model(home=None):
                        stderr=subprocess.DEVNULL, check=False)
 
 
-def removable(app, home=None):
+def removable(app, home=None, known_installed=None):
     """Allow removal of managed clients and individual CraftSuite applications."""
     if app.kind == "github-rpm" and app.source in CRAFT_SUITE:
-        return installed(app, home)
+        return installed(app, home) if known_installed is None else known_installed
     if app.source == "com.valvesoftware.Steam" or app.kind == "discord-rpm":
-        return installed(app, home)
+        return installed(app, home) if known_installed is None else known_installed
     if app.kind == "npm":
         command = "claude" if "anthropic" in app.source else "codex"
         return (Path(home or Path.home()) / ".local/bin" / command).exists()
@@ -286,7 +288,7 @@ def installed_flatpaks():
         try:
             result = subprocess.run(
                 ["flatpak", "list", scope, "--app", "--columns=application"],
-                capture_output=True, text=True, check=False,
+                capture_output=True, text=True, timeout=15, check=False,
             )
         except OSError:
             return None
@@ -296,7 +298,7 @@ def installed_flatpaks():
     return applications
 
 
-def installed(app, home=None, flatpak_ids=None):
+def installed(app, home=None, flatpak_ids=None, rpm_names=None, model_names=None):
     home = Path(home or Path.home())
     if app.source == "com.valvesoftware.Steam" and os.uname().machine == "aarch64":
         return (os.access(home / ".local/share/Steam/steamrtarm64/steam", os.X_OK) and
@@ -308,10 +310,12 @@ def installed(app, home=None, flatpak_ids=None):
         binary, desktop = appimage_paths(app, home)
         return binary.is_file() and desktop.is_file()
     if app.kind == "local-model":
+        if model_names is not None:
+            return app.source.removesuffix(":latest") in {name.removesuffix(":latest") for name in model_names}
         ollama = ollama_binary()
         return bool(ollama and subprocess.run(
             [ollama, "show", app.source], stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL, check=False).returncode == 0)
+            stderr=subprocess.DEVNULL, timeout=15, check=False).returncode == 0)
     if app.kind == "flatpak":
         # Recognize existing Thunderbird installations while new installs use its current ID.
         ids = (app.source, "org.mozilla.Thunderbird", "org.mozilla.thunderbird_esr") if app.source == "org.mozilla.thunderbird" else (app.source,)
@@ -319,7 +323,7 @@ def installed(app, home=None, flatpak_ids=None):
             return any(source in flatpak_ids for source in ids)
         return any(
             subprocess.run(["flatpak", "info", scope, source], stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL, check=False).returncode == 0
+                           stderr=subprocess.DEVNULL, timeout=15, check=False).returncode == 0
             for scope in ("--user", "--system") for source in ids
         )
     if app.kind == "npm":
@@ -330,11 +334,58 @@ def installed(app, home=None, flatpak_ids=None):
             app.source != "xone" or _xone_firmware_valid())
     package = app.package or (app.source.rsplit("/", 1)[-1].lower()
                               if app.kind == "github-rpm" else app.source)
+    if rpm_names is not None:
+        return package in rpm_names
     return subprocess.run(["rpm", "-q", package], stdout=subprocess.DEVNULL,
-                          stderr=subprocess.DEVNULL, check=False).returncode == 0
+                          stderr=subprocess.DEVNULL, timeout=15, check=False).returncode == 0
+
+
+def catalog_state(home=None):
+    """Collect slow installation state once, outside GTK's main thread."""
+    flatpaks = installed_flatpaks()
+    if flatpaks is None:
+        raise RuntimeError('Could not read installed Flatpak applications.')
+    result = subprocess.run(['rpm', '-qa', '--qf', '%{NAME}\n'], capture_output=True,
+                            text=True, timeout=15, check=True)
+    rpms = set(result.stdout.splitlines())
+    try:
+        models = downloaded_local_models()
+    except (OSError, ValueError, KeyError, RuntimeError):
+        models = ()
+    apps = configured_apps(home, models)
+    states = {app: available(app) and installed(app, home, flatpaks, rpms, models)
+              for app in apps if app.kind != 'lutris-installer'}
+    return flatpaks, models, states
+
+
+_progress_reporter = ContextVar('infinity_install_progress', default=None)
+
+
+@contextmanager
+def progress_reporting(callback):
+    token = _progress_reporter.set(callback)
+    try:
+        yield
+    finally:
+        _progress_reporter.reset(token)
 
 
 def _run(command):
+    reporter = _progress_reporter.get()
+    if reporter is not None:
+        output = ''
+        with subprocess.Popen(command, text=True, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, bufsize=1) as process:
+            for line in process.stdout:
+                clean = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", '', line)
+                clean = ''.join(c for c in clean if c.isprintable() or c in '\n\t').strip()
+                if clean:
+                    output = (output + '\n' + clean)[-2000:]
+                    reporter(clean[-200:])
+            code = process.wait()
+        if code:
+            raise RuntimeError(output or f'Command failed with exit code {code}.')
+        return
     result = subprocess.run(command, text=True, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, check=False)
     if result.returncode:
@@ -350,7 +401,7 @@ def _driver_module_installed(driver, version=None):
         return False
     module = DRIVERS[driver][3]
     result = subprocess.run(["dkms", "status", module], stdout=subprocess.PIPE,
-                            stderr=subprocess.DEVNULL, text=True, check=False)
+                            stderr=subprocess.DEVNULL, text=True, check=False, timeout=15)
     if result.returncode:
         return False
     return any(line.startswith(f"{module}/{version}," if version else f"{module}/") and
@@ -475,10 +526,10 @@ def _install_driver_as_root(driver):
         _run(["systemctl", "enable", "--now", "bluetooth.service"])
 
 
-def latest_rpm_asset(app, arch):
+def latest_rpm_asset(app, arch, timeout=30):
     request = urllib.request.Request(f"https://api.github.com/repos/{app.source}/releases/latest",
                                      headers={"User-Agent": "InfinitySetup"})
-    with urllib.request.urlopen(request, timeout=30) as response:
+    with urllib.request.urlopen(request, timeout=timeout) as response:
         release = json.load(response)
     release_arch = {"aarch64": "arm64", "x86_64": "amd64"}.get(arch, arch)
     suffixes = (f"-linux-{arch}.rpm", f".{arch}.rpm", f"-linux-{release_arch}.rpm", f"-{arch}.rpm")
@@ -516,10 +567,10 @@ def _latest_rpm(app, arch, directory):
     return destination
 
 
-def latest_appimage_asset(app, arch):
+def latest_appimage_asset(app, arch, timeout=30):
     request = urllib.request.Request(f"https://api.github.com/repos/{app.source}/releases/latest",
                                      headers={"User-Agent": "InfinitySetup"})
-    with urllib.request.urlopen(request, timeout=30) as response:
+    with urllib.request.urlopen(request, timeout=timeout) as response:
         release = json.load(response)
     assets = [asset for asset in release.get("assets", ())
               if asset["name"].endswith(tuple(f"-{name}.AppImage" for name in

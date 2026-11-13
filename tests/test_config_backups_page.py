@@ -46,7 +46,8 @@ class BackupsPageTests(unittest.TestCase):
             self.page.finish({'ready': True, 'snapshots': []}, None, False)
             self.assertEqual(self.page.rows.get_first_child().get_text(), 'Nie ma jeszcze migawek.')
             self.page.finish({'ready': True, 'snapshots': [dict(number='2', date='2026-11-08', description='Before update', complete=True)]}, None, False)
-            row = self.page.rows.get_first_child()
+            self.assertIn("Ostatnia pełna kopia", self.page.rows.get_first_child().get_text())
+            row = self.page.rows.get_first_child().get_next_sibling()
             self.assertIn('/home', row.get_last_child().get_prev_sibling().get_text())
             with patch.object(self.page, 'confirm_delete') as confirm:
                 row.get_last_child().emit('clicked')
