@@ -143,7 +143,7 @@ export default class InfinityUpdater extends Extension {
         if (event.type() !== Clutter.EventType.BUTTON_PRESS &&
             event.type() !== Clutter.EventType.TOUCH_BEGIN)
             return Clutter.EVENT_PROPAGATE;
-        const source = event.get_source();
+        const source = global.stage.get_event_actor(event);
         if (source && this._indicator?.contains(source))
             return Clutter.EVENT_PROPAGATE;
         const [x, y] = event.get_coords();
@@ -204,28 +204,47 @@ export default class InfinityUpdater extends Extension {
         }
     }
 
+    _cancelOpening(window) {
+        const opening = this._openingWindows?.get(window);
+        if (!opening) return;
+        this._openingWindows.delete(window);
+        global.compositor.get_laters().remove(opening.id);
+    }
+
     _showDrawer(window) {
         this._cancelClose(window);
-        this._placeDrawer(window);
+        this._cancelOpening(window);
         const actor = window.get_compositor_private();
-        if (!actor)
-            return;
+        if (!actor) return;
         const reversing = this._closingWindows?.delete(window);
+        Main.wm.skipNextEffect(actor);
         actor.remove_all_transitions();
-        // Cancelling GNOME's restore effect leaves its intermediate actor position.
-        const rect = window.get_buffer_rect();
-        actor.x = rect.x;
-        actor.y = rect.y;
-        actor.scale_x = actor.scale_y = 1;
-        actor.opacity = 255;
-        if (!reversing)
-            actor.translation_x = window.get_frame_rect().width;
-        actor.ease({translation_x: 0, duration: St.Settings.get().enable_animations ? 280 : 0,
-            mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+        if (!reversing) actor.opacity = 0;
+        this._placeDrawer(window);
+        this._openingWindows ??= new Map();
+        const opening = {};
+        this._openingWindows.set(window, opening);
+        // Let placement and GNOME's map/restore handlers finish before our slide.
+        opening.id = global.compositor.get_laters().add(Meta.LaterType.BEFORE_REDRAW, () => {
+            if (this._openingWindows?.get(window) !== opening) return false;
+            this._openingWindows.delete(window);
+            if (window.get_compositor_private() !== actor) return false;
+            actor.remove_all_transitions();
+            const rect = window.get_buffer_rect();
+            actor.x = rect.x;
+            actor.y = rect.y;
+            actor.scale_x = actor.scale_y = 1;
+            if (!reversing) actor.translation_x = window.get_frame_rect().width + 16;
+            actor.opacity = 255;
+            actor.ease({translation_x: 0, duration: St.Settings.get().enable_animations ? 420 : 0,
+                mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+            return false;
+        });
         window.activate(global.get_current_time());
     }
 
     _hideDrawer(window) {
+        this._cancelOpening(window);
         if (window.minimized || this._closingWindows?.has(window))
             return;
         const actor = window.get_compositor_private();
@@ -235,7 +254,7 @@ export default class InfinityUpdater extends Extension {
         const closing = {};
         this._closingWindows.set(window, closing);
         actor.remove_all_transitions();
-        actor.ease({translation_x: window.get_frame_rect().width, duration: St.Settings.get().enable_animations ? 220 : 0,
+        actor.ease({translation_x: window.get_frame_rect().width + 16, duration: St.Settings.get().enable_animations ? 280 : 0,
             mode: Clutter.AnimationMode.EASE_IN_CUBIC,
             onComplete: () => {
                 if (this._closingWindows?.get(window) !== closing)
@@ -316,6 +335,11 @@ export default class InfinityUpdater extends Extension {
     }
 
     disable() {
+        for (const window of this._openingWindows?.keys() ?? []) {
+            this._cancelOpening(window);
+            const actor = window.get_compositor_private();
+            if (actor) actor.opacity = 255;
+        }
         this._notificationOverrides?.clear();
         this._notificationOverrides = null;
         for (const window of this._closeTimers?.keys() ?? [])

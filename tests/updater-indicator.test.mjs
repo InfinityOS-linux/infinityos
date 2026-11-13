@@ -54,7 +54,8 @@ for (const [name, status, checkedAt, remaining] of [
     });
 }
 
-function drawer(area) {
+function drawer(area, deferred = false) {
+    const redraws = new Map();
     const calls = [];
     const timers = new Map();
     const signals = new Map();
@@ -74,25 +75,28 @@ function drawer(area) {
         disconnect(id) { signals.delete(id); },
     };
     const extension = vm.runInNewContext(`${source}\nnew InfinityUpdater()`, {
-        Extension: class {}, Meta: {MaximizeFlags: {BOTH: 3}},
+        Extension: class {}, Meta: {MaximizeFlags: {BOTH: 3}, LaterType: {BEFORE_REDRAW: 1}},
         GLib: {PRIORITY_DEFAULT: 0, SOURCE_REMOVE: false,
             timeout_add(_priority, delay, callback) { const id = nextId++; timers.set(id, {delay, callback}); return id; },
             Source: {remove: id => timers.delete(id)}},
         St: {Settings: {get: () => ({enable_animations: true})}},
         Clutter: {AnimationMode: {EASE_OUT_CUBIC: 1, EASE_IN_CUBIC: 2}},
-        global: {get_current_time: () => 1},
+        global: {get_current_time: () => 1, compositor: {get_laters: () => ({
+            add(_type, callback) { const id = nextId++; if (deferred) redraws.set(id, callback); else callback(); return id; },
+            remove(id) { redraws.delete(id); },
+        })}},
         Main: {layoutManager: {getWorkAreaForMonitor: () => area}, wm: {skipNextEffect() {}}},
     });
-    return {extension, window, actor, calls, timers, signals};
+    return {extension, window, actor, calls, timers, signals, redraws};
 }
 
 test('drawer opens from the right within the selected monitor work area', () => {
     const {extension, window, actor, calls} = drawer({x: -1280, y: 32, width: 1280, height: 688});
     extension._showDrawer(window);
     assert.deepEqual(calls[0], [false, -460, 32, 460, 688]);
-    assert.equal(actor.translation_x, 460);
+    assert.equal(actor.translation_x, 476);
     assert.equal(calls[1].translation_x, 0);
-    assert.equal(calls[1].duration, 280);
+    assert.equal(calls[1].duration, 420);
 });
 
 test('drawer fits narrow screens and minimizes only after sliding out', () => {
@@ -100,7 +104,7 @@ test('drawer fits narrow screens and minimizes only after sliding out', () => {
     extension._placeDrawer(window);
     assert.deepEqual(calls[0], [false, 0, 30, 360, 610]);
     extension._hideDrawer(window);
-    assert.equal(calls[1].translation_x, 360);
+    assert.equal(calls[1].translation_x, 376);
     assert.equal(calls.includes('minimized'), false);
     calls[1].onComplete();
     assert.equal(calls[2], 'minimized');
@@ -121,7 +125,7 @@ for (const [label, x, y, sourceActor, minimized, hide] of [
         const extension = vm.runInNewContext(`${source}\nnew InfinityUpdater()`, {
             Extension: class {},
             Clutter: {EventType: {BUTTON_PRESS: 1, TOUCH_BEGIN: 2}, EVENT_PROPAGATE: 0},
-            global: {get_window_actors: () => [{meta_window: window}]},
+            global: {stage: {get_event_actor: () => sourceActor}, get_window_actors: () => [{meta_window: window}]},
         });
         extension._isUpdater = w => w === window;
         extension._indicator = {contains: actor => actor === 'indicator'};
@@ -266,3 +270,28 @@ for (const [appId, id, action, target, expected] of [
         });
     }
 }
+
+
+test('first map stays invisible until placement and restore handlers finish', () => {
+    const {extension, window, actor, calls, redraws} = drawer({x: 0, y: 32, width: 1280, height: 688}, true);
+    extension._showDrawer(window);
+    assert.equal(actor.opacity, 0);
+    assert.equal(calls.length, 1);
+    const callback = [...redraws.values()][0];
+    callback();
+    assert.equal(actor.opacity, 255);
+    assert.equal(actor.translation_x, 476);
+    assert.equal(calls[1].translation_x, 0);
+    assert.equal(extension._openingWindows.size, 0);
+});
+
+test('closing before the first redraw cancels the delayed opening', () => {
+    const {extension, window, calls, redraws} = drawer({x: 0, y: 32, width: 1280, height: 688}, true);
+    extension._showDrawer(window);
+    const obsolete = [...redraws.values()][0];
+    extension._hideDrawer(window);
+    assert.equal(redraws.size, 0);
+    const count = calls.length;
+    obsolete();
+    assert.equal(calls.length, count);
+});
