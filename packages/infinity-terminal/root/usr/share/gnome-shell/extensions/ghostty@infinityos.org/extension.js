@@ -11,6 +11,7 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as Workspace from 'resource:///org/gnome/shell/ui/workspace.js';
+import {HardwareMonitor} from './hardware-monitor.js';
 import {clampTerminalHeight, isFullHeight} from './resize.mjs';
 
 const APP_ID = 'com.infinityos.GhosTTY';
@@ -36,6 +37,9 @@ export default class InfinityTerminal extends Extension {
         this._resizeHandle = new St.Widget({reactive: true, visible: false,
             accessible_name: 'Resize InfinityTerminal', can_focus: false});
         Main.layoutManager.addChrome(this._resizeHandle);
+        this._hardware = new HardwareMonitor(this, () => {
+            if (this._window) this._place(this._window);
+        });
         this._fullHeight = false;
         this._indicator = new PanelMenu.Button(0.0, 'Show or hide InfinityTerminal', true);
         this._indicator.accessible_role = Atk.Role.PUSH_BUTTON;
@@ -102,7 +106,7 @@ export default class InfinityTerminal extends Extension {
         this._outsideClickId = global.stage.connect('captured-event', (_stage, event) => {
             const source = event.get_source();
             if (this._settings.get_boolean('pinned') || event.type() !== Clutter.EventType.BUTTON_PRESS ||
-                (source && this._indicator.contains(source)))
+                (source && this._indicator.contains(source)) || this._hardware.contains(source))
                 return Clutter.EVENT_PROPAGATE;
 
             const window = this._findWindow();
@@ -119,7 +123,7 @@ export default class InfinityTerminal extends Extension {
         });
         this._focusId = global.display.connect('notify::focus-window', () => {
             const window = this._findWindow();
-            if (!this._firstFrame && !this._settings.get_boolean('pinned') && window && !window.minimized &&
+            if (!this._firstFrame && !this._hardware.menuOpen && !this._settings.get_boolean('pinned') && window && !window.minimized &&
                 global.display.focus_window !== window)
                 this._hide(window);
         });
@@ -210,6 +214,8 @@ export default class InfinityTerminal extends Extension {
             GLib.Source.remove(this._sourceId);
         if (this._placementId)
             GLib.Source.remove(this._placementId);
+        this._hardware.destroy();
+        this._hardware = null;
         this._indicator.destroy();
         this._indicator = null;
         this._icon = null;
@@ -238,6 +244,7 @@ export default class InfinityTerminal extends Extension {
         const visible = window && !window.minimized && !this._firstFrame &&
             !Main.overview.visible && window.get_compositor_private()?.opacity > 0;
         this._resizeHandle.visible = !!visible;
+        this._hardware?.sync(window?.get_frame_rect(), visible, window?.get_compositor_private());
         if (visible) {
             const rect = window.get_frame_rect();
             this._resizeHandle.set_position(rect.x, rect.y + rect.height - RESIZE_EDGE);
@@ -261,7 +268,7 @@ export default class InfinityTerminal extends Extension {
             const monitor = this._monitor();
             if (monitor)
                 this._settings.set_double('height-ratio',
-                    (this._fullHeight ? monitor.height - this._panelHeight()
+                    (this._fullHeight ? monitor.height - this._topInset()
                         : resize.window.get_frame_rect().height) / monitor.height);
         }
     }
@@ -346,11 +353,11 @@ export default class InfinityTerminal extends Extension {
         const monitor = this._monitor();
         if (!monitor || !this._resize)
             return;
-        const top = monitor.y + this._panelHeight();
-        const height = clampTerminalHeight(monitor.height, this._panelHeight(),
+        const top = monitor.y + this._topInset();
+        const height = clampTerminalHeight(monitor.height, this._topInset(),
             pointerY + this._resize.offset - top);
-        const full = isFullHeight(monitor.height, this._panelHeight(), height);
-        if (full) {
+        const full = isFullHeight(monitor.height, this._topInset(), height);
+        if (full && !this._hardware?.height) {
             if (!this._fullHeight)
                 this._resize.window.maximize(Meta.MaximizeFlags.BOTH);
         } else {
@@ -414,6 +421,7 @@ export default class InfinityTerminal extends Extension {
     _hideForOverview() {
         this._finishResize();
         if (this._resizeHandle) this._resizeHandle.visible = false;
+        this._hardware?.hide();
         this._pendingShow = false;
         const window = this._findWindow();
         if (!window || window.minimized)
@@ -485,6 +493,10 @@ export default class InfinityTerminal extends Extension {
         if (this._targetMonitor && monitors.includes(this._targetMonitor))
             return this._targetMonitor;
         return Main.layoutManager.primaryMonitor;
+    }
+
+    _topInset() {
+        return this._panelHeight() + (this._hardware?.height ?? 0);
     }
 
     _panelHeight() {
@@ -607,11 +619,11 @@ export default class InfinityTerminal extends Extension {
             if (!monitor)
                 return GLib.SOURCE_REMOVE;
             const rect = window.get_frame_rect();
-            const height = clampTerminalHeight(monitor.height, this._panelHeight(),
+            const height = clampTerminalHeight(monitor.height, this._topInset(),
                 monitor.height * this._settings.get_double('height-ratio'));
-            const full = isFullHeight(monitor.height, this._panelHeight(), height);
-            if ((!full || window.get_maximized() !== Meta.MaximizeFlags.BOTH) &&
-                (rect.x !== monitor.x || rect.y !== monitor.y + this._panelHeight() ||
+            const full = isFullHeight(monitor.height, this._topInset(), height);
+            if ((!full || this._hardware?.height || window.get_maximized() !== Meta.MaximizeFlags.BOTH) &&
+                (rect.x !== monitor.x || rect.y !== monitor.y + this._topInset() ||
                  rect.width !== monitor.width || rect.height !== height))
                 this._place(window);
             return GLib.SOURCE_REMOVE;
@@ -622,14 +634,14 @@ export default class InfinityTerminal extends Extension {
         const monitor = this._monitor();
         if (!monitor)
             return;
-        const y = monitor.y + this._panelHeight();
-        const height = clampTerminalHeight(monitor.height, this._panelHeight(),
+        const y = monitor.y + this._topInset();
+        const height = clampTerminalHeight(monitor.height, this._topInset(),
             monitor.height * this._settings.get_double('height-ratio'));
         window.unmaximize(Meta.MaximizeFlags.BOTH);
         window.move_resize_frame(true, monitor.x, y, monitor.width, height);
         window.move_frame(true, monitor.x, y);
-        this._fullHeight = isFullHeight(monitor.height, this._panelHeight(), height);
-        if (this._fullHeight)
+        this._fullHeight = isFullHeight(monitor.height, this._topInset(), height);
+        if (this._fullHeight && !this._hardware?.height)
             window.maximize(Meta.MaximizeFlags.BOTH);
         this._syncResizeHandle();
     }

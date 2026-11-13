@@ -8,6 +8,7 @@ License:        MIT AND GPL-3.0-or-later
 URL:            https://github.com/InfinityOS-linux/infinityos
 Source0:        infinity-terminal-%{version}.tar.gz
 ExclusiveArch:  aarch64 x86_64
+Requires:       python3-core
 Requires:       gnome-shell >= 51
 Requires:       gnome-shell < 52
 

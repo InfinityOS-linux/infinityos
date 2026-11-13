@@ -112,3 +112,17 @@ test('current monitor placement omits primary panel and falls back after unplug'
     assert.equal(f.controller._monitor(), f.layout.primaryMonitor);
     assert.equal(f.controller._panelHeight(), 40);
 });
+
+test('hardware strip reserves space during placement and full-height resize', () => {
+    const f = fixture();
+    f.controller._hardware = {height: 112, sync() {}};
+    f.controller._settings.get_double = () => 0.5;
+    f.controller._place(f.controller._findWindow());
+    assert.equal(f.rect.y, 152);
+    assert.equal(f.rect.height, 500);
+    f.event(2, 648, 1000); f.event(3, 648, 1050); f.event(2, 648, 1150);
+    assert.equal(f.rect.y, 152);
+    assert.equal(f.rect.height, 848);
+    assert.equal(f.rect.y + f.rect.height, 1000);
+    assert.equal(f.ratio, 0.848);
+});

@@ -78,6 +78,19 @@ export default class TerminalPreferences extends ExtensionPreferences {
         behavior.add(monitor);
         behavior.add(new Adw.ActionRow({title: tr('Show or hide terminal', 'Pokaż lub ukryj terminal'),
             subtitle: settings.get_strv('infinity-terminal-toggle').join(', ')}));
+        const hardware = new Adw.PreferencesGroup({title: tr('Hardware monitors', 'Wskaźniki sprzętowe'),
+            description: tr('Right-click the strip to choose sensors, GPUs, disks and their order. Missing readings show N/A.',
+                'Kliknij pasek prawym przyciskiem, aby wybrać czujniki, GPU, dyski i kolejność. Brak odczytu: N/A.')});
+        page.add(hardware);
+        const enabled = new Adw.SwitchRow({title: tr('Show hardware strip', 'Pokaż pasek parametrów')});
+        settings.bind('monitor-enabled', enabled, 'active', Gio.SettingsBindFlags.DEFAULT);
+        hardware.add(enabled);
+        const tdp = new Adw.SpinRow({title: tr('CPU TDP (W), manual', 'TDP CPU (W), ręcznie'),
+            subtitle: tr('From the CPU specification. 0 = unknown. Not live power consumption or a power limit.',
+                'Ze specyfikacji CPU. 0 = nieznane. To nie jest bieżący pobór ani limit mocy.'),
+            adjustment: new Gtk.Adjustment({lower: 0, upper: 2000, step_increment: 1, page_increment: 5})});
+        settings.bind('monitor-cpu-tdp', tdp, 'value', Gio.SettingsBindFlags.DEFAULT);
+        hardware.add(tdp);
         const actions = new Adw.PreferencesGroup(); page.add(actions);
         const apply = new Gtk.Button({label: tr('Apply', 'Zastosuj'), css_classes: ['suggested-action'], halign: Gtk.Align.END});
         actions.add(apply);

@@ -1,0 +1,5 @@
+.infinity-monitor { background-color: #14111d; color: #f4f0fa; padding: 6px 10px; }
+.infinity-monitor-cell { min-width: 140px; padding: 4px 14px; border-right: 1px solid rgba(200,180,230,0.15); border-radius: 0; }
+.infinity-monitor-cell:hover, .infinity-monitor-cell:focus { background-color: rgba(180,140,240,0.10); }
+.infinity-monitor-value { font-size: 19px; font-weight: bold; }
+.infinity-monitor-label { color: #c5bfd0; font-size: 11px; padding-top: 3px; }
