@@ -6,7 +6,7 @@ import vm from 'node:vm';
 const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/extension.js', import.meta.url), 'utf8')
     .replace(/^import .*;\n/gm, '').replace('export default class', 'class');
 
-function fixture(enableAnimations = true) {
+function fixture(enableAnimations = true, inset = 0) {
     let nextId = 1;
     const callbacks = new Map();
     const signals = new Map();
@@ -42,13 +42,13 @@ function fixture(enableAnimations = true) {
         GLib: {idle_add: schedule, timeout_add: (p, _delay, callback) => schedule(p, callback),
             Source: {remove(id) { callbacks.delete(id); }}, SOURCE_REMOVE: false},
         Main: {layoutManager: {primaryMonitor: {}}, wm: {skipNextEffect() { actor.skipEffect = true; }}},
-        Clutter: {AnimationMode: {EASE_OUT_CUBIC: 1, EASE_IN_CUBIC: 2}},
+        Clutter: {AnimationMode: {EASE_OUT_CUBIC: 1, EASE_IN_CUBIC: 2, EASE_OUT_ELASTIC: 3}},
         global: {get_current_time: () => 0, stage: {set_key_focus(value) {focus.owner = value;}}},
     });
     vm.runInContext(source + '\nglobalThis.Controller = InfinityTerminal;', context);
     const controller = new context.Controller();
     Object.assign(controller, {_geometryIds: [], _pendingShow: true, _sourceId: 0,
-        _firstFrame: null, _icon: {}, _place() {}, _setResizeCursor() {}});
+        _firstFrame: null, _icon: {}, _topInset: () => inset, _place() {}, _setResizeCursor() {}});
     return {controller, actor, window, animations, focus,
         flush() {
             while (callbacks.size) {
@@ -73,8 +73,8 @@ test('cold launch waits for rendered contents and suppresses the normal map effe
     f.firstFrame();
     f.flush();
     assert.equal(f.animations.length, 1);
-    assert.equal(f.animations[0].start, -600);
-    assert.equal(f.animations[0].translation_y, 0);
+    assert.equal(f.animations[0].start, -616);
+    assert.equal(f.animations[0].translation_y, 24);
     assert.equal(f.actor.opacity, 255);
 });
 
@@ -93,7 +93,7 @@ test('already rendered windows do not wait for another first-frame signal', () =
     f.controller._track(f.window, true);
     f.flush();
     assert.equal(f.animations.length, 1);
-    assert.equal(f.animations[0].start, -600);
+    assert.equal(f.animations[0].start, -616);
 });
 
 test('background startup stays invisible until explicitly requested', () => {
@@ -109,7 +109,7 @@ test('background startup stays invisible until explicitly requested', () => {
     f.controller._toggle();
     f.flush();
     assert.equal(f.animations.length, 1);
-    assert.equal(f.animations[0].start, -600);
+    assert.equal(f.animations[0].start, -616);
 });
 
 test('show request during background startup waits for the first frame', () => {
@@ -164,7 +164,7 @@ test('hiding before deferred reveal does not take keyboard focus back', () => {
     assert.equal(f.focus.activations, activations);
     assert.equal(f.focus.owner, 'other app');
     assert.equal(f.animations.length, 1);
-    assert.equal(f.animations[0].translation_y, -600);
+    assert.equal(f.animations[0].translation_y, -616);
 });
 
 test('opening overview before deferred reveal keeps focus out of the terminal', () => {
@@ -198,3 +198,18 @@ test('reduced motion disables slide animation', () => {
     assert.ok(f.animations.length > 0);
     assert.ok(f.animations.every(animation => animation.duration === 0));
 });
+
+for (const inset of [72, 144, 176]) {
+    test(`the entire terminal begins above the screen with ${inset}px inset`, () => {
+        const f = fixture(true, inset);
+        f.controller._track(f.window, true, true);
+        f.firstFrame(); f.flush();
+        assert.equal(f.animations[0].start + 600 + inset, -16);
+        assert.equal(f.controller._sliding, true);
+        f.animations[0].onComplete();
+        assert.equal(f.animations[1].translation_y, 0);
+        assert.equal(f.animations[1].mode, 3);
+        f.animations[1].onComplete();
+        assert.equal(f.controller._sliding, false);
+    });
+}

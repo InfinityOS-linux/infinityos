@@ -243,7 +243,7 @@ export default class InfinityTerminal extends Extension {
         const window = this._findWindow();
         const visible = window && !window.minimized && !this._firstFrame &&
             !Main.overview.visible && window.get_compositor_private()?.opacity > 0;
-        this._resizeHandle.visible = !!visible;
+        this._resizeHandle.visible = !!visible && !this._sliding;
         this._hardware?.sync(window?.get_frame_rect(), visible, window?.get_compositor_private());
         if (visible) {
             const rect = window.get_frame_rect();
@@ -419,6 +419,7 @@ export default class InfinityTerminal extends Extension {
     }
 
     _hideForOverview() {
+        this._sliding = false;
         this._finishResize();
         if (this._resizeHandle) this._resizeHandle.visible = false;
         this._hardware?.hide();
@@ -662,18 +663,27 @@ export default class InfinityTerminal extends Extension {
         }
     }
 
+    _offscreenOffset(window) {
+        // Include the hardware strip, panel inset and shadow, not just client height.
+        return -window.get_frame_rect().height - this._topInset() - 16;
+    }
+
     _reveal(window) {
         this._selectMonitor();
+        this._sliding = true;
         const actor = window.get_compositor_private();
-        if (actor)
-            actor.opacity = 255;
         if (actor) {
             actor.remove_all_transitions();
-            actor.translation_y = -window.get_frame_rect().height;
+            actor.opacity = 0;
             Main.wm.skipNextEffect(actor);
         }
         window.unminimize();
         this._place(window);
+        if (actor) {
+            actor.translation_y = this._offscreenOffset(window);
+            actor.opacity = 255;
+        }
+        this._syncResizeHandle();
         window.activate(global.get_current_time());
         this._sourceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 25, () => {
             this._sourceId = 0;
@@ -684,9 +694,19 @@ export default class InfinityTerminal extends Extension {
             window.activate(global.get_current_time());
             const actor = window.get_compositor_private();
             if (actor) {
-                actor.ease({translation_y: 0, duration: St.Settings.get().enable_animations ? 250 : 0,
+                const animate = St.Settings.get().enable_animations;
+                const settled = () => {
+                    this._sliding = false;
+                    this._syncResizeHandle();
+                };
+                actor.ease({translation_y: animate ? 24 : 0, duration: animate ? 420 : 0,
                     mode: Clutter.AnimationMode.EASE_IN_CUBIC,
-                    onComplete: () => this._syncResizeHandle()});
+                    onComplete: () => {
+                        if (window !== this._window || window.minimized) return;
+                        if (!animate) { settled(); return; }
+                        actor.ease({translation_y: 0, duration: 460,
+                            mode: Clutter.AnimationMode.EASE_OUT_ELASTIC, onComplete: settled});
+                    }});
             }
             return GLib.SOURCE_REMOVE;
         });
@@ -710,13 +730,14 @@ export default class InfinityTerminal extends Extension {
         }
         actor.remove_all_transitions();
         actor.ease({
-            translation_y: -window.get_frame_rect().height,
+            translation_y: this._offscreenOffset(window),
             duration: St.Settings.get().enable_animations ? 250 : 0,
             mode: Clutter.AnimationMode.EASE_IN_CUBIC,
             onComplete: () => {
                 Main.wm.skipNextEffect(actor);
                 window.minimize();
                 actor.translation_y = 0;
+                this._sliding = false;
             },
         });
     }
