@@ -157,6 +157,50 @@ def main():
             self.network_monitor = Gio.NetworkMonitor.get_default()
             self.state_monitor = None
 
+        def do_startup(self):
+            Gtk.Application.do_startup(self)
+            action = Gio.SimpleAction.new('restart-downloaded', None)
+            action.connect('activate', self.on_restart_downloaded)
+            self.add_action(action)
+
+        def notify_downloaded(self):
+            if not offline_status().get('pending'):
+                return
+            notification = Gio.Notification.new(tr('Updates downloaded'))
+            notification.set_body(tr('Restart to install the downloaded updates.'))
+            notification.set_icon(Gio.ThemedIcon.new('system-reboot-symbolic'))
+            notification.add_button(tr('Restart to install'), 'app.restart-downloaded')
+            self.send_notification('updates-downloaded', notification)
+
+        def on_restart_downloaded(self, _action, _parameter):
+            if self.busy or getattr(self, '_notification_restarting', False):
+                return
+            if not offline_status().get('pending'):
+                self.withdraw_notification('updates-downloaded')
+                return
+            self._notification_restarting = True
+            self.hold()
+
+            def finished(process, result):
+                try:
+                    process.wait_check_finish(result)
+                    self.withdraw_notification('updates-downloaded')
+                except GLib.Error:
+                    self.send_notification('restart-failed',
+                        Gio.Notification.new(tr('Could not restart the system.')))
+                finally:
+                    self._notification_restarting = False
+                    self.release()
+
+            try:
+                process = Gio.Subprocess.new(['/usr/bin/systemctl', 'reboot'], Gio.SubprocessFlags.NONE)
+                process.wait_check_async(None, finished)
+            except GLib.Error:
+                self._notification_restarting = False
+                self.release()
+                self.send_notification('restart-failed',
+                    Gio.Notification.new(tr('Could not restart the system.')))
+
         def do_activate(self):
             if getattr(self, 'window', None):
                 self.add_window(self.window)
@@ -505,7 +549,7 @@ def main():
                 self.status.set_text(tr('Checking: {source}').format(source=tr(source)))
             return GLib.SOURCE_REMOVE
 
-        def finish_refresh(self, state, notice=None, recovery=None):
+        def finish_refresh(self, state, notice=None, recovery=None, downloaded=False):
             if self.checking and network_is_offline(self.network_monitor, Gio):
                 return self.finish_offline()
             # A background check may have published a newer result while we were busy.
@@ -521,6 +565,8 @@ def main():
             if recovery:
                 self.recovery.set_text(recovery)
                 self.recovery.set_visible(True)
+            if downloaded:
+                self.notify_downloaded()
             self.release()
             return GLib.SOURCE_REMOVE
 
@@ -631,7 +677,7 @@ def main():
                               tr('Updates downloaded, restart to update.')
                               if prepared else tr('Firmware updated. Restart may be required.')
                               if firmware_updated else tr('Updates installed.'))
-                    GLib.idle_add(self.finish_refresh, state, notice)
+                    GLib.idle_add(self.finish_refresh, state, notice, None, prepared and not errors)
 
 
             threading.Thread(target=work, daemon=True).start()
@@ -673,7 +719,7 @@ def main():
                 else:
                     GLib.idle_add(self.finish_refresh, state,
                                   tr('Infinity OS {version} prepared. Restart to back up and install.').format(
-                                      version=version))
+                                      version=version), None, True)
 
             threading.Thread(target=work, daemon=True).start()
 

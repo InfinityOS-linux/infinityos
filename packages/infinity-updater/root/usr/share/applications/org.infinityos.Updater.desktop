@@ -8,3 +8,4 @@ Exec=infinity-updater
 Icon=/usr/share/icons/hicolor/512x512/apps/org.infinityos.Updater.png
 Categories=System;Settings;
 StartupNotify=true
+DBusActivatable=true

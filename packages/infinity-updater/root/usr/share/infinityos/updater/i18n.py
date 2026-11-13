@@ -33,6 +33,9 @@ POLISH = {
     'System packages · Flatpaks · Device firmware':
         'Pakiety systemowe · Flatpaki · Oprogramowanie urządzeń',
     'Check again': 'Sprawdź ponownie',
+    'Updates downloaded': 'Aktualizacje pobrane',
+    'Restart to install': 'Restartuj, aby zainstalować',
+    'Restart to install the downloaded updates.': 'Uruchom ponownie komputer, aby zainstalować pobrane aktualizacje.',
     'Restart to update': 'Uruchom ponownie, aby zaktualizować',
     'Could not restart the system.': 'Nie udało się uruchomić systemu ponownie.',
     'Install updates': 'Zainstaluj aktualizacje',

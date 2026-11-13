@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.infinityos.Updater
+Exec=/usr/bin/infinity-updater --gapplication-service
