@@ -29,6 +29,15 @@ class SetupPageTests(unittest.TestCase):
         with patch.object(app, '_animate'), patch.object(app, '_refresh_ai'), \
              patch.object(launcher, 'tv_enabled', return_value=False):
             app._build_catalog()
+        self.assertEqual(list(app.tabs)[0], 'system')
+        self.assertEqual(list(app.tabs)[-1], 'ai')
+        self.assertEqual(app.stack.get_visible_child_name(), 'system')
+        self.assertTrue(app.tabs['system'].get_active())
+        with patch.object(launcher, 'selected_ai', return_value='refresh-test'), \
+             patch.object(app, '_page', wraps=app._page) as page:
+            app._apply_ai_refresh(())
+        page.assert_called_once_with('AI', 'Assistants and command-line tools')
+        self.assertEqual(app.stack.get_visible_child_name(), 'system')
         self.assertEqual(app.search.get_parent().get_halign(), Gtk.Align.END)
         self.assertGreater(app.search.get_parent().get_margin_bottom(), 0)
         self.assertFalse(app.search.get_hexpand())

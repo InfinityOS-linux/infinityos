@@ -22,7 +22,6 @@ from launcher_tv import enabled as tv_enabled, set_enabled as set_tv_enabled
 MARKER = Path.home() / ".config/infinityos/launcher-complete"
 ICON_DIR = Path("/usr/share/infinityos/launcher-icons")
 SECTIONS = (
-    ("AI", "utilities-terminal-symbolic", "Assistants and command-line tools"),
     ("System", "preferences-system-symbolic", "Everyday essentials"),
     ("Gaming", "applications-games-symbolic", "Games, launchers and friends"),
     ("TV Mode", "video-display-symbolic",
@@ -30,6 +29,7 @@ SECTIONS = (
     ("Creative", "applications-graphics-symbolic", "Tools for making things"),
     ("Office", "applications-office-symbolic", "Documents and productivity"),
     ("Programming", "applications-development-symbolic", "Build your workspace"),
+    ("AI", "utilities-terminal-symbolic", "Assistants and command-line tools"),
 )
 
 CSS = b"""
@@ -195,6 +195,11 @@ class InfinitySetup(Gtk.Application):
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         self.stack.set_transition_duration(100)
         self.loading_label = label(tr("Reading installed applications…"), "infinity-muted")
+        self.loading_label.set_vexpand(True)
+        self.loading_label.set_valign(Gtk.Align.CENTER)
+        self.loading_label.set_xalign(0.5)
+        self.loading_label.set_justify(Gtk.Justification.CENTER)
+        self.loading_label.set_wrap(True)
         backdrop.append(self.loading_label)
         self.retry_catalog = Gtk.Button(label=tr("Retry"))
         self.retry_catalog.set_visible(False)
@@ -350,7 +355,8 @@ class InfinitySetup(Gtk.Application):
             if item.kind == "local-model":
                 self.catalog_status[item] = item.source.removesuffix(":latest") in {m.removesuffix(":latest") for m in models}
         self.stack.remove(old)
-        self.stack.add_named(self._page("AI", SECTIONS[0][2]), "ai")
+        description = next(description for section, _icon, description in SECTIONS if section == "AI")
+        self.stack.add_named(self._page("AI", description), "ai")
         self.stack.set_visible_child_name(visible)
         self.ai_selection = selection
         self.status.set_text(tr("AI changed in InfinityConfig. Review your selection again."))
