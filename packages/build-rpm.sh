@@ -4,9 +4,9 @@ set -euo pipefail
 package=${1:?Usage: packages/build-rpm.sh infinity-config|infinity-setup|infinity-terminal|infinity-updater|infinityos-repos|infinityos-wallpapers|infinityos-ramdrive|infinityos-shell-extensions}
 case "$package" in
   infinity-config) version=1.0.0 ;;
-  infinity-setup) version=1.0.0 ;;
+  infinity-setup) version=1.0.1 ;;
   infinity-terminal) version=1.3.1 ;;
-  infinity-updater) version=1.1.0 ;;
+  infinity-updater) version=1.1.1 ;;
   infinityos-repos) version=1.0.0 ;;
   infinityos-wallpapers) version=1.1.0 ;;
   infinityos-ramdrive) version=1.1.0 ;;
@@ -193,6 +193,7 @@ elif [[ "$package" == infinity-setup ]]; then
   install -m 0644 "$repo/root/usr/share/licenses/infinity-setup/UsbXbox360Dxe-LICENSE" \
     "$work/source/$package-$version/usr/share/licenses/infinity-setup/UsbXbox360Dxe-LICENSE"
   install -m 0755 "$repo/root/usr/libexec/infinityos-tv-control" \
+    "$repo/root/usr/libexec/infinityos-install-session" \
     "$repo/root/usr/libexec/infinityos-tv-enter" \
     "$repo/root/usr/libexec/infinityos-tv-run" \
     "$repo/root/usr/libexec/infinityos-tv-steam-splash" \
@@ -222,6 +223,7 @@ elif [[ "$package" == infinity-setup ]]; then
   done
   install -m 0644 "$repo/root/usr/share/polkit-1/actions/org.infinityos.tv-modes.policy" \
     "$repo/root/usr/share/polkit-1/actions/org.infinityos.tv-enter.policy" \
+    "$repo/root/usr/share/polkit-1/actions/org.infinityos.install-session.policy" \
     "$work/source/$package-$version/usr/share/polkit-1/actions/"
 else
   if [[ -n ${INFINITY_GHOSTTY_INSTALL_DIR:-} ]]; then

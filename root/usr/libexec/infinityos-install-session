@@ -1,0 +1,100 @@
+#!/usr/bin/python3
+"""Run only Infinity OS installation commands during one authorized Apply action."""
+
+import json
+import os
+import pwd
+import re
+import stat
+import subprocess
+import sys
+from pathlib import Path
+
+
+def owned_temporary(path, prefix, suffix):
+    file = Path(path)
+    parent = file.parent
+    try:
+        return (file.is_absolute() and (file.name == suffix if suffix == 'install.sh' else file.name.endswith(suffix)) and
+                parent.parent == Path('/tmp') and parent.name.startswith(prefix) and
+                not parent.is_symlink() and parent.stat().st_uid == int(os.environ['PKEXEC_UID']) and
+                not file.is_symlink() and stat.S_ISREG(file.stat().st_mode) and
+                file.stat().st_uid == int(os.environ['PKEXEC_UID']))
+    except OSError:
+        return False
+
+
+def allowed(command):
+    if (not isinstance(command, list) or not command or len(command) > 32 or
+            any(not isinstance(arg, str) or not arg or len(arg) > 1024 or
+                any(ord(char) < 32 for char in arg) for arg in command)):
+        return False
+    program, *args = command
+    uid = os.environ.get('PKEXEC_UID', '')
+    if not uid.isdecimal():
+        return False
+    if program == 'dnf':
+        if args in (["config-manager", "addrepo", "--from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo"],
+                    ["config-manager", "addrepo", "--from-repofile=https://openrazer.github.io/hardware:razer.repo"]):
+            return True
+        for prefix in (("-y", "install"), ("--refresh", "-y", "install"),
+                       ("--enablerepo=docker-ce-stable", "-y", "install")):
+            if tuple(args[:len(prefix)]) == prefix and len(args) > len(prefix):
+                return all(re.fullmatch(r'[A-Za-z0-9_.+-]+', item) or
+                           item in ('https://discord.com/api/download?platform=linux&format=rpm',
+                                    f'https://persistent.oaistatic.com/codex-app-prod/linux/rpm/latest/chatgpt.{os.uname().machine}.rpm') or
+                           (item.startswith('/tmp/infinity-setup-') and
+                            owned_temporary(item, 'infinity-setup-', '.rpm'))
+                           for item in args[len(prefix):])
+    if program == 'rpm' and args[:2] == ['-e', '--'] and len(args) == 3:
+        return args[2] in {'discord', 'steam', 'pdfcraft', 'wordcraft', 'gridcraft', 'deckcraft'}
+    if program == 'flatpak':
+        return (len(args) == 5 and args[:4] == ['uninstall', '--system', '--noninteractive', '--assumeyes'] and
+                args[4] in ('com.valvesoftware.Steam', 'com.discordapp.Discord')) or args == [
+                    'update', '--system', '--noninteractive', '--assumeyes']
+    if program == '/usr/bin/python3':
+        return args[:2] == ['/usr/share/infinityos/launcher_backend.py', '--install-driver'] and args[2:] in (['xone'], ['xpadneo'])
+    if program == 'systemctl':
+        return args in (['enable', '--now', 'docker.service'], ['enable', '--now', 'ollama.service'])
+    if program == 'groupadd':
+        return args == ['-f', 'plugdev']
+    if program == 'gpasswd':
+        return args == ['-a', pwd.getpwuid(int(uid)).pw_name, 'plugdev']
+    if program == 'sh':
+        return len(args) == 1 and args[0].startswith('/tmp/infinity-ollama-') and owned_temporary(args[0], 'infinity-ollama-', 'install.sh')
+    if program == '/usr/libexec/infinityos-tv-control':
+        return (len(args) >= 2 and args[0] in ('activate', 'deactivate') and
+                args[1] in ('esde', 'steam') and
+                (args[2:] == [uid] if args[0] == 'activate' else
+                 all(re.fullmatch(r'[A-Za-z0-9_.+-]+', item) for item in args[2:])))
+    if program == '/usr/libexec/infinityos-upgrade-system':
+        return not args or (len(args) == 2 and args[0] == '--local-rpm' and
+                            args[1].startswith('/tmp/infinity-updater-rpm-') and
+                            owned_temporary(args[1], 'infinity-updater-rpm-', '.rpm'))
+    if program == '/usr/bin/flatpak':
+        return args == ['update', '--system', '--noninteractive', '--assumeyes']
+    if program == '/usr/bin/fwupdmgr':
+        return args == ['update', '--assume-yes', '--no-reboot-check']
+    return False
+
+
+def main():
+    if os.geteuid() != 0 or not os.environ.get('PKEXEC_UID', '').isdecimal():
+        raise SystemExit('Run this helper through pkexec.')
+    print(json.dumps({'ready': True}), flush=True)
+    for request in sys.stdin:
+        try:
+            command = json.loads(request)
+            if not allowed(command):
+                raise ValueError('Installation command is not allowed.')
+            with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                  text=True, encoding='utf-8', errors='replace', bufsize=1) as process:
+                for line in process.stdout:
+                    print(json.dumps({'output': line.rstrip('\n')[:4096]}), flush=True)
+                print(json.dumps({'returncode': process.wait()}), flush=True)
+        except (OSError, ValueError, KeyError) as error:
+            print(json.dumps({'error': str(error)}), flush=True)
+
+
+if __name__ == '__main__':
+    main()
