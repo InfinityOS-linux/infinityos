@@ -20,7 +20,6 @@ done
 cp -a "$repo/tests/shell-smoke" "$XDG_DATA_HOME/gnome-shell/extensions/infinity-smoke@test"
 for schemas in "$XDG_DATA_HOME"/gnome-shell/extensions/*/schemas; do glib-compile-schemas --strict "$schemas"; done
 cmp "$repo/root/usr/share/gnome-shell/extensions/nowplay@LalaloyXyz/ui.js" "$XDG_DATA_HOME/gnome-shell/extensions/nowplay@LalaloyXyz/ui.js"
-git -C "$repo" rev-parse HEAD
 sha256sum "$XDG_DATA_HOME/gnome-shell/extensions/nowplay@LalaloyXyz/ui.js"
 if grep -n 'const animateUp' "$XDG_DATA_HOME/gnome-shell/extensions/nowplay@LalaloyXyz/ui.js"; then
     echo 'Obsolete recursive equalizer implementation'; exit 1
