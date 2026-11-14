@@ -322,13 +322,10 @@ BOOT_POST_EOF
 		fi
 		if [[ "$(uname -m)" == "x86_64" ]]; then
 			# Detect the target PC while Anaconda still has access to its PCI devices.
-			# A failed network download is retried after installation at boot.
+			# Do not finish installation until the target NVIDIA module is bootable.
 			cat >> /usr/share/anaconda/interactive-defaults.ks <<'NVIDIA_POST_EOF'
-%post --nochroot --log=/mnt/sysroot/var/log/infinityos-nvidia-install.log
-if ! /usr/libexec/infinityos-install-nvidia /mnt/sysroot; then
-    mkdir -p /mnt/sysroot/etc/systemd/system/multi-user.target.wants
-    ln -sfn /usr/lib/systemd/system/infinityos-nvidia-retry.service /mnt/sysroot/etc/systemd/system/multi-user.target.wants/infinityos-nvidia-retry.service
-fi
+%post --nochroot --erroronfail --log=/mnt/sysroot/var/log/infinityos-nvidia-install.log
+/usr/libexec/infinityos-install-nvidia /mnt/sysroot
 %end
 NVIDIA_POST_EOF
 		fi

@@ -1,6 +1,7 @@
 import importlib.machinery
 import importlib.util
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -49,7 +50,8 @@ class NvidiaInstallerTests(unittest.TestCase):
             sysfs.mkdir()
             card(sysfs, "0000:01:00.0", "1B80", boot=True)
             with patch.object(installer, "installed", return_value=False), \
-                 patch.object(installer, "dnf", return_value=True) as dnf:
+                 patch.object(installer, "dnf", return_value=True) as dnf, \
+                 patch.object(installer, "prepare_boot", return_value=True):
                 self.assertTrue(installer.configure(root, sysfs, CATALOG))
             self.assertEqual(dnf.call_args.args[1:],
                              ("install", "--allowerasing", "akmod-nvidia-580xx",
@@ -68,6 +70,75 @@ class NvidiaInstallerTests(unittest.TestCase):
             self.assertEqual(dnf.call_args_list[1].args[1:],
                              ("remove", "akmod-nvidia", "xorg-x11-drv-nvidia"))
             self.assertFalse((root / installer.MARKER).exists())
+
+    def boot_fixture(self, root):
+        for name in ("usr/lib/modules/target-kernel/vmlinuz",
+                     "usr/src/kernels/target-kernel/Makefile",
+                     "boot/initramfs-target-kernel.img",
+                     "boot/efi/os/initramfs-target-kernel.img"):
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("old")
+
+    def test_prepares_target_kernel_and_refreshes_esp_after_dracut(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.boot_fixture(root)
+            def run(command, **kwargs):
+                if command[2] == "dracut":
+                    (root / "boot/initramfs-target-kernel.img").write_text("nvidia")
+            with patch.object(installer.subprocess, "run", side_effect=run) as commands:
+                self.assertTrue(installer.prepare_boot(root))
+            calls = [c.args[0][2:] for c in commands.call_args_list]
+            self.assertEqual(calls[0], ["akmods", "--force", "--kernels", "target-kernel"])
+            self.assertEqual(calls[1], ["depmod", "-a", "target-kernel"])
+            self.assertEqual(calls[2], ["modinfo", "-k", "target-kernel", "nvidia"])
+            self.assertEqual(calls[-1][0], "dracut")
+            self.assertIn("--omit-drivers", calls[-1])
+            self.assertEqual((root / "boot/efi/os/initramfs-target-kernel.img").read_text(), "nvidia")
+
+    def test_build_verification_or_dracut_failure_does_not_publish_esp(self):
+        for failed in ("akmods", "modinfo", "dracut"):
+            with self.subTest(failed=failed), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.boot_fixture(root)
+                def run(command, **kwargs):
+                    if command[2] == failed:
+                        raise subprocess.CalledProcessError(1, command)
+                with patch.object(installer.subprocess, "run", side_effect=run):
+                    self.assertFalse(installer.prepare_boot(root))
+                self.assertEqual((root / "boot/efi/os/initramfs-target-kernel.img").read_text(), "old")
+
+    def test_missing_kernel_or_headers_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.assertFalse(installer.prepare_boot(root))
+            self.boot_fixture(root)
+            (root / "usr/src/kernels/target-kernel/Makefile").unlink()
+            with patch.object(installer, "dnf", return_value=False) as dnf:
+                self.assertFalse(installer.prepare_boot(root))
+            self.assertEqual(dnf.call_args.args[1:], ("install", "kernel-devel-target-kernel"))
+
+    def test_old_ready_marker_cannot_skip_failed_boot_preparation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sysfs = root / "sys"
+            sysfs.mkdir()
+            card(sysfs, "0000:01:00.0", "1E84", boot=True)
+            marker = root / installer.MARKER
+            marker.parent.mkdir(parents=True)
+            marker.write_text("current\n")
+            with patch.object(installer, "installed", return_value=True), \
+                 patch.object(installer, "prepare_boot", return_value=False) as prepare:
+                self.assertFalse(installer.configure(root, sysfs, CATALOG))
+            prepare.assert_called_once_with(root)
+            self.assertFalse(marker.exists())
+
+    def test_installer_fails_instead_of_enabling_background_retry(self):
+        hook = (ROOT / "config.sh").read_text().split("<<'NVIDIA_POST_EOF'", 1)[1].split("NVIDIA_POST_EOF", 1)[0]
+        self.assertIn("--erroronfail", hook)
+        self.assertIn("/usr/libexec/infinityos-install-nvidia /mnt/sysroot", hook)
+        self.assertNotIn("infinityos-nvidia-retry.service", hook)
 
     def test_non_nvidia_machine_does_not_install_driver(self):
         with tempfile.TemporaryDirectory() as directory:
