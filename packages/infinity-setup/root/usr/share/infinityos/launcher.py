@@ -272,13 +272,11 @@ class InfinitySetup(Gtk.Application):
         searchbar = Gtk.Box(spacing=12)
         searchbar.set_margin_start(28)
         searchbar.set_margin_end(28)
-        self.search = Gtk.SearchEntry(placeholder_text=tr("Search all applications"), hexpand=True)
+        searchbar.set_halign(Gtk.Align.END)
+        searchbar.set_margin_bottom(14)
+        self.search = Gtk.SearchEntry(placeholder_text=tr("Search all applications"), width_request=340)
         self.search.connect("search-changed", self._filter_catalog)
-        self.filter = Gtk.DropDown.new_from_strings([tr(text) for text in
-            ("All applications", "Installed", "Available", "Pending changes")])
-        self.filter.connect("notify::selected", self._filter_catalog)
         searchbar.append(self.search)
-        searchbar.append(self.filter)
         backdrop.append(searchbar)
         backdrop.append(self.stack)
 
@@ -596,14 +594,9 @@ class InfinitySetup(Gtk.Application):
 
     def _filter_catalog(self, *_args):
         query = self.search.get_text().casefold().strip()
-        mode = self.filter.get_selected()
         matches = []
         for app, row in self.rows.items():
-            active = self.initial_active.get(app, False)
-            pending = app in self.switches and self.switches[app].get_active() != active
-            visible = (query in (app.name + " " + tr(app.description) + " " + app.category).casefold()
-                       and (mode == 0 or mode == 1 and self.catalog_status.get(app, False)
-                            or mode == 2 and available(app) or mode == 3 and pending))
+            visible = query in (app.name + " " + tr(app.description) + " " + app.category).casefold()
             row.set_visible(visible)
             if visible:
                 matches.append(app.category.lower())
@@ -651,7 +644,6 @@ class InfinitySetup(Gtk.Application):
 
     def _start_install(self, changes, tv_changes):
         self.search.set_sensitive(False)
-        self.filter.set_sensitive(False)
         self.stop_requested = False
         self.stop_button.set_visible(True)
         self.stop_button.set_sensitive(True)
@@ -764,7 +756,6 @@ class InfinitySetup(Gtk.Application):
         if hasattr(self, "stop_button"):
             self.stop_button.set_visible(False)
             self.search.set_sensitive(True)
-            self.filter.set_sensitive(True)
         if self.progress_source:
             GLib.source_remove(self.progress_source)
             self.progress_source = 0

@@ -181,16 +181,6 @@ class InfinityConfig(Gtk.Application):
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         card.append(self.stack)
 
-        search = Gtk.SearchEntry(placeholder_text=tr("Search settings"))
-        search.set_margin_start(28)
-        search.set_margin_end(28)
-        self.search_results = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        self.search_results.set_margin_start(28)
-        self.search_results.set_margin_end(28)
-        card.insert_child_after(search, nav)
-        card.insert_child_after(self.search_results, search)
-        search.connect("search-changed", self._search_settings)
-        self.search_tabs = {}
         group = None
         for name, symbol, description in (
             ("Desktop", "user-desktop-symbolic", "Pointer and desktop appearance"),
@@ -211,7 +201,6 @@ class InfinityConfig(Gtk.Application):
                 group = button
             button.connect("toggled", self._select_tab, name)
             nav.append(button)
-            self.search_tabs[name] = button
             page = self._page(name, description)
             self.stack.add_named(page, name)
             if name == "Desktop":
@@ -251,37 +240,8 @@ class InfinityConfig(Gtk.Application):
         self.proton_page = ProtonPage(self, nav, group)
         self.ai_page = AiPage(self, nav, group)
         self.backups_page = BackupsPage(self, nav, group)
-        self.search_tabs.update(AI=self.ai_page.tab, Proton=self.proton_page.tab, Backups=self.backups_page.tab)
         self.window.connect("close-request", self._close_requested)
         self.window.present()
-
-    def _search_settings(self, entry):
-        while self.search_results.get_first_child():
-            self.search_results.remove(self.search_results.get_first_child())
-        query = entry.get_text().casefold().strip()
-        if not query:
-            return
-        hints = {"AI": "AI model context tokens storage lokalny kontekst pamięć modele dysk",
-                 "Proton": "Proton gaming compatibility gry zgodność",
-                 "Backups": "Backups restore snapshot kopia migawka przywracanie"}
-        def labels(widget):
-            result = widget.get_text() if isinstance(widget, Gtk.Label) else ""
-            child = widget.get_first_child()
-            while child:
-                result += " " + labels(child)
-                child = child.get_next_sibling()
-            return result
-        found = False
-        for name, tab in self.search_tabs.items():
-            page = self.stack.get_child_by_name(name)
-            text = tr(name) + " " + hints.get(name, "") + " " + (labels(page) if page else "")
-            if query in text.casefold():
-                result = Gtk.Button(label=tr(name))
-                result.connect("clicked", lambda _button, tab=tab: tab.set_active(True))
-                self.search_results.append(result)
-                found = True
-        if not found:
-            self.search_results.append(label(tr("No matching settings"), "infinity-muted"))
 
     def _close_requested(self, *_args):
         if self.backups_page.busy:

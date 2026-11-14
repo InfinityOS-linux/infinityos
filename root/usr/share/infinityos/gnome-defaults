@@ -98,6 +98,7 @@ dash-position=2
 dash-module=false
 panel-module=false
 app-display-module=true
+app-grid-content=0
 app-grid-folder-center=true
 app-favorites-module=false
 notification-position=2
