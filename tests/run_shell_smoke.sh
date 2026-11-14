@@ -3,7 +3,7 @@ set -euo pipefail
 repo=$(cd "$(dirname "$0")/.." && pwd)
 sandbox=$(mktemp -d)
 cleanup() {
-    if mountpoint -q "$sandbox/run/doc"; then umount -l "$sandbox/run/doc"; fi
+    if mountpoint -q "$sandbox/run/doc"; then umount -l "$sandbox/run/doc" 2>/dev/null || true; fi
     rm -rf "$sandbox"
 }
 trap cleanup EXIT

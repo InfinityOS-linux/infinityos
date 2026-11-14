@@ -229,11 +229,13 @@ def main():
                 if not self.busy:
                     self.on_refresh(None, force=False)
                 return
+            # InfinityOS installs Orchis as user CSS. Keep this drawer and its
+            # panel-matched surface consistent above that bundled stylesheet.
             css = Gtk.CssProvider()
             css.load_from_data(STYLE)
             Gtk.StyleContext.add_provider_for_display(
                 Gdk.Display.get_default(), css,
-                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+                Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)
             self.window = Gtk.ApplicationWindow(application=self, title=tr('InfinityUpdater'))
             # Keep GTK's shadow surface, but no title bar or window controls.
             self.window.set_decorated(False)

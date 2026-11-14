@@ -69,7 +69,10 @@ class UpdaterActionsTests(unittest.TestCase):
         provider = Gtk.CssProvider()
         provider.load_from_data(style)
         display = Gdk.Display.get_default()
-        Gtk.StyleContext.add_provider_for_display(display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        Gtk.StyleContext.add_provider_for_display(display, provider, Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)
+        user_theme = Gtk.CssProvider()
+        user_theme.load_from_data(b'button { background: #181624; color: #151025; } button label { color: #151025; }')
+        Gtk.StyleContext.add_provider_for_display(display, user_theme, Gtk.STYLE_PROVIDER_PRIORITY_USER)
         window = Gtk.Window()
         window.add_css_class('infinity-updater')
         button = Gtk.Button(label='Install updates')
@@ -92,3 +95,4 @@ class UpdaterActionsTests(unittest.TestCase):
         finally:
             window.destroy()
             Gtk.StyleContext.remove_provider_for_display(display, provider)
+            Gtk.StyleContext.remove_provider_for_display(display, user_theme)

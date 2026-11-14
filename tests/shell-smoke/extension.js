@@ -16,7 +16,7 @@ export default class Smoke extends Extension {
     enable() {
         this._objects = [];
         GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, () => {
-            this.run().catch(error => { console.error(`INFINITY_SMOKE_FAIL ${error.stack}`); });
+            this.run().catch(error => { console.error(`INFINITY_SMOKE_FAIL ${error.message} ${error.stack}`); });
             return GLib.SOURCE_REMOVE;
         });
     }
@@ -72,6 +72,9 @@ export default class Smoke extends Extension {
         check(Blur.BlurEffect.list_properties().some(property => property.name === 'corner-radius'), 'native rounded blur unavailable');
         const nowplay = new NowPlay(metadata('nowplay@LalaloyXyz'));
         this._objects.push(nowplay); nowplay.enable();
+        console.log(`INFINITY_NOWPLAY_RUNTIME ${nowplay._ui._createStatusPill.toString()}`);
+        const [, actualUi] = root.get_child('nowplay@LalaloyXyz').get_child('ui.js').load_contents(null);
+        console.log(`INFINITY_NOWPLAY_DISK_RECURSIVE ${new TextDecoder().decode(actualUi).includes('const animateUp')}`);
         check(!nowplay._ui._createStatusPill.toString().includes('animateUp'), 'loaded obsolete NowPlay equalizer');
         console.log('INFINITY_NOWPLAY_TIMER_SOURCE_CONFIRMED');
         const player = {busName: 'org.mpris.MediaPlayer2.smoke', title: 'InfinityOS test', artist: 'CI',
