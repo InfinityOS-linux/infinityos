@@ -16,7 +16,7 @@ from launcher_backend import (APPS, CRAFT_SUITE, active_local_model, configured_
                               install, progress_reporting, privileged_transaction, installed, installed_flatpaks, catalog_state, selected_ai, downloaded_local_models,
                               open_lutris_installer, removable, uninstall)
 from launcher_i18n import tr
-from launcher_tv import enabled as tv_enabled, set_enabled as set_tv_enabled, launch_steam
+from launcher_tv import enabled as tv_enabled, set_enabled as set_tv_enabled
 
 
 MARKER = Path.home() / ".config/infinityos/launcher-complete"
@@ -686,6 +686,7 @@ class InfinitySetup(Gtk.Application):
                       [("tv", mode, enabled) for mode, enabled in later_tv])
         total = len(operations)
         steam_tv_selected = ("steam", True) in tv_changes
+        steam_tv_installed = False
         steam_tv_disable_failed = False
         steam_install_failed = False
         for index, (kind, item, enabled) in enumerate(operations, 1):
@@ -728,11 +729,8 @@ class InfinitySetup(Gtk.Application):
                 GLib.idle_add(self._tv_applied if kind == "tv" else self._installed,
                               item, enabled)
                 if kind == "tv" and item == "steam" and enabled:
-                    try:
-                        launch_steam()
-                    except OSError as exc:
-                        errors.append(tr("TV Mode is installed. Open Steam from the desktop to finish its first update.") + f"\n{exc}")
-        GLib.idle_add(self._finished, errors)
+                    steam_tv_installed = True
+        GLib.idle_add(self._finished, errors, steam_tv_installed)
 
     def _tv_applied(self, mode, enabled):
         self.tv_notes[mode].set_text(tr("Enabled") if enabled else "")
@@ -751,7 +749,7 @@ class InfinitySetup(Gtk.Application):
             self.catalog_status[app] = enabled
         return False
 
-    def _finished(self, errors):
+    def _finished(self, errors, steam_tv_installed=False):
         self.busy = False
         if hasattr(self, "stop_button"):
             self.stop_button.set_visible(False)
@@ -773,11 +771,14 @@ class InfinitySetup(Gtk.Application):
         if errors:
             self.status.set_text(tr("Could not apply changes:\n") + "\n".join(errors))
         else:
-            self._complete()
+            self._complete(steam_tv_installed)
         return False
 
-    def _complete(self):
-        self.status.set_text(tr("Installation complete."))
+    def _complete(self, steam_tv_installed=False):
+        message = tr("Installation complete.")
+        if steam_tv_installed:
+            message += "\n" + tr("TV Mode is installed. Open Steam from the desktop to finish its first update.")
+        self.status.set_text(message)
 
     def _animate(self, opening):
         if self.animation_tick:

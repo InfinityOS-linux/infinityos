@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Steam (Desktop)
+Comment=Launch Steam on the desktop
+Exec=/usr/libexec/infinityos-steam %U
+TryExec=/usr/bin/steam
+Icon=steam
+Terminal=false
+Categories=Game;
+StartupNotify=true
+StartupWMClass=steam

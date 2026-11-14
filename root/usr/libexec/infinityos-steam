@@ -1,0 +1,12 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+steam_dir="$HOME/.local/share/Steam"
+runtime="$steam_dir/steamrt64/pv-runtime/steam-runtime-steamrt/run"
+client="$steam_dir/steamrt64/steam"
+if [[ -x $runtime && -x $client ]]; then
+    # shortcut: bypass Valve's failing RT3 handoff; remove when its launcher works again.
+    cd "$steam_dir"
+    STEAM_RUNTIME_RECURSION_GUARD=1 exec "$runtime" -- "$client" "$@"
+fi
+exec steam "$@"

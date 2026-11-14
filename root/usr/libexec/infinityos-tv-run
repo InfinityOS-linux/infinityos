@@ -49,7 +49,7 @@ case ${1:-} in
             exit $?
         fi
         command -v steam >/dev/null 2>&1 || { echo 'Steam RPM is missing' >&2; exit 1; }
-        run_steam steam -gamepadui -steamos3 -steampal -steamdeck
+        run_steam /usr/libexec/infinityos-steam -gamepadui -steamos3 -steampal -steamdeck
         ;;
     *) echo 'Unknown TV mode' >&2; exit 2 ;;
 esac
