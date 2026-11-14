@@ -2,6 +2,7 @@
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import St from 'gi://St';
+import {opticalMetrics} from './optical-icons.mjs';
 import Graphene from 'gi://Graphene';
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
@@ -702,7 +703,7 @@ export let Animator = class {
             entryOpacity = eased;
           }
         }
-        let currentSize = renderer.icon_size * renderer.scaleX;
+        let currentSize = icon._targetSize ?? targetSize;
         {
           let dst = targetSize - currentSize;
           let mag = Math.abs(dst);
@@ -729,7 +730,16 @@ export let Animator = class {
           renderer.set_size(baseSize, baseSize);
           renderer.set_icon_size(baseSize);
         }
-        let scaleToTarget = targetSize / baseSize;
+        const refreshOptical = () => {
+          if (dock.extension.docks?.includes(dock)) dock.extension.animate();
+        };
+        const theme = dock.extension.icon_theme;
+        const reference = opticalMetrics(theme, null, 'infinity-setup', refreshOptical);
+        const artwork = opticalMetrics(theme, renderer.gicon, renderer.icon_name, refreshOptical);
+        const appsGrid = icon === dock.dash._showAppsIcon;
+        const opticalScale = appsGrid ? 0.7 : Math.min(2, reference.height / artwork.height);
+        const paintedSize = targetSize * opticalScale;
+        let scaleToTarget = paintedSize / baseSize;
         renderer.set_scale(scaleToTarget * entryScale, scaleToTarget * entryScale);
 
         let p = icon.get_transformed_position();
@@ -761,8 +771,8 @@ export let Animator = class {
             let ry = p[1] + adjustY + icon._icon.translationY - renderOffset[1];
             renderer.set_position(
               p[0] + adjustX + icon._icon.translationX - renderOffset[0] +
-                targetSize * (1 - entryScale) / 2,
-              ry + targetSize * (1 - entryScale) / 2
+                targetSize / 2 - paintedSize * entryScale * artwork.x,
+              ry + targetSize / 2 - paintedSize * entryScale * artwork.y
             );
 
             // renderer.ease({

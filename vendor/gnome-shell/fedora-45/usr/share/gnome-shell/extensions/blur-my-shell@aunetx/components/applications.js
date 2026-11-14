@@ -306,7 +306,9 @@ export const ApplicationsBlur = class ApplicationsBlur {
         // if we are in blacklist mode and the window is not blacklisted
         // or if we are in whitelist mode and the window is whitelisted
         if (
-            window_wm_class !== ""
+            // The updater is a square panel drawer, not a floating application.
+            window_wm_class !== 'org.infinityos.Updater'
+            && window_wm_class !== ""
             && ((enable_all && !matchesAnyPattern(window_wm_class, this._compiled_blacklist))
                 || (!enable_all && matchesAnyPattern(window_wm_class, this._compiled_whitelist))
             )

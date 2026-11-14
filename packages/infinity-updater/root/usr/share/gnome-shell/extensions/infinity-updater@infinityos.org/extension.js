@@ -14,6 +14,21 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 export default class InfinityUpdater extends Extension {
     enable() {
         this._configureUpdateNotifications();
+        // Cover only the panel backdrop while the drawer is open. The same
+        // opaque surface in GTK avoids a seam against the wallpaper tint.
+        this._panelSurface = new St.Widget({reactive: false, visible: false});
+        this._panelSurface.add_constraint(new Clutter.BindConstraint({
+            source: Main.panel, coordinate: Clutter.BindCoordinate.ALL}));
+        Main.panel.add_child(this._panelSurface);
+        Main.panel.set_child_below_sibling(this._panelSurface, Main.panel._leftBox);
+        this._colorSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
+        const syncSurface = () => this._panelSurface.set_style(
+            `background-color: ${this._colorSettings.get_string('color-scheme') === 'prefer-dark' ? '#0d0b14' : '#faf7ff'};`);
+        this._colorId = this._colorSettings.connect('changed::color-scheme', syncSurface);
+        syncSurface();
+        this._destroyId = global.window_manager.connect('destroy', (_wm, actor) => {
+            if (this._isUpdater(actor.meta_window)) this._panelSurface.hide();
+        });
         this._focusId = global.display.connect('notify::focus-window',
             () => this._onFocusChanged());
         this._outsideClickId = global.stage.connect('captured-event',
@@ -216,6 +231,7 @@ export default class InfinityUpdater extends Extension {
         this._cancelOpening(window);
         const actor = window.get_compositor_private();
         if (!actor) return;
+        this._panelSurface?.show();
         const reversing = this._closingWindows?.delete(window);
         Main.wm.skipNextEffect(actor);
         actor.remove_all_transitions();
@@ -262,6 +278,7 @@ export default class InfinityUpdater extends Extension {
                 this._closingWindows.delete(window);
                 Main.wm.skipNextEffect(actor);
                 window.minimize();
+                this._panelSurface?.hide();
                 actor.translation_x = 0;
                 this._scheduleClose(window);
             }});
@@ -335,6 +352,11 @@ export default class InfinityUpdater extends Extension {
     }
 
     disable() {
+        global.window_manager.disconnect(this._destroyId);
+        this._colorSettings.disconnect(this._colorId);
+        this._colorSettings = null;
+        this._panelSurface.destroy();
+        this._panelSurface = null;
         for (const window of this._openingWindows?.keys() ?? []) {
             this._cancelOpening(window);
             const actor = window.get_compositor_private();

@@ -22,14 +22,14 @@ def pending_rpm_names(before, after):
 
 STYLE = b'''
 window.infinity-updater, window.infinity-updater.csd,
-window.infinity-updater > decoration, .hero, .footer { border-radius: 0; }
+window.infinity-updater > decoration, window.infinity-updater > box, .hero, .footer { border-radius: 0; }
 
-window.infinity-updater { background: #140e1e; color: #f4f0fa; }
+window.infinity-updater { background: #0d0b14; color: #f4f0fa; }
 window.infinity-updater.csd { box-shadow: -12px 0 28px 0 rgba(0, 0, 0, 0.32); }
 window.infinity-updater.csd.light-mode { box-shadow: -10px 0 26px 0 rgba(27, 17, 43, 0.20); }
 window.infinity-updater > .titlebar { min-height: 0; padding: 0; margin: 0; border: 0; }
-.infinity-results, .infinity-results viewport { background: #140e1e; }
-.hero { background: #140e1e; border-bottom: 1px solid #3b3152; padding: 20px; }
+.infinity-results, .infinity-results viewport { background: #0d0b14; }
+.hero { background: #0d0b14; border-bottom: 1px solid #3b3152; padding: 20px; }
 .hero-title { font-size: 24px; font-weight: 800; color: #ffffff; }
 .hero-subtitle { color: #b9adcf; }
 .pill { background: #392d58; color: #e4d4ff; border-radius: 999px; padding: 5px 13px; font-weight: 700; }
@@ -41,7 +41,7 @@ button.primary label { color: #ffffff; }
 button.primary:hover { background: #8e71c6; }
 button.secondary { background: #322941; color: #f4edff; border-radius: 9px; padding: 9px 16px; }
 button.secondary label { color: #f4edff; }
-.footer { background: #140e1e; border-top: 1px solid #3b3152; padding: 17px 24px; }
+.footer { background: #0d0b14; border-top: 1px solid #3b3152; padding: 17px 24px; }
 .update-progress trough { min-height: 5px; background: #322941; border-radius: 999px; }
 .update-progress progress { min-height: 5px; background: #ad82e9; border-radius: 999px; }
 @keyframes infinity-updater-spin { to { transform: rotate(1turn); } }
@@ -226,7 +226,7 @@ def main():
                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
             self.window = Gtk.ApplicationWindow(application=self, title=tr('Infinity OS Updates'))
             # Keep GTK's shadow surface, but no title bar or window controls.
-            self.window.set_titlebar(Gtk.Box(visible=False))
+            self.window.set_decorated(False)
             self.window.connect('close-request', self.on_close_request)
             self.window.add_css_class('infinity-updater')
             self.color_settings = Gio.Settings.new('org.gnome.desktop.interface')

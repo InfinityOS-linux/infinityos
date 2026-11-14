@@ -45,13 +45,13 @@ test('monitor cells use GNOME 51 BoxLayout orientation', async () => {
             if ('vertical' in properties) throw Error('No property vertical on StBoxLayout');
             Object.assign(this, properties);
         }
-        add_child() {} set_child() {} connect() {} destroy_all_children() {}
+        add_child(child) { (this.children ??= []).push(child); } set_child(child) { this.child = child; } connect() {} destroy_all_children() {}
     }
     const prototype = vm.runInNewContext(`${source}\nHardwareMonitor.prototype`, {
         GLib: {get_language_names: () => ['en']}, global: {stage: {}},
         Clutter: {Orientation: {VERTICAL: 1}, ActorAlign: {START: 0, FILL: 1}},
         St: {BoxLayout: Actor, ScrollView: Actor, Button: Actor, Label: Actor, DrawingArea: Actor,
-            PolicyType: {AUTOMATIC: 1, NEVER: 2}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}},
+            PolicyType: {AUTOMATIC: 1, NEVER: 2, EXTERNAL: 3}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}},
     });
     const monitor = Object.create(prototype);
     monitor.actor = new Actor();
@@ -59,6 +59,9 @@ test('monitor cells use GNOME 51 BoxLayout orientation', async () => {
     monitor._update = () => {};
     monitor._rebuild();
     assert.equal(monitor._cells.length, 1);
+    assert.equal(monitor.actor.children[0].hscrollbar_policy, 3);
+    assert.equal(monitor._cells[0].actor.child.children.at(-1), monitor._cells[0].label);
+    assert.equal(monitor._cells[0].label.y_expand, false);
 });
 
 test('opening a Shell menu keeps terminal visible; switching apps still hides it', async () => {

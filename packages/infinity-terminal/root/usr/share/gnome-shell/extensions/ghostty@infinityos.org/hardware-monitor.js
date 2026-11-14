@@ -19,6 +19,14 @@ export class HardwareMonitor {
         this._alive = true;
         this.actor = new St.BoxLayout({reactive: true, visible: false,
             style_class: 'infinity-monitor', accessible_name: tr('Hardware monitors', 'Wskaźniki sprzętowe')});
+        this._colorSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
+        const syncTheme = () => {
+            if (this._colorSettings.get_string('color-scheme') === 'prefer-light')
+                this.actor.add_style_class_name('light');
+            else this.actor.remove_style_class_name('light');
+        };
+        this._colorId = this._colorSettings.connect('changed::color-scheme', syncTheme);
+        syncTheme();
         Main.layoutManager.addChrome(this.actor);
         this._menuAnchor = new St.Widget({width: 1, height: 1, opacity: 0, reactive: false});
         Main.layoutManager.addChrome(this._menuAnchor);
@@ -137,16 +145,16 @@ export class HardwareMonitor {
         this.actor.destroy_all_children();
         this._cells = [];
         const scroll = new St.ScrollView({x_expand: true, y_expand: true,
-            hscrollbar_policy: St.PolicyType.AUTOMATIC, vscrollbar_policy: St.PolicyType.NEVER});
+            hscrollbar_policy: St.PolicyType.EXTERNAL, vscrollbar_policy: St.PolicyType.NEVER});
         const row = new St.BoxLayout({x_expand: false, x_align: Clutter.ActorAlign.START});
         scroll.set_child(row);
         this.actor.add_child(scroll);
         for (const id of this._settings.get_strv('monitor-metrics')) {
             const actor = new St.Button({style_class: 'infinity-monitor-cell', width: 128 * St.ThemeContext.get_for_stage(global.stage).scale_factor, x_expand: false, can_focus: true});
-            const box = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, x_expand: true, x_align: Clutter.ActorAlign.FILL});
+            const box = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, y_align: Clutter.ActorAlign.START, x_expand: true, x_align: Clutter.ActorAlign.FILL});
             const value = new St.Label({style_class: 'infinity-monitor-value', text: 'N/A'});
-            const graph = new St.DrawingArea({height: 20, x_expand: true});
-            const label = new St.Label({style_class: 'infinity-monitor-label'});
+            const graph = new St.DrawingArea({style_class: 'infinity-monitor-graph', x_expand: true, y_expand: false});
+            const label = new St.Label({style_class: 'infinity-monitor-label', y_expand: false});
             box.add_child(value); box.add_child(graph); box.add_child(label);
             actor.set_child(box); row.add_child(actor);
             const cell = {id, actor, value, graph, label};
@@ -275,6 +283,7 @@ export class HardwareMonitor {
 
     destroy() {
         this._alive = false;
+        this._colorSettings.disconnect(this._colorId);
         this._unfollow();
         if (this._timer) GLib.Source.remove(this._timer);
         if (this._timeout) GLib.Source.remove(this._timeout);

@@ -295,3 +295,16 @@ test('closing before the first redraw cancels the delayed opening', () => {
     obsolete();
     assert.equal(calls.length, count);
 });
+
+
+test('panel surface is shared while open and restored after closing', () => {
+    const {extension, window, calls} = drawer({x: 0, y: 32, width: 1280, height: 688});
+    const surface = {visible: false, show() { this.visible = true; }, hide() { this.visible = false; }};
+    extension._panelSurface = surface;
+    extension._showDrawer(window);
+    assert.equal(surface.visible, true);
+    extension._hideDrawer(window);
+    assert.equal(surface.visible, true);
+    calls.at(-1).onComplete();
+    assert.equal(surface.visible, false);
+});
