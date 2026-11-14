@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+"""Publish a verified ISO pair, then atomically replace the public manifest."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+from urllib.parse import urlsplit
+
+
+def publish(directory, revision):
+    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+        raise ValueError("A full source revision is required")
+    account, bucket, public = (os.environ[name] for name in
+                               ("R2_ACCOUNT_ID", "R2_BUCKET", "R2_PUBLIC_URL"))
+    public = public.rstrip("/")
+    if not re.fullmatch(r"[0-9a-f]{32}", account) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,61}[a-z0-9]", bucket):
+        raise ValueError("Invalid R2 account or bucket")
+    url = urlsplit(public)
+    if url.scheme != "https" or not url.netloc or url.path or url.query or url.fragment or url.username:
+        raise ValueError("R2_PUBLIC_URL must be an HTTPS origin")
+    directory = Path(directory)
+    images = {}
+    # Validate the entire pair before uploading anything.
+    for architecture, label in (("x86_64", "x64"), ("aarch64", "arm")):
+        matches = list(directory.glob(f"InfinityOS-*-{architecture}-{revision[:7]}-*.iso"))
+        if len(matches) != 1:
+            raise ValueError(f"Expected exactly one {architecture} ISO for {revision}")
+        image = matches[0]
+        sha256, md5 = hashlib.sha256(), hashlib.md5()
+        with image.open("rb") as stream:
+            while chunk := stream.read(8 * 1024 * 1024):
+                sha256.update(chunk)
+                md5.update(chunk)
+        expected = image.with_suffix(".iso.sha256").read_text().split()[0]
+        if sha256.hexdigest() != expected or not image.stat().st_size:
+            raise ValueError(f"Checksum mismatch or empty ISO: {image.name}")
+        key = f"releases/{revision}/{image.name}"
+        images[label] = dict(filename=image.name, bytes=image.stat().st_size,
+                             sha256=sha256.hexdigest(), md5=md5.hexdigest(),
+                             url=f"{public}/{key}")
+
+    endpoint = f"https://{account}.r2.cloudflarestorage.com"
+    def aws(*args):
+        return subprocess.run(["aws", "--endpoint-url", endpoint, *args],
+                              check=True, stdout=subprocess.PIPE, text=True).stdout
+
+    for image in images.values():
+        path = directory / image["filename"]
+        key = f"releases/{revision}/{path.name}"
+        aws("s3", "cp", str(path), f"s3://{bucket}/{key}", "--only-show-errors",
+            "--content-type", "application/octet-stream",
+            "--content-disposition", f'attachment; filename="{path.name}"',
+            "--cache-control", "public, max-age=31536000, immutable",
+            "--metadata", f'sha256={image["sha256"]},md5={image["md5"]}')
+        remote = json.loads(aws("s3api", "head-object", "--bucket", bucket, "--key", key))
+        if remote["ContentLength"] != image["bytes"] or remote.get("Metadata", {}).get("sha256") != image["sha256"]:
+            raise ValueError(f"R2 upload verification failed: {path.name}")
+        for algorithm in ("sha256", "md5"):
+            checksum = path.with_suffix(f".iso.{algorithm}")
+            checksum.write_text(f'{image[algorithm]}  {path.name}\n')
+            aws("s3", "cp", str(checksum), f"s3://{bucket}/{key}.{algorithm}",
+                "--only-show-errors", "--content-type", "text/plain")
+
+    manifest = directory / "latest.json"
+    manifest.write_text(json.dumps(dict(revision=revision, images=images), indent=2) + "\n")
+    aws("s3", "cp", str(manifest), f"s3://{bucket}/releases/{revision}/manifest.json",
+        "--only-show-errors", "--content-type", "application/json",
+        "--cache-control", "public, max-age=31536000, immutable")
+    # A failed upload leaves the previous complete release available.
+    aws("s3", "cp", str(manifest), f"s3://{bucket}/latest.json", "--only-show-errors",
+        "--content-type", "application/json", "--cache-control", "no-store")
+    print(f"Published both architectures: {public}/latest.json")
+
+
+if __name__ == "__main__":
+    publish(*sys.argv[1:])

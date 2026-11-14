@@ -1,7 +1,5 @@
 name: Build verified InfinityOS ISOs
 on:
-  push:
-    branches: [build/reviewed-iso]
   workflow_dispatch:
 permissions:
   contents: read
@@ -78,3 +76,30 @@ jobs:
           path: ${{ runner.temp }}/iso-output/infinityos-build/*.log
           if-no-files-found: ignore
           retention-days: 7
+
+  publish:
+    name: Publish verified ISOs to R2
+    needs: iso
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - name: Free disposable runner space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: InfinityOS-*-${{ github.sha }}
+          path: ${{ runner.temp }}/iso-downloads
+          merge-multiple: true
+      - name: Upload both images before publishing the latest release
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
+          AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
+          R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          R2_PUBLIC_URL: ${{ vars.R2_PUBLIC_URL }}
+        run: python3 scripts/publish-infinity-isos-r2 "$RUNNER_TEMP/iso-downloads" "$GITHUB_SHA"
