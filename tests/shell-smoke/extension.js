@@ -82,6 +82,28 @@ export default class Smoke extends Extension {
         const updater = new Updater(metadata('infinity-updater@infinityos.org'));
         this._objects.push(updater); updater.enable();
         check(Main.panel.statusArea['infinity-updater'], 'updater indicator failed');
+        const client = Gio.Subprocess.new(['python3', '-c', `
+import gi
+gi.require_version('Gtk', '4.0')
+from gi.repository import Gtk
+app = Gtk.Application(application_id='org.infinityos.Updater')
+def activate(app):
+    window = Gtk.ApplicationWindow(application=app, title='InfinityUpdater smoke')
+    window.set_decorated(False)
+    window.set_default_size(160, 100)
+    window.set_child(Gtk.Label(label='Updater'))
+    window.present()
+app.connect('activate', activate)
+app.run(None)
+`], Gio.SubprocessFlags.NONE);
+        this._objects.push({disable: () => client.force_exit()});
+        await wait(); await wait(); await wait();
+        const drawer = global.get_window_actors().find(actor => updater._isUpdater(actor.meta_window));
+        check(drawer, 'updater client did not map');
+        const frame = drawer.meta_window.get_frame_rect();
+        const area = Main.layoutManager.getWorkAreaForMonitor(drawer.meta_window.get_monitor());
+        check(frame.width === Math.min(460, area.width) && frame.height === area.height, 'updater remained at initial size');
+        check(drawer.opacity === 255 && Math.abs(drawer.translation_x) < 1, 'updater did not finish its spring slide');
         this.disable();
         console.log('INFINITY_SMOKE_PASS');
     }

@@ -66,8 +66,8 @@ function drawer(area, deferred = false) {
         unmaximize() {},
         move_resize_frame: (...args) => calls.push(args),
         get_compositor_private: () => actor,
-        get_frame_rect: () => ({width: Math.min(460, area.width)}),
-        get_buffer_rect: () => ({x: area.x + area.width - Math.min(460, area.width), y: area.y}),
+        get_frame_rect: () => ({x: area.x + area.width - Math.min(460, area.width), y: area.y, width: Math.min(460, area.width), height: area.height}),
+        get_buffer_rect: () => ({x: area.x + area.width - Math.min(460, area.width), y: area.y, width: Math.min(460, area.width), height: area.height}),
         activate() { this.minimized = false; },
         minimize() { this.minimized = true; calls.push('minimized'); },
         delete: () => calls.push('closed'),
@@ -80,7 +80,7 @@ function drawer(area, deferred = false) {
             timeout_add(_priority, delay, callback) { const id = nextId++; timers.set(id, {delay, callback}); return id; },
             Source: {remove: id => timers.delete(id)}},
         St: {Settings: {get: () => ({enable_animations: true})}},
-        Clutter: {AnimationMode: {EASE_OUT_CUBIC: 1, EASE_IN_CUBIC: 2}},
+        Clutter: {AnimationMode: {EASE_OUT_CUBIC: 1, EASE_IN_CUBIC: 2, EASE_OUT_ELASTIC: 3}},
         global: {get_current_time: () => 1, compositor: {get_laters: () => ({
             add(_type, callback) { const id = nextId++; if (deferred) redraws.set(id, callback); else callback(); return id; },
             remove(id) { redraws.delete(id); },
@@ -95,7 +95,7 @@ test('drawer opens from the right within the selected monitor work area', () => 
     extension._showDrawer(window);
     assert.deepEqual(calls[0], [false, -460, 32, 460, 688]);
     assert.equal(actor.translation_x, 476);
-    assert.equal(calls[1].translation_x, 0);
+    assert.equal(calls[1].translation_x, -24);
     assert.equal(calls[1].duration, 420);
 });
 
@@ -155,7 +155,7 @@ test('rapid toggle reverses closing and repeated outside clicks do not restart i
     actor.translation_x = 120;
     extension._toggleDrawer(window);
     assert.equal(actor.translation_x, 120, 'reverse from the current position');
-    assert.equal(calls.at(-1).translation_x, 0);
+    assert.equal(calls.at(-1).translation_x, -24);
     closing.onComplete();
     assert.equal(calls.includes('minimized'), false, 'an obsolete completion must not hide the reopened drawer');
     extension._toggleDrawer(window);
@@ -281,7 +281,7 @@ test('first map stays invisible until placement and restore handlers finish', ()
     callback();
     assert.equal(actor.opacity, 255);
     assert.equal(actor.translation_x, 476);
-    assert.equal(calls[1].translation_x, 0);
+    assert.equal(calls[1].translation_x, -24);
     assert.equal(extension._openingWindows.size, 0);
 });
 
@@ -307,4 +307,25 @@ test('panel surface is shared while open and restored after closing', () => {
     assert.equal(surface.visible, true);
     calls.at(-1).onComplete();
     assert.equal(surface.visible, false);
+});
+
+
+test('Wayland initial small surface stays hidden until its resize is acknowledged', () => {
+    const {extension, window, actor, calls, redraws} = drawer({x: 0, y: 32, width: 1280, height: 688}, true);
+    const configured = window.get_frame_rect;
+    window.get_frame_rect = () => ({x: 0, y: 0, width: 200, height: 100});
+    extension._showDrawer(window);
+    const redraw = [...redraws.values()][0];
+    assert.equal(redraw(), true);
+    assert.equal(actor.opacity, 0);
+    assert.equal(calls.length, 1);
+    window.get_frame_rect = configured;
+    assert.equal(redraw(), false);
+    assert.equal(actor.opacity, 255);
+    const entry = calls.at(-1);
+    assert.equal(entry.translation_x, -24);
+    entry.onComplete();
+    assert.equal(calls.at(-1).translation_x, 0);
+    assert.equal(calls.at(-1).mode, 3);
+    assert.equal(calls.at(-1).duration, 460);
 });

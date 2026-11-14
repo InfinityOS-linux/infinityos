@@ -14,6 +14,8 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 export default class InfinityUpdater extends Extension {
     enable() {
         this._configureUpdateNotifications();
+        this._pendingWindows = new Map();
+        this._windowCreatedId = global.display.connect('window-created', (_display, window) => this._watchDrawer(window));
         // Cover only the panel backdrop while the drawer is open. The same
         // opaque surface in GTK avoids a seam against the wallpaper tint.
         this._panelSurface = new St.Widget({reactive: false, visible: false});
@@ -27,7 +29,10 @@ export default class InfinityUpdater extends Extension {
         this._colorId = this._colorSettings.connect('changed::color-scheme', syncSurface);
         syncSurface();
         this._destroyId = global.window_manager.connect('destroy', (_wm, actor) => {
-            if (this._isUpdater(actor.meta_window)) this._panelSurface.hide();
+            if (this._isUpdater(actor.meta_window)) {
+                this._cancelOpening(actor.meta_window);
+                this._panelSurface.hide();
+            }
         });
         this._focusId = global.display.connect('notify::focus-window',
             () => this._onFocusChanged());
@@ -197,12 +202,37 @@ export default class InfinityUpdater extends Extension {
              window.get_wm_class() === 'org.infinityos.Updater');
     }
 
+    _watchDrawer(window) {
+        const clear = () => {
+            for (const id of this._pendingWindows.get(window) ?? []) window.disconnect(id);
+            this._pendingWindows.delete(window);
+        };
+        const prepare = () => {
+            if (!this._isUpdater(window)) return;
+            const actor = window.get_compositor_private();
+            if (!actor) return;
+            clear();
+            // Hide before Mutter's map effect, including late Wayland app IDs.
+            Main.wm.skipNextEffect(actor);
+            actor.opacity = 0;
+            actor.translation_x = Main.layoutManager.getWorkAreaForMonitor(window.get_monitor() >= 0 ? window.get_monitor() : Main.layoutManager.primaryIndex).width + 16;
+            this._placeDrawer(window);
+        };
+        this._pendingWindows.set(window, [
+            window.connect('notify::gtk-application-id', prepare),
+            window.connect('notify::wm-class', prepare),
+            window.connect('unmanaged', clear),
+        ]);
+        prepare();
+    }
+
     _placeDrawer(window) {
-        const area = Main.layoutManager.getWorkAreaForMonitor(window.get_monitor());
+        const area = Main.layoutManager.getWorkAreaForMonitor(window.get_monitor() >= 0 ? window.get_monitor() : Main.layoutManager.primaryIndex);
         const width = Math.min(460, area.width);
         window.unmaximize(Meta.MaximizeFlags.BOTH);
         window.move_resize_frame(false, area.x + area.width - width, area.y,
             width, area.height);
+        return {x: area.x + area.width - width, y: area.y, width, height: area.height};
     }
 
     _toggleDrawer(window) {
@@ -236,24 +266,41 @@ export default class InfinityUpdater extends Extension {
         Main.wm.skipNextEffect(actor);
         actor.remove_all_transitions();
         if (!reversing) actor.opacity = 0;
-        this._placeDrawer(window);
+        const target = this._placeDrawer(window);
+        if (!reversing) actor.translation_x = target.width + 16;
         this._openingWindows ??= new Map();
         const opening = {};
         this._openingWindows.set(window, opening);
         // Let placement and GNOME's map/restore handlers finish before our slide.
         opening.id = global.compositor.get_laters().add(Meta.LaterType.BEFORE_REDRAW, () => {
             if (this._openingWindows?.get(window) !== opening) return false;
-            this._openingWindows.delete(window);
-            if (window.get_compositor_private() !== actor) return false;
-            actor.remove_all_transitions();
+            if (window.get_compositor_private() !== actor) {
+                this._openingWindows.delete(window);
+                return false;
+            }
+            // Wayland resize is asynchronous. A single redraw can still contain
+            // the small initial GTK surface, so keep it hidden until configured.
+            const frame = window.get_frame_rect();
             const rect = window.get_buffer_rect();
+            if (rect.width < target.width || rect.height < target.height || frame.x !== target.x || frame.y !== target.y ||
+                frame.width !== target.width || frame.height !== target.height)
+                return true;
+            this._openingWindows.delete(window);
+            actor.remove_all_transitions();
             actor.x = rect.x;
             actor.y = rect.y;
             actor.scale_x = actor.scale_y = 1;
             if (!reversing) actor.translation_x = window.get_frame_rect().width + 16;
             actor.opacity = 255;
-            actor.ease({translation_x: 0, duration: St.Settings.get().enable_animations ? 420 : 0,
-                mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+            const animate = St.Settings.get().enable_animations;
+            actor.ease({translation_x: animate ? -24 : 0, duration: animate ? 420 : 0,
+                mode: Clutter.AnimationMode.EASE_IN_CUBIC,
+                onComplete: () => {
+                    if (!animate || window.minimized || this._closingWindows?.has(window) ||
+                        window.get_compositor_private() !== actor) return;
+                    actor.ease({translation_x: 0, duration: 460,
+                        mode: Clutter.AnimationMode.EASE_OUT_ELASTIC});
+                }});
             return false;
         });
         window.activate(global.get_current_time());
@@ -352,6 +399,11 @@ export default class InfinityUpdater extends Extension {
     }
 
     disable() {
+        global.display.disconnect(this._windowCreatedId);
+        for (const [window, ids] of this._pendingWindows) {
+            for (const id of ids) window.disconnect(id);
+        }
+        this._pendingWindows.clear();
         global.window_manager.disconnect(this._destroyId);
         this._colorSettings.disconnect(this._colorId);
         this._colorSettings = null;
