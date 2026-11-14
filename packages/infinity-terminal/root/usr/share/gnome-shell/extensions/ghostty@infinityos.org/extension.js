@@ -44,7 +44,7 @@ export default class InfinityTerminal extends Extension {
         this._indicator = new PanelMenu.Button(0.0, 'Show or hide InfinityTerminal', true);
         this._indicator.accessible_role = Atk.Role.PUSH_BUTTON;
         this._icon = new St.Icon({
-            icon_name: 'utilities-terminal-symbolic',
+            gicon: Gio.icon_new_for_string(`${this.path}/terminal-symbolic.svg`),
             style_class: 'system-status-icon',
         });
         this._indicator.add_child(this._icon);
