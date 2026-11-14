@@ -2,41 +2,41 @@
   {
     "id": "2026-11-14",
     "date": "2026-11-14",
-    "title": "A smoother desktop. A better first start.",
-    "summary": "Today’s changes bring a more polished desktop, simpler app setup and fixes for the first gaming session.",
-    "buildSha": "a77e8abc3ae474de0fe4eff543bd333a41a6d5fe",
+    "title": "InfinityOS 02: a smoother desktop and fresh downloads",
+    "summary": "The latest 24 hours brought new ARM64 and x64 images, direct downloads, a more capable terminal, simpler setup and fixes across gaming, NVIDIA installation and system updates.",
+    "buildSha": "d100c91286f61d3b8fd5388601a1c7d105d21954",
     "changes": [
       {
-        "title": "NVIDIA ready for the first boot",
-        "text": "On supported x64 NVIDIA hardware, installation now builds and checks the driver modules, rebuilds the boot image and updates the rEFInd copy before finishing. Errors stop installation instead of leaving driver setup to the first desktop session. Network access is required."
+        "title": "Fresh ARM64 and x64 images",
+        "text": "Both Fedora 45 and GNOME 51 live images were built and verified from the same source revision. Downloads now open the ISO directly from Cloudflare R2; filenames, sizes and MD5 and SHA-256 checksums on the website come from the verified release manifest. Future successful builds replace the published pair automatically."
       },
       {
-        "title": "Steam on the desktop and TV",
-        "text": "Desktop Steam and TV Mode now share the working runtime launcher. Steam stays closed after TV Mode setup, so you can finish its initial update from the desktop. Installation order and error handling have also been checked."
+        "title": "NVIDIA prepared before first boot",
+        "text": "On supported x64 NVIDIA hardware, installation now builds and checks the driver modules, rebuilds the boot image and updates the rEFInd copy before finishing. A failed driver setup stops installation instead of leaving the problem for the first desktop session. Network access is required."
       },
       {
-        "title": "One password per Apply",
-        "text": "InfinitySetup and InfinityUpdater reuse one authorization session when you apply several changes together."
+        "title": "Steam starts reliably on desktop and TV",
+        "text": "Desktop Steam and TV Mode now use the working runtime launcher. TV session startup, exit behavior and installation defaults were corrected. Steam remains closed after TV Mode setup so its first update can finish from the desktop."
       },
       {
-        "title": "A cleaner app grid and search",
-        "text": "InfinitySetup searches across categories. InfinityConfig drops its unnecessary search bar. Setup and Config keep their own app icons, and dock favorites appear in the app grid."
+        "title": "A simpler first run",
+        "text": "InfinitySetup opens on the System tab with a centered loading message. Its search spans categories, while InfinityConfig drops its unnecessary search bar. Setup and Config retain their app icons, dock favorites appear in the app grid, and several changes applied together need only one administrator authentication."
       },
       {
         "title": "A more useful InfinityTerminal",
-        "text": "Configurable widgets bring hardware readings, timers, Pomodoro, network transfer, battery, weather and a second time zone together. Monitors can be moved, the layout is centered, and the panel icon follows the theme."
+        "text": "Configurable widgets add available CPU and GPU readings, timers, Pomodoro, network transfer, battery, weather and a second time zone. Monitors can be moved and are centered in the terminal. The drop-down animation now enters fully from above the screen, and its panel icon follows the active theme."
       },
       {
         "title": "A smoother InfinityUpdater",
-        "text": "The update drawer slides in with a softer animation, keeps controls readable in light and dark themes, and offers a localized restart action when offline updates are downloaded."
+        "text": "The update drawer opens with a softer motion and keeps its actions readable in light and dark themes. Downloaded offline updates now trigger a notification with a localized restart action. Restart handling and update completion messages were also corrected."
       },
       {
-        "title": "Desktop details, refined",
-        "text": "More compact icons and dock artwork, bundled NowPlay and Raccoon Launcher, and fixes for animation behavior and GNOME extension testing."
+        "title": "Desktop details and extensions",
+        "text": "Desktop icons and dock artwork are more compact, mounted-drive icons match the InfinityOS palette, and NowPlay and Raccoon Launcher are bundled. Animation fixes and native GNOME extension checks improve reliability, including with reduced motion enabled."
       },
       {
-        "title": "News, right from the live desktop",
-        "text": "Firefox in the live installer opens this news page. Follow the changelog here as new builds arrive."
+        "title": "News from the live desktop",
+        "text": "Firefox in the live installer opens this changelog, making the latest build notes available before installation."
       }
     ]
   }
