@@ -6,3 +6,6 @@ Bundled runtime sources, schema, preferences and stylesheet. Native rounded
 backdrop blur uses gi://Blur from the required gnome-rounded-blur RPM.
 InfinityOS enables this extension once for existing accounts and by default
 for new accounts. No source download occurs during installation or login.
+
+InfinityOS guards repeating equalizer animations when actors are unmapped or
+system animations are disabled, preventing synchronous completion recursion.

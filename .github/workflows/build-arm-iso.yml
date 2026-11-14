@@ -30,7 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in $(seq 1 120); do
-            conclusion=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/publish-rpm.yml/runs?head_sha=$GITHUB_SHA&event=push&per_page=10" --jq '.workflow_runs[0].conclusion // "pending"')
+            conclusion=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/publish-rpm.yml/runs?head_sha=$GITHUB_SHA&branch=main&event=push&per_page=10" --jq '.workflow_runs[0].conclusion // "pending"')
             if [[ "$conclusion" == success ]]; then exit 0; fi
             if [[ "$conclusion" != pending ]]; then echo "RPM publication failed: $conclusion"; exit 1; fi
             sleep 30

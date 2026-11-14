@@ -1091,7 +1091,7 @@ export class DinamicUi {
             this._eqActive = true;
             bars.forEach((bar, i) => {
                 const animateUp = () => {
-                    if (!this._eqActive || !bar.get_parent()) return;
+                    if (!this._eqActive || !bar.mapped || !St.Settings.get().enable_animations) return;
                     bar.ease({
                         scale_y: highScales[i],
                         duration: barSpeeds[i],
@@ -1100,7 +1100,7 @@ export class DinamicUi {
                     });
                 };
                 const animateDown = () => {
-                    if (!this._eqActive || !bar.get_parent()) return;
+                    if (!this._eqActive || !bar.mapped || !St.Settings.get().enable_animations) return;
                     bar.ease({
                         scale_y: lowScales[i],
                         duration: barSpeeds[i],
@@ -1627,7 +1627,7 @@ export class DinamicUi {
             barBox.add_child(bar);
 
             const animateUp = () => {
-                if (!bar.get_parent()) return;
+                if (!bar.mapped || !St.Settings.get().enable_animations) return;
                 bar.ease({
                     scale_y: scales[i],
                     duration: speeds[i],
@@ -1636,7 +1636,7 @@ export class DinamicUi {
                 });
             };
             const animateDown = () => {
-                if (!bar.get_parent()) return;
+                if (!bar.mapped || !St.Settings.get().enable_animations) return;
                 bar.ease({
                     scale_y: 1.0,
                     duration: speeds[i],
