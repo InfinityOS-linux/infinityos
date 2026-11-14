@@ -57,3 +57,38 @@ class UpdaterActionsTests(unittest.TestCase):
         provider.connect('parsing-error', lambda _provider, _section, error: errors.append(str(error)))
         provider.load_from_data(style)
         self.assertEqual(errors, [])
+
+    def test_action_labels_keep_readable_theme_colors(self):
+        if not Gtk.init_check():
+            self.skipTest('GTK needs a display')
+        from gi.repository import Gdk
+        source = Path(__file__).resolve().parents[1] / 'packages/infinity-updater/root/usr/share/infinityos/updater/updater.py'
+        tree = ast.parse(source.read_text())
+        style = next(ast.literal_eval(node.value) for node in tree.body
+                     if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'STYLE' for t in node.targets))
+        provider = Gtk.CssProvider()
+        provider.load_from_data(style)
+        display = Gdk.Display.get_default()
+        Gtk.StyleContext.add_provider_for_display(display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        window = Gtk.Window()
+        window.add_css_class('infinity-updater')
+        button = Gtk.Button(label='Install updates')
+        window.set_child(button)
+        try:
+            for light in (False, True):
+                if light:
+                    window.add_css_class('light-mode')
+                for name in ('primary', 'restart'):
+                    button.add_css_class(name)
+                    for sensitive in (True, False):
+                        button.set_sensitive(sensitive)
+                        color = button.get_child().get_style_context().get_color()
+                        brightness = (color.red + color.green + color.blue) / 3
+                        if light:
+                            self.assertLess(brightness, 0.5)
+                        else:
+                            self.assertGreater(brightness, 0.7)
+                    button.remove_css_class(name)
+        finally:
+            window.destroy()
+            Gtk.StyleContext.remove_provider_for_display(display, provider)

@@ -72,6 +72,8 @@ export default class Smoke extends Extension {
         check(Blur.BlurEffect.list_properties().some(property => property.name === 'corner-radius'), 'native rounded blur unavailable');
         const nowplay = new NowPlay(metadata('nowplay@LalaloyXyz'));
         this._objects.push(nowplay); nowplay.enable();
+        check(!nowplay._ui._createStatusPill.toString().includes('animateUp'), 'loaded obsolete NowPlay equalizer');
+        console.log('INFINITY_NOWPLAY_TIMER_SOURCE_CONFIRMED');
         const player = {busName: 'org.mpris.MediaPlayer2.smoke', title: 'InfinityOS test', artist: 'CI',
             status: 'Playing', position: 30, trackLen: 180, canSeek: true, trackId: '/test', artUrl: '', appIconName: 'audio-x-generic'};
         nowplay._ui.showPopup(player, [player]); await wait();

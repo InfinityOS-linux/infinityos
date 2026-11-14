@@ -23,7 +23,7 @@ export default class InfinityUpdater extends Extension {
         Main.panel.set_child_below_sibling(this._panelSurface, Main.panel._leftBox);
         this._colorSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
         const syncSurface = () => this._panelSurface.set_style(
-            `background-color: ${this._colorSettings.get_string('color-scheme') === 'prefer-dark' ? '#0d0b14' : '#faf7ff'};`);
+            `background-color: ${this._colorSettings.get_string('color-scheme') === 'prefer-dark' ? '#181624' : '#faf7ff'};`);
         this._colorId = this._colorSettings.connect('changed::color-scheme', syncSurface);
         syncSurface();
         this._destroyId = global.window_manager.connect('destroy', (_wm, actor) => {

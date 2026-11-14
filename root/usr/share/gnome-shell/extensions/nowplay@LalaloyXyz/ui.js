@@ -1588,7 +1588,7 @@ export class DinamicUi {
     }
 
     // Mini animated equalizer for the playing row, accent-colored. Only the
-    // startup timeouts are tracked; the ease chain dies with the bars.
+    // frame timers are tracked and stop when their bars are no longer mapped.
     _createMenuEq() {
         const barBox = new St.BoxLayout({
             orientation: Clutter.Orientation.HORIZONTAL,
