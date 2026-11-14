@@ -4,7 +4,7 @@
     "date": "2026-11-14",
     "title": "A smoother desktop. A better first start.",
     "summary": "Today’s changes bring a more polished desktop, simpler app setup and fixes for the first gaming session.",
-    "buildSha": null,
+    "buildSha": "a77e8abc3ae474de0fe4eff543bd333a41a6d5fe",
     "changes": [
       {
         "title": "NVIDIA ready for the first boot",
