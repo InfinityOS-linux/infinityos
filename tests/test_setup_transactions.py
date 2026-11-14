@@ -72,6 +72,43 @@ class SetupTransactionsTests(unittest.TestCase):
         app._complete(app._finished.call_args.args[1])
         self.assertIn('Open Steam from the desktop', app.status.set_text.call_args.args[0])
 
+    def test_steam_then_tv_mode_does_not_reinstall_steam(self):
+        app, context = controller()
+        app._finished = Mock()
+        app._install([], [('steam', True)])
+        context['install'].assert_not_called()
+        context['set_tv_enabled'].assert_called_once_with('steam', True)
+
+    def test_steam_and_tv_mode_in_one_apply_install_client_first(self):
+        app, context = controller()
+        app._finished = Mock()
+        steam = SimpleNamespace(kind='dnf', source='com.valvesoftware.Steam', name='Steam')
+        events = []
+        context['install'].side_effect = lambda *_args, **_kwargs: events.append('steam')
+        context['set_tv_enabled'].side_effect = lambda *_args: events.append('tv')
+        app._install([(steam, True)], [('steam', True)])
+        self.assertEqual(events, ['steam', 'tv'])
+        context['install'].assert_called_once_with(steam, defer_system_dependencies=True)
+
+    def test_disabling_tv_mode_precedes_steam_removal(self):
+        app, context = controller()
+        app._finished = Mock()
+        steam = SimpleNamespace(kind='dnf', source='com.valvesoftware.Steam', name='Steam')
+        events = []
+        context['set_tv_enabled'].side_effect = lambda *_args: events.append('tv')
+        context['uninstall'].side_effect = lambda *_args: events.append('steam')
+        app._install([(steam, False)], [('steam', False)])
+        self.assertEqual(events, ['tv', 'steam'])
+
+    def test_failed_tv_disable_keeps_steam_installed(self):
+        app, context = controller()
+        app._finished = Mock()
+        steam = SimpleNamespace(kind='dnf', source='com.valvesoftware.Steam', name='Steam')
+        context['set_tv_enabled'].side_effect = RuntimeError('TV disable failed')
+        app._install([(steam, False)], [('steam', False)])
+        context['uninstall'].assert_not_called()
+        self.assertIn('Steam was left installed', app._finished.call_args.args[0][1])
+
     def test_completion_reports_success_without_closing(self):
         app, _context = controller()
         app._begin_close = Mock()

@@ -215,8 +215,10 @@ class TVModeTests(unittest.TestCase):
              patch.object(launcher_tv, "installed", return_value=True), \
              patch.object(launcher_tv.os, "uname", return_value=SimpleNamespace(machine="x86_64")), \
              patch.object(launcher_tv, "_missing_packages", return_value=["gamescope"]), \
+             patch.object(launcher_tv, "install") as install_client, \
              patch.object(launcher_tv, "_run") as run:
             launcher_tv.set_enabled("steam", True, Path(directory))
+            install_client.assert_not_called()
             run.assert_called_once_with(
                 ["pkexec", launcher_tv.CONTROL, "activate", "steam", str(os.getuid())])
 
