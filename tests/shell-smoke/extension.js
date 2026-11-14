@@ -49,6 +49,12 @@ export default class Smoke extends Extension {
         check(monitor._cells.length === 8, 'sensor/widget construction');
         for (const cell of monitor._cells.filter(cell => cell.actor.visible))
             check(cell.label.height > 0, `caption clipped: ${cell.id}`);
+        const visibleCells = monitor._cells.filter(cell => cell.actor.visible);
+        const [left] = visibleCells[0].actor.get_transformed_position();
+        const last = visibleCells.at(-1).actor;
+        const [lastX] = last.get_transformed_position();
+        const [lastWidth] = last.get_transformed_size();
+        check(Math.abs((left + lastX + lastWidth) / 2 - 640) < 2, 'monitor row is not centered');
         monitor._openMenu(-1); check(monitor.menuOpen, 'monitor menu failed'); monitor._menu.close();
         monitor._widgets.stopwatch.toggle(); monitor._widgets.toggleTimer('widget:timer');
         const iface = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});

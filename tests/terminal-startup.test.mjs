@@ -21,7 +21,7 @@ function startup(username, initial = 0, fail = false) {
         Atk: {Role: {}}, St: {Icon: Widget, Widget}, PanelMenu: {Button: Widget},
         Clutter: {ClickGesture: Widget}, Meta: {KeyBindingFlags: {}},
         GLib: {get_user_name: () => username},
-        Gio: {Settings: class {}, Subprocess: {new() { starts++; return {wait_check_async(_cancel, done) {done({wait_check_finish() {if (fail) throw new Error("service failed");}}, {});}}; }}, SubprocessFlags: {}},
+        Gio: {icon_new_for_string: path => ({path}), Settings: class {}, Subprocess: {new() { starts++; return {wait_check_async(_cancel, done) {done({wait_check_finish() {if (fail) throw new Error("service failed");}}, {});}}; }}, SubprocessFlags: {}},
         Shell: {AppSystem, ActionMode: {}}, Workspace: {Workspace},
         Main: {notifyError() {errors++;}, layoutManager: {addChrome() {}}, overview: new Widget(), panel: {addToStatusArea() {}}, wm: {addKeybinding() {}}},
         global: {stage: new Widget(), display: new Widget(), get_window_actors: () => []},

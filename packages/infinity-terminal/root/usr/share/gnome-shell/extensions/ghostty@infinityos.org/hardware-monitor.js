@@ -171,7 +171,7 @@ export class HardwareMonitor {
         this._cells = [];
         const scroll = new St.ScrollView({x_expand: true, y_expand: true,
             hscrollbar_policy: St.PolicyType.EXTERNAL, vscrollbar_policy: St.PolicyType.NEVER});
-        const row = new St.BoxLayout({x_expand: false, x_align: Clutter.ActorAlign.START});
+        const row = new St.BoxLayout({x_expand: false, x_align: Clutter.ActorAlign.CENTER});
         scroll.set_child(row);
         this.actor.add_child(scroll);
         for (const id of new Set(this._settings.get_strv('monitor-metrics'))) {
@@ -357,7 +357,7 @@ export class HardwareMonitor {
     }
 
     _menuStyle() {
-        return `max-height: 650px; background-color: ${this._light ? '#f7f4fb' : '#14111d'}; color: ${this._light ? '#211b2b' : '#f4f0fa'};`;
+        return `max-height: 650px; background-color: transparent; border: none; box-shadow: none; color: ${this._light ? '#211b2b' : '#f4f0fa'};`;
     }
 
     _addWidget(id, actor, row) {
