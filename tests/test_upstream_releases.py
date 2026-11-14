@@ -71,7 +71,11 @@ class UpstreamTests(unittest.TestCase):
             policy = json.loads(live.read_text())['policies']
             self.assertNotIn('Extensions', policy)
             expected = json.loads(original.read_text())['policies']
-            self.assertEqual(policy, {k: v for k, v in expected.items() if k != 'Extensions'})
+            expected_live = {k: v for k, v in expected.items() if k != 'Extensions'}
+            expected_live.update(Homepage={'URL': 'https://infinityos.eu/news',
+                                          'Locked': False, 'StartPage': 'homepage'},
+                                 OverrideFirstRunPage='', OverridePostUpdatePage='')
+            self.assertEqual(policy, expected_live)
             subprocess.run(['install', '-m', '0644', str(saved), str(live)], check=True)
             self.assertEqual(live.read_bytes(), original.read_bytes())
 
