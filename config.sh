@@ -222,6 +222,12 @@ from pathlib import Path
 path = Path(sys.argv[1])
 policy = json.loads(path.read_text())
 policy['policies'].pop('Extensions', None)
+policy['policies']['Homepage'] = {
+    'URL': 'https://infinityos.eu/news', 'Locked': False, 'StartPage': 'homepage'
+}
+# Anaconda supplies its own URL; suppress extra first-run/update tabs.
+policy['policies']['OverrideFirstRunPage'] = ''
+policy['policies']['OverridePostUpdatePage'] = ''
 path.write_text(json.dumps(policy, indent=2) + '\n')
 FIREFOX_LIVE_POLICY
 		# Anaconda WebUI builds its localized title from PRETTY_NAME.
