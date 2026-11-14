@@ -179,7 +179,7 @@ elif [[ "$package" == infinity-setup ]]; then
     "$work/source/$package-$version/usr/bin/infinity-setup"
   install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/launcher.desktop" \
     "$work/source/$package-$version/usr/share/applications/infinity-setup.desktop"
-  install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/steam-desktop.desktop" \
+  install -m 0644 "$repo/packages/infinity-setup/steam-desktop.desktop" \
     "$work/source/$package-$version/usr/share/applications/org.infinityos.Steam.desktop"
   install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/launcher-appid.desktop" \
     "$work/source/$package-$version/usr/share/applications/org.infinityos.Setup.desktop"

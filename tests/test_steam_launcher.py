@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LAUNCHER = ROOT / 'root/usr/libexec/infinityos-steam'
-DESKTOP = ROOT / 'packages/infinity-setup/root/usr/share/infinityos/steam-desktop.desktop'
+DESKTOP = ROOT / 'packages/infinity-setup/steam-desktop.desktop'
 
 
 class SteamLauncherTests(unittest.TestCase):
