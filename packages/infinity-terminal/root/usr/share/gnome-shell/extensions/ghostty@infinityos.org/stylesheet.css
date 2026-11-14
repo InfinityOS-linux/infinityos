@@ -8,3 +8,13 @@
 
 .infinity-monitor.light { background-gradient-start: #eee9f5; background-gradient-end: rgba(247,244,251,0.93); color: #211b2b; }
 .infinity-monitor.light .infinity-monitor-label { color: #514561; }
+
+.infinity-widget-top { spacing: 6px; }
+.infinity-widget-icon { icon-size: 16px; }
+.infinity-monitor.light .infinity-monitor-cell { border-color: rgba(70,40,100,0.18); }
+.infinity-monitor.light .infinity-monitor-cell:hover, .infinity-monitor.light .infinity-monitor-cell:focus { background-color: rgba(100,65,150,0.12); }
+
+.infinity-monitor-menu.light .popup-menu-content, .infinity-monitor-menu.light .popup-sub-menu { background-color: #f7f4fb; color: #211b2b; }
+.infinity-monitor-menu.light .popup-menu-item { color: #211b2b; }
+.infinity-monitor-menu.light .popup-menu-item:active { background-color: #e4d9f1; }
+.infinity-monitor-menu.light .popup-separator-menu-item { color: #625370; }

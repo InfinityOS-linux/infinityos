@@ -1,5 +1,5 @@
 [org/gnome/shell]
-enabled-extensions=['blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'ghostty@infinityos.org', 'infinity-updater@infinityos.org', 'wack-lockscreen-clock@rinzler69-wastaken.github.com', 'dash2dock-animated@infinityos.org', 'tilingshell@ferrarodomenico.com', 'vertical-workspaces@G-dH.github.com', 'caffeine@patapon.info', 'GPaste@gnome-shell-extensions.gnome.org', 'wack-shell@rinzler69-wastaken.github.com', 'globalmenu@ShiroOSL.github.io']
+enabled-extensions=['nowplay@LalaloyXyz', 'raccoonlauncher@shimafallah.github.io', 'blur-my-shell@aunetx', 'windowIsReady_Remover@nunofarruca@gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'user-theme@gnome-shell-extensions.gcampax.github.com', 'ding@rastersoft.com', 'ghostty@infinityos.org', 'infinity-updater@infinityos.org', 'wack-lockscreen-clock@rinzler69-wastaken.github.com', 'dash2dock-animated@infinityos.org', 'tilingshell@ferrarodomenico.com', 'vertical-workspaces@G-dH.github.com', 'caffeine@patapon.info', 'GPaste@gnome-shell-extensions.gnome.org', 'wack-shell@rinzler69-wastaken.github.com', 'globalmenu@ShiroOSL.github.io']
 favorite-apps=['org.mozilla.firefox.desktop', 'infinity-setup.desktop', 'org.infinityos.Config.desktop']
 
 [org/gnome/software]
@@ -126,6 +126,8 @@ restore-state=false
 button-layout='close,minimize,maximize:'
 
 [org/gnome/desktop/wm/keybindings]
+switch-input-source=['<Super><Alt>space']
+switch-input-source-backward=['<Shift><Super><Alt>space']
 switch-applications=@as []
 switch-applications-backward=@as []
 switch-windows=['<Alt>Tab']

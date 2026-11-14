@@ -91,6 +91,16 @@ export default class TerminalPreferences extends ExtensionPreferences {
             adjustment: new Gtk.Adjustment({lower: 0, upper: 2000, step_increment: 1, page_increment: 5})});
         settings.bind('monitor-cpu-tdp', tdp, 'value', Gio.SettingsBindFlags.DEFAULT);
         hardware.add(tdp);
+        const timezone = new Adw.EntryRow({title: tr('Widget time zone (IANA)', 'Strefa widgetu (IANA)'),
+            text: settings.get_string('monitor-timezone'), show_apply_button: true});
+        timezone.connect('apply', () => {
+            const value = timezone.text.trim();
+            if (value && GLib.TimeZone.new_identifier(value)) {
+                settings.set_string('monitor-timezone', value);
+                timezone.remove_css_class('error');
+            } else timezone.add_css_class('error');
+        });
+        hardware.add(timezone);
         const actions = new Adw.PreferencesGroup(); page.add(actions);
         const apply = new Gtk.Button({label: tr('Apply', 'Zastosuj'), css_classes: ['suggested-action'], halign: Gtk.Align.END});
         actions.add(apply);

@@ -14,6 +14,7 @@ Requires:       dconf
 Requires:       python3-gobject
 Requires:       librsvg2
 Requires:       gettext
+Requires:       gnome-rounded-blur
 
 # Adopt the six Fedora extension directories so that only an Infinity OS RPM
 # may update their code. The GPaste service remains Fedora-managed.
@@ -47,6 +48,8 @@ cp -a usr etc %{buildroot}/
 /usr/libexec/infinityos-bin-label || :
 glib-compile-schemas /usr/share/glib-2.0/schemas || :
 for uuid in \
+    raccoonlauncher@shimafallah.github.io \
+    nowplay@LalaloyXyz \
     ding@rastersoft.com \
     wack-lockscreen-clock@rinzler69-wastaken.github.com \
     wack-shell@rinzler69-wastaken.github.com \
@@ -67,6 +70,10 @@ gtk-update-icon-cache -f -q /usr/share/icons/hicolor || :
 /usr/libexec/infinityos-bin-label || :
 
 %files
+/usr/libexec/infinityos-enable-desktop-additions
+/etc/xdg/autostart/infinityos-enable-desktop-additions.desktop
+/usr/share/gnome-shell/extensions/nowplay@LalaloyXyz/
+/usr/share/gnome-shell/extensions/raccoonlauncher@shimafallah.github.io/
 /usr/bin/infinityos-shell-recover
 /usr/libexec/infinityos-enable-global-menu
 /etc/xdg/autostart/infinityos-enable-global-menu.desktop

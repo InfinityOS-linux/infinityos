@@ -29,6 +29,7 @@
       <default>0</default>
       <summary>Show the drop-down for a terminal command</summary>
     </key>
+    <key name="monitor-timezone" type="s"><default>'UTC'</default><summary>IANA time zone for the world clock widget</summary></key>
     <key name="monitor-enabled" type="b"><default>true</default><summary>Show hardware monitor strip</summary></key>
     <key name="monitor-metrics" type="as">
       <default>['auto:cpu-temp', 'auto:gpu-temp', 'cpu:clock', 'auto:cpu-power', 'cpu:tdp', 'memory:used', 'disk:/']</default>

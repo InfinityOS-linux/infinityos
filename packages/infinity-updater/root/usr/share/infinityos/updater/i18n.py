@@ -29,7 +29,7 @@ POLISH = {
         'Infinity OS {version} przygotowany. Uruchom ponownie, aby wykonać kopię i zainstalować.',
     'After restart, system and /var are backed up before updating. /home is preserved.':
         'Po restarcie, przed aktualizacją, powstaje kopia systemu i /var. /home zostaje zachowany.',
-    'Infinity OS Updates': 'Aktualizacje Infinity OS',
+    'InfinityUpdater': 'InfinityUpdater',
     'System packages · Flatpaks · Device firmware':
         'Pakiety systemowe · Flatpaki · Oprogramowanie urządzeń',
     'Check again': 'Sprawdź ponownie',

@@ -1,0 +1,35 @@
+#!/usr/bin/python3
+"""Enable bundled desktop additions once without resetting existing preferences."""
+import os
+from pathlib import Path
+
+EXTENSIONS = ('nowplay@LalaloyXyz', 'raccoonlauncher@shimafallah.github.io')
+
+def with_extensions(enabled):
+    return [*enabled, *(uuid for uuid in EXTENSIONS if uuid not in enabled)]
+
+def without_launcher_conflict(shortcuts):
+    return ['<Super><Alt>space' if key.lower() in ('<super>space', '<mod4>space') else key
+            for key in shortcuts]
+
+def main():
+    from gi.repository import Gio
+    marker = Path(os.environ.get('XDG_STATE_HOME', Path.home() / '.local/state')) / 'infinityos/desktop-additions-v1'
+    if marker.exists():
+        return 0
+    shell = Gio.Settings.new('org.gnome.shell')
+    keys = Gio.Settings.new('org.gnome.desktop.wm.keybindings')
+    current = list(keys.get_strv('switch-input-source'))
+    updated = without_launcher_conflict(current)
+    if updated != current and not keys.set_strv('switch-input-source', updated):
+        return 1
+    enabled = list(shell.get_strv('enabled-extensions'))
+    updated = with_extensions(enabled)
+    if updated != enabled and not shell.set_strv('enabled-extensions', updated):
+        return 1
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.touch()
+    return 0
+
+if __name__ == '__main__':
+    raise SystemExit(main())

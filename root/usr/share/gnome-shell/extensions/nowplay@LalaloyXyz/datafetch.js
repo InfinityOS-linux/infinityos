@@ -1,0 +1,411 @@
+import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
+
+import { debugLog } from './debug.js';
+
+export class MprisDataFetcher {
+    constructor(onPlayersChanged = () => {}) {
+        this._onPlayersChanged = onPlayersChanged;
+        this._players = {};
+        this._activePlayer = null;
+        this._selectedPlayerName = null;
+        this._dbusSubIds = [];
+        this._enabled = false;
+    }
+
+    get activePlayerName() {
+        return this._activePlayer;
+    }
+
+    get activePlayer() {
+        return this._activePlayer ? this._players[this._activePlayer] : null;
+    }
+
+    get playersList() {
+        return Object.values(this._players);
+    }
+
+    sendControl(method) {
+        if (!this._activePlayer) return;
+
+        this._sendControlTo(this._activePlayer, method);
+    }
+
+    seekTo(position, target) {
+        const player = this.activePlayer;
+        if (!player?.canSeek || !target || player.busName !== target.busName
+            || player.trackId !== target.trackId || !Number.isFinite(position)
+            || player.trackLen <= 0 || !GLib.Variant.is_object_path(player.trackId || '')
+            || player.trackId === '/org/mpris/MediaPlayer2/TrackList/NoTrack')
+            return Promise.resolve(false);
+
+        const trackId = player.trackId;
+        const bounded = Math.max(0, Math.min(player.trackLen - 1, Math.round(position)));
+        return new Promise(resolve => {
+            Gio.DBus.session.call(
+                player.busName, '/org/mpris/MediaPlayer2',
+                'org.mpris.MediaPlayer2.Player', 'SetPosition',
+                new GLib.Variant('(ox)', [trackId, bounded]), null,
+                Gio.DBusCallFlags.NONE, -1, null,
+                (connection, result) => {
+                    try {
+                        connection.call_finish(result);
+                        if (this.activePlayer !== player || player.trackId !== trackId) {
+                            resolve(false);
+                            return;
+                        }
+                        this._setPlayerPosition(player, bounded);
+                        resolve(true);
+                    } catch (_e) {
+                        resolve(false);
+                    }
+                }
+            );
+        });
+    }
+
+    _sendControlTo(busName, method) {
+        Gio.DBus.session.call(
+            busName,
+            '/org/mpris/MediaPlayer2',
+            'org.mpris.MediaPlayer2.Player',
+            method,
+            null,
+            null,
+            Gio.DBusCallFlags.NONE,
+            -1,
+            null,
+            () => {}
+        );
+    }
+
+    // User choice wins over the automatic Playing > Paused selection while
+    // the chosen player exists. Pass null to return to automatic.
+    setSelectedPlayer(busName) {
+        if (busName !== null && !this._players[busName])
+            return;
+
+        this._selectedPlayerName = busName;
+        this._selectActivePlayer();
+
+        // Picking a player from the dropdown auto-plays it when it's not
+        // playing (Play on a player that can't play just errors harmlessly).
+        // Not in _selectActivePlayer: every refresh would re-Play the chosen
+        // player and the pause button would never stick.
+        if (busName && this._players[busName].status !== 'Playing')
+            this._sendControlTo(busName, 'Play');
+    }
+
+    async refreshActiveProgress() {
+        if (!this._activePlayer)
+            return null;
+
+        const result = await this._dbusCall(
+            this._activePlayer,
+            'GetAll',
+            GLib.Variant.new('(s)', ['org.mpris.MediaPlayer2.Player'])
+        );
+        const player = this.activePlayer;
+        if (!player) return null;
+        const props = result.deep_unpack()[0];
+        const position = this._readPosition(props, player.position);
+        const status = this._unpackValue(props.PlaybackStatus);
+
+        if (status)
+            player.status = status;
+
+        this._setPlayerPosition(player, position);
+
+        return { position, player };
+    }
+
+    enable() {
+        this._enabled = true;
+        this._scanPlayers();
+        this._watchNameOwnerChanges();
+    }
+
+    disable() {
+        this._enabled = false;
+
+        for (const id of this._dbusSubIds)
+            Gio.DBus.session.signal_unsubscribe(id);
+
+        this._dbusSubIds = [];
+        this._players = {};
+        this._activePlayer = null;
+        this._selectedPlayerName = null;
+    }
+
+    async _scanPlayers() {
+        try {
+            const result = await this._dbusCall('org.freedesktop.DBus', 'ListNames', null);
+            const [names] = result.deep_unpack();
+
+            for (const name of names) {
+                if (!this._enabled) return;
+
+                if (name.startsWith('org.mpris.MediaPlayer2.'))
+                    this._onPlayerAppeared(name);
+            }
+        } catch (e) {
+            debugLog(`scan error: ${e}`);
+        }
+    }
+
+    _watchNameOwnerChanges() {
+        const id = Gio.DBus.session.signal_subscribe(
+            'org.freedesktop.DBus',
+            'org.freedesktop.DBus',
+            'NameOwnerChanged',
+            '/org/freedesktop/DBus',
+            null,
+            Gio.DBusSignalFlags.NONE,
+            (_c, _s, _p, _i, _sig, params) => {
+                if (!this._enabled) return;
+
+                const [name, oldOwner, newOwner] = params.deep_unpack();
+                if (!name.startsWith('org.mpris.MediaPlayer2.')) return;
+
+                if (newOwner && !oldOwner)
+                    this._onPlayerAppeared(name);
+                else if (!newOwner && oldOwner)
+                    this._onPlayerVanished(name);
+            }
+        );
+        this._dbusSubIds.push(id);
+    }
+
+    async _onPlayerAppeared(busName) {
+        if (!this._enabled) return;
+        if (this._players[busName]) return;
+
+        this._players[busName] = {
+            busName,
+            status: 'Stopped',
+            title: '',
+            artist: '',
+            artUrl: null,
+            trackId: null,
+            trackLen: 0,
+            canSeek: false,
+            position: 0,
+            positionUpdatedAt: 0,
+            appIconName: null,
+        };
+
+        const subId = Gio.DBus.session.signal_subscribe(
+            busName,
+            'org.freedesktop.DBus.Properties',
+            'PropertiesChanged',
+            '/org/mpris/MediaPlayer2',
+            null,
+            Gio.DBusSignalFlags.NONE,
+            (_c, _s, _p, _i, _sig, params) => {
+                const [iface] = params.deep_unpack();
+                if (iface === 'org.mpris.MediaPlayer2.Player')
+                    this._refreshPlayer(busName);
+            }
+        );
+        this._dbusSubIds.push(subId);
+
+        await this._refreshPlayer(busName);
+        await this._fetchAppInfo(busName);
+    }
+
+    _onPlayerVanished(busName) {
+        if (!this._enabled) return;
+
+        delete this._players[busName];
+
+        if (this._activePlayer === busName)
+            this._activePlayer = null;
+
+        this._selectActivePlayer();
+    }
+
+    async _refreshPlayer(busName) {
+        if (!this._enabled) return;
+
+        try {
+            const result = await this._dbusCall(
+                busName,
+                'GetAll',
+                GLib.Variant.new('(s)', ['org.mpris.MediaPlayer2.Player'])
+            );
+            const props = result.deep_unpack()[0];
+            const status = this._unpackValue(props.PlaybackStatus) || 'Stopped';
+            const metadata = this._unpackValue(props.Metadata) || {};
+            const title = this._unpackValue(metadata['xesam:title']) || 'Unknown';
+            let artist = this._unpackValue(metadata['xesam:artist']) || '';
+
+            if (Array.isArray(artist))
+                artist = artist.join(', ');
+
+            const player = this._players[busName];
+            if (!this._enabled) return;
+
+            if (player) {
+                player.status = status;
+                player.title = title;
+                player.artist = artist;
+                player.artUrl = this._unpackValue(metadata['mpris:artUrl']) || null;
+                player.trackId = this._unpackValue(metadata['mpris:trackid']) || null;
+                player.trackLen = this._unpackValue(metadata['mpris:length']) || 0;
+                player.canSeek = this._unpackValue(props.CanSeek) === true
+                    && this._unpackValue(props.CanControl) !== false;
+                this._setPlayerPosition(player, this._readPosition(props, player.position));
+            }
+
+            this._selectActivePlayer();
+        } catch (_e) {
+            // The player can disappear while GNOME Shell is asking it for properties.
+        }
+    }
+
+    async _fetchAppInfo(busName) {
+        if (!this._enabled) return;
+
+        // Get DesktopEntry from the root org.mpris.MediaPlayer2 interface.
+        // This maps to the .desktop file name (e.g. 'spotify', 'firefox')
+        // and works as a system icon name for the app badge.
+        try {
+            const result = await this._dbusCall(
+                busName,
+                'Get',
+                GLib.Variant.new('(ss)', ['org.mpris.MediaPlayer2', 'DesktopEntry'])
+            );
+            const player = this._players[busName];
+            if (!player) return;
+            const entry = this._unpackValue(result.deep_unpack()[0]);
+            if (entry && typeof entry === 'string')
+                player.appIconName = this._resolveAppIconName(entry);
+        } catch (_e) {
+            // Fallback: extract app name from the bus name itself
+            // e.g. org.mpris.MediaPlayer2.spotify -> spotify
+            const player = this._players[busName];
+            if (!player) return;
+            const match = busName.match(/org\.mpris\.MediaPlayer2\.(.+)/);
+            if (match) {
+                // Firefox-family players add an instance marker
+                // (firefox.instance_1_91) that isn't part of the app name.
+                const name = match[1].replace(/\.instance_\d+$/, '');
+                player.appIconName = this._resolveAppIconName(name);
+            }
+        }
+    }
+
+    // DesktopEntry can be a flatpak-style ID (e.g. org.mozilla.firefox)
+    // whose icon lives in the theme under a different name (firefox), or a
+    // short name (zen) whose desktop file is a flatpak ID
+    // (app.zen_browser.zen). Resolve via the .desktop file's Icon key,
+    // scanning app-info dirs for a matching ID, then fall back to the last
+    // dotted segment.
+    _resolveAppIconName(entry) {
+        // Search installed desktop entries directly. This also handles
+        // Flatpak IDs and avoids the DesktopAppInfo.new() path, which throws
+        // on GNOME 51 for some entries.
+        for (const appInfo of Gio.AppInfo.get_all()) {
+            const id = appInfo.get_id() || '';
+            if (id !== `${entry}.desktop` && !id.endsWith(`${entry}.desktop`))
+                continue;
+
+            try {
+                const names = appInfo.get_icon().get_names();
+                if (names.length)
+                    return names[0];
+            } catch (_e) {}
+            break;
+        }
+
+        return entry.split('.').pop() || entry;
+    }
+
+    _selectActivePlayer() {
+        let playing = null;
+        let paused = null;
+
+        for (const [name, info] of Object.entries(this._players)) {
+            if (info.status === 'Playing')
+                playing = name;
+            else if (info.status === 'Paused')
+                paused = name;
+        }
+
+        const selected = this._selectedPlayerName && this._players[this._selectedPlayerName]
+            ? this._selectedPlayerName
+            : null;
+
+        this._activePlayer = selected || playing || paused || null;
+        this._onPlayersChanged(this.activePlayer, this.playersList);
+
+        // With a manual choice active, once the chosen player is actually
+        // playing, pause every other player that is still playing. (The
+        // paused players' own refreshes re-enter here, but their status is
+        // no longer Playing, so this settles after one round.)
+        if (selected && this._players[selected].status === 'Playing') {
+            for (const [name, info] of Object.entries(this._players)) {
+                if (name !== selected && info.status === 'Playing')
+                    this._sendControlTo(name, 'Pause');
+            }
+        }
+    }
+
+    _dbusCall(busName, method, params) {
+        const returnTypes = {
+            ListNames: '(as)',
+            GetAll: '(a{sv})',
+            Get: '(v)',
+        };
+        const returnType = returnTypes[method]
+            ? GLib.VariantType.new(returnTypes[method])
+            : null;
+
+        return new Promise((resolve, reject) => {
+            const objectPath = method === 'ListNames'
+                ? '/org/freedesktop/DBus'
+                : '/org/mpris/MediaPlayer2';
+            const interfaceName = method === 'ListNames'
+                ? 'org.freedesktop.DBus'
+                : 'org.freedesktop.DBus.Properties';
+
+            Gio.DBus.session.call(
+                busName,
+                objectPath,
+                interfaceName,
+                method,
+                params || null,
+                returnType,
+                Gio.DBusCallFlags.NONE,
+                -1,
+                null,
+                (conn, res) => {
+                    try {
+                        resolve(conn.call_finish(res));
+                    } catch (e) {
+                        reject(e);
+                    }
+                }
+            );
+        });
+    }
+
+    _unpackValue(value) {
+        return value && typeof value.deep_unpack === 'function'
+            ? value.deep_unpack()
+            : value;
+    }
+
+    _readPosition(props, fallback = 0) {
+        if (!Object.prototype.hasOwnProperty.call(props, 'Position'))
+            return fallback;
+
+        return this._unpackValue(props.Position) || 0;
+    }
+
+    _setPlayerPosition(player, position) {
+        player.position = position;
+        player.positionUpdatedAt = GLib.get_monotonic_time();
+    }
+}
+

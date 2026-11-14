@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Infinity OS Desktop Additions Setup
+Exec=/usr/libexec/infinityos-enable-desktop-additions
+OnlyShowIn=GNOME;
+NotShowIn=GNOME-Greeter;
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

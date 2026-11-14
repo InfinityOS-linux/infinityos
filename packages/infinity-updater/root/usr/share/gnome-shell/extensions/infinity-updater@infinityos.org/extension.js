@@ -51,7 +51,7 @@ export default class InfinityUpdater extends Extension {
         this._stateFile = GLib.build_filenamev([this._directory, 'updates.json']);
         GLib.mkdir_with_parents(this._directory, 0o700);
 
-        this._indicator = new PanelMenu.Button(0.0, 'Infinity OS Updates', true);
+        this._indicator = new PanelMenu.Button(0.0, 'InfinityUpdater', true);
         this._indicator.accessible_role = Atk.Role.PUSH_BUTTON;
         const content = new St.BoxLayout({style_class: 'panel-status-menu-box'});
         this._icon = new St.Icon({
@@ -76,7 +76,7 @@ export default class InfinityUpdater extends Extension {
             try {
                 Gio.Subprocess.new(['/usr/bin/infinity-updater'], Gio.SubprocessFlags.NONE);
             } catch (error) {
-                console.warn(`Could not open Infinity OS Updates: ${error}`);
+                console.warn(`Could not open InfinityUpdater: ${error}`);
             }
         };
         const click = new Clutter.ClickGesture();
@@ -343,11 +343,11 @@ export default class InfinityUpdater extends Extension {
         this._indicator.accessible_name = release
             ? `Infinity OS ${release} is available`
             : count > 0 ? `${count} Infinity OS updates available`
-                : 'Infinity OS Updates, no updates available';
+                : 'InfinityUpdater, no updates available';
         if (release && this._notifiedVersion !== release) {
             this._notifiedVersion = release;
             Main.notify(`Infinity OS ${release} is available`,
-                'Open Infinity OS Updates to install current packages, then upgrade the release.');
+                'Open InfinityUpdater to install current packages, then upgrade the release.');
         }
     }
 

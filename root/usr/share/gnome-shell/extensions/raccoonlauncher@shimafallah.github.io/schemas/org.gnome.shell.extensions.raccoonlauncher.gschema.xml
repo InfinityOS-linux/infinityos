@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.raccoonlauncher"
+          path="/org/gnome/shell/extensions/raccoonlauncher/">
+
+    <key name="toggle-launcher" type="as">
+      <default><![CDATA[['<Super>space']]]></default>
+      <summary>Toggle the launcher</summary>
+      <description>Keyboard shortcut that shows or hides the launcher overlay.</description>
+    </key>
+
+    <key name="box-color" type="s">
+      <default>'rgba(30,30,35,0.98)'</default>
+      <summary>Launcher box background color</summary>
+      <description>CSS color used for the launcher box background. Accepts any
+      CSS color string, e.g. '#1e1e23' or 'rgba(30,30,35,0.98)'.</description>
+    </key>
+
+    <key name="enable-apps" type="b">
+      <default>true</default>
+      <summary>Enable application search</summary>
+    </key>
+
+    <key name="enable-calc" type="b">
+      <default>true</default>
+      <summary>Enable the calculator</summary>
+    </key>
+
+    <key name="enable-web" type="b">
+      <default>true</default>
+      <summary>Enable web search shortcuts</summary>
+    </key>
+
+    <key name="enable-system" type="b">
+      <default>true</default>
+      <summary>Enable system actions</summary>
+    </key>
+
+    <key name="max-results" type="i">
+      <default>8</default>
+      <range min="3" max="20"/>
+      <summary>Maximum number of results to show</summary>
+    </key>
+  </schema>
+</schemalist>
+

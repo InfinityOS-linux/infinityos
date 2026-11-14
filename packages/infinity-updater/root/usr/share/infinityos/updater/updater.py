@@ -234,7 +234,7 @@ def main():
             Gtk.StyleContext.add_provider_for_display(
                 Gdk.Display.get_default(), css,
                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-            self.window = Gtk.ApplicationWindow(application=self, title=tr('Infinity OS Updates'))
+            self.window = Gtk.ApplicationWindow(application=self, title=tr('InfinityUpdater'))
             # Keep GTK's shadow surface, but no title bar or window controls.
             self.window.set_decorated(False)
             self.window.connect('close-request', self.on_close_request)
@@ -250,7 +250,7 @@ def main():
 
             hero = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7)
             hero.add_css_class('hero')
-            title = Gtk.Label(label=tr('Infinity OS Updates'), xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER)
+            title = Gtk.Label(label=tr('InfinityUpdater'), xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER)
             title.add_css_class('hero-title')
             hero.append(title)
             subtitle = Gtk.Label(label=tr('System packages · Flatpaks · Device firmware'), xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER)

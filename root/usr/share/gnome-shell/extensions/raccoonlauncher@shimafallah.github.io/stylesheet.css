@@ -1,0 +1,78 @@
+/* Invisible fullscreen click-catcher behind the box. Intentionally fully
+   transparent (no dimmer): it only exists so outside-clicks land on us. */
+.raccoon-backdrop {
+    background-color: transparent;
+}
+
+.raccoon-box {
+    padding: 12px;
+    background-color: rgba(30, 30, 35, 0.98);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 40px 4px rgba(0, 0, 0, 0.5);
+}
+
+.raccoon-entry {
+    font-size: 18px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.raccoon-header {
+    spacing: 8px;
+}
+
+.raccoon-settings-button {
+    padding: 8px;
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.raccoon-settings-button:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+.raccoon-settings-icon {
+    icon-size: 20px;
+}
+
+.raccoon-scroll {
+    margin-top: 8px;
+    max-height: 360px;
+}
+
+.raccoon-results {
+    spacing: 2px;
+}
+
+.raccoon-result {
+    padding: 8px 10px;
+    border-radius: 10px;
+}
+
+.raccoon-result:hover,
+.raccoon-result.selected {
+    background-color: rgba(120, 150, 255, 0.25);
+}
+
+.raccoon-result-box {
+    spacing: 12px;
+}
+
+.raccoon-result-icon {
+    icon-size: 32px;
+}
+
+.raccoon-result-name {
+    font-size: 14px;
+    color: #ffffff;
+}
+
+.raccoon-result-desc {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+}
+

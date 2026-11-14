@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {appendSample, defaultMetrics, formatMetric, moveMetric, resolveMetric} from
+import {appendSample, defaultMetrics, formatMetric, moveMetric, resolveMetric, uniqueMetrics, toggleMetric, dropMetric, Stopwatch, Countdown, networkTotals, networkRate} from
     '../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/monitor-model.mjs';
 
 test('selected GPU identity is preserved across enumeration and disconnection', () => {
@@ -49,6 +49,7 @@ test('monitor cells use GNOME 51 BoxLayout orientation', async () => {
     }
     const prototype = vm.runInNewContext(`${source}\nHardwareMonitor.prototype`, {
         GLib: {get_language_names: () => ['en']}, global: {stage: {}},
+        DND: {makeDraggable: () => ({connect() {}})},
         Clutter: {Orientation: {VERTICAL: 1}, ActorAlign: {START: 0, FILL: 1}},
         St: {BoxLayout: Actor, ScrollView: Actor, Button: Actor, Label: Actor, DrawingArea: Actor,
             PolicyType: {AUTOMATIC: 1, NEVER: 2, EXTERNAL: 3}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}},
@@ -127,7 +128,7 @@ test('sensor menu follows click coordinates and marks displayed, hidden and unse
         GLib: {get_language_names: () => ['en']}, global: {get_pointer: () => [900, 120, 0]},
         PopupMenu: {PopupMenuItem: Item, PopupSubMenuMenuItem: Item, PopupSeparatorMenuItem: Item,
             PopupSwitchMenuItem: Item, Ornament: {CHECK: 'check', DOT: 'dot', NONE: 'none'}},
-        resolveMetric, formatMetric,
+        resolveMetric, formatMetric, uniqueMetrics, toggleMetric, widgetChoices: [],
     });
     const monitor = Object.create(prototype);
     const ram = {id: 'memory:used', label: 'RAM', group: 'System', value: 2, unit: 'GiB'};
@@ -149,4 +150,123 @@ test('sensor menu follows click coordinates and marks displayed, hidden and unse
     assert.equal(monitor._menu.opened, true);
     monitor._openMenu(-1);
     assert.deepEqual(monitor._menuAnchor.position, [900, 120]);
+});
+
+test('selection toggles off aliases and legacy duplicates without losing other devices', () => {
+    const metrics = [{id: 'gpu:a', label: 'GPU Temp A'}, {id: 'gpu:b', label: 'GPU Temp B'}];
+    assert.deepEqual(toggleMetric(['auto:gpu-temp', 'gpu:a', 'gpu:b'], 'gpu:a', metrics), ['gpu:b']);
+    assert.deepEqual(toggleMetric(['gpu:b'], 'gpu:a', metrics), ['gpu:b', 'gpu:a']);
+    assert.deepEqual(uniqueMetrics(['auto:gpu-temp', 'gpu:a', 'gpu:b', 'gpu:b'], metrics), ['auto:gpu-temp', 'gpu:b']);
+    assert.deepEqual(toggleMetric(['widget:weather'], 'widget:weather', []), []);
+});
+
+test('drop inserts before or after target, preserving hidden sensors and widgets', () => {
+    const ids = ['cpu', 'hidden', 'widget:weather', 'ram'];
+    assert.deepEqual(dropMetric(ids, 'ram', 'cpu', false), ['ram', 'cpu', 'hidden', 'widget:weather']);
+    assert.deepEqual(dropMetric(ids, 'cpu', 'widget:weather', true), ['hidden', 'widget:weather', 'cpu', 'ram']);
+    assert.deepEqual(dropMetric(ids, 'cpu', 'cpu', true), ids);
+    assert.deepEqual(dropMetric(ids, 'missing', 'ram', true), ids);
+});
+
+test('stopwatch keeps monotonic elapsed time across hidden intervals, pause and reset', () => {
+    let now = 0;
+    const watch = new Stopwatch(() => now);
+    watch.toggle(); now = 3661;
+    assert.equal(watch.text, '01:01:01');
+    watch.toggle(); now = 4000;
+    assert.equal(watch.text, '01:01:01');
+    watch.toggle(); now += 2;
+    assert.equal(watch.text, '01:01:03');
+    watch.reset();
+    assert.equal(watch.text, '00:00:00');
+    assert.equal(watch.running, false);
+});
+
+test('weather shares Shell settings, handles removal and throttles refreshes', async () => {
+    const {readFileSync} = await import('node:fs');
+    const vm = await import('node:vm');
+    let now = 0, requests = 0, disconnected = false; const alarms = new Map(); const notices = []; let nextAlarm = 0;
+    const client = {available: true, hasLocation: true, loading: false,
+        connect: () => 12, disconnect(id) { disconnected = id === 12; }, update() { requests++; },
+        info: {is_valid: () => true, get_temp: () => '72 °F', get_symbolic_icon_name: () => 'weather-clear-symbolic',
+            get_location: () => ({get_name: () => 'Warsaw'})}};
+    const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/monitor-widgets.js', import.meta.url), 'utf8')
+        .replace(/^import .*;\n/gm, '').replaceAll('export ', '');
+    const Widgets = vm.runInNewContext(`${source}\nMonitorWidgets`, {Stopwatch, Countdown, networkTotals, networkRate,
+        Gio: {Cancellable: class { cancel() {} }},
+        GLib: {get_language_names: () => ['en'], get_monotonic_time: () => now * 1000000,
+            timeout_add_seconds(_priority, _seconds, callback) { alarms.set(++nextAlarm, callback); return nextAlarm; },
+            Source: {remove(id) { alarms.delete(id); }}},
+        Main: {notify: (...args) => notices.push(args), panel: {statusArea: {dateMenu: {_weatherItem: {_weatherClient: client}}}}}});
+    const widgets = new Widgets(() => {});
+    assert.equal(widgets.read('widget:weather').text, '72 °F');
+    assert.equal(widgets.read('widget:weather').detail, 'Warsaw');
+    widgets.refreshWeather(); widgets.refreshWeather();
+    assert.equal(requests, 1);
+    now = 600; widgets.refreshWeather(); assert.equal(requests, 2);
+    client.hasLocation = false;
+    assert.match(widgets.read('widget:weather').detail, /Choose a location/);
+    client.available = false;
+    assert.match(widgets.read('widget:weather').detail, /not installed/);
+    widgets.refreshWeather(); assert.equal(requests, 2);
+    widgets.select(['widget:timer']); widgets.toggleTimer('widget:timer');
+    assert.equal(alarms.size, 1);
+    now += 300; alarms.get(nextAlarm)();
+    assert.equal(notices.length, 1); assert.equal(widgets.timers['widget:timer'].running, false);
+    widgets._battery = {get_cached_property: name => ({deepUnpack: () => ({IsPresent: true, Percentage: 65,
+        State: 2, TimeToEmpty: 5400, IconName: 'battery-good-symbolic'})[name]})};
+    assert.equal(widgets.read('widget:battery').text, '65%');
+    assert.equal(widgets.read('widget:battery').detail, '1h 30m');
+    widgets.destroy(); assert.equal(disconnected, true);
+});
+
+test('countdown pauses and Pomodoro advances through focus and long breaks', () => {
+    let now = 0;
+    const timer = new Countdown(() => now);
+    timer.reset(1); timer.toggle(); now = 30; timer.toggle(); now = 300;
+    assert.equal(timer.text, '0:30');
+    timer.toggle(); now += 30;
+    assert.equal(timer.finish(), 'done'); assert.equal(timer.running, false);
+    assert.equal(timer.finish(), null);
+    const pomodoro = new Countdown(() => now, true);
+    pomodoro.toggle();
+    for (let round = 1; round <= 4; round++) {
+        now += 25 * 60; assert.equal(pomodoro.finish(), 'break');
+        const duration = round === 4 ? 15 * 60 : 5 * 60;
+        assert.equal(pomodoro.seconds, duration);
+        now += duration; assert.equal(pomodoro.finish(), 'work');
+    }
+    pomodoro.reset(); assert.equal(pomodoro.running, false); assert.equal(pomodoro.text, '25:00');
+});
+
+test('network rates exclude loopback and handle counter resets', () => {
+    const line = (name, rx, tx) => `${name}: ${rx} 0 0 0 0 0 0 0 ${tx} 0 0 0 0 0 0 0`;
+    const totals = networkTotals([line('lo', 1000, 1000), line('eth0', 100, 200), line('wlan0', 10, 20)].join('\n'));
+    assert.deepEqual(totals, {rx: 110, tx: 220});
+    assert.deepEqual(networkRate(totals, {rx: 150, tx: 300}, 2), {rx: 20, tx: 40});
+    assert.deepEqual(networkRate(totals, {rx: 0, tx: 0}, 1), {rx: 0, tx: 0});
+    assert.deepEqual(networkRate(null, totals, 1), {rx: 0, tx: 0});
+});
+
+test('drag commits only after DND releases actors, ignores foreign sources', async () => {
+    const {readFileSync} = await import('node:fs');
+    const vm = await import('node:vm');
+    const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/hardware-monitor.js', import.meta.url), 'utf8')
+        .replace(/^import .*;\n/gm, '').replace('export class', 'class');
+    let idle, saved; const signals = {};
+    const prototype = vm.runInNewContext(`${source}\nHardwareMonitor.prototype`, {
+        GLib: {get_language_names: () => ['en'], idle_add(_priority, callback) { idle = callback; return 1; }},
+        DND: {makeDraggable(_actor, options) { assert.equal(options.restoreOnSuccess, false); return {connect(name, cb) { signals[name] = cb; }}; }},
+        dropMetric, uniqueMetrics,
+    });
+    const monitor = Object.assign(Object.create(prototype), {_alive: true, _metrics: [],
+        _settings: {get_strv: () => ['a', 'b'], set_strv(_key, value) { saved = value; }}, _menu: {close() {}}});
+    const cell = {id: 'a', actor: {width: 100}};
+    monitor._enableDrag(cell);
+    assert.equal(cell.actor._delegate.acceptDrop({monitor: {}}, null, 0), false);
+    signals['drag-begin'](); assert.equal(monitor._dragging, true);
+    assert.equal(cell.actor._delegate.acceptDrop({monitor, id: 'b'}, null, 0), true);
+    assert.equal(saved, undefined);
+    signals['drag-end'](); idle();
+    assert.deepEqual(saved, ['b', 'a']); assert.equal(monitor._dragging, false);
 });
