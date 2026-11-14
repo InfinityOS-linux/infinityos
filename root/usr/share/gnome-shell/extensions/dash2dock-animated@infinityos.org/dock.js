@@ -505,6 +505,8 @@ export let Dock = GObject.registerClass(
         iconSize = this.extension._config.icon_size;
       }
 
+      // Keep the dock compact at every user-selected size and display scale.
+      iconSize *= 0.9;
       this._iconSize = iconSize;
       return iconSize;
     }

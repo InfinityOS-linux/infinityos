@@ -17,9 +17,9 @@
  */
 // SPDX-License-Identifier: GPL-3.0-only
 'use strict';
-export var ICON_SIZE = {'tiny': 36, 'small': 48, 'standard': 64, 'large': 96};
-export var ICON_WIDTH = {'tiny': 70, 'small': 90, 'standard': 120, 'large': 130};
-export var ICON_HEIGHT = {'tiny': 80, 'small': 90, 'standard': 106, 'large': 138};
+export var ICON_SIZE = {'tiny': 32, 'small': 44, 'standard': 58, 'large': 86};
+export var ICON_WIDTH = {'tiny': 62, 'small': 78, 'standard': 100, 'large': 116};
+export var ICON_HEIGHT = {'tiny': 72, 'small': 80, 'standard': 92, 'large': 124};
 
 export var START_CORNER = {
     'top-left': [false, false],
