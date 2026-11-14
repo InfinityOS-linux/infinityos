@@ -1,6 +1,7 @@
 import importlib.util
 import ast
 import hashlib
+import subprocess
 from importlib.machinery import SourceFileLoader
 import sys
 import tempfile
@@ -459,6 +460,24 @@ class UpdaterTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertIn(('System packages', 'Downloading', 1, 2), events)
         self.assertIn(('System packages', 'Installing', 2, 2), events)
+
+    def test_system_updates_use_the_existing_authorization_session(self):
+        events = []
+        with patch.object(updater, 'run_privileged', return_value=subprocess.CompletedProcess(
+                ['/usr/libexec/infinityos-upgrade-system'], 0, 'Installing 1/1', '')) as privileged:
+            result = updater.apply_command('System packages',
+                ['pkexec', '/usr/libexec/infinityos-upgrade-system'], lambda *event: events.append(event))
+        self.assertEqual(result.returncode, 0)
+        privileged.assert_called_once()
+        self.assertEqual(privileged.call_args.args[0], ['/usr/libexec/infinityos-upgrade-system'])
+
+    def test_setup_updates_run_in_process_to_share_authorization(self):
+        with patch.object(updater, 'install_github_update') as install:
+            result = updater.apply_command('PhotoCraft',
+                ['python3', '/usr/share/infinityos/updater/github_update.py', 'storytold/photocraft'],
+                lambda *_event: None)
+        self.assertEqual(result.returncode, 0)
+        install.assert_called_once_with('storytold/photocraft')
 
 
 class RestartActionTests(unittest.TestCase):

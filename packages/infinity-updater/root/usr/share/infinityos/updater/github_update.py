@@ -11,7 +11,7 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from launcher_backend import (APPS, _latest_rpm, appimage_paths, available, install,
-                              installed, latest_appimage_asset, latest_rpm_asset)
+                              installed, latest_appimage_asset, latest_rpm_asset, run_privileged)
 
 
 def _installed():
@@ -91,7 +91,7 @@ def install_github_update(source, home=None):
     current_version = _installed().get(package)
     if current_version is None:
         raise ValueError(f'{app.name} is no longer installed.')
-    with tempfile.TemporaryDirectory(prefix='infinity-updater-rpm-') as directory:
+    with tempfile.TemporaryDirectory(prefix='infinity-updater-rpm-', dir='/tmp') as directory:
         path = _latest_rpm(app, os.uname().machine, directory)
         result = subprocess.run(['rpm', '-qp', '--qf', '%{NAME}|%{VERSION}|%{RELEASE}|%{ARCH}',
                                  str(path)], capture_output=True, text=True, check=True, timeout=30)
@@ -100,8 +100,13 @@ def install_github_update(source, home=None):
             raise ValueError('Downloaded RPM identity or architecture did not match the installed app.')
         if not _newer(f'{version}-{release}', current_version):
             raise ValueError('Downloaded RPM is not newer than the installed app.')
-        subprocess.run(['pkexec', '/usr/libexec/infinityos-upgrade-system', '--local-rpm',
-                        str(path)], check=True)
+        command = ['/usr/libexec/infinityos-upgrade-system', '--local-rpm', str(path)]
+        result = run_privileged(command)
+        if result is None:
+            subprocess.run(['pkexec', *command], check=True)
+        elif result.returncode:
+            raise subprocess.CalledProcessError(result.returncode, command,
+                                                output=result.stdout, stderr=result.stderr)
 
 
 if __name__ == '__main__':

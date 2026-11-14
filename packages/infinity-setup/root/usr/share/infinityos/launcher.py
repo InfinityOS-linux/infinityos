@@ -13,7 +13,7 @@ gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib, Gtk
 
 from launcher_backend import (APPS, CRAFT_SUITE, active_local_model, configured_apps, available, deactivate_local_model,
-                              install, progress_reporting, installed, installed_flatpaks, catalog_state, selected_ai, downloaded_local_models,
+                              install, progress_reporting, privileged_transaction, installed, installed_flatpaks, catalog_state, selected_ai, downloaded_local_models,
                               open_lutris_installer, removable, uninstall)
 from launcher_i18n import tr
 from launcher_tv import enabled as tv_enabled, set_enabled as set_tv_enabled, launch_steam
@@ -667,7 +667,7 @@ class InfinitySetup(Gtk.Application):
     def _install(self, changes, tv_changes):
         def report(line):
             GLib.idle_add(self.status.set_text, self.operation_label + "\n" + line)
-        with progress_reporting(report):
+        with progress_reporting(report), privileged_transaction():
             self._install_work(changes, tv_changes)
 
     def _install_work(self, changes, tv_changes):

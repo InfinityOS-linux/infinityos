@@ -1,11 +1,17 @@
 import sys
 import threading
+import subprocess
+from pathlib import Path
 from history import read_history, record_operation
 from datetime import datetime
 
 from checker import check_updates, read_state, save_state, offline_status, state_path, refresh_state
 from i18n import tr, update_count
 from progress import run_update_command
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from launcher_backend import privileged_transaction, progress_reporting, run_privileged
+from github_update import install_github_update
 
 
 EXTENSION_RPMS = {'infinityos-shell-extensions', 'infinity-terminal', 'infinity-updater'}
@@ -156,6 +162,18 @@ def install_commands(updates):
         commands.append(('Device firmware', ['pkexec', '/usr/bin/fwupdmgr', 'update',
                                              '--assume-yes', '--no-reboot-check']))
     return commands
+
+
+def apply_command(label, args, report):
+    if args[:2] == ['python3', '/usr/share/infinityos/updater/github_update.py']:
+        try:
+            report(label, 'Preparing', None, None)
+            with progress_reporting(lambda line: report(label, line[-100:], None, None)):
+                install_github_update(args[2])
+            return subprocess.CompletedProcess(args, 0, '', '')
+        except Exception as error:
+            return subprocess.CompletedProcess(args, 1, '', str(error))
+    return run_update_command(label, args, report, privileged=run_privileged)
 
 
 def main():
@@ -673,26 +691,27 @@ def main():
             def work():
                 errors = []
                 firmware_updated = False
-                for label, args in commands:
-                    result = run_update_command(label, args, self.report_progress)
-                    try:
-                        record_operation(label, 'Failed' if result.returncode else
-                                         'Downloaded; restart required' if offline_status().get('pending') and
-                                         any('infinityos-upgrade-system' in arg for arg in args) else 'Completed',
-                                         (result.stderr.strip() or result.stdout.strip()) if result.returncode else
-                                         ', '.join(item.get('name', '') for item in updates
-                                                   if item['kind'] == {'System packages': 'RPM',
-                                                       'System Flatpaks': 'Flatpak system',
-                                                       'Your Flatpaks': 'Flatpak user',
-                                                       'Device firmware': 'Firmware'}.get(label)
-                                                   or item.get('name') == label))
-                    except OSError as error:
-                        errors.append('History: ' + str(error))
-                    if result.returncode:
-                        errors.append(label + ': ' + (result.stderr.strip() or
-                                                      result.stdout.strip() or 'Update failed'))
-                    elif label == 'Device firmware':
-                        firmware_updated = True
+                with privileged_transaction():
+                    for label, args in commands:
+                        result = apply_command(label, args, self.report_progress)
+                        try:
+                            record_operation(label, 'Failed' if result.returncode else
+                                             'Downloaded; restart required' if offline_status().get('pending') and
+                                             any('infinityos-upgrade-system' in arg for arg in args) else 'Completed',
+                                             (result.stderr.strip() or result.stdout.strip()) if result.returncode else
+                                             ', '.join(item.get('name', '') for item in updates
+                                                       if item['kind'] == {'System packages': 'RPM',
+                                                           'System Flatpaks': 'Flatpak system',
+                                                           'Your Flatpaks': 'Flatpak user',
+                                                           'Device firmware': 'Firmware'}.get(label)
+                                                       or item.get('name') == label))
+                        except OSError as error:
+                            errors.append('History: ' + str(error))
+                        if result.returncode:
+                            errors.append(label + ': ' + (result.stderr.strip() or
+                                                          result.stdout.strip() or 'Update failed'))
+                        elif label == 'Device firmware':
+                            firmware_updated = True
                 prepared = offline_status().get('pending', False)
                 self.report_progress('Remaining updates', 'Checking', None, None)
                 try:

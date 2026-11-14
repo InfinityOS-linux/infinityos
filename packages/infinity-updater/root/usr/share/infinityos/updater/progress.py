@@ -40,9 +40,13 @@ class UpdateProgress:
             self.report(self.label, *state)
 
 
-def run_update_command(label, args, report):
+def run_update_command(label, args, report, privileged=None):
     progress = UpdateProgress(label, report)
     progress.report(label, progress.phase, None, None)
+    if privileged is not None and args[0] == 'pkexec':
+        result = privileged(args[1:], progress.feed)
+        if result is not None:
+            return subprocess.CompletedProcess(args, result.returncode, result.stdout, result.stderr)
     output = []
     try:
         with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,

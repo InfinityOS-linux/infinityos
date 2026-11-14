@@ -1,5 +1,5 @@
 Name:           infinity-updater
-Version:        1.1.0
+Version:        1.1.1
 Release:        %{?infinity_release}%{!?infinity_release:1}%{?dist}
 Summary:        Infinity OS update indicator and package updater
 License:        GPL-3.0-or-later
@@ -16,7 +16,7 @@ Requires:       snapper
 Requires:       gnupg2
 Requires:       infinityos-repos >= 1.0.0
 Requires:       infinityos-shell-extensions >= 1.0.0
-Requires:       infinity-setup >= 1.0.0
+Requires:       infinity-setup >= 1.0.1
 Requires:       python3-rpm
 Requires:       dracut
 
@@ -72,6 +72,9 @@ fi
 /usr/lib/systemd/user/infinity-updater.timer
 
 %changelog
+* Sat Nov 14 2026 Infinity OS Contributors <noreply@infinityos.eu> - 1.1.1-1
+- Apply selected updates in one authorization session
+
 * Tue Oct 20 2026 Infinity OS Contributors <noreply@infinityos.eu> - 1.1.0-1
 - Detect signed Infinity OS releases and upgrade after current RPMs are installed
 

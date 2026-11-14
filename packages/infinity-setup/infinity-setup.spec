@@ -1,5 +1,5 @@
 Name:           infinity-setup
-Version:        1.0.0
+Version:        1.0.1
 Release:        %{?infinity_release}%{!?infinity_release:1}%{?dist}
 Summary:        Infinity OS welcome and application chooser
 License:        GPL-3.0-or-later
@@ -95,6 +95,7 @@ fi
 /usr/share/infinityos/efi-drivers/aa64/UsbXbox360Dxe.efi
 /usr/share/infinityos/efi-drivers/config.ini
 /usr/libexec/infinityos-tv-control
+/usr/libexec/infinityos-install-session
 /usr/libexec/infinityos-tv-enter
 /usr/libexec/infinityos-tv-run
 /usr/libexec/infinityos-tv-steam-splash
@@ -106,6 +107,7 @@ fi
 /usr/lib/systemd/system/infinityos-tv@.service
 /usr/lib/systemd/system/infinityos-tv@.target
 /usr/share/polkit-1/actions/org.infinityos.tv-modes.policy
+/usr/share/polkit-1/actions/org.infinityos.install-session.policy
 /usr/share/polkit-1/actions/org.infinityos.tv-enter.policy
 /usr/share/icons/hicolor/512x512/apps/infinity-setup.png
 /usr/share/infinityos/launcher.desktop
@@ -118,5 +120,8 @@ fi
 /etc/xdg/autostart/infinity-setup.desktop
 
 %changelog
+* Sat Nov 14 2026 Infinity OS Contributors <noreply@infinityos.eu> - 1.0.1-1
+- Keep one authorization session for selected installations and TV modes
+
 * Mon Oct 12 2026 Infinity OS Contributors <noreply@gitlab.com> - 1.0.0-1
 - Initial package

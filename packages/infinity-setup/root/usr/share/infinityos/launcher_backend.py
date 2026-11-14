@@ -359,6 +359,80 @@ def catalog_state(home=None):
 
 
 _progress_reporter = ContextVar('infinity_install_progress', default=None)
+_privileged_session = ContextVar('infinity_privileged_session', default=None)
+
+
+class PrivilegedSession:
+    def __init__(self):
+        self.process = None
+        self.failure = None
+
+    def run(self, command, report=None):
+        if self.failure:
+            return subprocess.CompletedProcess(command, 1, '', self.failure)
+        if self.process is None:
+            try:
+                self.process = subprocess.Popen(
+                    ['pkexec', '/usr/libexec/infinityos-install-session'],
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    text=True, encoding='utf-8', errors='replace', bufsize=1)
+                ready = self.process.stdout.readline()
+                if not ready:
+                    raise RuntimeError('Authorization was cancelled or failed.')
+                if json.loads(ready) != {'ready': True}:
+                    raise RuntimeError('Could not authorize the installation.')
+            except (OSError, ValueError, RuntimeError) as error:
+                self.failure = str(error) or 'Could not authorize the installation.'
+                return subprocess.CompletedProcess(command, 1, '', self.failure)
+        try:
+            self.process.stdin.write(json.dumps(command) + '\n')
+            self.process.stdin.flush()
+            output = ''
+            while line := self.process.stdout.readline():
+                response = json.loads(line)
+                if 'output' in response:
+                    clean = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", '', response['output'])
+                    clean = ''.join(char for char in clean if char.isprintable() or char in '\n\t').strip()
+                    if clean:
+                        output = (output + '\n' + clean)[-2000:]
+                        if report:
+                            report(clean[-200:])
+                elif 'returncode' in response:
+                    return subprocess.CompletedProcess(command, response['returncode'], output.strip(), '')
+                elif 'error' in response:
+                    return subprocess.CompletedProcess(command, 1, output.strip(), response['error'])
+            raise RuntimeError('Authorized installer stopped unexpectedly.')
+        except (OSError, ValueError, RuntimeError) as error:
+            self.failure = str(error)
+            return subprocess.CompletedProcess(command, 1, '', self.failure)
+
+    def close(self):
+        if self.process is not None:
+            try:
+                self.process.stdin.close()
+            except OSError:
+                pass
+            try:
+                self.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+                self.process.wait()
+
+
+@contextmanager
+def privileged_transaction():
+    session = PrivilegedSession()
+    token = _privileged_session.set(session)
+    try:
+        yield
+    finally:
+        _privileged_session.reset(token)
+        session.close()
+
+
+def run_privileged(command, report=None):
+    session = _privileged_session.get()
+    return session.run(command, report) if session is not None else None
 
 
 @contextmanager
@@ -372,6 +446,14 @@ def progress_reporting(callback):
 
 def _run(command):
     reporter = _progress_reporter.get()
+    if command[0] == 'pkexec' and (result := run_privileged(command[1:], reporter)) is not None:
+        if result.returncode:
+            output = (result.stderr or result.stdout).strip()
+            if 'EAI_AGAIN' in output:
+                raise RuntimeError('Could not resolve the package server. Check your internet connection, then press APPLY to retry.')
+            raise RuntimeError(output or
+                               f'Command failed with exit code {result.returncode}.')
+        return
     if reporter is not None:
         output = ''
         with subprocess.Popen(command, text=True, stdout=subprocess.PIPE,
@@ -696,11 +778,11 @@ def install(app, home=None, *, defer_system_dependencies=False):
               "https://dl.flathub.org/repo/flathub.flatpakrepo"])
         _run(["flatpak", "install", "--user", "--noninteractive", "--assumeyes", "flathub", app.source])
     elif app.kind == "github-rpm":
-        with tempfile.TemporaryDirectory(prefix="infinity-setup-") as directory:
+        with tempfile.TemporaryDirectory(prefix="infinity-setup-", dir="/tmp") as directory:
             package = _latest_rpm(app, os.uname().machine, directory)
             _run(["pkexec", "dnf", "-y", "install", str(package)])
     elif app.kind == "winboat-rpm":
-        with tempfile.TemporaryDirectory(prefix="infinity-setup-") as directory:
+        with tempfile.TemporaryDirectory(prefix="infinity-setup-", dir="/tmp") as directory:
             package = _latest_rpm(app, os.uname().machine, directory)
             _run(["pkexec", "dnf", "-y", "install", "podman", "podman-compose",
                   "freerdp", str(package)])
@@ -970,7 +1052,7 @@ def _install_local_model(app, home):
             raise RuntimeError(f"At least {model.disk_gb} GB of free disk space is required.")
         # Fedora's Ollama can predate newly released GGUF architectures. The
         # upstream installer provides the runtime that understands these models.
-        with tempfile.TemporaryDirectory(prefix="infinity-ollama-") as directory:
+        with tempfile.TemporaryDirectory(prefix="infinity-ollama-", dir="/tmp") as directory:
             script = Path(directory) / "install.sh"
             with urllib.request.urlopen("https://ollama.com/install.sh", timeout=30) as response:
                 script.write_bytes(response.read())
