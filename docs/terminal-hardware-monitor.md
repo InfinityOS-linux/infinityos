@@ -37,3 +37,5 @@ Add widget offers Stopwatch, Weather, Timer, Pomodoro, Network, Battery and Worl
 Timer durations are selectable in the tile menu. Pomodoro alternates 25-minute focus and 5-minute breaks, with a 15-minute break after four focus rounds. Both support pause/reset and notify when their deadline expires even with the terminal hidden; removing the widget cancels it. Timer state lasts for the Shell session.
 
 Network shows aggregate receive/transmit bytes per second across non-loopback interfaces from /proc/net/dev (virtual interfaces can count forwarded traffic too). Battery reads UPower's DisplayDevice and uses its time-to-empty/time-to-full estimate, showing an unavailable state rather than guessing on desktops. World clock has a quick time-zone menu and a validated custom IANA zone field in preferences. Clock units and dates use GLib local conventions.
+
+Network baselines reset when the terminal is hidden, so reopening never averages traffic across the hidden interval. Hardware sampling stops after initial discovery if only widgets are selected. Weather-only strips refresh their display at most once per minute; data requests remain limited to ten minutes.

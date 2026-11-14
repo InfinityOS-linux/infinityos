@@ -88,6 +88,7 @@ export class MonitorWidgets {
 
     select(ids) {
         this._selected = new Set(ids);
+        if (!this._selected.has('widget:network')) this.pauseNetwork();
         for (const id of Object.keys(this.timers)) {
             if (!this._selected.has(id)) { this.timers[id].reset(); this._schedule(id); }
         }
@@ -106,14 +107,22 @@ export class MonitorWidgets {
         }
     }
 
+    pauseNetwork() {
+        this._networkGeneration = (this._networkGeneration ?? 0) + 1;
+        this._networkTotals = null;
+        this._networkTime = undefined;
+        this._rate = null;
+    }
+
     refreshNetwork() {
         if (!this._selected.has('widget:network') || this._networkPending) return;
         const now = GLib.get_monotonic_time() / 1000000;
         if (this._networkTime !== undefined && now - this._networkTime < 1) return;
         this._networkPending = true;
+        const generation = this._networkGeneration ?? 0;
         Gio.File.new_for_path('/proc/net/dev').load_contents_async(this._cancel, (file, result) => {
             this._networkPending = false;
-            if (!this._alive) return;
+            if (!this._alive || generation !== (this._networkGeneration ?? 0)) return;
             try {
                 const [ok, bytes] = file.load_contents_finish(result);
                 if (!ok) return;

@@ -5,6 +5,7 @@ import St from 'gi://St';
 export class CalcProvider {
     query(text) {
         const expr = text.trim();
+        if (expr.length > 2048) return [];
 
         // Must look like a math expression: only safe characters,
         // and contain at least one operator and one digit.
@@ -39,7 +40,7 @@ export class CalcProvider {
 
 function formatNumber(n) {
     // Trim floating-point noise like 0.30000000000000004.
-    return String(Math.round(n * 1e10) / 1e10);
+    return String(Number(n.toPrecision(12)));
 }
 
 // Grammar (exponent binds tighter than unary minus, so -2^2 = -4):
@@ -112,9 +113,9 @@ function evaluate(input) {
         let num = '';
         while (pos < s.length && /[0-9.]/.test(s[pos]))
             num += s[pos++];
-        if (num === '')
+        if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(num))
             throw new Error('expected number');
-        return parseFloat(num);
+        return Number(num);
     }
 
     const result = parseExpr();

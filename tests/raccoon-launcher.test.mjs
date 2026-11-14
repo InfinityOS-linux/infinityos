@@ -46,3 +46,16 @@ test('GNOME 51 launcher constructs, toggles and releases modal focus on Escape',
     assert.equal(grabs, releases);
     overlay.destroy();
 });
+
+test('calculator rejects malformed decimals and preserves tiny and huge finite results', () => {
+    const source = readFileSync(new URL('../root/usr/share/gnome-shell/extensions/raccoonlauncher@shimafallah.github.io/lib/providers/calc.js', import.meta.url), 'utf8')
+        .replace(/^import .*;\n/gm, '').replace('export class', 'class');
+    const Calc = vm.runInNewContext(`${source}\nCalcProvider`, {});
+    const calc = new Calc();
+    assert.equal(calc.query('1.2.3+4').length, 0);
+    assert.equal(calc.query('..1+4').length, 0);
+    assert.equal(calc.query('1/0').length, 0);
+    assert.equal(calc.query('10^-12')[0].name, '1e-12');
+    assert.equal(calc.query('10^308')[0].name, '1e+308');
+    assert.equal(calc.query('0.1+0.2')[0].name, '0.3');
+});

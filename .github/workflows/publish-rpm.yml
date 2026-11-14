@@ -2,7 +2,7 @@ name: Publish Infinity OS RPM repository
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'review/**']
   pull_request:
   workflow_dispatch:
 
@@ -41,6 +41,24 @@ jobs:
           docker run --rm --privileged -v "$PWD:/work:ro" -w /work fedora:45 sh -ec '
             dnf -qy install python3 btrfs-progs snapper rpm-build dnf5 util-linux rsync dosfstools findutils
             bash tests/test_recovery_btrfs.sh
+          '
+
+  verify-shell:
+    name: Verify native GNOME 51 extensions
+    runs-on: ubuntu-24.04
+    needs: verify-source
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Exercise Shell widgets, launchers and updater in a disposable session
+        run: |
+          docker run --rm --privileged -v "$PWD:/work:ro" -w /work fedora:45 bash -euc '
+            cp root/usr/share/infinityos/repos/rounded-blur.repo /etc/yum.repos.d/
+            cp root/etc/pki/rpm-gpg/RPM-GPG-KEY-ublue-os-packages /etc/pki/rpm-gpg/
+            dnf -qy install gnome-shell gnome-session gnome-weather gnome-rounded-blur mesa-dri-drivers dbus-daemon python3
+            mkdir -p /run/dbus
+            dbus-daemon --system --fork
+            bash tests/run_shell_smoke.sh
           '
 
   build-noarch:
@@ -142,7 +160,7 @@ jobs:
     name: Sign RPMs and prepare Pages
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    needs: [verify-fedora, build-noarch, build-terminal, build-gamescope]
+    needs: [verify-fedora, verify-shell, build-noarch, build-terminal, build-gamescope]
     permissions:
       contents: write
       actions: read

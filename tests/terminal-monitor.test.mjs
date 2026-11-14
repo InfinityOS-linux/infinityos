@@ -270,3 +270,22 @@ test('drag commits only after DND releases actors, ignores foreign sources', asy
     signals['drag-end'](); idle();
     assert.deepEqual(saved, ['b', 'a']); assert.equal(monitor._dragging, false);
 });
+
+test('network resume discards stale in-flight samples and starts a fresh baseline', async () => {
+    const {readFileSync} = await import('node:fs');
+    const vm = await import('node:vm');
+    let now = 0, callback, refreshes = 0;
+    const file = {load_contents_async(_cancel, cb) { callback = cb; },
+        load_contents_finish: () => [true, new TextEncoder().encode('eth0: 100 0 0 0 0 0 0 0 200 0 0 0 0 0 0 0')]};
+    const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/monitor-widgets.js', import.meta.url), 'utf8')
+        .replace(/^import .*;\n/gm, '').replaceAll('export ', '');
+    const Widgets = vm.runInNewContext(`${source}\nMonitorWidgets`, {Stopwatch, Countdown, networkTotals, networkRate, TextDecoder,
+        GLib: {get_language_names: () => ['en'], get_monotonic_time: () => now * 1000000},
+        Gio: {Cancellable: class {}, File: {new_for_path: () => file}}, Main: {panel: {statusArea: {}}}});
+    const widgets = new Widgets(() => refreshes++, {});
+    widgets.select(['widget:network']); widgets.refreshNetwork();
+    widgets.pauseNetwork(); now = 3600; callback(file, {});
+    assert.equal(refreshes, 0); assert.equal(widgets._rate, null);
+    widgets.refreshNetwork(); callback(file, {});
+    assert.equal(widgets._rate.rx, 0); assert.equal(widgets._rate.tx, 0);
+});

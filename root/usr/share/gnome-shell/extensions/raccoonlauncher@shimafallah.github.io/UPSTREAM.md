@@ -7,3 +7,5 @@ and Super+Space as the default shortcut. The system moves the conflicting
 input-source shortcut to Super+Alt+Space. Existing unrelated keybindings remain.
 Runtime sources, preferences, schema, stylesheet and SVG are bundled here;
 installation does not download code from extensions.gnome.org.
+
+Reviewed calculator fixes reject malformed decimals and preserve finite very small/large results.

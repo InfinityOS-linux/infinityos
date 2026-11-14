@@ -113,17 +113,20 @@ export class HardwareMonitor {
         if (this._widgetTimer) GLib.Source.remove(this._widgetTimer);
         this._widgetTimer = 0;
         if (!this.actor.visible) {
+            this._widgets?.pauseNetwork();
             this._process?.force_exit();
             return;
         }
         this._updateWidgets();
         if (this._cells.some(cell => cell.id.startsWith('widget:'))) {
-            this._widgetTimer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
+            const ticking = this._cells.some(cell => ['widget:stopwatch', 'widget:timer', 'widget:pomodoro', 'widget:clock', 'widget:network'].includes(cell.id));
+            this._widgetTimer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, ticking ? 1 : 60, () => {
                 this._updateWidgets();
                 return GLib.SOURCE_CONTINUE;
             });
         }
         this._sample();
+        if (!this._cells.some(cell => !cell.id.startsWith('widget:'))) return;
         this._timer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT,
             this._settings.get_int('monitor-interval'), () => {
                 this._sample();
