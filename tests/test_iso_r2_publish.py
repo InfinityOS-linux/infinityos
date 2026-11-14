@@ -32,6 +32,11 @@ class R2PublishTests(unittest.TestCase):
             calls = []
             def run(command, **kwargs):
                 calls.append(command)
+                if 'list-objects-v2' in command:
+                    return SimpleNamespace(stdout=json.dumps([
+                        f'releases/{"c" * 40}/old.iso',
+                        f'releases/{REVISION}/current.iso',
+                        'releases/unrelated/file.iso']))
                 if 'head-object' in command:
                     path = next(p for p in paths if command[-1].endswith(p.name))
                     return SimpleNamespace(stdout=json.dumps({'ContentLength': path.stat().st_size,
@@ -39,7 +44,11 @@ class R2PublishTests(unittest.TestCase):
                 return SimpleNamespace(stdout='')
             with patch.object(publisher.subprocess, 'run', side_effect=run):
                 publisher.publish(directory, REVISION)
-            self.assertIn('s3://infinityos-releases/latest.json', calls[-1])
+            promoted = next(i for i, call in enumerate(calls) if 's3://infinityos-releases/latest.json' in call)
+            deleted = [call for call in calls if 'delete-object' in call]
+            self.assertEqual(len(deleted), 1)
+            self.assertIn(f'releases/{"c" * 40}/old.iso', deleted[0])
+            self.assertGreater(calls.index(deleted[0]), promoted)
             manifest = json.loads((Path(directory) / 'latest.json').read_text())
             self.assertEqual(set(manifest['images']), {'arm', 'x64'})
             for image in manifest['images'].values():

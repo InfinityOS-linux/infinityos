@@ -72,6 +72,12 @@ def publish(directory, revision):
     # A failed upload leaves the previous complete release available.
     aws("s3", "cp", str(manifest), f"s3://{bucket}/latest.json", "--only-show-errors",
         "--content-type", "application/json", "--cache-control", "no-store")
+    previous = json.loads(aws("s3api", "list-objects-v2", "--bucket", bucket,
+                              "--prefix", "releases/", "--query", "Contents[].Key"))
+    for key in previous or []:
+        parts = key.split("/")
+        if len(parts) == 3 and re.fullmatch(r"[0-9a-f]{40}", parts[1]) and parts[1] != revision:
+            aws("s3api", "delete-object", "--bucket", bucket, "--key", key)
     print(f"Published both architectures: {public}/latest.json")
 
 
