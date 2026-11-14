@@ -2,6 +2,7 @@
 """Choose an RPM Fusion NVIDIA branch for the installed Infinity OS system."""
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -56,6 +57,40 @@ def dnf(sysroot, *arguments):
     return subprocess.run(command, check=False).returncode == 0
 
 
+def prepare_boot(sysroot):
+    """Finish modules and the rEFInd initramfs before declaring success."""
+    kernels = sorted(path.parent.name for path in
+                     (sysroot / "usr/lib/modules").glob("*/vmlinuz"))
+    if not kernels:
+        print("No installed target kernel found", flush=True)
+        return False
+    try:
+        for version in kernels:
+            # The live kernel may differ from the installed kernel.
+            if not (sysroot / f"usr/src/kernels/{version}/Makefile").is_file():
+                if not dnf(sysroot, "install", f"kernel-devel-{version}"):
+                    return False
+            def run(*args):
+                subprocess.run(["chroot", str(sysroot), *args], check=True)
+            run("akmods", "--force", "--kernels", version)
+            run("depmod", "-a", version)
+            for module in ("nvidia", "nvidia_modeset", "nvidia_uvm", "nvidia_drm"):
+                run("modinfo", "-k", version, module)
+            run("dracut", "--force", "--no-hostonly", "--no-hostonly-cmdline",
+                "--force-drivers", "nvidia nvidia_modeset nvidia_uvm nvidia_drm",
+                "--omit-drivers", "nouveau", f"/boot/initramfs-{version}.img", version)
+            # rEFInd boots the ESP copy, not the image in /boot.
+            esp_image = sysroot / f"boot/efi/os/initramfs-{version}.img"
+            if esp_image.exists():
+                temporary = esp_image.with_name("." + esp_image.name + ".tmp")
+                shutil.copyfile(sysroot / f"boot/initramfs-{version}.img", temporary)
+                temporary.replace(esp_image)
+    except (OSError, subprocess.CalledProcessError) as error:
+        print(f"NVIDIA boot preparation failed: {error}", flush=True)
+        return False
+    return True
+
+
 def configure(sysroot, sysfs=Path("/sys/bus/pci/devices"), catalog_path=CATALOG):
     sysroot = Path(sysroot)
     cards = detected_cards(sysfs)
@@ -64,8 +99,8 @@ def configure(sysroot, sysfs=Path("/sys/bus/pci/devices"), catalog_path=CATALOG)
     print(f"NVIDIA cards: {cards}; selected driver: {branch}", flush=True)
 
     marker = sysroot / MARKER
-    if marker.exists() and marker.read_text(encoding="utf-8").strip() == branch:
-        return True
+    # Old markers only confirmed RPM installation, not a bootable driver.
+    marker.unlink(missing_ok=True)
 
     if branch in ("none", "unsupported"):
         installed_current = [package for package in CURRENT if installed(sysroot, package)]
@@ -85,6 +120,9 @@ def configure(sysroot, sysfs=Path("/sys/bus/pci/devices"), catalog_path=CATALOG)
                     if installed_current:
                         dnf(sysroot, "remove", *installed_current)
                 return False
+
+    if branch not in ("none", "unsupported") and not prepare_boot(sysroot):
+        return False
 
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text(branch + "\n", encoding="utf-8")
