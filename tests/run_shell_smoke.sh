@@ -26,6 +26,8 @@ if grep -n 'const animateUp' "$XDG_DATA_HOME/gnome-shell/extensions/nowplay@Lala
 fi
 export SMOKE_LOG="$sandbox/shell.log"
 dbus-run-session -- bash -euo pipefail -c '
+    # Test vendored code, never replace it with extensions.gnome.org downloads.
+    gsettings set org.gnome.shell allow-extension-installation false
     gsettings set org.gnome.shell disable-user-extensions false
     gsettings set org.gnome.shell enabled-extensions "[\"infinity-smoke@test\"]"
     gnome-shell --headless --virtual-monitor 1280x800 >"$SMOKE_LOG" 2>&1 &
