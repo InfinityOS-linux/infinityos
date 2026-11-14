@@ -8,20 +8,22 @@ cleanup() {
 }
 trap cleanup EXIT
 export XDG_DATA_HOME="$sandbox/data" XDG_CONFIG_HOME="$sandbox/config" XDG_CACHE_HOME="$sandbox/cache"
+export XDG_DATA_DIRS="$sandbox/system:/usr/local/share:/usr/share"
+export SMOKE_EXTENSIONS="$sandbox/system/gnome-shell/extensions"
 export XDG_RUNTIME_DIR="$sandbox/run" LIBGL_ALWAYS_SOFTWARE=1
-mkdir -p "$XDG_DATA_HOME/gnome-shell/extensions" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_RUNTIME_DIR"
+mkdir -p "$SMOKE_EXTENSIONS" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_RUNTIME_DIR"
 chmod 700 "$XDG_RUNTIME_DIR"
 for uuid in nowplay@LalaloyXyz raccoonlauncher@shimafallah.github.io dash2dock-animated@infinityos.org; do
-    cp -a "$repo/root/usr/share/gnome-shell/extensions/$uuid" "$XDG_DATA_HOME/gnome-shell/extensions/"
+    cp -a "$repo/root/usr/share/gnome-shell/extensions/$uuid" "$SMOKE_EXTENSIONS/"
 done
 for package in infinity-terminal infinity-updater; do
-    cp -a "$repo/packages/$package/root/usr/share/gnome-shell/extensions/." "$XDG_DATA_HOME/gnome-shell/extensions/"
+    cp -a "$repo/packages/$package/root/usr/share/gnome-shell/extensions/." "$SMOKE_EXTENSIONS/"
 done
-cp -a "$repo/tests/shell-smoke" "$XDG_DATA_HOME/gnome-shell/extensions/infinity-smoke@test"
-for schemas in "$XDG_DATA_HOME"/gnome-shell/extensions/*/schemas; do glib-compile-schemas --strict "$schemas"; done
-cmp "$repo/root/usr/share/gnome-shell/extensions/nowplay@LalaloyXyz/ui.js" "$XDG_DATA_HOME/gnome-shell/extensions/nowplay@LalaloyXyz/ui.js"
-sha256sum "$XDG_DATA_HOME/gnome-shell/extensions/nowplay@LalaloyXyz/ui.js"
-if grep -n 'const animateUp' "$XDG_DATA_HOME/gnome-shell/extensions/nowplay@LalaloyXyz/ui.js"; then
+cp -a "$repo/tests/shell-smoke" "$SMOKE_EXTENSIONS/infinity-smoke@test"
+for schemas in "$SMOKE_EXTENSIONS"/*/schemas; do glib-compile-schemas --strict "$schemas"; done
+cmp "$repo/root/usr/share/gnome-shell/extensions/nowplay@LalaloyXyz/ui.js" "$SMOKE_EXTENSIONS/nowplay@LalaloyXyz/ui.js"
+sha256sum "$SMOKE_EXTENSIONS/nowplay@LalaloyXyz/ui.js"
+if grep -n 'const animateUp' "$SMOKE_EXTENSIONS/nowplay@LalaloyXyz/ui.js"; then
     echo 'Obsolete recursive equalizer implementation'; exit 1
 fi
 export SMOKE_LOG="$sandbox/shell.log"
