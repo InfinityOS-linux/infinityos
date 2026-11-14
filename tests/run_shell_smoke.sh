@@ -2,7 +2,11 @@
 set -euo pipefail
 repo=$(cd "$(dirname "$0")/.." && pwd)
 sandbox=$(mktemp -d)
-trap 'rm -rf "$sandbox"' EXIT
+cleanup() {
+    if mountpoint -q "$sandbox/run/doc"; then umount -l "$sandbox/run/doc"; fi
+    rm -rf "$sandbox"
+}
+trap cleanup EXIT
 export XDG_DATA_HOME="$sandbox/data" XDG_CONFIG_HOME="$sandbox/config" XDG_CACHE_HOME="$sandbox/cache"
 export XDG_RUNTIME_DIR="$sandbox/run" LIBGL_ALWAYS_SOFTWARE=1
 mkdir -p "$XDG_DATA_HOME/gnome-shell/extensions" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_RUNTIME_DIR"

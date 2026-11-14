@@ -1090,30 +1090,16 @@ export class DinamicUi {
         if (isPlaying) {
             this._eqActive = true;
             bars.forEach((bar, i) => {
-                const animateUp = () => {
-                    if (!this._eqActive || !bar.mapped || !St.Settings.get().enable_animations) return;
-                    bar.ease({
-                        scale_y: highScales[i],
-                        duration: barSpeeds[i],
-                        mode: Clutter.AnimationMode.EASE_IN_OUT_SINE,
-                        onComplete: () => animateDown(),
-                    });
-                };
-                const animateDown = () => {
-                    if (!this._eqActive || !bar.mapped || !St.Settings.get().enable_animations) return;
-                    bar.ease({
-                        scale_y: lowScales[i],
-                        duration: barSpeeds[i],
-                        mode: Clutter.AnimationMode.EASE_IN_OUT_SINE,
-                        onComplete: () => animateUp(),
-                    });
-                };
-
-                // Stagger bar starts so they move at different phases
-                const id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, i * 70, () => {
-                    this._eqTimers = this._eqTimers.filter(timer => timer !== id);
-                    animateUp();
-                    return GLib.SOURCE_REMOVE;
+                let up = true;
+                const id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, barSpeeds[i], () => {
+                    if (!this._eqActive || !bar.mapped || !St.Settings.get().enable_animations) {
+                        this._eqTimers = this._eqTimers.filter(timer => timer !== id);
+                        return GLib.SOURCE_REMOVE;
+                    }
+                    bar.ease({scale_y: up ? highScales[i] : lowScales[i],
+                        duration: barSpeeds[i], mode: Clutter.AnimationMode.EASE_IN_OUT_SINE});
+                    up = !up;
+                    return GLib.SOURCE_CONTINUE;
                 });
                 this._eqTimers.push(id);
             });
@@ -1626,29 +1612,16 @@ export class DinamicUi {
             bar.set_pivot_point(0.5, 1.0);
             barBox.add_child(bar);
 
-            const animateUp = () => {
-                if (!bar.mapped || !St.Settings.get().enable_animations) return;
-                bar.ease({
-                    scale_y: scales[i],
-                    duration: speeds[i],
-                    mode: Clutter.AnimationMode.EASE_IN_OUT_SINE,
-                    onComplete: () => animateDown(),
-                });
-            };
-            const animateDown = () => {
-                if (!bar.mapped || !St.Settings.get().enable_animations) return;
-                bar.ease({
-                    scale_y: 1.0,
-                    duration: speeds[i],
-                    mode: Clutter.AnimationMode.EASE_IN_OUT_SINE,
-                    onComplete: () => animateUp(),
-                });
-            };
-
-            const id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, i * 90, () => {
-                this._menuEqTimers = this._menuEqTimers.filter(timer => timer !== id);
-                animateUp();
-                return GLib.SOURCE_REMOVE;
+            let up = true;
+            const id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, speeds[i], () => {
+                if (!bar.mapped || !St.Settings.get().enable_animations) {
+                    this._menuEqTimers = this._menuEqTimers.filter(timer => timer !== id);
+                    return GLib.SOURCE_REMOVE;
+                }
+                bar.ease({scale_y: up ? scales[i] : 1.0,
+                    duration: speeds[i], mode: Clutter.AnimationMode.EASE_IN_OUT_SINE});
+                up = !up;
+                return GLib.SOURCE_CONTINUE;
             });
             this._menuEqTimers.push(id);
         });
