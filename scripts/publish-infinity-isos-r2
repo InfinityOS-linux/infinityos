@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import time
 from urllib.parse import urlsplit
 
 
@@ -72,6 +73,8 @@ def publish(directory, revision):
     # A failed upload leaves the previous complete release available.
     aws("s3", "cp", str(manifest), f"s3://{bucket}/latest.json", "--only-show-errors",
         "--content-type", "application/json", "--cache-control", "no-store")
+    # Let the website's five-minute release cache expire before removing old links.
+    time.sleep(360)
     previous = json.loads(aws("s3api", "list-objects-v2", "--bucket", bucket,
                               "--prefix", "releases/", "--query", "Contents[].Key"))
     for key in previous or []:

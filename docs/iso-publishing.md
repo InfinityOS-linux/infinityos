@@ -19,10 +19,11 @@ Configure these repository variables:
 Configure `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY` as repository secrets.
 Use an R2 Object Read & Write credential scoped only to the release bucket.
 The website reads the public manifest and needs no R2 credentials. After a
-complete pair is promoted in `latest.json`, the publisher removes objects from
-older commit releases. Failed builds or uploads leave the previous release in
-place. A browser tab opened before promotion may display the previous checksums;
-refresh the page before downloading a new release.
+complete pair is promoted in `latest.json`, the publisher waits six minutes for
+the website cache to expire, then removes objects from older commit releases.
+Failed builds or uploads leave the previous release in place. A browser tab
+opened before promotion may display the previous checksums; refresh the page
+before downloading a new release.
 
 The runner uses its preinstalled AWS CLI with multipart uploads, so ISO files
 larger than 5 GB do not need to be split for users. Upload credentials are passed

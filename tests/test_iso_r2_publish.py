@@ -42,13 +42,17 @@ class R2PublishTests(unittest.TestCase):
                     return SimpleNamespace(stdout=json.dumps({'ContentLength': path.stat().st_size,
                         'Metadata': {'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}}))
                 return SimpleNamespace(stdout='')
-            with patch.object(publisher.subprocess, 'run', side_effect=run):
+            with patch.object(publisher.subprocess, 'run', side_effect=run), \
+                 patch.object(publisher.time, 'sleep', side_effect=lambda _: calls.append('wait')) as wait:
                 publisher.publish(directory, REVISION)
+            wait.assert_called_once_with(360)
             promoted = next(i for i, call in enumerate(calls) if 's3://infinityos-releases/latest.json' in call)
             deleted = [call for call in calls if 'delete-object' in call]
             self.assertEqual(len(deleted), 1)
             self.assertIn(f'releases/{"c" * 40}/old.iso', deleted[0])
             self.assertGreater(calls.index(deleted[0]), promoted)
+            self.assertLess(promoted, calls.index('wait'))
+            self.assertLess(calls.index('wait'), calls.index(deleted[0]))
             manifest = json.loads((Path(directory) / 'latest.json').read_text())
             self.assertEqual(set(manifest['images']), {'arm', 'x64'})
             for image in manifest['images'].values():
