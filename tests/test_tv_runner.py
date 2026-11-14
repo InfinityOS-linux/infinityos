@@ -29,7 +29,7 @@ class TVRunnerTests(unittest.TestCase):
             commands = {
                 "uname": f"printf '{arch}\\n'\n",
                 "steam": "exit 0\n",
-                "gamescope": f'printf x >> "$TV_RUN_TEST_ATTEMPTS"\nexit {result}\n',
+                "gamescope": f'printf "%s:%s\\n" "$STEAM_GAMESCOPE_FORCE_HDR_DEFAULT" "$STEAM_GAMESCOPE_FORCE_OUTPUT_TO_HDR10PQ_DEFAULT" >> "$TV_RUN_TEST_HDR"\nprintf x >> "$TV_RUN_TEST_ATTEMPTS"\nexit {result}\n',
                 "cage": 'printf "%s|%s\\n" "$WLR_RENDERER" "$*" > "$TV_RUN_TEST_LOG"\n',
                 "dbus-run-session": 'printf "%s\\n" "$*" >> "$TV_RUN_TEST_BUS_LOG"\nshift\nexec "$@"\n',
                 "sleep": "exit 0\n",
@@ -44,9 +44,10 @@ class TVRunnerTests(unittest.TestCase):
             env = dict(os.environ, PATH=f"{root}:{os.environ['PATH']}",
                        HOME=str(home), TV_RUN_TEST_LOG=str(log),
                        TV_RUN_TEST_ATTEMPTS=str(attempts),
-                       TV_RUN_TEST_BUS_LOG=str(bus_log))
+                       TV_RUN_TEST_BUS_LOG=str(bus_log), TV_RUN_TEST_HDR=str(root / "hdr.log"))
             completed = subprocess.run(["bash", str(RUNNER), "steam"], env=env,
                                        capture_output=True, text=True, check=False)
+            self.assertEqual((root / "hdr.log").read_text().splitlines(), ["0:0"] * len(attempts.read_text()))
             return (completed, log.read_text() if log.exists() else None,
                     str(client), attempts.read_text() if attempts.exists() else "",
                     bus_log.read_text() if bus_log.exists() else "")
@@ -69,6 +70,22 @@ class TVRunnerTests(unittest.TestCase):
         self.assertEqual(attempts, "xxxxxx")
         self.assertEqual(bus.count("-- gamescope"), 6)
         self.assertEqual(bus.count("-- cage"), 1)
+
+    def test_session_switch_requests_shutdown(self):
+        helper = ROOT / "root/usr/libexec/infinityos-tv-steam-exit"
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            client = root / ".local/share/Steam/steamrt64/steam"
+            client.parent.mkdir(parents=True)
+            client.write_text('#!/bin/sh\nprintf "%s" "$*" > "$TV_RUN_TEST_LOG"\n')
+            client.chmod(0o755)
+            marker = root / "exit-requested"
+            log = root / "shutdown.log"
+            env = dict(os.environ, HOME=str(root), INFINITYOS_TV_EXIT_REQUEST=str(marker),
+                       TV_RUN_TEST_LOG=str(log))
+            subprocess.run([str(helper), "plasma"], env=env, check=True)
+            self.assertTrue(marker.is_file())
+            self.assertEqual(log.read_text(), "-shutdown")
 
     def test_arm_client_uses_the_same_fallback(self):
         completed, fallback, client, attempts, _bus = self._run_with_gamescope_result(1, "aarch64")

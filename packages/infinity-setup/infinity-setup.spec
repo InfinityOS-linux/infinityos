@@ -100,6 +100,7 @@ fi
 /usr/libexec/infinityos-tv-enter
 /usr/libexec/infinityos-tv-run
 /usr/libexec/infinityos-tv-steam-splash
+/usr/libexec/infinityos-tv-steam-exit
 /usr/libexec/infinityos-tv-return-desktop
 /usr/libexec/infinityos-refind-config
 /usr/libexec/infinityos-refind-short-labels

@@ -7,6 +7,13 @@ client="$steam_dir/steamrt64/steam"
 if [[ -x $runtime && -x $client ]]; then
     # shortcut: bypass Valve's failing RT3 handoff; remove when its launcher works again.
     cd "$steam_dir"
-    STEAM_RUNTIME_RECURSION_GUARD=1 exec "$runtime" -- "$client" "$@"
+    service="$steam_dir/steamrt64/pv-runtime/steam-runtime-steamrt/pressure-vessel/bin/steam-runtime-launcher-service"
+    if [[ -x $service ]]; then
+        bus_name="com.steampowered.PressureVessel.LaunchAlongsideSteam.Instance$$"
+        export SRT_LAUNCHER_SERVICE_ALONGSIDE_STEAM="$bus_name"
+        export STEAM_STEAMRT_RECURSION_GUARD=1
+        exec "$service" --alongside-steam --bus-name="$bus_name" -- "$runtime" -- "$client" "$@"
+    fi
+    exec steam "$@"
 fi
 exec steam "$@"

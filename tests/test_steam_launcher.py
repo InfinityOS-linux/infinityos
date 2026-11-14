@@ -19,17 +19,23 @@ class SteamLauncherTests(unittest.TestCase):
             runtime = home / '.local/share/Steam/steamrt64/pv-runtime/steam-runtime-steamrt/run'
             client = home / '.local/share/Steam/steamrt64/steam'
             runtime.parent.mkdir(parents=True)
-            runtime.write_text('#!/bin/sh\nprintf "%s\\n%s\\n%s\\n" "$PWD" "$STEAM_RUNTIME_RECURSION_GUARD" "$*" > "$STEAM_TEST_LOG"\n')
+            runtime.write_text('#!/bin/sh\nexit 0\n')
             runtime.chmod(0o755)
             client.write_text('#!/bin/sh\n')
             client.chmod(0o755)
+            service = runtime.parent / 'pressure-vessel/bin/steam-runtime-launcher-service'
+            service.parent.mkdir(parents=True)
+            service.write_text('#!/bin/sh\nprintf "%s\n%s\n%s\n%s\n" "$PWD" "$STEAM_STEAMRT_RECURSION_GUARD" "$SRT_LAUNCHER_SERVICE_ALONGSIDE_STEAM" "$*" > "$STEAM_TEST_LOG"\n')
+            service.chmod(0o755)
             log = home / 'launch.log'
             env = dict(os.environ, HOME=str(home), STEAM_TEST_LOG=str(log))
             subprocess.run(['bash', str(LAUNCHER), '-gamepadui', 'steam://open/games'], env=env, check=True)
-            self.assertEqual(log.read_text().splitlines(), [
-                str(home / '.local/share/Steam'), '1',
-                f'-- {client} -gamepadui steam://open/games',
-            ])
+            lines = log.read_text().splitlines()
+            self.assertEqual(lines[0], str(home / '.local/share/Steam'))
+            self.assertEqual(lines[1], '1')
+            self.assertTrue(lines[2].startswith('com.steampowered.PressureVessel.LaunchAlongsideSteam.Instance'))
+            self.assertEqual(lines[3], f'--alongside-steam --bus-name={lines[2]} -- {runtime} -- {client} -gamepadui steam://open/games')
+
 
     def test_first_run_falls_back_to_rpm_steam_updater(self):
         with tempfile.TemporaryDirectory() as directory:

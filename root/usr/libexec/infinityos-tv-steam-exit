@@ -1,0 +1,17 @@
+#!/usr/bin/bash
+set -euo pipefail
+
+if [[ ${1:-} != desktop && ${1:-} != plasma ]]; then
+    echo "Unsupported session: ${1:-}" >&2
+    exit 2
+fi
+
+[[ -n ${INFINITYOS_TV_EXIT_REQUEST:-} ]] && : > "$INFINITYOS_TV_EXIT_REQUEST"
+steam_dir="$HOME/.local/share/Steam"
+if [[ -x "$steam_dir/steamrt64/steam" ]]; then
+    exec "$steam_dir/steamrt64/steam" -shutdown
+fi
+if [[ -x "$steam_dir/steamrtarm64/steam" ]]; then
+    exec "$steam_dir/steamrtarm64/steam" -shutdown
+fi
+exec steam -shutdown
