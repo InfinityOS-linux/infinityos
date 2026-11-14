@@ -1,5 +1,5 @@
 Name:           infinity-setup
-Version:        1.0.1
+Version:        1.0.2
 Release:        %{?infinity_release}%{!?infinity_release:1}%{?dist}
 Summary:        Infinity OS welcome and application chooser
 License:        GPL-3.0-or-later
@@ -95,6 +95,7 @@ fi
 /usr/share/infinityos/efi-drivers/aa64/UsbXbox360Dxe.efi
 /usr/share/infinityos/efi-drivers/config.ini
 /usr/libexec/infinityos-tv-control
+/usr/libexec/infinityos-steam
 /usr/libexec/infinityos-install-session
 /usr/libexec/infinityos-tv-enter
 /usr/libexec/infinityos-tv-run
@@ -114,12 +115,16 @@ fi
 /usr/share/infinityos/launcher-appid.desktop
 /usr/share/infinityos/launcher-autostart.desktop
 /usr/share/applications/infinity-setup.desktop
+/usr/share/applications/org.infinityos.Steam.desktop
 /usr/share/applications/org.infinityos.Setup.desktop
 /usr/share/applications/infinity-launcher.desktop
 /usr/share/applications/org.infinityos.Launcher.desktop
 /etc/xdg/autostart/infinity-setup.desktop
 
 %changelog
+* Sat Nov 14 2026 Infinity OS Contributors <noreply@infinityos.eu> - 1.0.2-1
+- Launch desktop and TV Steam through the working RT3 runtime path
+
 * Sat Nov 14 2026 Infinity OS Contributors <noreply@infinityos.eu> - 1.0.1-1
 - Keep one authorization session for selected installations and TV modes
 

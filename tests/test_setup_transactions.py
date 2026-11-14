@@ -16,7 +16,7 @@ def controller():
     module = ast.Module(body=[ast.ClassDef(name='Callbacks', bases=[], keywords=[], body=methods, decorator_list=[])], type_ignores=[])
     context = {'progress_reporting': lambda callback: nullcontext(), 'privileged_transaction': nullcontext, 'threading': SimpleNamespace(Thread=lambda target, daemon: SimpleNamespace(start=target)), 'GLib': SimpleNamespace(idle_add=lambda fn, *args: fn(*args), source_remove=Mock()),
                'tr': lambda value: value, 'install': Mock(), 'uninstall': Mock(),
-               'deactivate_local_model': Mock(), 'set_tv_enabled': Mock(), 'launch_steam': Mock(),
+               'deactivate_local_model': Mock(), 'set_tv_enabled': Mock(),
                'configured_apps': lambda **kwargs: (),
                'available': lambda app: True, 'installed': Mock(return_value=True),
                'removable': Mock(return_value=False)}
@@ -54,7 +54,7 @@ class SetupTransactionsTests(unittest.TestCase):
         app._installed.assert_called_once_with(first, True)
         self.assertIn('Queue stopped', app._finished.call_args.args[0][0])
 
-    def test_steam_opens_only_after_successful_tv_enable(self):
+    def test_steam_tv_enable_does_not_start_steam_behind_the_desktop(self):
         for enabled, failure in ((True, False), (True, True), (False, False)):
             with self.subTest(enabled=enabled, failure=failure):
                 app, context = controller()
@@ -62,15 +62,15 @@ class SetupTransactionsTests(unittest.TestCase):
                 if failure:
                     context['set_tv_enabled'].side_effect = RuntimeError('failed')
                 app._install([], [('steam', enabled)])
-                self.assertEqual(context['launch_steam'].call_count, int(enabled and not failure))
+                self.assertEqual(app._finished.call_args.args[1], enabled and not failure)
 
-    def test_failed_steam_launch_keeps_tv_marked_installed(self):
+    def test_successful_steam_tv_install_asks_for_desktop_first_launch(self):
         app, context = controller()
         app._finished = Mock()
-        context['launch_steam'].side_effect = OSError('missing client')
         app._install([], [('steam', True)])
         app._tv_applied.assert_called_once_with('steam', True)
-        self.assertIn('Open Steam from the desktop', app._finished.call_args.args[0][0])
+        app._complete(app._finished.call_args.args[1])
+        self.assertIn('Open Steam from the desktop', app.status.set_text.call_args.args[0])
 
     def test_completion_reports_success_without_closing(self):
         app, _context = controller()

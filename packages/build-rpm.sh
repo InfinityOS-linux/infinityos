@@ -4,7 +4,7 @@ set -euo pipefail
 package=${1:?Usage: packages/build-rpm.sh infinity-config|infinity-setup|infinity-terminal|infinity-updater|infinityos-repos|infinityos-wallpapers|infinityos-ramdrive|infinityos-shell-extensions}
 case "$package" in
   infinity-config) version=1.0.0 ;;
-  infinity-setup) version=1.0.1 ;;
+  infinity-setup) version=1.0.2 ;;
   infinity-terminal) version=1.3.1 ;;
   infinity-updater) version=1.1.1 ;;
   infinityos-repos) version=1.0.0 ;;
@@ -179,6 +179,8 @@ elif [[ "$package" == infinity-setup ]]; then
     "$work/source/$package-$version/usr/bin/infinity-setup"
   install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/launcher.desktop" \
     "$work/source/$package-$version/usr/share/applications/infinity-setup.desktop"
+  install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/steam-desktop.desktop" \
+    "$work/source/$package-$version/usr/share/applications/org.infinityos.Steam.desktop"
   install -m 0644 "$repo/packages/infinity-setup/root/usr/share/infinityos/launcher-appid.desktop" \
     "$work/source/$package-$version/usr/share/applications/org.infinityos.Setup.desktop"
   # Existing user favorites may still point to either previous desktop ID.
@@ -193,6 +195,7 @@ elif [[ "$package" == infinity-setup ]]; then
   install -m 0644 "$repo/root/usr/share/licenses/infinity-setup/UsbXbox360Dxe-LICENSE" \
     "$work/source/$package-$version/usr/share/licenses/infinity-setup/UsbXbox360Dxe-LICENSE"
   install -m 0755 "$repo/root/usr/libexec/infinityos-tv-control" \
+    "$repo/root/usr/libexec/infinityos-steam" \
     "$repo/root/usr/libexec/infinityos-install-session" \
     "$repo/root/usr/libexec/infinityos-tv-enter" \
     "$repo/root/usr/libexec/infinityos-tv-run" \
