@@ -14,7 +14,7 @@ export class TerminalPullHandle {
             accessible_role: Atk.Role.PUSH_BUTTON});
         this.actor.connect('repaint', () => this.paint());
         this.actor.connect('notify::hover', () => this.actor.queue_repaint());
-        Main.layoutManager.addChrome(this.actor, {affectsStruts: false, trackFullscreen: true});
+        Main.layoutManager.addTopChrome(this.actor, {affectsStruts: false, trackFullscreen: true});
         const connect = (object, signal, callback) => {
             this.signals.push([object, object.connect(signal, callback)]);
         };
@@ -22,6 +22,7 @@ export class TerminalPullHandle {
         connect(Main.panel, 'notify::allocation', sync);
         connect(Main.panel, 'style-changed', () => { this.actor.queue_repaint(); this.sync(); });
         connect(Main.panel.statusArea.dateMenu, 'notify::allocation', sync);
+        connect(Main.layoutManager, 'startup-complete', sync);
         connect(Main.layoutManager, 'monitors-changed', () => { this.finish(true); this.sync(); });
         connect(global.display, 'in-fullscreen-changed', () => { this.finish(true); this.sync(); });
         connect(Main.overview, 'showing', () => { this.finish(true); this.sync(); });
@@ -90,8 +91,8 @@ export class TerminalPullHandle {
             const window = this.terminal._findWindow();
             this.drag = {startY: event.get_coords()[1], y: event.get_coords()[1],
                 moved: false, wasOpen: !!window && !window.minimized};
-            try { this.grab = global.stage.grab(this.actor); }
-            catch (error) { this.drag = null; console.error(error); }
+            // Stage capture already observes the pointer sequence. A modal grab
+            // here can swallow release events and leave application input blocked.
             return Clutter.EVENT_STOP;
         }
         if (type === Clutter.EventType.KEY_PRESS && event.get_key_symbol() === Clutter.KEY_Escape) {
