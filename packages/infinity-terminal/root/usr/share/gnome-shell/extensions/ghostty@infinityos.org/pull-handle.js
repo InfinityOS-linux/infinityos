@@ -59,16 +59,15 @@ export class TerminalPullHandle {
         const [width, height] = this.actor.get_surface_size();
         try {
             cr.scale(width / 180, height / 18);
-            const color = Main.panel.get_theme_node().get_background_color();
-            if (color.alpha) cr.setSourceRGBA(color.red / 255, color.green / 255,
-                color.blue / 255, color.alpha / 255);
-            else cr.setSourceRGBA(11 / 255, 9 / 255, 18 / 255, 1);
+            // The desktop panel may be translucent; the handle needs an opaque silhouette.
+            cr.setSourceRGBA(11 / 255, 9 / 255, 18 / 255, 1);
             // Mirrored control points, horizontal tangents at both shoulders.
             cr.moveTo(0, 0);
             cr.curveTo(32, 0, 48, 17, 78, 17);
             cr.lineTo(102, 17);
             cr.curveTo(132, 17, 148, 0, 180, 0);
-            cr.closePath(); cr.fill();
+            cr.closePath(); cr.fillPreserve();
+            cr.setSourceRGBA(.72, .65, .85, .20); cr.setLineWidth(.75); cr.stroke();
             cr.setSourceRGBA(1, 1, 1, this.actor.hover ? 1 : .85);
             cr.setLineWidth(1.25);
             for (const y of [6, 9, 12]) {
@@ -90,7 +89,8 @@ export class TerminalPullHandle {
                 return Clutter.EVENT_PROPAGATE;
             const window = this.terminal._findWindow();
             this.drag = {startY: event.get_coords()[1], y: event.get_coords()[1],
-                moved: false, wasOpen: !!window && !window.minimized};
+                moved: false, initialHeight: window && !window.minimized ? window.get_frame_rect().height : 0,
+                wasOpen: !!window && !window.minimized};
             // Keep tracking across native Wayland surfaces without a modal grab.
             this.poll = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 16, () => {
                 const [x, y, state] = global.get_pointer();
@@ -105,9 +105,6 @@ export class TerminalPullHandle {
         }
         if (type === Clutter.EventType.MOTION || type === Clutter.EventType.BUTTON_RELEASE) {
             this.drag.y = event.get_coords()[1];
-            if (type === Clutter.EventType.MOTION && !(event.get_state() & Clutter.ModifierType.BUTTON1_MASK)) {
-                this.finish(); return Clutter.EVENT_STOP;
-            }
             if (!this.drag.moved && Math.abs(this.drag.y - this.drag.startY) > 6) {
                 this.drag.moved = true;
                 this.terminal._showTerminal();
@@ -115,6 +112,9 @@ export class TerminalPullHandle {
             if (this.drag.moved) {
                 try { this.apply(); }
                 catch (error) { this.finish(true); console.error('InfinityTerminal pull failed', error); return Clutter.EVENT_STOP; }
+            }
+            if (type === Clutter.EventType.MOTION && !(event.get_state() & Clutter.ModifierType.BUTTON1_MASK)) {
+                this.finish(); return Clutter.EVENT_STOP;
             }
             if (type === Clutter.EventType.BUTTON_RELEASE && event.get_button() === 1) this.finish();
             return Clutter.EVENT_STOP;
@@ -128,9 +128,15 @@ export class TerminalPullHandle {
         const actor = window.get_compositor_private();
         if (!actor) return;
         actor.remove_all_transitions();
-        const offset = this.terminal._offscreenOffset(window);
+        const monitor = this.terminal._monitor();
+        const available = monitor.height - this.terminal._topInset();
         const distance = this.drag.y - this.drag.startY;
-        actor.translation_y = Math.min(0, Math.max(offset, (this.drag.wasOpen ? 0 : offset) + distance));
+        this.drag.height = Math.min(available, Math.max(0, this.drag.initialHeight + distance));
+        if (this.drag.height > window.get_frame_rect().height) {
+            this.terminal._settings.set_double('height-ratio', this.drag.height / monitor.height);
+            this.terminal._place(window);
+        }
+        actor.translation_y = this.drag.height - window.get_frame_rect().height;
         this.terminal._sliding = true;
         this.terminal._syncResizeHandle();
     }
@@ -142,19 +148,23 @@ export class TerminalPullHandle {
         this.grab?.dismiss(); this.grab = null;
         if (!drag) return;
         if (!drag.moved) { if (!cancel) this.terminal._toggle(); return; }
-        const open = cancel ? drag.wasOpen : drag.wasOpen
-            ? drag.y - drag.startY > -60 : drag.y - drag.startY > 60;
+        const height = cancel ? drag.initialHeight : drag.height ?? Math.max(0, drag.initialHeight + drag.y - drag.startY);
+        const open = height > 60;
         const window = this.terminal._findWindow();
         if (!window || this.terminal._firstFrame) {
+            if (open) this.terminal._settings.set_double('height-ratio', Math.max(96, height) / this.terminal._monitor().height);
             this.terminal._pendingShow = open;
             return;
         }
         if (!open) { this.terminal._hide(window); return; }
         const actor = window.get_compositor_private();
         if (!actor) return;
-        actor.ease({translation_y: 0, duration: St.Settings.get().enable_animations ? 220 : 0,
-            mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
-            onComplete: () => { this.terminal._sliding = false; this.terminal._syncResizeHandle(); }});
+        actor.remove_all_transitions();
+        this.terminal._settings.set_double('height-ratio', Math.max(96, height) / this.terminal._monitor().height);
+        this.terminal._place(window);
+        actor.translation_y = 0;
+        this.terminal._sliding = false;
+        this.terminal._syncResizeHandle();
     }
 
     destroy() {

@@ -9,10 +9,10 @@ function fixture() {
     const drawing = [];
     const cr = new Proxy({}, {get: (_, key) => (...args) => drawing.push([key, ...args])});
     const actor = {translation_y: 0, remove_all_transitions() {}, ease(values) { this.translation_y = values.translation_y; values.onComplete?.(); }};
-    const window = {minimized: true, get_compositor_private: () => actor};
+    const window = {minimized: true, get_frame_rect: () => ({height:500}), get_compositor_private: () => actor};
     const terminal = {_indicator: {}, _findWindow: () => window, _toggle() {toggle++;},
         _showTerminal() {shown++; window.minimized = false;}, _hide() {hidden++;},
-        _offscreenOffset: () => -500, _syncResizeHandle() {}};
+        _monitor: () => ({height:1000}), _topInset: () => 30, _settings: {set_double(k,v) {terminal.savedHeight=v*1000;}}, _place() {}, _offscreenOffset: () => -500, _syncResizeHandle() {}};
     const Main = {panel: {...signal, statusArea: {dateMenu: {...signal, get_transformed_position: () => [700, 0], get_transformed_size: () => [100, 32]}},
         get_transformed_position: () => [0, -52], get_transformed_size: () => [1500, 32], get_theme_node: () => ({get_background_color: () => ({red: 11, green: 9, blue: 18, alpha: 255})})},
         layoutManager: {...signal, primaryMonitor: {index: 0, y: 0}, addTopChrome() {}, removeChrome() {}}, overview: {...signal, visible: false}, sessionMode: {...signal, isLocked: false}};
@@ -34,7 +34,7 @@ test('symmetric curve is centered under clock without reserving desktop space',(
 test('click toggles once; drag follows pointer and settles open',()=>{
     const f=fixture();f.event(1,40);f.event(2,40);assert.equal(f.toggle,1);
     f.event(1,40);f.event(3,240);assert.equal(f.shown,1);assert.equal(f.actor.translation_y,-300);
-    f.event(2,240);assert.equal(f.actor.translation_y,0);assert.equal(f.toggle,1);assert(f.balanced);
+    f.event(2,240);assert.equal(f.actor.translation_y,0);assert.equal(f.terminal.savedHeight,200);assert.equal(f.toggle,1);assert(f.balanced);
 });
 test('short pull and Escape cancel; cold-start cancellation clears pending show',()=>{
     const f=fixture();f.event(1,40);f.event(3,60);f.event(2,60);assert.equal(f.hidden,1);
