@@ -1,6 +1,7 @@
 import Atk from 'gi://Atk';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
+import GLib from 'gi://GLib';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 // A separate chrome actor avoids enlarging the panel's reserved work area.
@@ -45,12 +46,11 @@ export class TerminalPullHandle {
         const clock = Main.panel.statusArea.dateMenu;
         const [x] = clock.get_transformed_position();
         const [width] = clock.get_transformed_size();
-        const [, panelY] = Main.panel.get_transformed_position();
         const [, panelHeight] = Main.panel.get_transformed_size();
         const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
         this.actor.set_size(180 * scale, 18 * scale);
         this.actor.set_position(Math.round(x + width / 2 - 90 * scale),
-            Math.round(panelY + panelHeight - 1));
+            Math.round(monitor.y + panelHeight - 1));
         this.actor.queue_repaint();
     }
 
@@ -79,7 +79,7 @@ export class TerminalPullHandle {
 
     event(event) {
         const type = event.type();
-        const source = global.stage.get_event_actor(event);
+        const source = this.drag ? null : global.stage.get_event_actor(event);
         if (!this.drag) {
             if (!this.actor.visible || !this.contains(source)) return Clutter.EVENT_PROPAGATE;
             if (type === Clutter.EventType.KEY_PRESS &&
@@ -91,8 +91,13 @@ export class TerminalPullHandle {
             const window = this.terminal._findWindow();
             this.drag = {startY: event.get_coords()[1], y: event.get_coords()[1],
                 moved: false, wasOpen: !!window && !window.minimized};
-            // Stage capture already observes the pointer sequence. A modal grab
-            // here can swallow release events and leave application input blocked.
+            // Keep tracking across native Wayland surfaces without a modal grab.
+            this.poll = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 16, () => {
+                const [x, y, state] = global.get_pointer();
+                this.event({type: () => Clutter.EventType.MOTION,
+                    get_coords: () => [x, y], get_state: () => state});
+                return this.drag ? GLib.SOURCE_CONTINUE : GLib.SOURCE_REMOVE;
+            });
             return Clutter.EVENT_STOP;
         }
         if (type === Clutter.EventType.KEY_PRESS && event.get_key_symbol() === Clutter.KEY_Escape) {
@@ -133,6 +138,7 @@ export class TerminalPullHandle {
     finish(cancel = false) {
         const drag = this.drag;
         this.drag = null;
+        if (this.poll) { GLib.Source.remove(this.poll); this.poll = 0; }
         this.grab?.dismiss(); this.grab = null;
         if (!drag) return;
         if (!drag.moved) { if (!cancel) this.terminal._toggle(); return; }

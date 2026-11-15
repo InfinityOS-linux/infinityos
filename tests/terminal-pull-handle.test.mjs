@@ -14,9 +14,9 @@ function fixture() {
         _showTerminal() {shown++; window.minimized = false;}, _hide() {hidden++;},
         _offscreenOffset: () => -500, _syncResizeHandle() {}};
     const Main = {panel: {...signal, statusArea: {dateMenu: {...signal, get_transformed_position: () => [700, 0], get_transformed_size: () => [100, 32]}},
-        get_transformed_position: () => [0, 0], get_transformed_size: () => [1500, 32], get_theme_node: () => ({get_background_color: () => ({red: 11, green: 9, blue: 18, alpha: 255})})},
-        layoutManager: {...signal, primaryMonitor: {index: 0}, addTopChrome() {}, removeChrome() {}}, overview: {...signal, visible: false}, sessionMode: {...signal, isLocked: false}};
-    const context = {Main, Atk: {Role: {PUSH_BUTTON: 1}}, console,
+        get_transformed_position: () => [0, -52], get_transformed_size: () => [1500, 32], get_theme_node: () => ({get_background_color: () => ({red: 11, green: 9, blue: 18, alpha: 255})})},
+        layoutManager: {...signal, primaryMonitor: {index: 0, y: 0}, addTopChrome() {}, removeChrome() {}}, overview: {...signal, visible: false}, sessionMode: {...signal, isLocked: false}};
+    const context = {GLib: {PRIORITY_DEFAULT: 0, timeout_add: () => 1, Source: {remove() {}}}, Main, Atk: {Role: {PUSH_BUTTON: 1}}, console,
         St: {DrawingArea: class {constructor() {Object.assign(this, signal); this.visible = true;} contains(a) {return a === this;} set_size(w,h) {this.width=w;this.height=h;} set_position(x,y) {this.x=x;this.y=y;} queue_repaint() {} get_context() {return cr;} get_surface_size() {return [180,18];} hide() {this.visible=false;} destroy() {}}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}, Settings: {get: () => ({enable_animations: true})}},
         Clutter: {EventType: {BUTTON_PRESS: 1, BUTTON_RELEASE: 2, MOTION: 3, KEY_PRESS: 4}, ModifierType: {BUTTON1_MASK: 1}, KEY_Escape: 27, KEY_Return: 13, KEY_space: 32, EVENT_STOP: true, EVENT_PROPAGATE: false, AnimationMode: {EASE_OUT_CUBIC: 1}},
         global: {display: {...signal, get_monitor_in_fullscreen: () => fullscreen}, stage: {...signal, get_event_actor: () => handle.actor, grab() {grabs++;return {dismiss() {dismissed++;}};}}}, terminal};
