@@ -150,7 +150,7 @@ export let AutoHide = class {
   }
 
   show() {
-    if (!this.dock._monitor || (!IS_LIVE_SESSION && this.dock._monitor.inFullscreen) ||
+    if (!this.dock._monitor || this.dock._monitor.inFullscreen ||
         this._launcherOpen() || this._installerOpen()) {
       return;
     }
@@ -230,7 +230,6 @@ export let AutoHide = class {
 
   _checkOverlap() {
     // console.log("checking overlap...");
-    if (IS_LIVE_SESSION) return false;
     if (this.extension._inOverview) {
       return false;
     }
@@ -282,7 +281,7 @@ export let AutoHide = class {
       w._parent = a;
       return w;
     });
-    windows = windows.filter((w) => w.can_close());
+    windows = windows.filter((w) => !w.minimized && w.can_close());
     windows = windows.filter((w) => w.get_monitor() == monitor.index);
     // windows = windows.filter((w) => !w.is_override_redirect());
     let workspace = global.workspace_manager.get_active_workspace_index();

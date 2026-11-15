@@ -23,7 +23,7 @@ function fixture() {
         console: {error() {}},
         Clutter: {CursorType: {DEFAULT: 0, NS_RESIZE: 1}, ModifierType: {BUTTON1_MASK: 1}, EventType: {MOTION: 1, BUTTON_PRESS: 2, BUTTON_RELEASE: 3, KEY_PRESS: 4}, KEY_Escape: 27, EVENT_STOP: true, EVENT_PROPAGATE: false},
         Meta: {Cursor: {DEFAULT: 0, SOUTH_RESIZE: 1}, MaximizeFlags: {BOTH: 3}},
-        Main: {overview: {visible: false}, panel: {height: 40},
+        Main: {overview: {visible: false}, panel: {height: 40, get_transformed_size: () => [1000,40]},
             layoutManager: layout},
         global: {get_pointer: () => pointer, display: {set_cursor(value) {cursor = value;}}, stage: {grab(actor) {
             assert.equal(actor, handle); grabs++; return {dismiss() {dismissals++;}};
