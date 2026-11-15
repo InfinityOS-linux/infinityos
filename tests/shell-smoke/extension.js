@@ -59,6 +59,8 @@ export default class Smoke extends Extension {
         monitor._openMenu(-1); check(monitor.menuOpen, 'monitor menu failed'); monitor._menu.close();
         monitor._widgets.stopwatch.toggle(); monitor._widgets.toggleTimer('widget:timer');
         const iface = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
+        Main.overview.hide();
+        await wait();
         const terminalWindow = {minimized: true};
         const pull = new TerminalPullHandle({_indicator: new St.Widget(), _findWindow: () => terminalWindow});
         this._objects.push({disable: () => pull.destroy()});
