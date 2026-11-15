@@ -13,7 +13,7 @@ function fixture() {
     const terminal = {_indicator: {}, _findWindow: () => window, _toggle() {toggle++;},
         _showTerminal() {shown++; window.minimized = false;}, _hide() {hidden++;},
         _monitor: () => ({height:1000,y:0}), _topInset: () => 30, _settings: {set_double(k,v) {terminal.savedHeight=v*1000;}}, _place() {}, _offscreenOffset: () => -500, _syncResizeHandle() {}};
-    const Main = {panel: {...signal, statusArea: {dateMenu: {...signal, get_transformed_position: () => [700, 0], get_transformed_size: () => [100, 32]}},
+    const Main = {panel: {...signal, statusArea: {dateMenu: {...signal, get_transformed_position: () => [662, 0], get_transformed_size: () => [100, 32]}},
         get_transformed_position: () => [0, -52], get_transformed_size: () => [1500, 32], get_theme_node: () => ({get_background_color: () => ({red: 11, green: 9, blue: 18, alpha: 255})})},
         layoutManager: {...signal, primaryMonitor: {index: 0, x:0, y: 0,width:1500}, addTopChrome() {}, removeChrome() {}}, overview: {...signal, visible: false}, sessionMode: {...signal, isLocked: false}};
     const context = {Gio: {Settings: class {constructor(){Object.assign(this, signal);} get_string(){return terminal.scheme || 'prefer-dark';}}}, GLib: {PRIORITY_DEFAULT: 0, timeout_add: () => 1, Source: {remove() {}}}, Main, Atk: {Role: {PUSH_BUTTON: 1}}, console,
@@ -25,7 +25,7 @@ function fixture() {
     const event = (type,y,held=1,key=0) => handle.event({type:()=>type,get_coords:()=>[750,y],get_button:()=>1,get_state:()=>held,get_key_symbol:()=>key});
     return {handle,terminal,actor,window,drawing,Main,event,get toggle(){return toggle;},get shown(){return shown;},get hidden(){return hidden;},get balanced(){return grabs===dismissed;},fullscreen(value){fullscreen=value;handle.sync();}};
 }
-test('symmetric curve is centered under clock without reserving desktop space',()=>{
+test('symmetric curve stays screen-centered despite stale clock allocation',()=>{
     const f=fixture();assert.equal(f.handle.actor.x,660);assert.equal(f.handle.actor.y,30);f.handle.paint();
     const curves=f.drawing.filter(x=>x[0]==='curveTo');assert.equal(curves.length,4);
     assert.deepEqual(Array.from(curves[0].slice(1)),[32,2,48,17,78,17]);

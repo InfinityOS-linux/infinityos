@@ -56,15 +56,12 @@ export class TerminalPullHandle {
             !Main.panel.has_style_pseudo_class?.('dark'));
         this.panelLine.style = `background-color: ${this.light
             ? 'rgba(70, 40, 100, 0.20)' : 'rgba(184, 166, 217, 0.20)'};`;
-        const clock = Main.panel.statusArea.dateMenu;
-        const [x] = clock.get_transformed_position();
-        const [width] = clock.get_transformed_size();
         const [, panelHeight] = Main.panel.get_transformed_size();
         const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
         this.panelLine.set_size(monitor.width, .75 * scale);
         this.panelLine.set_position(monitor.x, monitor.y + panelHeight - .75 * scale);
         this.actor.set_size(180 * scale, 18 * scale);
-        this.actor.set_position(Math.round(x + width / 2 - 90 * scale),
+        this.actor.set_position(Math.round(monitor.x + monitor.width / 2 - 90 * scale),
             Math.round(monitor.y + panelHeight - 2 * scale));
         this.actor.queue_repaint();
     }
