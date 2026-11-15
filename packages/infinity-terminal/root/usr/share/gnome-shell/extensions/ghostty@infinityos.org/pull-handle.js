@@ -16,7 +16,7 @@ export class TerminalPullHandle {
         this.panelLine = new St.Widget({reactive: false, style: 'background-color: rgba(184, 166, 217, 0.20);'});
         Main.layoutManager.addTopChrome(this.panelLine, {affectsStruts: false, trackFullscreen: true});
         this.actor = new St.DrawingArea({reactive: true, can_focus: true, track_hover: true,
-            accessible_name: 'Show or drag down InfinityTerminal',
+            accessible_name: 'Show, hide or drag InfinityTerminal',
             accessible_role: Atk.Role.PUSH_BUTTON});
         this.actor.connect('repaint', () => this.paint());
         this.actor.connect('notify::hover', () => this.actor.queue_repaint());
@@ -228,6 +228,8 @@ export class TerminalPullHandle {
         this.terminal._settings.set_double('height-ratio', Math.max(96, height) / this.terminal._monitor().height);
         this.terminal._place(window);
         actor.translation_y = 0;
+        global.stage.set_key_focus(null);
+        window.activate(global.get_current_time());
         this.terminal._sliding = false;
         this.terminal._syncResizeHandle();
     }

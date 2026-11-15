@@ -9,7 +9,7 @@ function fixture() {
     const drawing = [];
     const cr = new Proxy({}, {get: (_, key) => (...args) => drawing.push([key, ...args])});
     const actor = {translation_y: 0, remove_all_transitions() {}, ease(values) { this.translation_y = values.translation_y; values.onComplete?.(); }};
-    const window = {minimized: true, get_frame_rect: () => ({height:500}), get_compositor_private: () => actor};
+    const window = {minimized: true, activate() {this.activated=true;}, get_frame_rect: () => ({height:500}), get_compositor_private: () => actor};
     const terminal = {_indicator: {}, _findWindow: () => window, _toggle() {toggle++;},
         _showTerminal() {shown++; window.minimized = false;}, _hide() {hidden++;},
         _monitor: () => ({height:1000,y:0}), _topInset: () => 30, _settings: {set_double(k,v) {terminal.savedHeight=v*1000;}}, _place() {}, _offscreenOffset: () => -500, _syncResizeHandle() {}};
@@ -19,7 +19,7 @@ function fixture() {
     const context = {Gio: {Settings: class {constructor(){Object.assign(this, signal);} get_string(){return terminal.scheme || 'prefer-dark';}}}, GLib: {PRIORITY_DEFAULT: 0, timeout_add: () => 1, Source: {remove() {}}}, Main, Atk: {Role: {PUSH_BUTTON: 1}}, console,
         St: {DrawingArea: class {constructor() {Object.assign(this, signal); this.visible = true;} contains(a) {return a === this;} set_pivot_point() {} ease(values) {Object.assign(this, values);} set_size(w,h) {this.width=w;this.height=h;} set_position(x,y) {this.x=x;this.y=y;} queue_repaint() {} get_context() {return cr;} get_surface_size() {return [180,18];} hide() {this.visible=false;} destroy() {}}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}, Settings: {get: () => ({enable_animations: true})}},
         Clutter: {EventType: {BUTTON_PRESS: 1, BUTTON_RELEASE: 2, MOTION: 3, KEY_PRESS: 4}, ModifierType: {BUTTON1_MASK: 1}, KEY_Escape: 27, KEY_Return: 13, KEY_space: 32, EVENT_STOP: true, EVENT_PROPAGATE: false, AnimationMode: {EASE_OUT_CUBIC: 1}},
-        global: {get_window_actors: () => terminal.windows || [], display: {...signal, get_monitor_in_fullscreen: () => fullscreen}, stage: {...signal, get_event_actor: () => handle.actor, grab() {grabs++;return {dismiss() {dismissed++;}};}}}, terminal};
+        global: {get_current_time: () => 1, get_window_actors: () => terminal.windows || [], display: {...signal, get_monitor_in_fullscreen: () => fullscreen}, stage: {...signal, set_key_focus() {}, get_event_actor: () => handle.actor, grab() {grabs++;return {dismiss() {dismissed++;}};}}}, terminal};
     context.St.Widget = context.St.DrawingArea;
     const handle = vm.runInNewContext(`${source}\nnew TerminalPullHandle(terminal)`,context);
     const event = (type,y,held=1,key=0) => handle.event({type:()=>type,get_coords:()=>[750,y],get_button:()=>1,get_state:()=>held,get_key_symbol:()=>key});
@@ -35,7 +35,7 @@ test('symmetric curve stays screen-centered despite stale clock allocation',()=>
 test('click toggles once; drag follows pointer and settles open',()=>{
     const f=fixture();f.event(1,40);f.event(2,40);assert.equal(f.toggle,1);
     f.event(1,40);f.event(3,240);assert.equal(f.shown,1);assert.equal(f.actor.translation_y,-300);
-    f.event(2,240);assert.equal(f.actor.translation_y,0);assert.equal(f.terminal.savedHeight,200);assert.equal(f.toggle,1);assert(f.balanced);
+    f.event(2,240);assert.equal(f.actor.translation_y,0);assert.equal(f.terminal.savedHeight,200);assert(f.window.activated);assert.equal(f.toggle,1);assert(f.balanced);
 });
 test('short pull and Escape cancel; cold-start cancellation clears pending show',()=>{
     const f=fixture();f.event(1,40);f.event(3,60);f.event(2,60);assert.equal(f.hidden,1);
