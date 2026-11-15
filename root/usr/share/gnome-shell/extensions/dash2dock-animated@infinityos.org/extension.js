@@ -1226,7 +1226,7 @@ export default class Dash2DockLiteExt extends Extension {
     }
 
     // A hairline catches the upper edge even when the optional border is disabled.
-    if (!this.panel_mode) {
+    if (this.adaptive_background && !this.panel_mode) {
       const edge = this._getPreferredColorScheme() === 'dark'
         ? '184, 166, 217, 0.20' : '70, 40, 100, 0.20';
       border_style += ` border-top: 0.75px solid rgba(${edge}) !important;`;

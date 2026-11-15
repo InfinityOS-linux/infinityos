@@ -1,7 +1,7 @@
 # InfinityTerminal pull handle
 
 The GNOME panel has a shallow symmetrical 180 × 18 logical-pixel handle below
-its clock. Its two cubic curves use mirrored control points and match the panel
+its clock, centered on the primary monitor rather than a transient clock allocation. Its two cubic curves use mirrored control points and match the panel
 background. It does not reserve additional desktop work area.
 
 Click or press Enter/Space to toggle InfinityTerminal. Hold the primary mouse
@@ -26,3 +26,8 @@ Node tests. Before release, run GNOME 51 shell smoke tests and visually check:
 Package installation includes the entire extension directory, including
 pull-handle.js. Rebuild infinity-terminal from the source commit before producing
 an ISO; the package build-revision marker remains required.
+
+The handle hides while the terminal is open. Its panel outline remains visible.
+Light and dark styles follow the system preference and panel theme. The hamburger
+is raised three logical pixels inside the unchanged curve. The adaptive dock
+gets a matching top hairline; custom dock borders keep their chosen colors.

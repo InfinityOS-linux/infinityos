@@ -18,6 +18,7 @@ function startup(username, initial = 0, fail = false) {
     const context = vm.createContext({
         Extension: class {getSettings() { return settings; }},
         HardwareMonitor: class {},
+        TerminalPullHandle: class {},
         Atk: {Role: {}}, St: {Icon: Widget, Widget}, PanelMenu: {Button: Widget},
         Clutter: {ClickGesture: Widget}, Meta: {KeyBindingFlags: {}},
         GLib: {get_user_name: () => username},

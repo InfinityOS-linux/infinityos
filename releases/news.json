@@ -1,8 +1,33 @@
 [
   {
+    "id": "2026-11-15-terminal-pull-handle",
+    "date": "2026-11-15",
+    "title": "InfinityOS _02: pull down, get to work.",
+    "summary": "InfinityTerminal gains a centered pull-down handle, smoother manual resizing and a cleaner fit with the desktop in light and dark modes.",
+    "buildSha": null,
+    "changes": [
+      {
+        "title": "A new way to open InfinityTerminal",
+        "text": "Click the symmetrical handle below the clock or drag it down to reveal the terminal. Release it at the height you want, or drag its lower edge back to the top panel to hide it."
+      },
+      {
+        "title": "Out of the way when you need it",
+        "text": "The handle hides while the terminal is open or an application is fullscreen. A compact hamburger beside the clock keeps the terminal accessible whenever the panel is visible. Overview and the lock screen hide the activators."
+      },
+      {
+        "title": "Aligned and refined",
+        "text": "The handle stays centered independently of panel layout changes. Its hamburger sits slightly higher, and the panel outline joins the curved handle. Both light and dark themes are supported, with a subtle matching highlight along the adaptive dock’s top edge."
+      },
+      {
+        "title": "Checked before release",
+        "text": "Regression tests cover click and drag behavior, cancellation, resizing, visibility and centering. Native GNOME checks also exercise the handle and theme switching. New ISO downloads and checksums appear only after both architecture builds pass verification and finish publishing."
+      }
+    ]
+  },
+  {
     "id": "2026-11-14",
     "date": "2026-11-14",
-    "title": "InfinityOS 02: a smoother desktop and fresh downloads",
+    "title": "InfinityOS _02: a smoother desktop and fresh downloads",
     "summary": "The latest 24 hours brought new ARM64 and x64 images, direct downloads, a more capable terminal, simpler setup and fixes across gaming, NVIDIA installation and system updates.",
     "buildSha": "d100c91286f61d3b8fd5388601a1c7d105d21954",
     "changes": [
