@@ -11,6 +11,7 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as Workspace from 'resource:///org/gnome/shell/ui/workspace.js';
+import {TerminalPullHandle} from './pull-handle.js';
 import {HardwareMonitor} from './hardware-monitor.js';
 import {clampTerminalHeight, isFullHeight} from './resize.mjs';
 
@@ -44,7 +45,7 @@ export default class InfinityTerminal extends Extension {
         this._indicator = new PanelMenu.Button(0.0, 'Show or hide InfinityTerminal', true);
         this._indicator.accessible_role = Atk.Role.PUSH_BUTTON;
         this._icon = new St.Icon({
-            gicon: Gio.icon_new_for_string(`${this.path}/terminal-symbolic.svg`),
+            icon_name: 'open-menu-symbolic',
             style_class: 'system-status-icon',
         });
         this._indicator.add_child(this._icon);
@@ -53,6 +54,7 @@ export default class InfinityTerminal extends Extension {
         click.connect('recognize', () => this._toggle());
         this._indicator.add_action(click);
         Main.panel.addToStatusArea('ghostty', this._indicator, 1, 'center');
+        this._pullHandle = new TerminalPullHandle(this);
         this._hideRequestId = this._settings.connect('changed::hide-request', () => {
             const window = this._findWindow();
             if (window && !window.minimized)
@@ -106,7 +108,7 @@ export default class InfinityTerminal extends Extension {
         this._outsideClickId = global.stage.connect('captured-event', (_stage, event) => {
             const source = global.stage.get_event_actor(event);
             if (this._settings.get_boolean('pinned') || event.type() !== Clutter.EventType.BUTTON_PRESS ||
-                (source && this._indicator.contains(source)) || this._hardware.contains(source))
+                (source && this._indicator.contains(source)) || this._pullHandle?.contains(source) || this._hardware.contains(source))
                 return Clutter.EVENT_PROPAGATE;
 
             const window = this._findWindow();
@@ -162,6 +164,8 @@ export default class InfinityTerminal extends Extension {
     }
 
     disable() {
+        this._pullHandle?.destroy();
+        this._pullHandle = null;
         if (Workspace.Workspace.prototype._isOverviewWindow === this._filteredOverviewWindow)
             Workspace.Workspace.prototype._isOverviewWindow = this._isOverviewWindow;
         if (Shell.AppSystem.prototype.get_running === this._filteredRunning)
@@ -689,6 +693,10 @@ export default class InfinityTerminal extends Extension {
             this._sourceId = 0;
             if (window !== this._window || window.minimized)
                 return GLib.SOURCE_REMOVE;
+            if (this._pullHandle?.active) {
+                this._pullHandle.apply();
+                return GLib.SOURCE_REMOVE;
+            }
             // The panel press must finish before handing keyboard focus to the client.
             global.stage.set_key_focus(null);
             window.activate(global.get_current_time());
