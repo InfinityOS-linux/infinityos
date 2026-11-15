@@ -10,6 +10,8 @@ export class TerminalPullHandle {
         this.terminal = terminal;
         this.signals = [];
         this.drag = null;
+        this.panelLine = new St.Widget({reactive: false, style: 'background-color: rgba(184, 166, 217, 0.20);'});
+        Main.layoutManager.addTopChrome(this.panelLine, {affectsStruts: false, trackFullscreen: true});
         this.actor = new St.DrawingArea({reactive: true, can_focus: true, track_hover: true,
             accessible_name: 'Show or drag down InfinityTerminal',
             accessible_role: Atk.Role.PUSH_BUTTON});
@@ -38,19 +40,22 @@ export class TerminalPullHandle {
 
     sync() {
         const monitor = Main.layoutManager.primaryMonitor;
-        if (!monitor) { this.actor.hide(); return; }
+        if (!monitor) { this.actor.hide(); this.panelLine.hide(); return; }
         const fullscreen = global.display.get_monitor_in_fullscreen(monitor.index);
         const normal = !Main.overview.visible && !Main.sessionMode.isLocked;
         this.terminal._indicator.visible = fullscreen && normal;
         this.actor.visible = !fullscreen && normal;
+        this.panelLine.visible = this.actor.visible;
         const clock = Main.panel.statusArea.dateMenu;
         const [x] = clock.get_transformed_position();
         const [width] = clock.get_transformed_size();
         const [, panelHeight] = Main.panel.get_transformed_size();
         const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        this.panelLine.set_size(monitor.width, .75 * scale);
+        this.panelLine.set_position(monitor.x, monitor.y + panelHeight - .75 * scale);
         this.actor.set_size(180 * scale, 18 * scale);
         this.actor.set_position(Math.round(x + width / 2 - 90 * scale),
-            Math.round(monitor.y + panelHeight - 1));
+            Math.round(monitor.y + panelHeight - 2 * scale));
         this.actor.queue_repaint();
     }
 
@@ -62,12 +67,19 @@ export class TerminalPullHandle {
             // The desktop panel may be translucent; the handle needs an opaque silhouette.
             cr.setSourceRGBA(11 / 255, 9 / 255, 18 / 255, 1);
             // Mirrored control points, horizontal tangents at both shoulders.
-            cr.moveTo(0, 0);
-            cr.curveTo(32, 0, 48, 17, 78, 17);
-            cr.lineTo(102, 17);
-            cr.curveTo(132, 17, 148, 0, 180, 0);
-            cr.closePath(); cr.fillPreserve();
-            cr.setSourceRGBA(.72, .65, .85, .20); cr.setLineWidth(.75); cr.stroke();
+            const outline = () => {
+                cr.moveTo(0, 2);
+                cr.curveTo(32, 2, 48, 17, 78, 17);
+                cr.lineTo(102, 17);
+                cr.curveTo(132, 17, 148, 2, 180, 2);
+            };
+            cr.moveTo(0, 0); cr.lineTo(0, 2);
+            cr.curveTo(32, 2, 48, 17, 78, 17);
+            cr.lineTo(102, 17); cr.curveTo(132, 17, 148, 2, 180, 2);
+            cr.lineTo(180, 0); cr.closePath(); cr.fill();
+            outline();
+            cr.setSourceRGBA(184 / 255, 166 / 255, 217 / 255, .20);
+            cr.setLineWidth(.75); cr.stroke();
             cr.setSourceRGBA(1, 1, 1, this.actor.hover ? 1 : .85);
             cr.setLineWidth(1.25);
             for (const y of [6, 9, 12]) {
@@ -149,7 +161,10 @@ export class TerminalPullHandle {
         if (!drag) return;
         if (!drag.moved) { if (!cancel) this.terminal._toggle(); return; }
         const height = cancel ? drag.initialHeight : drag.height ?? Math.max(0, drag.initialHeight + drag.y - drag.startY);
-        const open = height > 60;
+        const monitor = this.terminal._monitor();
+        const [, panelHeight] = Main.panel.get_transformed_size();
+        const tucked = !cancel && drag.y <= monitor.y + panelHeight + 2;
+        const open = height > 60 && !tucked;
         const window = this.terminal._findWindow();
         if (!window || this.terminal._firstFrame) {
             if (open) this.terminal._settings.set_double('height-ratio', Math.max(96, height) / this.terminal._monitor().height);
@@ -171,6 +186,8 @@ export class TerminalPullHandle {
         this.finish(true);
         for (const [object, id] of this.signals) object.disconnect(id);
         this.signals = [];
+        Main.layoutManager.removeChrome(this.panelLine);
+        this.panelLine.destroy();
         Main.layoutManager.removeChrome(this.actor);
         this.actor.destroy();
     }

@@ -343,7 +343,7 @@ export default class InfinityTerminal extends Extension {
                         console.error('InfinityTerminal resize failed', error);
                         return GLib.SOURCE_REMOVE;
                     }
-                    return GLib.SOURCE_CONTINUE;
+                    return this._resize ? GLib.SOURCE_CONTINUE : GLib.SOURCE_REMOVE;
                 });
             }
         } catch (error) {
@@ -357,6 +357,13 @@ export default class InfinityTerminal extends Extension {
         const monitor = this._monitor();
         if (!monitor || !this._resize)
             return;
+        const [, panelHeight] = Main.panel.get_transformed_size();
+        if (pointerY <= monitor.y + panelHeight + 2) {
+            const window = this._resize.window;
+            this._finishResize(false);
+            this._hide(window);
+            return;
+        }
         const top = monitor.y + this._topInset();
         const height = clampTerminalHeight(monitor.height, this._topInset(),
             pointerY + this._resize.offset - top);
