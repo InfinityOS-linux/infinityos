@@ -11,6 +11,8 @@ export class TerminalPullHandle {
         this.terminal = terminal;
         this.signals = [];
         this.drag = null;
+        this.windowSignals = new Map();
+        this.closedWindows = new WeakSet();
         this.panelLine = new St.Widget({reactive: false, style: 'background-color: rgba(184, 166, 217, 0.20);'});
         Main.layoutManager.addTopChrome(this.panelLine, {affectsStruts: false, trackFullscreen: true});
         this.actor = new St.DrawingArea({reactive: true, can_focus: true, track_hover: true,
@@ -30,6 +32,9 @@ export class TerminalPullHandle {
         connect(Main.panel.statusArea.dateMenu, 'notify::allocation', sync);
         connect(Main.layoutManager, 'startup-complete', sync);
         connect(Main.layoutManager, 'monitors-changed', () => { this.finish(true); this.sync(); });
+        connect(global.display, 'restacked', sync);
+        connect(global.display, 'window-created', (_display, window) => { this.trackWindow(window); this.sync(); });
+        if (global.workspace_manager) connect(global.workspace_manager, 'active-workspace-changed', sync);
         connect(global.display, 'in-fullscreen-changed', () => { this.finish(true); this.sync(); });
         connect(Main.overview, 'showing', () => { this.finish(true); this.sync(); });
         connect(Main.overview, 'hidden', sync);
@@ -41,6 +46,19 @@ export class TerminalPullHandle {
     contains(actor) { return !!actor && (actor === this.actor || this.actor.contains(actor)); }
     get active() { return !!this.drag?.moved; }
 
+    trackWindow(window) {
+        if (this.closedWindows.has(window) || this.windowSignals.has(window) || !window.connect) return;
+        const ids = ['position-changed', 'size-changed', 'notify::minimized'].map(signal =>
+            window.connect(signal, () => this.sync()));
+        ids.push(window.connect('unmanaged', () => {
+            this.closedWindows.add(window);
+            for (const id of ids) window.disconnect(id);
+            this.windowSignals.delete(window);
+            this.sync();
+        }));
+        this.windowSignals.set(window, ids);
+    }
+
     sync() {
         const monitor = Main.layoutManager.primaryMonitor;
         if (!monitor) { this.actor.hide(); this.panelLine.hide(); return; }
@@ -48,15 +66,35 @@ export class TerminalPullHandle {
         const normal = !Main.overview.visible && !Main.sessionMode.isLocked;
         const window = this.terminal._findWindow();
         const open = !!window && !window.minimized && !this.terminal._firstFrame;
-        this.terminal._indicator.visible = (fullscreen || open) && normal;
-        this.actor.visible = !fullscreen && !open && normal;
+        const [, panelHeight] = Main.panel.get_transformed_size();
+        const windows = (global.get_window_actors?.() ?? []).map(actor => actor.meta_window).filter(candidate => candidate && !this.closedWindows.has(candidate));
+        for (const candidate of windows) this.trackWindow(candidate);
+        const crowded = windows.some(candidate => {
+            if (candidate === window || candidate.minimized ||
+                !candidate.showing_on_its_workspace() || candidate.get_monitor() !== monitor.index ||
+                !candidate.can_close()) return false;
+            const frame = candidate.get_frame_rect();
+            const center = monitor.x + monitor.width / 2;
+            return frame.x <= center + 90 && frame.x + frame.width >= center - 90 &&
+                frame.y <= monitor.y + panelHeight + 1 && frame.y + frame.height > monitor.y;
+        });
+        this.terminal._indicator.visible = fullscreen && normal;
+        this.actor.visible = normal;
+        const compact = fullscreen || open || crowded;
+        if (compact !== this.compact) {
+            const initial = this.compact === undefined;
+            this.compact = compact;
+            this.actor.set_pivot_point(.5, 0);
+            this.actor.ease({scale_x: compact ? .5 : 1, scale_y: compact ? .5 : 1,
+                duration: initial || !St.Settings.get().enable_animations ? 0 : 180,
+                mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+        }
         this.panelLine.visible = !fullscreen && normal;
         const scheme = this.interfaceSettings.get_string('color-scheme');
         this.light = scheme === 'prefer-light' || (scheme === 'default' &&
             !Main.panel.has_style_pseudo_class?.('dark'));
         this.panelLine.style = `background-color: ${this.light
             ? 'rgba(70, 40, 100, 0.20)' : 'rgba(184, 166, 217, 0.20)'};`;
-        const [, panelHeight] = Main.panel.get_transformed_size();
         const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
         this.panelLine.set_size(monitor.width, .75 * scale);
         this.panelLine.set_position(monitor.x, monitor.y + panelHeight - .75 * scale);
@@ -198,6 +236,9 @@ export class TerminalPullHandle {
         this.finish(true);
         for (const [object, id] of this.signals) object.disconnect(id);
         this.signals = [];
+        for (const [window, ids] of this.windowSignals)
+            for (const id of ids) window.disconnect(id);
+        this.windowSignals.clear();
         Main.layoutManager.removeChrome(this.panelLine);
         this.panelLine.destroy();
         Main.layoutManager.removeChrome(this.actor);

@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {test} from 'node:test';
+const base='../root/usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/';
+const source=readFileSync(new URL(base+'autohide.js',import.meta.url),'utf8');
+const method=source.slice(source.indexOf('  _checkOverlap() {'),source.indexOf('\n  _debounceCheckHide() {'));
+const utils=readFileSync(new URL(base+'utils.js',import.meta.url),'utf8');
+const overlap=new Function('return '+utils.slice(utils.indexOf('export const isOverlapRect = ')+29,utils.indexOf('\nexport const isInRect')).trim().replace(/;$/,''))();
+for(const live of [true,false]) test(`dock dodges touching windows in ${live?'live':'installed'} sessions`,()=>{
+ let bottom=740;
+ const window={minimized:false,can_close:()=>true,get_monitor:()=>0,get_workspace:()=>({index:()=>0}),showing_on_its_workspace:()=>true,get_window_type:()=>0,get_frame_rect:()=>({x:450,y:100,width:200,height:bottom-100})};
+ const guest={get_pointer:()=>[0,0],get_window_actors:()=>[{get_meta_window:()=>window}],workspace_manager:{get_active_workspace_index:()=>0}};
+ const check=new Function('global','IS_LIVE_SESSION','handledWindowTypes','isInRect','isOverlapRect',`return ({${method}})._checkOverlap`)(guest,live,[0],()=>false,overlap);
+ const dock={_monitor:{index:0},_isWithinDash:()=>false,struts:{get_transformed_position:()=>[400,740],width:400,height:60}};
+ const controller={dock,extension:{autohide_dash:true,autohide_dodge:true},_track(){}};
+ assert.equal(check.call(controller),true);
+ bottom=739; assert.equal(check.call(controller),false);
+ bottom=800; window.minimized=true; assert.equal(check.call(controller),false);
+ window.minimized=false; controller.extension._inOverview=true; assert.equal(check.call(controller),false);
+});

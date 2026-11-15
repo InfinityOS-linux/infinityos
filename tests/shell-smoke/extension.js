@@ -69,7 +69,8 @@ export default class Smoke extends Extension {
         check(Math.abs(pull.actor.x + pull.actor.width / 2 - primary.x - primary.width / 2) < 1, 'pull handle is not centered');
         check(pull.actor.visible, 'closed terminal has no pull handle');
         terminalWindow.minimized = false; pull.sync();
-        check(!pull.actor.visible && pull.panelLine.visible, 'open terminal did not hide handle');
+        await wait();
+        check(pull.actor.visible && pull.actor.scale_y === .5, 'open terminal did not compact handle');
         terminalWindow.minimized = true; pull.sync();
 
         iface.set_string('color-scheme', 'prefer-light'); await wait();

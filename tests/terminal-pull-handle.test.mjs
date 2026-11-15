@@ -17,9 +17,9 @@ function fixture() {
         get_transformed_position: () => [0, -52], get_transformed_size: () => [1500, 32], get_theme_node: () => ({get_background_color: () => ({red: 11, green: 9, blue: 18, alpha: 255})})},
         layoutManager: {...signal, primaryMonitor: {index: 0, x:0, y: 0,width:1500}, addTopChrome() {}, removeChrome() {}}, overview: {...signal, visible: false}, sessionMode: {...signal, isLocked: false}};
     const context = {Gio: {Settings: class {constructor(){Object.assign(this, signal);} get_string(){return terminal.scheme || 'prefer-dark';}}}, GLib: {PRIORITY_DEFAULT: 0, timeout_add: () => 1, Source: {remove() {}}}, Main, Atk: {Role: {PUSH_BUTTON: 1}}, console,
-        St: {DrawingArea: class {constructor() {Object.assign(this, signal); this.visible = true;} contains(a) {return a === this;} set_size(w,h) {this.width=w;this.height=h;} set_position(x,y) {this.x=x;this.y=y;} queue_repaint() {} get_context() {return cr;} get_surface_size() {return [180,18];} hide() {this.visible=false;} destroy() {}}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}, Settings: {get: () => ({enable_animations: true})}},
+        St: {DrawingArea: class {constructor() {Object.assign(this, signal); this.visible = true;} contains(a) {return a === this;} set_pivot_point() {} ease(values) {Object.assign(this, values);} set_size(w,h) {this.width=w;this.height=h;} set_position(x,y) {this.x=x;this.y=y;} queue_repaint() {} get_context() {return cr;} get_surface_size() {return [180,18];} hide() {this.visible=false;} destroy() {}}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}, Settings: {get: () => ({enable_animations: true})}},
         Clutter: {EventType: {BUTTON_PRESS: 1, BUTTON_RELEASE: 2, MOTION: 3, KEY_PRESS: 4}, ModifierType: {BUTTON1_MASK: 1}, KEY_Escape: 27, KEY_Return: 13, KEY_space: 32, EVENT_STOP: true, EVENT_PROPAGATE: false, AnimationMode: {EASE_OUT_CUBIC: 1}},
-        global: {display: {...signal, get_monitor_in_fullscreen: () => fullscreen}, stage: {...signal, get_event_actor: () => handle.actor, grab() {grabs++;return {dismiss() {dismissed++;}};}}}, terminal};
+        global: {get_window_actors: () => terminal.windows || [], display: {...signal, get_monitor_in_fullscreen: () => fullscreen}, stage: {...signal, get_event_actor: () => handle.actor, grab() {grabs++;return {dismiss() {dismissed++;}};}}}, terminal};
     context.St.Widget = context.St.DrawingArea;
     const handle = vm.runInNewContext(`${source}\nnew TerminalPullHandle(terminal)`,context);
     const event = (type,y,held=1,key=0) => handle.event({type:()=>type,get_coords:()=>[750,y],get_button:()=>1,get_state:()=>held,get_key_symbol:()=>key});
@@ -42,9 +42,9 @@ test('short pull and Escape cancel; cold-start cancellation clears pending show'
     f.window.minimized=true;f.event(1,40);f.event(3,200);f.terminal._firstFrame={};f.event(4,200,1,27);
     assert.equal(f.terminal._pendingShow,false);assert(f.balanced);
 });
-test('fullscreen swaps bulge for panel icon; overview and lock hide activators',()=>{
+test('fullscreen compacts bulge; overview and lock hide activators',()=>{
     const f=fixture();assert(f.handle.actor.visible);assert.equal(f.terminal._indicator.visible,false);
-    f.fullscreen(true);assert.equal(f.handle.actor.visible,false);assert(f.terminal._indicator.visible);
+    f.fullscreen(true);assert(f.handle.actor.visible);assert.equal(f.handle.actor.scale_y,.5);assert(f.terminal._indicator.visible);
     f.Main.overview.visible=true;f.handle.sync();assert.equal(f.terminal._indicator.visible,false);
     f.fullscreen(false);assert.equal(f.handle.actor.visible,false);
     f.Main.overview.visible=false;f.Main.sessionMode.isLocked=true;f.handle.sync();assert.equal(f.handle.actor.visible,false);
@@ -56,14 +56,21 @@ test('pulling an open terminal into the panel hides it without saving a tiny hei
  assert.equal(f.hidden,1); assert.equal(f.terminal.savedHeight,undefined);
 });
 
-test('open terminal hides bulge but keeps the panel edge and fallback button',()=>{
+test('open terminal smoothly compacts bulge and restores it after minimizing',()=>{
  const f=fixture(); f.window.minimized=false; f.handle.sync();
- assert.equal(f.handle.actor.visible,false); assert(f.handle.panelLine.visible); assert(f.terminal._indicator.visible);
- f.window.minimized=true; f.handle.sync(); assert(f.handle.actor.visible); assert.equal(f.terminal._indicator.visible,false);
+ assert(f.handle.actor.visible); assert(f.handle.panelLine.visible); assert.equal(f.handle.actor.scale_y,.5); assert.equal(f.handle.actor.duration,180);
+ f.window.minimized=true; f.handle.sync(); assert(f.handle.actor.visible); assert.equal(f.handle.actor.scale_y,1); assert.equal(f.terminal._indicator.visible,false);
 });
 test('light mode uses dark ink and hamburger is raised three pixels',()=>{
  const f=fixture(); f.terminal.scheme='prefer-light'; f.handle.sync(); f.handle.paint();
  assert(f.handle.light); assert.match(f.handle.panelLine.style,/70, 40, 100/);
  assert.deepEqual(f.drawing.filter(x=>x[0]==='moveTo' && x[1]===85).map(x=>x[2]),[3,6,9]);
  assert(f.drawing.some(x=>x[0]==='setSourceRGBA' && x[1]===33/255));
+});
+
+test('a window touching the panel compacts the handle and moving it away restores size',()=>{
+ const f=fixture(); let top=32;
+ f.terminal.windows=[{meta_window:{minimized:false,showing_on_its_workspace:()=>true,get_monitor:()=>0,can_close:()=>true,get_frame_rect:()=>({x:0,y:top,width:1500,height:800})}}];
+ f.handle.sync(); assert.equal(f.handle.actor.scale_y,.5);
+ top=100; f.handle.sync(); assert.equal(f.handle.actor.scale_y,1);
 });

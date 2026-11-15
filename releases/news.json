@@ -12,11 +12,11 @@
       },
       {
         "title": "Out of the way when you need it",
-        "text": "The handle hides while the terminal is open or an application is fullscreen. A compact hamburger beside the clock keeps the terminal accessible whenever the panel is visible. Overview and the lock screen hide the activators."
+        "text": "The handle smoothly shrinks to half size when the terminal is open or a window reaches the top panel, including maximized windows. It returns to full size when the space is clear. Fullscreen keeps GNOME’s normal panel visibility; Overview and the lock screen hide the activators."
       },
       {
         "title": "Aligned and refined",
-        "text": "The handle stays centered independently of panel layout changes. Its hamburger sits slightly higher, and the panel outline joins the curved handle. Both light and dark themes are supported, with a subtle matching highlight along the adaptive dock’s top edge."
+        "text": "The handle stays centered independently of panel layout changes. Its hamburger sits slightly higher, and the panel outline joins the curved handle. Both light and dark themes are supported, with a subtle matching highlight along the adaptive dock’s top edge. The dock moves out of the way when a window touches its area, including in the live session."
       },
       {
         "title": "Checked before release",
