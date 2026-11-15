@@ -242,6 +242,7 @@ export default class InfinityTerminal extends Extension {
     }
 
     _syncResizeHandle() {
+        this._pullHandle?.sync();
         if (!this._resizeHandle)
             return;
         const window = this._findWindow();

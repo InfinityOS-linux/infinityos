@@ -16,7 +16,7 @@ function fixture() {
     const Main = {panel: {...signal, statusArea: {dateMenu: {...signal, get_transformed_position: () => [700, 0], get_transformed_size: () => [100, 32]}},
         get_transformed_position: () => [0, -52], get_transformed_size: () => [1500, 32], get_theme_node: () => ({get_background_color: () => ({red: 11, green: 9, blue: 18, alpha: 255})})},
         layoutManager: {...signal, primaryMonitor: {index: 0, x:0, y: 0,width:1500}, addTopChrome() {}, removeChrome() {}}, overview: {...signal, visible: false}, sessionMode: {...signal, isLocked: false}};
-    const context = {GLib: {PRIORITY_DEFAULT: 0, timeout_add: () => 1, Source: {remove() {}}}, Main, Atk: {Role: {PUSH_BUTTON: 1}}, console,
+    const context = {Gio: {Settings: class {constructor(){Object.assign(this, signal);} get_string(){return terminal.scheme || 'prefer-dark';}}}, GLib: {PRIORITY_DEFAULT: 0, timeout_add: () => 1, Source: {remove() {}}}, Main, Atk: {Role: {PUSH_BUTTON: 1}}, console,
         St: {DrawingArea: class {constructor() {Object.assign(this, signal); this.visible = true;} contains(a) {return a === this;} set_size(w,h) {this.width=w;this.height=h;} set_position(x,y) {this.x=x;this.y=y;} queue_repaint() {} get_context() {return cr;} get_surface_size() {return [180,18];} hide() {this.visible=false;} destroy() {}}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}, Settings: {get: () => ({enable_animations: true})}},
         Clutter: {EventType: {BUTTON_PRESS: 1, BUTTON_RELEASE: 2, MOTION: 3, KEY_PRESS: 4}, ModifierType: {BUTTON1_MASK: 1}, KEY_Escape: 27, KEY_Return: 13, KEY_space: 32, EVENT_STOP: true, EVENT_PROPAGATE: false, AnimationMode: {EASE_OUT_CUBIC: 1}},
         global: {display: {...signal, get_monitor_in_fullscreen: () => fullscreen}, stage: {...signal, get_event_actor: () => handle.actor, grab() {grabs++;return {dismiss() {dismissed++;}};}}}, terminal};
@@ -54,4 +54,16 @@ test('destroy releases active pointer grab',()=>{const f=fixture();f.event(1,40)
 test('pulling an open terminal into the panel hides it without saving a tiny height',()=>{
  const f=fixture(); f.window.minimized=false; f.event(1,40); f.event(3,20); f.event(2,20);
  assert.equal(f.hidden,1); assert.equal(f.terminal.savedHeight,undefined);
+});
+
+test('open terminal hides bulge but keeps the panel edge and fallback button',()=>{
+ const f=fixture(); f.window.minimized=false; f.handle.sync();
+ assert.equal(f.handle.actor.visible,false); assert(f.handle.panelLine.visible); assert(f.terminal._indicator.visible);
+ f.window.minimized=true; f.handle.sync(); assert(f.handle.actor.visible); assert.equal(f.terminal._indicator.visible,false);
+});
+test('light mode uses dark ink and hamburger is raised three pixels',()=>{
+ const f=fixture(); f.terminal.scheme='prefer-light'; f.handle.sync(); f.handle.paint();
+ assert(f.handle.light); assert.match(f.handle.panelLine.style,/70, 40, 100/);
+ assert.deepEqual(f.drawing.filter(x=>x[0]==='moveTo' && x[1]===85).map(x=>x[2]),[3,6,9]);
+ assert(f.drawing.some(x=>x[0]==='setSourceRGBA' && x[1]===33/255));
 });

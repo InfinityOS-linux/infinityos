@@ -2,6 +2,7 @@ import Atk from 'gi://Atk';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 // A separate chrome actor avoids enlarging the panel's reserved work area.
@@ -22,6 +23,8 @@ export class TerminalPullHandle {
             this.signals.push([object, object.connect(signal, callback)]);
         };
         const sync = () => this.sync();
+        this.interfaceSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
+        connect(this.interfaceSettings, 'changed::color-scheme', sync);
         connect(Main.panel, 'notify::allocation', sync);
         connect(Main.panel, 'style-changed', () => { this.actor.queue_repaint(); this.sync(); });
         connect(Main.panel.statusArea.dateMenu, 'notify::allocation', sync);
@@ -43,9 +46,16 @@ export class TerminalPullHandle {
         if (!monitor) { this.actor.hide(); this.panelLine.hide(); return; }
         const fullscreen = global.display.get_monitor_in_fullscreen(monitor.index);
         const normal = !Main.overview.visible && !Main.sessionMode.isLocked;
-        this.terminal._indicator.visible = fullscreen && normal;
-        this.actor.visible = !fullscreen && normal;
-        this.panelLine.visible = this.actor.visible;
+        const window = this.terminal._findWindow();
+        const open = !!window && !window.minimized && !this.terminal._firstFrame;
+        this.terminal._indicator.visible = (fullscreen || open) && normal;
+        this.actor.visible = !fullscreen && !open && normal;
+        this.panelLine.visible = !fullscreen && normal;
+        const scheme = this.interfaceSettings.get_string('color-scheme');
+        this.light = scheme === 'prefer-light' || (scheme === 'default' &&
+            !Main.panel.has_style_pseudo_class?.('dark'));
+        this.panelLine.style = `background-color: ${this.light
+            ? 'rgba(70, 40, 100, 0.20)' : 'rgba(184, 166, 217, 0.20)'};`;
         const clock = Main.panel.statusArea.dateMenu;
         const [x] = clock.get_transformed_position();
         const [width] = clock.get_transformed_size();
@@ -65,7 +75,10 @@ export class TerminalPullHandle {
         try {
             cr.scale(width / 180, height / 18);
             // The desktop panel may be translucent; the handle needs an opaque silhouette.
-            cr.setSourceRGBA(11 / 255, 9 / 255, 18 / 255, 1);
+            const panel = Main.panel.get_theme_node().get_background_color();
+            const fill = panel.alpha >= 250 ? [panel.red, panel.green, panel.blue]
+                : this.light ? [247, 244, 251] : [11, 9, 18];
+            cr.setSourceRGBA(...fill.map(c => c / 255), 1);
             // Mirrored control points, horizontal tangents at both shoulders.
             const outline = () => {
                 cr.moveTo(0, 2);
@@ -78,11 +91,13 @@ export class TerminalPullHandle {
             cr.lineTo(102, 17); cr.curveTo(132, 17, 148, 2, 180, 2);
             cr.lineTo(180, 0); cr.closePath(); cr.fill();
             outline();
-            cr.setSourceRGBA(184 / 255, 166 / 255, 217 / 255, .20);
+            const stroke = this.light ? [70, 40, 100] : [184, 166, 217];
+            cr.setSourceRGBA(...stroke.map(c => c / 255), .20);
             cr.setLineWidth(.75); cr.stroke();
-            cr.setSourceRGBA(1, 1, 1, this.actor.hover ? 1 : .85);
+            const ink = this.light ? [33 / 255, 27 / 255, 43 / 255] : [1, 1, 1];
+            cr.setSourceRGBA(...ink, this.actor.hover ? 1 : .85);
             cr.setLineWidth(1.25);
-            for (const y of [6, 9, 12]) {
+            for (const y of [3, 6, 9]) {
                 cr.moveTo(85, y); cr.lineTo(95, y); cr.stroke();
             }
         } finally { cr.$dispose(); }
