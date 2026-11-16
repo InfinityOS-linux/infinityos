@@ -123,3 +123,7 @@
   color: inherit !important;
   opacity: 1.0 !important;
 }
+
+.workspace-thumbnails.infinity-dashboard-previews {
+    spacing: 10px;
+}
