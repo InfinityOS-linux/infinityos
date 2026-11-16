@@ -114,10 +114,18 @@ export default class Smoke extends Extension {
         const entry = tray._entries.get(trayApp);
         check(entry && entry.wrapper.get_parent() === tray._icons, 'tray app was not moved');
         const quick = Main.panel.statusArea.quickSettings;
+        // Headless CI has no audio device, so the output slider is normally
+        // invisible and has no meaningful allocation. Show it for layout checks.
+        const output = quick._volumeOutput.quickSettingsItems[0];
+        const outputVisible = output.visible;
+        output.show();
         quick.menu.open(); await wait();
+        const quickChildren = quick.menu._grid.get_children();
+        check(quickChildren.indexOf(tray._section) > quickChildren.indexOf(output),
+            'tray grid order is above system volume');
         check(tray._section.get_transformed_position()[1] >
-            quick._volumeOutput.quickSettingsItems[0].get_transformed_position()[1],
-        'tray was placed above system volume');
+            output.get_transformed_position()[1],
+        `tray allocation is above volume: ${tray._section.get_transformed_position()} / ${output.get_transformed_position()}`);
         trayApp.menu.open(); await wait();
         check(quick.menu.isOpen && trayApp.menu.isOpen, 'app menu closed Quick Settings');
         trayApp.menu.close();
@@ -132,6 +140,7 @@ export default class Smoke extends Extension {
         tray._setLocation(entry, 'menu');
         check(entry.wrapper.visible, 'show failed');
         quick.menu.close();
+        output.visible = outputVisible;
         tray.destroy(); tray = null;
         check(trayApp.container.get_parent() === Main.panel._rightBox, 'tray disable lost app');
         const updater = new Updater(metadata('infinity-updater@infinityos.org'));
