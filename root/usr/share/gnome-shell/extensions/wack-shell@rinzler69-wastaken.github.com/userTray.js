@@ -106,7 +106,7 @@ export default class UserTray {
                 const mode = trayPlacement(preferences, entry.key);
                 const inMenu = mode !== 'panel';
                 if (entry.indicator.menu && entry.inMenu !== inMenu) {
-                    entry.indicator.menu.close();
+                    entry.indicator.menu.close({animate: false});
                     (inMenu ? Main.panel.menuManager : this._manager).removeMenu(entry.indicator.menu);
                     (inMenu ? this._manager : Main.panel.menuManager).addMenu(entry.indicator.menu);
                 }
@@ -165,8 +165,21 @@ export default class UserTray {
         return Clutter.EVENT_STOP;
     }
 
+    _destroyContext() {
+        const menu = this._context;
+        this._context = null;
+        if (!menu) return;
+        menu.close({animate: false});
+        menu.actor.remove_all_transitions();
+        // Remove the popup from its parent before disposing its BoxPointer bin.
+        // Otherwise a queued parent allocation can measure the disposed popup.
+        menu.actor.hide();
+        menu.actor.get_parent()?.remove_child(menu.actor);
+        menu.destroy();
+    }
+
     _openContext(entry, anchor) {
-        this._context?.destroy();
+        this._destroyContext();
         const menu = new PopupMenu.PopupMenu(anchor, 0.5, St.Side.TOP);
         this._context = menu;
         Main.uiGroup.add_child(menu.actor);
@@ -192,11 +205,11 @@ export default class UserTray {
         Main.sessionMode.disconnectObject(this);
         this._settings.disconnectObject(this);
         this._quick?.menu.disconnectObject(this);
-        this._context?.destroy();
+        this._destroyContext();
         for (const entry of this._entries.values()) {
             entry.actor.disconnectObject(this);
             if (entry.inMenu && entry.indicator.menu) {
-                entry.indicator.menu.close();
+                entry.indicator.menu.close({animate: false});
                 this._manager.removeMenu(entry.indicator.menu);
                 Main.panel.menuManager.addMenu(entry.indicator.menu);
             }
