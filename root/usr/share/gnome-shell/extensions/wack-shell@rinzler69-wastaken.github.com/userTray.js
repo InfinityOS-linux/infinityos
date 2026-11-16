@@ -51,7 +51,7 @@ export default class UserTray {
     }
 
     _queueSync() {
-        if (this._idle) return;
+        if (this._idle || this._syncing) return;
         this._idle = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
             this._idle = 0;
             this._sync();

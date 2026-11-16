@@ -8,8 +8,8 @@ class Actor {
     constructor(props = {}) {Object.assign(this, {children: [], opacity: 255}, props);}
     get_parent() {return this.parent;}
     get_children() {return this.children;}
-    add_child(actor) {assert.ok(!actor.parent); this.children.push(actor); actor.parent = this;}
-    insert_child_at_index(actor, index) {assert.ok(!actor.parent); this.children.splice(index, 0, actor); actor.parent = this;}
+    add_child(actor) {assert.ok(!actor.parent); this.children.push(actor); actor.parent = this; this.onChildAdded?.();}
+    insert_child_at_index(actor, index) {assert.ok(!actor.parent); this.children.splice(index, 0, actor); actor.parent = this; this.onChildAdded?.();}
     remove_child(actor) {this.children.splice(this.children.indexOf(actor), 1); actor.parent = null;}
     destroy_all_children() {for (const child of [...this.children]) child.destroy();}
     destroy() {this.destroy_all_children(); this.parent?.remove_child(this); this.destroyed = true;}
@@ -62,9 +62,14 @@ test('rebuilding, hiding and pinning preserve app actors and restore their origi
     tray._sync();
     assert.equal(icon.parent.parent, tray._body);
     assert.equal(icon.opacity, 120);
+    // Panel child-added fires synchronously during our own move. It must not
+    // schedule another rebuild that would close the next native menu.
+    panel.onChildAdded = () => tray._queueSync();
     preferences = {app: 'panel'};
     tray._sync();
     assert.equal(icon.parent, panel);
+    assert.equal(tray._idle, undefined);
+    panel.onChildAdded = null;
     assert.equal(icon.style, 'custom: style;');
     assert.equal(icon.opacity, 210);
     preferences = {};
