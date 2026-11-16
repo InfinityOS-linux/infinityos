@@ -3,6 +3,8 @@ import GLib from 'gi://GLib';
 import St from 'gi://St';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import UserTray from '../wack-shell@rinzler69-wastaken.github.com/userTray.js';
 import {TerminalPullHandle} from '../ghostty@infinityos.org/pull-handle.js';
 import {HardwareMonitor} from '../ghostty@infinityos.org/hardware-monitor.js';
 import {widgetChoices} from '../ghostty@infinityos.org/monitor-widgets.js';
@@ -47,6 +49,42 @@ export default class Smoke extends Extension {
         const wait = () => new Promise(resolve => GLib.timeout_add(GLib.PRIORITY_DEFAULT, 750, () => { resolve(); return GLib.SOURCE_REMOVE; }));
         await wait();
         check(iconLoaded, 'native dock icon measurement failed');
+        const trayPath = metadata('wack-shell@rinzler69-wastaken.github.com').path;
+        const traySource = Gio.SettingsSchemaSource.new_from_directory(`${trayPath}/schemas`, Gio.SettingsSchemaSource.get_default(), false);
+        const traySettings = new Gio.Settings({settings_schema: traySource.lookup('org.gnome.shell.extensions.wack-shell', true)});
+        const trayIcons = Array.from({length: 8}, (_, index) => {
+            const icon = new PanelMenu.Button(0.5, `Tray test ${index}`);
+            icon.add_child(new St.Icon({icon_name: 'applications-system-symbolic', style_class: 'system-status-icon'}));
+            icon.menu.addAction('Test action', () => {});
+            Main.panel.addToStatusArea(`infinity-tray-test-${index}`, icon, 0, 'right');
+            return icon;
+        });
+        const tray = new UserTray({_settings: traySettings, gettext: text => text});
+        try {
+            Main.panel.statusArea.quickSettings.menu.open();
+            await wait();
+            check(tray._body.get_n_children() >= 2, 'tray failed to wrap icons');
+            check(trayIcons.every(icon => tray._section.contains(icon.container)), 'tray did not move all test icons');
+            tray._openContext(tray._entries.get('infinity-tray-test-0'), trayIcons[0]);
+            check(tray._context.isOpen, 'tray context menu did not open');
+            tray._context.close();
+            tray._setPlacement('infinity-tray-test-0', 'hidden');
+            tray._sync();
+            check(trayIcons[0].container.get_parent() === tray._parking, 'tray hide failed');
+            tray._setPlacement('infinity-tray-test-0', 'panel');
+            tray._sync();
+            check(trayIcons[0].container.get_parent() === Main.panel._rightBox, 'tray pin failed');
+            tray._setPlacement('infinity-tray-test-0', 'menu');
+            tray._sync();
+            trayIcons[0].menu.open();
+            check(trayIcons[0].menu.isOpen, 'native application menu failed after migration');
+            trayIcons[0].menu.close();
+        } finally {
+            Main.panel.statusArea.quickSettings.menu.close();
+            tray.destroy();
+            check(trayIcons.every(icon => icon.container.get_parent() === Main.panel._rightBox), 'tray teardown did not restore panel');
+            trayIcons.forEach(icon => icon.destroy());
+        }
         check(monitor._cells.length === 8, 'sensor/widget construction');
         for (const cell of monitor._cells.filter(cell => cell.actor.visible))
             check(cell.label.height > 0, `caption clipped: ${cell.id}`);
