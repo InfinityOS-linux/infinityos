@@ -73,7 +73,9 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: InfinityOS-${{ matrix.arch }}-build-logs
-          path: ${{ runner.temp }}/iso-output/infinityos-build/*.log
+          path: |
+            ${{ runner.temp }}/iso-output/**/*.log
+            ${{ runner.temp }}/iso-output/**/*.packages
           if-no-files-found: ignore
           retention-days: 7
 

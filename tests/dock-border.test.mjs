@@ -17,8 +17,8 @@ test('adaptive dock highlights only its top edge in both themes', () => {
   assert.match(border(), /border-color: rgba\(0.87,0.8,1,0.32\) transparent transparent transparent/);
   assert.match(border({ _getPreferredColorScheme: () => 'light' }), /border-color: rgba\(1,1,1,0.65\) transparent transparent transparent/);
 });
-test('adaptive hairline remains subtle while custom borders retain their settings', () => {
-  assert.match(border({ border_thickness: 0 }), /border-top: 0.75px solid rgba\(184, 166, 217, 0.20\)/);
+test('adaptive upper edge is brighter and one pixel thicker while custom borders retain their settings', () => {
+  assert.match(border({ border_thickness: 0 }), /border-top: 1.75px solid rgba\(218, 199, 255, 0.55\)/);
   assert.equal(border({ border_thickness: 0, adaptive_background: false }).trim(), '');
   assert.match(border({ adaptive_background: false }), /border: 1px solid rgba\(1,0,0,1\)/);
   assert.doesNotMatch(border({ adaptive_background: false }), /transparent/);

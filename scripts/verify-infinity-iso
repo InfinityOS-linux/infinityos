@@ -236,9 +236,12 @@ if [[ $(uname -m) == x86_64 ]]; then
         echo 'Installer is missing the NVIDIA hardware detection hook' >&2
         exit 1
     }
-    [[ $(rpm --root "$rootpoint" -q --qf '%{RELEASE}' gamescope) == \
-        *.infinityos.fc45 ]] || {
-        echo 'Infinity OS Gamescope NVIDIA fix is missing from ISO' >&2
+    gamescope_release=$(rpm --root "$rootpoint" -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' gamescope) || {
+        echo 'Gamescope package is missing or its RPM metadata cannot be read' >&2
+        exit 1
+    }
+    [[ "$gamescope_release" == '3.16.29-2.infinityos.fc45.x86_64' ]] || {
+        echo "Infinity OS Gamescope NVIDIA fix is missing from ISO: found $gamescope_release; expected 3.16.29-2.infinityos.fc45.x86_64" >&2
         exit 1
     }
 fi

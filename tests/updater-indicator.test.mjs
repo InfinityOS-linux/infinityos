@@ -63,7 +63,7 @@ function drawer(area, deferred = false) {
     const actor = {remove_all_transitions() {}, ease(options) { calls.push(options); }};
     const window = {
         get_monitor: () => 1,
-        unmaximize() {},
+        unmaximize(...args) { assert.equal(args.length, 0, "GNOME 51 unmaximize takes no arguments"); },
         move_resize_frame: (...args) => calls.push(args),
         get_compositor_private: () => actor,
         get_frame_rect: () => ({x: area.x + area.width - Math.min(460, area.width), y: area.y, width: Math.min(460, area.width), height: area.height}),

@@ -77,7 +77,9 @@
 		<ignore name="power-profiles-daemon"/>
 		<package name="switcheroo-control"/>
 		<package name="mangohud"/>
-		<package name="gamescope"/>
+		<!-- Keep the NVIDIA regression fix even when Fedora publishes a newer build. -->
+		<package name="gamescope-3.16.29-2.infinityos.fc45.x86_64" arch="x86_64"/>
+		<package name="gamescope" arch="aarch64"/>
 		<package name="steam-devices"/>
 		<package name="dconf"/>
 		<package name="firefox"/>
