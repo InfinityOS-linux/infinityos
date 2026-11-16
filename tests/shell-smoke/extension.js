@@ -122,7 +122,12 @@ export default class Smoke extends Extension {
         output.show();
         quick.menu.open(); await wait();
         const [iconWidth, iconHeight] = trayIcon.get_transformed_size();
-        check(iconWidth <= 20 && iconHeight <= 20, `tray icon is oversized: ${iconWidth}x${iconHeight}`);
+        // StIcon is allocated the whole click target but paints its natural icon
+        // centered inside it. Measure that natural size, not the target bounds.
+        const [, naturalWidth] = trayIcon.get_preferred_width(-1);
+        const [, naturalHeight] = trayIcon.get_preferred_height(-1);
+        check(naturalWidth <= 20 && naturalHeight <= 20,
+            `tray glyph is oversized: ${naturalWidth}x${naturalHeight}`);
         const [, iconY] = trayIcon.get_transformed_position();
         const moreIcon = tray._manage.get_child();
         const [, moreY] = moreIcon.get_transformed_position();
