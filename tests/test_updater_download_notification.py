@@ -94,12 +94,11 @@ class CompletionNotificationTests(unittest.TestCase):
                         threading=SimpleNamespace(Thread=lambda target, daemon: SimpleNamespace(start=target)),
                         GLib=SimpleNamespace(timeout_add=Mock(), idle_add=lambda callback, *args: callback(*args)))
                     self.method('on_apply', namespace)(app, None)
-                    if check_fails:
-                        app.finish_error.assert_called_once_with('repository unavailable', pending)
-                    else:
-                        app.finish_refresh.assert_called_once_with(state,
-                            'Some updates could not be installed.', None, pending)
-                        self.assertIn('Flatpak error', ' '.join(state['errors']))
+                    check.assert_not_called()
+                    namespace['save_state'].assert_not_called()
+                    app.finish_refresh.assert_not_called()
+                    app.finish_error.assert_called_once_with(
+                        'History: History unavailable\nYour Flatpaks: Flatpak error', pending)
 
     def test_error_completion_notifies_only_when_downloaded(self):
         for downloaded in (False, True):
@@ -111,3 +110,4 @@ class CompletionNotificationTests(unittest.TestCase):
             self.assertEqual(app.state['errors'], ['Check failed'])
             self.assertFalse(app.busy)
             app.release.assert_called_once()
+

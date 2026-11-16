@@ -203,6 +203,20 @@ test('updater stays in panel despite saved tray preferences and late registratio
     tray.destroy();
 });
 
+test('disable restores original icon order with pinned and late apps', () => {
+    const s = setup();
+    const a = s.add('warp'); const keyboard = s.add('keyboard');
+    const b = s.add('clipboard'); const c = s.add('layouts');
+    const original = s.panel._rightBox.get_children();
+    const tray = s.create();
+    tray._setLocation(tray._entries.get(c), 'panel');
+    const late = s.add('late'); s.flush();
+    tray.destroy();
+    assert.deepEqual(s.panel._rightBox.get_children(), [...original, late.container]);
+    const again = s.create(); again.destroy();
+    assert.deepEqual(s.panel._rightBox.get_children(), [...original, late.container]);
+});
+
 test('lock hides pinned apps and menu, app removal cleans up, disable restores native visibility', () => {
     const s = setup(); const app = s.add('warp'); const tray = s.create();
     const entry = tray._entries.get(app); tray._setLocation(entry, 'panel');

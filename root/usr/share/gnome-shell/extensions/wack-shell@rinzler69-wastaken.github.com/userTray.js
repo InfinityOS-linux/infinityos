@@ -12,6 +12,7 @@ import {trayText} from './trayStrings.js';
 export default class UserTray {
     constructor() {
         this._entries = new Map();
+        this._panelOrder = Main.panel._rightBox.get_children();
         this._signals = [];
         this._idle = 0;
         this._destroyed = false;
@@ -96,6 +97,20 @@ export default class UserTray {
     _sync() {
         if (this._destroyed)
             return;
+        // Remember positions before moving any actors. Wrapped/pinned actors
+        // represent the same original item, and late arrivals join that order.
+        const wrapped = new Map([...this._entries.values()].map(entry => [entry.wrapper, entry.actor]));
+        const panelChildren = Main.panel._rightBox.get_children().map(actor => wrapped.get(actor) ?? actor);
+        const retained = new Set([...panelChildren, ...[...this._entries.values()].map(entry => entry.actor)]);
+        this._panelOrder = this._panelOrder.filter(actor => retained.has(actor));
+        for (let i = panelChildren.length - 1; i >= 0; i--) {
+            const actor = panelChildren[i];
+            if (this._panelOrder.includes(actor))
+                continue;
+            const next = panelChildren[i + 1];
+            const index = next ? this._panelOrder.indexOf(next) : this._panelOrder.length;
+            this._panelOrder.splice(index, 0, actor);
+        }
         for (const [role, indicator] of Object.entries(Main.panel.statusArea)) {
             const actor = indicator.container;
             if (!actor || this._entries.has(indicator) ||
@@ -104,7 +119,6 @@ export default class UserTray {
             const parent = actor.get_parent();
             const key = String(indicator._indicator?.id ?? role);
             const entry = {indicator, actor, parent, key,
-                index: parent.get_children().indexOf(actor),
                 style: actor.get_style(), menu: null,
                 wrapper: new St.Bin({y_align: Clutter.ActorAlign.CENTER,
                     x_align: Clutter.ActorAlign.CENTER})};
@@ -147,7 +161,7 @@ export default class UserTray {
             if (entry.wrapper.get_parent() !== parent) {
                 entry.wrapper.get_parent()?.remove_child(entry.wrapper);
                 if (pinned)
-                    parent.insert_child_at_index(entry.wrapper, entry.index);
+                    parent.insert_child_at_index(entry.wrapper, this._panelOrder.indexOf(entry.actor));
             }
             if (!pinned) {
                 if (entry.wrapper.get_parent() !== this._icons || entry.position !== position) {
@@ -258,8 +272,15 @@ export default class UserTray {
             }
             entry.wrapper.set_child(null);
             entry.actor.set_style(entry.style);
-            entry.parent.insert_child_at_index(entry.actor, entry.index);
             entry.wrapper.destroy();
+        }
+        for (const entry of this._entries.values())
+            entry.parent.add_child(entry.actor);
+        const panelChildren = Main.panel._rightBox.get_children();
+        let panelIndex = 0;
+        for (const actor of this._panelOrder) {
+            if (panelChildren.includes(actor))
+                Main.panel._rightBox.set_child_at_index(actor, panelIndex++);
         }
         this._entries.clear();
         this._section.destroy();
