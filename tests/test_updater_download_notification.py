@@ -63,3 +63,51 @@ class DownloadNotificationTests(unittest.TestCase):
         self.app.release.assert_called_once()
         self.app.send_notification.assert_called_once()
         self.app.withdraw_notification.assert_not_called()
+
+
+class CompletionNotificationTests(unittest.TestCase):
+    def method(self, name, namespace):
+        method = next(node for node in ast.walk(ast.parse(SOURCE.read_text()))
+                      if isinstance(node, ast.FunctionDef) and node.name == name)
+        exec(compile(ast.Module(body=[method], type_ignores=[]), str(SOURCE), 'exec'), namespace)
+        return namespace[name]
+
+    def test_pending_restart_survives_unrelated_update_and_history_errors(self):
+        from contextlib import nullcontext
+        for pending in (False, True):
+            for check_fails in (False, True):
+                with self.subTest(pending=pending, check_fails=check_fails):
+                    state = {'updates': [], 'errors': [], 'rpm_check_ok': True}
+                    check = Mock(return_value=state)
+                    if check_fails:
+                        check.side_effect = RuntimeError('repository unavailable')
+                    app = SimpleNamespace(state=state, progress=Mock(), recovery=Mock(),
+                        hold=Mock(), render=Mock(), pulse_progress=Mock(), report_progress=Mock(),
+                        finish_error=Mock(), finish_refresh=Mock())
+                    namespace = dict(
+                        offline_status=lambda: {'pending': pending}, update_rows=lambda *_: [],
+                        install_commands=lambda _: [('Your Flatpaks', ['flatpak'])],
+                        apply_command=lambda *_: SimpleNamespace(returncode=1, stderr='Flatpak error', stdout=''),
+                        record_operation=Mock(side_effect=OSError('History unavailable')),
+                        privileged_transaction=nullcontext, check_updates=check, save_state=Mock(),
+                        pending_rpm_names=lambda *_: [], tr=lambda text: text,
+                        threading=SimpleNamespace(Thread=lambda target, daemon: SimpleNamespace(start=target)),
+                        GLib=SimpleNamespace(timeout_add=Mock(), idle_add=lambda callback, *args: callback(*args)))
+                    self.method('on_apply', namespace)(app, None)
+                    if check_fails:
+                        app.finish_error.assert_called_once_with('repository unavailable', pending)
+                    else:
+                        app.finish_refresh.assert_called_once_with(state,
+                            'Some updates could not be installed.', None, pending)
+                        self.assertIn('Flatpak error', ' '.join(state['errors']))
+
+    def test_error_completion_notifies_only_when_downloaded(self):
+        for downloaded in (False, True):
+            app = SimpleNamespace(checking=False, spinner=Mock(), stop_progress=Mock(),
+                render=Mock(), release=Mock(), notify_downloaded=Mock())
+            namespace = dict(read_state=lambda: {'errors': []}, GLib=SimpleNamespace(SOURCE_REMOVE=False))
+            self.method('finish_error', namespace)(app, 'Check failed', downloaded)
+            self.assertEqual(app.notify_downloaded.call_count, int(downloaded))
+            self.assertEqual(app.state['errors'], ['Check failed'])
+            self.assertFalse(app.busy)
+            app.release.assert_called_once()
