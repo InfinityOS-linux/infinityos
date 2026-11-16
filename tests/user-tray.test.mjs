@@ -102,7 +102,7 @@ function setup() {
             idle_add: (_priority, callback) => { pending.set(++id, callback); return id; },
             source_remove: key => pending.delete(key)},
         St: {BoxLayout: Actor, Widget: Actor, Button: Actor, Icon: Actor, Bin: Actor, Side: {TOP: 0}},
-        Clutter: {ActorAlign: {CENTER: 0}, GridLayout: class {
+        Clutter: {Orientation: {VERTICAL: 1}, ActorAlign: {CENTER: 0}, GridLayout: class {
             attach(actor) { this.owner.add_child(actor); }
         }, EventType: {BUTTON_PRESS: 1, BUTTON_RELEASE: 2, KEY_PRESS: 3},
         ModifierType: {SHIFT_MASK: 1}, EVENT_STOP: 1, EVENT_PROPAGATE: 0},

@@ -30,7 +30,7 @@ export default class UserTray {
         this._quick = Main.panel.statusArea.quickSettings;
         this._grid = this._quick.menu._grid;
         this._originalOrder = this._grid.get_children();
-        this._section = new St.BoxLayout({vertical: true, x_expand: true});
+        this._section = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, x_expand: true});
         // Inherit the theme's neutral separators, including in light mode.
         this._separators = [new PopupMenu.PopupSeparatorMenuItem(),
             new PopupMenu.PopupSeparatorMenuItem()];
