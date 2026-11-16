@@ -66,8 +66,10 @@ export default class Smoke extends Extension {
             check(tray._body.get_n_children() >= 2, 'tray failed to wrap icons');
             check(trayIcons.every(icon => tray._section.contains(icon.container)), 'tray did not move all test icons');
             tray._openContext(tray._entries.get('infinity-tray-test-0'), trayIcons[0]);
-            check(tray._context.isOpen, 'tray context menu did not open');
-            tray._context.close();
+            await wait();
+            check(tray._context.isOpen && tray._context.actor.has_allocation(), 'tray context menu did not map');
+            tray._context.close({animate: false});
+            await wait();
             tray._setPlacement('infinity-tray-test-0', 'hidden');
             tray._sync();
             check(trayIcons[0].container.get_parent() === tray._parking, 'tray hide failed');
@@ -77,8 +79,10 @@ export default class Smoke extends Extension {
             tray._setPlacement('infinity-tray-test-0', 'menu');
             tray._sync();
             trayIcons[0].menu.open();
-            check(trayIcons[0].menu.isOpen, 'native application menu failed after migration');
-            trayIcons[0].menu.close();
+            await wait();
+            check(trayIcons[0].menu.isOpen && trayIcons[0].menu.actor.has_allocation(), 'native application menu failed after migration');
+            trayIcons[0].menu.close({animate: false});
+            await wait();
         } finally {
             Main.panel.statusArea.quickSettings.menu.close();
             tray.destroy();
