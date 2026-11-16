@@ -32,7 +32,7 @@ export default class Smoke extends Extension {
             return {...JSON.parse(new TextDecoder().decode(bytes)), dir, path: dir.get_path()};
         };
         const theme = St.ThemeContext.get_for_stage(global.stage).get_theme();
-        for (const uuid of ['ghostty@infinityos.org', 'nowplay@LalaloyXyz', 'raccoonlauncher@shimafallah.github.io', 'infinity-updater@infinityos.org']) {
+        for (const uuid of ['ghostty@infinityos.org', 'nowplay@LalaloyXyz', 'raccoonlauncher@shimafallah.github.io', 'infinity-updater@infinityos.org', 'wack-shell@rinzler69-wastaken.github.com']) {
             const file = root.get_child(uuid).get_child('stylesheet.css');
             if (file.query_exists(null)) theme.load_stylesheet(file);
         }
@@ -105,7 +105,8 @@ export default class Smoke extends Extension {
         check(nowplay._ui.popupVisible, 'NowPlay did not open');
         nowplay._ui.destroyPopup();
         const trayApp = new PanelMenu.Button(0, 'Tray smoke');
-        trayApp.add_child(new St.Icon({icon_name: 'edit-paste-symbolic', icon_size: 18}));
+        const trayIcon = new St.Icon({icon_name: 'edit-paste-symbolic', style_class: 'system-status-icon'});
+        trayApp.add_child(trayIcon);
         trayApp.menu.addAction('Test action', () => {});
         Main.panel.addToStatusArea('infinity-tray-smoke', trayApp);
         let tray = new UserTray();
@@ -120,6 +121,14 @@ export default class Smoke extends Extension {
         const outputVisible = output.visible;
         output.show();
         quick.menu.open(); await wait();
+        const [iconWidth, iconHeight] = trayIcon.get_transformed_size();
+        check(iconWidth <= 20 && iconHeight <= 20, `tray icon is oversized: ${iconWidth}x${iconHeight}`);
+        const [, iconY] = trayIcon.get_transformed_position();
+        const moreIcon = tray._manage.get_child();
+        const [, moreY] = moreIcon.get_transformed_position();
+        const [, moreHeight] = moreIcon.get_transformed_size();
+        check(Math.abs(iconY + iconHeight / 2 - moreY - moreHeight / 2) <= 1,
+            'tray icons and management button are not vertically centered');
         const quickChildren = quick.menu._grid.get_children();
         check(quickChildren.indexOf(tray._section) > quickChildren.indexOf(output),
             'tray grid order is above system volume');
