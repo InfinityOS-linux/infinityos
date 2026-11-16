@@ -35,11 +35,13 @@ export default class UserTray {
         this._separators = [new PopupMenu.PopupSeparatorMenuItem(),
             new PopupMenu.PopupSeparatorMenuItem()];
         this._section.add_child(this._separators[0]);
-        this._icons = new St.Widget({layout_manager: new Clutter.GridLayout(),
-            x_expand: true, style: 'margin: 6px 0;'});
+        this._icons = new St.Widget({layout_manager: new Clutter.GridLayout({column_spacing: 8, row_spacing: 6}),
+            style_class: 'infinity-user-tray-icons',
+            x_align: Clutter.ActorAlign.START, x_expand: false, style: 'margin: 2px 0;'});
         this._section.add_child(this._icons);
         this._section.add_child(this._separators[1]);
         this._manage = new St.Button({style_class: 'button', can_focus: true,
+            style: 'width: 32px; height: 32px; min-width: 0; min-height: 0; padding: 0; margin: 0;',
             accessible_name: trayText('manage'),
             child: new St.Icon({icon_name: 'view-more-symbolic', icon_size: 18})});
         this._manage.connect('clicked', () => this._openMenu(this._manage));
@@ -145,7 +147,7 @@ export default class UserTray {
                     position++;
             }
             entry.wrapper.visible = unlocked && location !== 'hidden';
-            entry.actor.set_style(pinned ? entry.style : 'min-height: 32px; padding: 4px 8px;');
+            entry.actor.set_style(pinned ? entry.style : 'width: 32px; height: 32px; min-width: 0; min-height: 0; padding: 0;');
             // Use a separate manager for nested menus so opening an app does
             // not close Quick Settings and unmap the menu's source actor.
             const menu = entry.indicator.menu;
