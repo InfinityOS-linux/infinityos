@@ -109,8 +109,14 @@ export default class Smoke extends Extension {
         trayApp.add_child(trayIcon);
         trayApp.menu.addAction('Test action', () => {});
         Main.panel.addToStatusArea('infinity-tray-smoke', trayApp);
+        const extraTrayApps = [1, 2].map(index => {
+            const app = new PanelMenu.Button(0, `Tray spacing ${index}`);
+            app.add_child(new St.Icon({icon_name: 'view-grid-symbolic', style_class: 'system-status-icon'}));
+            Main.panel.addToStatusArea(`infinity-tray-spacing-${index}`, app);
+            return app;
+        });
         let tray = new UserTray();
-        this._objects.push({disable: () => { tray?.destroy(); trayApp.destroy(); }});
+        this._objects.push({disable: () => { tray?.destroy(); trayApp.destroy(); extraTrayApps.forEach(app => app.destroy()); }});
         await wait();
         const entry = tray._entries.get(trayApp);
         check(entry && entry.wrapper.get_parent() === tray._icons, 'tray app was not moved');
@@ -129,11 +135,23 @@ export default class Smoke extends Extension {
         check(naturalWidth <= 20 && naturalHeight <= 20,
             `tray glyph is oversized: ${naturalWidth}x${naturalHeight}`);
         const [, iconY] = trayIcon.get_transformed_position();
-        const moreIcon = tray._manage.get_child();
-        const [, moreY] = moreIcon.get_transformed_position();
-        const [, moreHeight] = moreIcon.get_transformed_size();
-        check(Math.abs(iconY + iconHeight / 2 - moreY - moreHeight / 2) <= 1,
-            'tray icons and management button are not vertically centered');
+        const [, cellY] = entry.wrapper.get_transformed_position();
+        const [cellWidth, cellHeight] = entry.wrapper.get_transformed_size();
+        check(Math.abs(cellWidth - cellHeight) <= 1, 'tray cell is not square');
+        check(Math.abs(iconY + iconHeight / 2 - cellY - cellHeight / 2) <= 1,
+            'tray icon is not vertically centered');
+        check(tray._icons.get_children().length === tray._entries.size,
+            'tray contains an extra overflow button');
+        const cells = [trayApp, ...extraTrayApps].map(app => tray._entries.get(app).wrapper);
+        const centers = cells.map(cell => cell.get_transformed_position()[0] + cell.get_transformed_size()[0] / 2);
+        check(Math.abs((centers[1] - centers[0]) - (centers[2] - centers[1])) <= 1,
+            `tray spacing is unequal: ${centers}`);
+        const [groupX] = tray._icons.get_transformed_position();
+        const [groupWidth] = tray._icons.get_transformed_size();
+        const [sectionX] = tray._section.get_transformed_position();
+        const [sectionWidth] = tray._section.get_transformed_size();
+        check(Math.abs(groupX + groupWidth / 2 - sectionX - sectionWidth / 2) <= 1,
+            'compact tray group is not centered in the row');
         const quickChildren = quick.menu._grid.get_children();
         check(quickChildren.indexOf(tray._section) > quickChildren.indexOf(output),
             'tray grid order is above system volume');
@@ -142,13 +160,15 @@ export default class Smoke extends Extension {
         `tray allocation is above volume: ${tray._section.get_transformed_position()} / ${output.get_transformed_position()}`);
         trayApp.menu.open(); await wait();
         check(quick.menu.isOpen && trayApp.menu.isOpen, 'app menu closed Quick Settings');
+        tray._sync(); await wait();
+        check(trayApp.menu.isOpen, 'unchanged sync closed app menu');
         trayApp.menu.close();
         tray._openMenu(trayApp, entry); await wait();
         check(tray._context.isOpen, 'tray context menu failed'); tray._context.close();
         tray._setLocation(entry, 'panel');
         check(entry.wrapper.get_parent() === Main.panel._rightBox, 'pin failed');
         tray._setLocation(entry, 'hidden'); check(!entry.wrapper.visible, 'hide failed');
-        tray._openMenu(tray._manage); await wait();
+        tray._openMenu(tray._icons); await wait();
         check(tray._context.numMenuItems > 0, 'hidden icon cannot be restored');
         tray._context.close();
         tray._setLocation(entry, 'menu');
@@ -191,4 +211,5 @@ app.run(None)
         this._objects = [];
     }
 }
+
 
