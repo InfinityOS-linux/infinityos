@@ -693,6 +693,7 @@ def main():
             def work():
                 errors = []
                 firmware_updated = False
+                completed = 0
                 with privileged_transaction():
                     for label, args in commands:
                         result = apply_command(label, args, self.report_progress)
@@ -712,9 +713,16 @@ def main():
                         if result.returncode:
                             errors.append(label + ': ' + (result.stderr.strip() or
                                                           result.stdout.strip() or 'Update failed'))
-                        elif label == 'Device firmware':
-                            firmware_updated = True
+                        else:
+                            completed += 1
+                            if label == 'Device firmware':
+                                firmware_updated = True
                 prepared = offline_status().get('pending', False)
+                if errors and completed == 0:
+                    # Cancellation/failure is not evidence that updates disappeared.
+                    # Keep the published list until a real refresh or successful install.
+                    GLib.idle_add(self.finish_error, '\n'.join(errors), prepared)
+                    return
                 self.report_progress('Remaining updates', 'Checking', None, None)
                 try:
                     state = check_updates()
@@ -800,3 +808,4 @@ def main():
             self.progress.set_visible(False)
 
     return Updater().run(sys.argv)
+
