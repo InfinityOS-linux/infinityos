@@ -182,6 +182,27 @@ test('unchanged sync keeps equal cells attached without an overflow button', () 
     tray.destroy();
 });
 
+test('updater stays in panel despite saved tray preferences and late registration', () => {
+    const s = setup();
+    const app = s.add('warp');
+    const updater = s.add('infinity-updater');
+    const tray = s.create();
+    tray._preferences['infinity-updater'] = 'hidden';
+    tray._sync();
+    assert.equal(updater.container.get_parent(), s.panel._rightBox);
+    assert.equal(tray._entries.has(updater), false);
+    assert.ok(s.panel.menuManager.menus.has(updater.menu));
+    assert.equal(app.container.get_parent().get_parent(), tray._icons);
+    delete s.panel.statusArea['infinity-updater'];
+    updater.container.destroy();
+    updater.destroy();
+    const late = s.add('infinity-updater');
+    s.flush();
+    assert.equal(late.container.get_parent(), s.panel._rightBox);
+    assert.equal(tray._entries.has(late), false);
+    tray.destroy();
+});
+
 test('lock hides pinned apps and menu, app removal cleans up, disable restores native visibility', () => {
     const s = setup(); const app = s.add('warp'); const tray = s.create();
     const entry = tray._entries.get(app); tray._setLocation(entry, 'panel');

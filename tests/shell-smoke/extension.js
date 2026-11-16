@@ -180,6 +180,13 @@ export default class Smoke extends Extension {
         const updater = new Updater(metadata('infinity-updater@infinityos.org'));
         this._objects.push(updater); updater.enable();
         check(Main.panel.statusArea['infinity-updater'], 'updater indicator failed');
+        const updaterTray = new UserTray();
+        this._objects.push({disable: () => updaterTray.destroy()});
+        updaterTray._preferences['infinity-updater'] = 'hidden';
+        updaterTray._sync();
+        check(updater._indicator.container.get_parent() === Main.panel._rightBox,
+            'updater moved away from top bar');
+        check(updater._indicator.visible, 'updater is hidden without updates');
         const client = Gio.Subprocess.new(['python3', '-c', `
 import gi
 gi.require_version('Gtk', '4.0')
