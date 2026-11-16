@@ -1,0 +1,20 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\nLanguage: de\n"
+
+msgid "Hide"
+msgstr "Ausblenden"
+
+msgid "Show"
+msgstr "Anzeigen"
+
+msgid "Show hidden"
+msgstr "Ausgeblendete anzeigen"
+
+msgid "Hide hidden icons"
+msgstr "Ausgeblendete Symbole verbergen"
+
+msgid "Move to panel"
+msgstr "In die obere Leiste verschieben"
+
+msgid "Move to menu"
+msgstr "Ins Menü verschieben"

@@ -1,0 +1,20 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\nLanguage: uk\n"
+
+msgid "Hide"
+msgstr "Приховати"
+
+msgid "Show"
+msgstr "Показати"
+
+msgid "Show hidden"
+msgstr "Показати приховані"
+
+msgid "Hide hidden icons"
+msgstr "Сховати приховані значки"
+
+msgid "Move to panel"
+msgstr "Перемістити на панель"
+
+msgid "Move to menu"
+msgstr "Перемістити в меню"

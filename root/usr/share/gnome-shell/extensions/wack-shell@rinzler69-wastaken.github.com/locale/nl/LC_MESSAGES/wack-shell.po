@@ -1,0 +1,20 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\nLanguage: nl\n"
+
+msgid "Hide"
+msgstr "Verbergen"
+
+msgid "Show"
+msgstr "Tonen"
+
+msgid "Show hidden"
+msgstr "Verborgen pictogrammen tonen"
+
+msgid "Hide hidden icons"
+msgstr "Verborgen pictogrammen verbergen"
+
+msgid "Move to panel"
+msgstr "Naar paneel verplaatsen"
+
+msgid "Move to menu"
+msgstr "Naar menu verplaatsen"

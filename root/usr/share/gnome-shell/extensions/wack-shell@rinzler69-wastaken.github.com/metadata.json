@@ -1,6 +1,6 @@
 {
   "name": "WACK Shell",
-  "description": "A macOS-inspired panel suite for GNOME featuring live panel vibrancy, proximity-aware panel coloring, and — when paired with WACK Sonoma Lockscreen — a seamless Cupertino unlock animation powered by real window texture snapshots. Part of the WACK Project.",
+  "description": "A macOS-inspired panel suite for GNOME featuring live panel vibrancy, proximity-aware panel coloring, and \u2014 when paired with WACK Sonoma Lockscreen \u2014 a seamless Cupertino unlock animation powered by real window texture snapshots. Part of the WACK Project.",
   "uuid": "wack-shell@rinzler69-wastaken.github.com",
   "session-modes": [
     "unlock-dialog",
@@ -21,5 +21,6 @@
     "paypal": "ArtFazil",
     "kofi": "mikerinzler69",
     "custom": "https://saweria.co/rinzler69"
-  }
+  },
+  "gettext-domain": "wack-shell"
 }

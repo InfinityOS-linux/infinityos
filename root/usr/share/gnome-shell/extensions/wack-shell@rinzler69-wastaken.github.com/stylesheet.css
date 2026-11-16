@@ -123,3 +123,13 @@
   color: inherit !important;
   opacity: 1.0 !important;
 }
+
+/* Neutral separators inherit foreground for light and dark Shell themes. */
+.infinity-user-tray { spacing: 12px; }
+.infinity-tray-divider { height: 1px; background-color: rgba(128, 128, 128, 0.3); }
+.infinity-user-tray-body { spacing: 8px; }
+.infinity-tray-row { spacing: 10px; }
+.infinity-tray-icon { border-radius: 20px; }
+.infinity-tray-icon .panel-button { padding: 0; border-radius: 20px; }
+.infinity-tray-hidden-toggle { padding: 6px 12px; border-radius: 8px; }
+.infinity-tray-hidden-toggle:hover { background-color: rgba(128, 128, 128, 0.18); }

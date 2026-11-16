@@ -18,6 +18,7 @@ import {
 } from './panelComponents.js';
 import VibrancyManager from './vibrancyManager.js';
 import InstallerDim from './installerDim.js';
+import UserTray from './userTray.js';
 import { createWarpButton } from './warpButton.js';
 import { APP_GRID_WORKSPACE_RATIO, APP_GRID_WORKSPACE_FADE_RANGE, APP_GRID_WORKSPACE_FADE_SNAP } from './constants.js';
 
@@ -160,6 +161,7 @@ this._settings.connectObject(
 
         this._setupWindowCache();
         this._initWorkspacesAppGrid();
+        this._userTray = new UserTray(this);
         if (!global.infinityosPanelEntrancePlayed && Main.sessionMode.currentMode === 'user') {
             global.infinityosPanelEntrancePlayed = true;
             const animations = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'})
@@ -191,6 +193,8 @@ this._settings.connectObject(
     }
 
     disable() {
+        this._userTray?.destroy();
+        this._userTray = null;
         this._installerDim?.destroy();
         this._installerDim = null;
         if (this._entranceStartupId) {
