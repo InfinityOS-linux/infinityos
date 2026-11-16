@@ -58,10 +58,14 @@ class WackLayout extends Clutter.LayoutManager {
                 height - stackHeight - SWITCH_USER_MARGIN
             ));
         } else {
-            stackY = Math.min(
-                Math.floor(height / 3.0),
-                height - stackHeight - maxNotifHeight
-            );
+            // Center the complete avatar/password group, not its top edge.
+            // Reserve the actual clock bounds, including theme/font scaling.
+            const clockBottom = this._extension._clockLayoutManager?.getClockBottom(height) ?? 0;
+            const availableBottom = height - maxNotifHeight - SWITCH_USER_MARGIN;
+            stackY = Math.max(0, Math.min(
+                Math.max(Math.floor((height - stackHeight) / 2), clockBottom + 24),
+                availableBottom - stackHeight
+            ));
         }
 
         stackBox.x1 = Math.floor((width - stackWidth) / 2.0);

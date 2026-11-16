@@ -3,6 +3,8 @@ import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
+import Meta from 'gi://Meta';
+import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 // A separate chrome actor avoids enlarging the panel's reserved work area.
@@ -40,7 +42,67 @@ export class TerminalPullHandle {
         connect(Main.overview, 'hidden', sync);
         connect(Main.sessionMode, 'updated', () => { this.finish(true); this.sync(); });
         connect(global.stage, 'captured-event', (_stage, event) => this.event(event));
+        this.clockActor = Main.panel.statusArea.dateMenu;
+        this.clockTranslation = this.clockActor.translation_x ?? 0;
+        const label = this.clockActor._clockDisplay;
+        if (label) connect(label, 'notify::allocation', sync);
+        this.verifyTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+            this.sync();
+            this.samplePanelColor();
+            return GLib.SOURCE_CONTINUE;
+        });
         this.sync();
+        this.samplePanelColor();
+    }
+
+    centerClock(monitor) {
+        if (this.centering || Main.sessionMode.isLocked) return;
+        const clock = Main.panel.statusArea.dateMenu;
+        const label = clock._clockDisplay ?? clock;
+        const [x] = label.get_transformed_position();
+        const [width] = label.get_transformed_size();
+        if (width <= 0) return;
+        // An odd text width cannot be exactly centered on an even-width monitor
+        // without a half-pixel origin. Snap the rendered origin to avoid filtering
+        // the glyph texture and leave at most half a pixel of centering error.
+        const targetX = Math.round(monitor.x + (monitor.width - width) / 2);
+        const error = targetX - x;
+        const parent = clock.get_parent?.();
+        const parentScale = parent?.width > 0 ? parent.get_transformed_size()[0] / parent.width : 1;
+        if (Math.abs(error) < .01 || parentScale <= 0) return;
+        this.centering = true;
+        try { clock.translation_x = (clock.translation_x ?? 0) + error / parentScale; }
+        finally { this.centering = false; }
+    }
+
+    samplePanelColor() {
+        if (this.destroyed || this.sampling || !this.actor.visible ||
+            Main.panel.menuManager?.activeMenu || !Main.panel.visible) return;
+        const monitor = Main.layoutManager.primaryMonitor;
+        if (!monitor) return;
+        const [panelX, panelY] = Main.panel.get_transformed_position();
+        const [panelWidth, panelHeight] = Main.panel.get_transformed_size();
+        const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        // Sample blank panel background outside the clock, icon and handle overlap.
+        const x = Math.round(Math.min(panelX + panelWidth - 1, monitor.x + monitor.width / 2 + 120 * scale));
+        const y = Math.round(panelY + panelHeight - 4 * scale);
+        if (x < 0 || y < 0) return;
+        this.sampling = true;
+        const shot = new Shell.Screenshot();
+        shot.pick_color(x, y, (source, result) => {
+            try {
+                const resultColor = source.pick_color_finish(result);
+                const color = Array.isArray(resultColor) ? resultColor.find(value => value && typeof value === 'object') : resultColor;
+                if (!this.destroyed && color) {
+                    this.panelColor = typeof color.get_red === 'function'
+                        ? [color.get_red(), color.get_green(), color.get_blue()].map(value => value * 255)
+                        : [color.red, color.green, color.blue];
+                    this.actor.queue_repaint();
+                }
+            } catch (error) {
+                // Retain the last valid sample if the compositor is unavailable.
+            } finally { this.sampling = false; }
+        });
     }
 
     contains(actor) { return !!actor && (actor === this.actor || this.actor.contains(actor)); }
@@ -48,7 +110,8 @@ export class TerminalPullHandle {
 
     trackWindow(window) {
         if (this.closedWindows.has(window) || this.windowSignals.has(window) || !window.connect) return;
-        const ids = ['position-changed', 'size-changed', 'notify::minimized'].map(signal =>
+        const ids = ['position-changed', 'size-changed', 'notify::minimized',
+            'notify::maximized-vertically', 'notify::maximized-horizontally'].map(signal =>
             window.connect(signal, () => this.sync()));
         ids.push(window.connect('unmanaged', () => {
             this.closedWindows.add(window);
@@ -62,6 +125,7 @@ export class TerminalPullHandle {
     sync() {
         const monitor = Main.layoutManager.primaryMonitor;
         if (!monitor) { this.actor.hide(); this.panelLine.hide(); return; }
+        this.centerClock(monitor);
         const fullscreen = global.display.get_monitor_in_fullscreen(monitor.index);
         const normal = !Main.overview.visible && !Main.sessionMode.isLocked;
         const window = this.terminal._findWindow();
@@ -73,12 +137,22 @@ export class TerminalPullHandle {
             if (candidate === window || candidate.minimized ||
                 !candidate.showing_on_its_workspace() || candidate.get_monitor() !== monitor.index ||
                 !candidate.can_close()) return false;
+            // Maximization is authoritative even when theme gaps or work-area
+            // insets leave the window frame a few pixels below the panel.
+            if ((candidate.get_maximized?.() ?? 0) & Meta.MaximizeFlags.VERTICAL)
+                return true;
             const frame = candidate.get_frame_rect();
             const center = monitor.x + monitor.width / 2;
             return frame.x <= center + 90 && frame.x + frame.width >= center - 90 &&
                 frame.y <= monitor.y + panelHeight + 1 && frame.y + frame.height > monitor.y;
         });
         this.terminal._indicator.visible = fullscreen && normal;
+        const clock = Main.panel.statusArea.dateMenu;
+        const [clockX] = clock.get_transformed_position();
+        const [clockWidth] = clock.get_transformed_size();
+        const [, iconWidth] = this.terminal._indicator.get_preferred_width(panelHeight);
+        this.terminal._indicator.set_size(iconWidth, panelHeight);
+        this.terminal._indicator.set_position(Math.round(clockX + clockWidth), monitor.y);
         this.actor.visible = normal;
         const compact = fullscreen || open || crowded;
         if (compact !== this.compact) {
@@ -111,8 +185,7 @@ export class TerminalPullHandle {
             cr.scale(width / 180, height / 18);
             // The desktop panel may be translucent; the handle needs an opaque silhouette.
             const panel = Main.panel.get_theme_node().get_background_color();
-            const fill = panel.alpha >= 250 ? [panel.red, panel.green, panel.blue]
-                : this.light ? [247, 244, 251] : [11, 9, 18];
+            const fill = this.panelColor ?? [panel.red, panel.green, panel.blue];
             cr.setSourceRGBA(...fill.map(c => c / 255), 1);
             // Mirrored control points, horizontal tangents at both shoulders.
             const outline = () => {
@@ -235,9 +308,12 @@ export class TerminalPullHandle {
     }
 
     destroy() {
+        this.destroyed = true;
+        if (this.verifyTimer) { GLib.Source.remove(this.verifyTimer); this.verifyTimer = 0; }
         this.finish(true);
         for (const [object, id] of this.signals) object.disconnect(id);
         this.signals = [];
+        if (this.clockActor) this.clockActor.translation_x = this.clockTranslation;
         for (const [window, ids] of this.windowSignals)
             for (const id of ids) window.disconnect(id);
         this.windowSignals.clear();
