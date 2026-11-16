@@ -35,11 +35,12 @@ export default class UserTray {
         this._separators = [new PopupMenu.PopupSeparatorMenuItem(),
             new PopupMenu.PopupSeparatorMenuItem()];
         this._section.add_child(this._separators[0]);
-        this._icons = new St.Widget({layout_manager: new Clutter.GridLayout({column_spacing: 8, row_spacing: 6,
+        this._icons = new St.Widget({layout_manager: new Clutter.GridLayout({column_spacing: 4, row_spacing: 6,
             column_homogeneous: true, row_homogeneous: true}),
             style_class: 'infinity-user-tray-icons',
             reactive: true, can_focus: true, accessible_name: trayText('manage'),
-            x_align: Clutter.ActorAlign.START, x_expand: false, style: 'margin: 2px 0; min-width: 32px; min-height: 32px;'});
+            x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER,
+            x_expand: false, style: 'margin: 2px 0; min-width: 32px; min-height: 32px;'});
         this._section.add_child(this._icons);
         this._section.add_child(this._separators[1]);
         this._watch(this._icons, 'event', (_actor, event) => {

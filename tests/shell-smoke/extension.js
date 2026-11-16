@@ -146,6 +146,12 @@ export default class Smoke extends Extension {
         const centers = cells.map(cell => cell.get_transformed_position()[0] + cell.get_transformed_size()[0] / 2);
         check(Math.abs((centers[1] - centers[0]) - (centers[2] - centers[1])) <= 1,
             `tray spacing is unequal: ${centers}`);
+        const [groupX] = tray._icons.get_transformed_position();
+        const [groupWidth] = tray._icons.get_transformed_size();
+        const [sectionX] = tray._section.get_transformed_position();
+        const [sectionWidth] = tray._section.get_transformed_size();
+        check(Math.abs(groupX + groupWidth / 2 - sectionX - sectionWidth / 2) <= 1,
+            'compact tray group is not centered in the row');
         const quickChildren = quick.menu._grid.get_children();
         check(quickChildren.indexOf(tray._section) > quickChildren.indexOf(output),
             'tray grid order is above system volume');
