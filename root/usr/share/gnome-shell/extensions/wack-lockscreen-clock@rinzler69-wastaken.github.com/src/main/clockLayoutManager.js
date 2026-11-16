@@ -118,6 +118,13 @@ export class ClockLayoutManager {
         wrapper.set_pivot_point(0.5, 0.5);
     }
 
+    getClockBottom(height) {
+        const [, dateHeight] = this.dateLabel?.get_preferred_height(-1) ?? [0, 24];
+        const [, timeHeight] = this.timeLabel?.get_preferred_height(-1) ?? [0, TIME_LABEL_HEIGHT_FALLBACK];
+        return Math.floor(height * DATETIME_TOP_FRACTION) +
+            Math.max(dateHeight, TIME_LABEL_TOP_OFFSET + timeHeight);
+    }
+
     positionHint() {
         if (!this.hint) return;
         const monitor = Main.layoutManager.primaryMonitor;

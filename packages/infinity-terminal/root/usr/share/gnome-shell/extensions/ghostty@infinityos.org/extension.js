@@ -42,7 +42,8 @@ export default class InfinityTerminal extends Extension {
             if (this._window) this._place(this._window);
         });
         this._fullHeight = false;
-        this._indicator = new PanelMenu.Button(0.0, 'Show or hide InfinityTerminal', true);
+        this._indicator = new St.Button({style_class: 'panel-button', reactive: true, can_focus: true,
+            accessible_name: 'Show or hide InfinityTerminal'});
         this._indicator.accessible_role = Atk.Role.PUSH_BUTTON;
         this._icon = new St.Icon({
             icon_name: 'open-menu-symbolic',
@@ -53,7 +54,9 @@ export default class InfinityTerminal extends Extension {
         click.set_recognize_on_press(true);
         click.connect('recognize', () => this._toggle());
         this._indicator.add_action(click);
-        Main.panel.addToStatusArea('ghostty', this._indicator, 1, 'center');
+        // Keep this control out of the panel center box: its visibility must
+        // never change the clock's allocation. The handle positions it beside the clock.
+        Main.layoutManager.addTopChrome(this._indicator, {affectsStruts: false, trackFullscreen: true});
         this._pullHandle = new TerminalPullHandle(this);
         this._hideRequestId = this._settings.connect('changed::hide-request', () => {
             const window = this._findWindow();
@@ -220,6 +223,7 @@ export default class InfinityTerminal extends Extension {
             GLib.Source.remove(this._placementId);
         this._hardware.destroy();
         this._hardware = null;
+        Main.layoutManager.removeChrome(this._indicator);
         this._indicator.destroy();
         this._indicator = null;
         this._icon = null;

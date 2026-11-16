@@ -10,13 +10,13 @@ function fixture() {
     const cr = new Proxy({}, {get: (_, key) => (...args) => drawing.push([key, ...args])});
     const actor = {translation_y: 0, remove_all_transitions() {}, ease(values) { this.translation_y = values.translation_y; values.onComplete?.(); }};
     const window = {minimized: true, activate() {this.activated=true;}, get_frame_rect: () => ({height:500}), get_compositor_private: () => actor};
-    const terminal = {_indicator: {}, _findWindow: () => window, _toggle() {toggle++;},
+    const terminal = {_indicator: {get_preferred_width:()=>[24,24], set_size(w,h){this.width=w;this.height=h;}, set_position(x,y){this.x=x;this.y=y;}}, _findWindow: () => window, _toggle() {toggle++;},
         _showTerminal() {shown++; window.minimized = false;}, _hide() {hidden++;},
         _monitor: () => ({height:1000,y:0}), _topInset: () => 30, _settings: {set_double(k,v) {terminal.savedHeight=v*1000;}}, _place() {}, _offscreenOffset: () => -500, _syncResizeHandle() {}};
     const Main = {panel: {...signal, statusArea: {dateMenu: {...signal, get_transformed_position: () => [662, 0], get_transformed_size: () => [100, 32]}},
         get_transformed_position: () => [0, -52], get_transformed_size: () => [1500, 32], get_theme_node: () => ({get_background_color: () => ({red: 11, green: 9, blue: 18, alpha: 255})})},
         layoutManager: {...signal, primaryMonitor: {index: 0, x:0, y: 0,width:1500}, addTopChrome() {}, removeChrome() {}}, overview: {...signal, visible: false}, sessionMode: {...signal, isLocked: false}};
-    const context = {Gio: {Settings: class {constructor(){Object.assign(this, signal);} get_string(){return terminal.scheme || 'prefer-dark';}}}, GLib: {PRIORITY_DEFAULT: 0, timeout_add: () => 1, Source: {remove() {}}}, Main, Atk: {Role: {PUSH_BUTTON: 1}}, console,
+    const context = {Shell: {Screenshot: class {pick_color(x,y,callback){terminal.sampleCallback=callback;} pick_color_finish(){return [true,{red:20,green:25,blue:30}];}}}, Meta: {MaximizeFlags: {VERTICAL: 2}}, Gio: {Settings: class {constructor(){Object.assign(this, signal);} get_string(){return terminal.scheme || 'prefer-dark';}}}, GLib: {PRIORITY_DEFAULT: 0, timeout_add: () => 1, Source: {remove() {}}}, Main, Atk: {Role: {PUSH_BUTTON: 1}}, console,
         St: {DrawingArea: class {constructor() {Object.assign(this, signal); this.visible = true;} contains(a) {return a === this;} set_pivot_point() {} ease(values) {Object.assign(this, values);} set_size(w,h) {this.width=w;this.height=h;} set_position(x,y) {this.x=x;this.y=y;} queue_repaint() {} get_context() {return cr;} get_surface_size() {return [180,18];} hide() {this.visible=false;} destroy() {}}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}, Settings: {get: () => ({enable_animations: true})}},
         Clutter: {EventType: {BUTTON_PRESS: 1, BUTTON_RELEASE: 2, MOTION: 3, KEY_PRESS: 4}, ModifierType: {BUTTON1_MASK: 1}, KEY_Escape: 27, KEY_Return: 13, KEY_space: 32, EVENT_STOP: true, EVENT_PROPAGATE: false, AnimationMode: {EASE_OUT_CUBIC: 1}},
         global: {get_current_time: () => 1, get_window_actors: () => terminal.windows || [], display: {...signal, get_monitor_in_fullscreen: () => fullscreen}, stage: {...signal, set_key_focus() {}, get_event_actor: () => handle.actor, grab() {grabs++;return {dismiss() {dismissed++;}};}}}, terminal};
@@ -73,4 +73,86 @@ test('a window touching the panel compacts the handle and moving it away restore
  f.terminal.windows=[{meta_window:{minimized:false,showing_on_its_workspace:()=>true,get_monitor:()=>0,can_close:()=>true,get_frame_rect:()=>({x:0,y:top,width:1500,height:800})}}];
  f.handle.sync(); assert.equal(f.handle.actor.scale_y,.5);
  top=100; f.handle.sync(); assert.equal(f.handle.actor.scale_y,1);
+});
+
+
+test('title-bar maximization compacts with a panel gap and restores on unmaximize',()=>{
+ const f=fixture(); let maximized=0;
+ const callbacks=new Map();
+ const candidate={minimized:false,showing_on_its_workspace:()=>true,get_monitor:()=>0,
+  can_close:()=>true,get_maximized:()=>maximized,
+  get_frame_rect:()=>({x:0,y:48,width:1500,height:800}),
+  connect(signal,callback){callbacks.set(signal,callback);return signal;},disconnect(){}};
+ f.terminal.windows=[{meta_window:candidate}];
+ f.handle.sync(); assert.equal(f.handle.actor.scale_y,1);
+ maximized=3; callbacks.get('notify::maximized-vertically')();
+ assert.equal(f.handle.actor.scale_y,.5);
+ candidate.minimized=true; callbacks.get('notify::minimized')();
+ assert.equal(f.handle.actor.scale_y,1);
+ candidate.minimized=false; maximized=0;
+ callbacks.get('notify::maximized-vertically')();
+ assert.equal(f.handle.actor.scale_y,1);
+});
+
+
+test('fallback icon follows clock width without moving the screen-centered handle',()=>{
+ const f=fixture(); f.fullscreen(true);
+ assert.equal(f.terminal._indicator.x,762);
+ assert.equal(f.handle.actor.x+f.handle.actor.width/2,750);
+ f.Main.panel.statusArea.dateMenu.get_transformed_position=()=>[690,0];
+ f.Main.panel.statusArea.dateMenu.get_transformed_size=()=>[120,32];
+ f.handle.sync(); assert.equal(f.terminal._indicator.x,810);
+ assert.equal(f.handle.actor.x+f.handle.actor.width/2,750);
+});
+
+test('clock correction is stable and follows text-width and allocation changes', () => {
+ const f=fixture(), clock=f.Main.panel.statusArea.dateMenu;
+ let base=660, width=100;
+ clock.translation_x=0;
+ clock._clockDisplay={get_transformed_position:()=>[base+clock.translation_x,0],get_transformed_size:()=>[width,32]};
+ f.handle.sync(); assert.equal(base+clock.translation_x+width/2,750);
+ const translation=clock.translation_x;
+ f.handle.sync(); assert.equal(clock.translation_x,translation);
+ width=140; base=690; f.handle.sync();
+ assert.equal(base+clock.translation_x+width/2,750);
+ assert.equal(f.handle.actor.x+f.handle.actor.width/2,750);
+ f.handle.destroy(); assert.equal(clock.translation_x,0);
+});
+
+test('handle paints sampled composited panel color rather than a fixed dark fallback', () => {
+ const f=fixture();
+ f.handle.panelColor=[30,25,42]; f.handle.paint();
+ assert(f.drawing.some(call=>call[0]==='setSourceRGBA' && call[1]===30/255 && call[2]===25/255 && call[3]===42/255));
+});
+
+
+test('panel sampler accepts GI boolean/color results and ignores completion after destruction', () => {
+ const f=fixture(); f.Main.panel.visible=true;
+ f.Main.panel.get_transformed_position=()=>[0,0];
+ f.handle.samplePanelColor();
+ assert.equal(f.handle.sampling,true);
+ const source={pick_color_finish:()=>[true,{red:20,green:25,blue:30}]};
+ f.terminal.sampleCallback(source,{});
+ assert.deepEqual(Array.from(f.handle.panelColor),[20,25,30]);
+ f.handle.samplePanelColor(); f.handle.destroy();
+ f.terminal.sampleCallback({pick_color_finish:()=>[true,{red:200,green:200,blue:200}]},{});
+ assert.deepEqual(Array.from(f.handle.panelColor),[20,25,30]);
+});
+
+
+test('odd-width clock lands on an integer origin and does not oscillate', () => {
+ const f=fixture(), clock=f.Main.panel.statusArea.dateMenu;
+ for (const scale of [1, 1.25, 2]) {
+  let base=660.25;
+  clock.translation_x=.5;
+  clock.get_parent=()=>({width:1000,get_transformed_size:()=>[1000*scale,32]});
+  clock._clockDisplay={get_transformed_position:()=>[base+clock.translation_x*scale,0],get_transformed_size:()=>[101,32]};
+  f.handle.sync();
+  const origin=base+clock.translation_x*scale;
+  assert.equal(origin,700);
+  assert.ok(Math.abs(origin+101/2-750)<=.5);
+  const translation=clock.translation_x;
+  for(let i=0;i<20;i++) f.handle.sync();
+  assert.equal(clock.translation_x,translation);
+ }
 });

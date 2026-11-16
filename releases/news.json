@@ -1,5 +1,26 @@
 [
   {
+    "id": "2026-11-16-clock-and-handle-polish",
+    "date": "2026-11-16",
+    "title": "InfinityOS _02: a sharper clock and a seamless terminal handle",
+    "summary": "Desktop polish keeps the clock and terminal handle centered, matches the handle to the panel and gives the lock-screen prompt room to breathe.",
+    "buildSha": null,
+    "changes": [
+      {
+        "title": "A sharp, steady clock",
+        "text": "The clock stays centered when opening and closing InfinityTerminal or when the time label changes width. Pixel-aligned positioning keeps the text sharp, and the terminal icon no longer takes space in the centered panel layout."
+      },
+      {
+        "title": "A handle that matches the panel",
+        "text": "The pull handle samples the visible panel background and periodically checks its position. Maximized windows now reliably trigger the compact handle, even when a theme leaves a small gap below the panel."
+      },
+      {
+        "title": "A balanced lock screen",
+        "text": "The classic Sonoma-style lock screen centers the avatar and password prompt as a group and reserves space below the large clock to prevent overlap."
+      }
+    ]
+  },
+  {
     "id": "2026-11-16-ac34cf0",
     "date": "2026-11-16",
     "title": "InfinityOS _02: the pull-down terminal lands in fresh ISOs",

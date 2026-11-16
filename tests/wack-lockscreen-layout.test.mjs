@@ -93,3 +93,26 @@ test('Cupertino avatar anchor ignores inflated previous allocations on short scr
 test('Cupertino initial missing avatar measurement does not anchor to the whole prompt', () => {
     assert.equal(stackPosition(240, 720, 0, 0), stackPosition(240, 720, 96, 96));
 });
+
+
+test('classic Sonoma centers the full prompt below the clock at different screen sizes', () => {
+    for (const height of [600, 720, 1080]) {
+        let result;
+        const stackHeight = 200;
+        const clockBottom = height * .09 + 140;
+        const layout = new WackLayout();
+        layout._init({
+            _lockscreenMode: 'classic',
+            _clockLayoutManager: {getClockBottom: () => clockBottom},
+        }, {
+            get_preferred_size: () => [0, 0, 300, stackHeight],
+            allocate: box => { result = box; },
+        }, {get_preferred_size: () => [0, 0, 0, 0], allocate() {}}, null);
+        layout.vfunc_allocate(null, {get_size: () => [1280, height]});
+        assert.equal(result.x1 + 150, 640);
+        assert.ok(result.y1 >= clockBottom + 24);
+        assert.ok(result.y2 <= height - 24);
+        if ((height - stackHeight) / 2 >= clockBottom + 24)
+            assert.equal((result.y1 + result.y2) / 2, height / 2);
+    }
+});
