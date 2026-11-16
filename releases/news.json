@@ -17,6 +17,10 @@
       {
         "title": "A balanced lock screen",
         "text": "The classic Sonoma-style lock screen centers the avatar and password prompt as a group and reserves space below the large clock to prevent overlap."
+      },
+      {
+        "title": "A clearer dock edge",
+        "text": "A brighter top border adds one pixel of definition to the adaptive dock in both light and dark modes, while custom borders keep their settings."
       }
     ]
   },
