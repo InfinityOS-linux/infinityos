@@ -158,12 +158,27 @@ test('pin/hide/show are persisted per app and survive extension reload', () => {
     tray.destroy(); tray = s.create(); entry = tray._entries.get(app);
     assert.equal(entry.wrapper.get_parent(), s.panel._rightBox);
     tray._setLocation(entry, 'hidden'); assert.equal(entry.wrapper.visible, false);
-    tray._openMenu(tray._manage);
+    tray._openMenu(tray._icons);
     assert.equal(tray._context.actions.length, 2, 'hidden apps remain recoverable');
     tray._setLocation(entry, 'menu'); assert.equal(entry.wrapper.visible, true);
     assert.equal(entry.wrapper.get_parent(), tray._icons);
     s.failWrite(); tray._setLocation(entry, 'panel');
     assert.equal(entry.wrapper.get_parent(), tray._icons, 'failed persistence does not change location');
+    tray.destroy();
+});
+
+test('unchanged sync keeps equal cells attached without an overflow button', () => {
+    const s = setup();
+    ['warp', 'clipboard', 'layouts'].forEach(role => s.add(role));
+    const tray = s.create();
+    assert.equal(tray._icons.get_children().length, 3);
+    let removed = 0;
+    const remove = tray._icons.remove_child.bind(tray._icons);
+    tray._icons.remove_child = actor => { removed++; remove(actor); };
+    tray._sync();
+    assert.equal(removed, 0);
+    for (const entry of tray._entries.values())
+        assert.match(entry.wrapper.get_style(), /width: 32px/);
     tray.destroy();
 });
 

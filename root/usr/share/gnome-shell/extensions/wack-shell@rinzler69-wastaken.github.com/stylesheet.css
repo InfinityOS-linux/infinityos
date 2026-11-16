@@ -130,8 +130,11 @@
 }
 
 .infinity-user-tray-icons .panel-button {
+  width: 32px;
+  height: 32px;
   -minimum-hpadding: 0px;
   -natural-hpadding: 0px;
   padding: 0;
   margin: 0;
 }
+

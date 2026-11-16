@@ -35,17 +35,25 @@ export default class UserTray {
         this._separators = [new PopupMenu.PopupSeparatorMenuItem(),
             new PopupMenu.PopupSeparatorMenuItem()];
         this._section.add_child(this._separators[0]);
-        this._icons = new St.Widget({layout_manager: new Clutter.GridLayout({column_spacing: 8, row_spacing: 6}),
+        this._icons = new St.Widget({layout_manager: new Clutter.GridLayout({column_spacing: 8, row_spacing: 6,
+            column_homogeneous: true, row_homogeneous: true}),
             style_class: 'infinity-user-tray-icons',
-            x_align: Clutter.ActorAlign.START, x_expand: false, style: 'margin: 2px 0;'});
+            reactive: true, can_focus: true, accessible_name: trayText('manage'),
+            x_align: Clutter.ActorAlign.START, x_expand: false, style: 'margin: 2px 0; min-width: 32px; min-height: 32px;'});
         this._section.add_child(this._icons);
         this._section.add_child(this._separators[1]);
-        this._manage = new St.Button({style_class: 'button', can_focus: true,
-            style: 'width: 32px; height: 32px; min-width: 0; min-height: 0; padding: 0; margin: 0;',
-            accessible_name: trayText('manage'),
-            child: new St.Icon({icon_name: 'view-more-symbolic', icon_size: 18})});
-        this._manage.connect('clicked', () => this._openMenu(this._manage));
-        this._menus = new PopupMenu.PopupMenuManager(this._manage);
+        this._watch(this._icons, 'event', (_actor, event) => {
+            const rightClick = event.type() === Clutter.EventType.BUTTON_PRESS && event.get_button() === 3;
+            const keyboard = event.type() === Clutter.EventType.KEY_PRESS &&
+                (event.get_key_symbol() === Clutter.KEY_Menu ||
+                 (event.get_key_symbol() === Clutter.KEY_F10 &&
+                  (event.get_state() & Clutter.ModifierType.SHIFT_MASK)));
+            if (!rightClick && !keyboard)
+                return Clutter.EVENT_PROPAGATE;
+            this._openMenu(this._icons);
+            return Clutter.EVENT_STOP;
+        });
+        this._menus = new PopupMenu.PopupMenuManager(this._icons);
         this._quick.menu.addItem(this._section, 2);
         this._watch(this._quick.menu, 'open-state-changed', (_menu, open) => {
             if (open)
@@ -97,7 +105,8 @@ export default class UserTray {
             const entry = {indicator, actor, parent, key,
                 index: parent.get_children().indexOf(actor),
                 style: actor.get_style(), menu: null,
-                wrapper: new St.Bin({y_align: Clutter.ActorAlign.CENTER})};
+                wrapper: new St.Bin({y_align: Clutter.ActorAlign.CENTER,
+                    x_align: Clutter.ActorAlign.CENTER})};
             this._entries.set(indicator, entry);
             // Capture before the app's right-click handler or click gesture.
             entry.event = indicator.connect('captured-event', (_actor, event) => {
@@ -132,6 +141,7 @@ export default class UserTray {
         for (const entry of this._entries.values()) {
             const location = this._preferences[entry.key] ?? 'menu';
             const pinned = location === 'panel';
+            entry.wrapper.set_style(pinned ? null : 'width: 32px; height: 32px; min-width: 0; min-height: 0; padding: 0; margin: 0;');
             const parent = pinned ? entry.parent : this._icons;
             if (entry.wrapper.get_parent() !== parent) {
                 entry.wrapper.get_parent()?.remove_child(entry.wrapper);
@@ -139,10 +149,12 @@ export default class UserTray {
                     parent.insert_child_at_index(entry.wrapper, entry.index);
             }
             if (!pinned) {
-                // Reattach only when necessary, to update row/column after hiding.
-                entry.wrapper.get_parent()?.remove_child(entry.wrapper);
-                this._icons.layout_manager.attach(entry.wrapper, position % 6,
-                    Math.floor(position / 6), 1, 1);
+                if (entry.wrapper.get_parent() !== this._icons || entry.position !== position) {
+                    entry.wrapper.get_parent()?.remove_child(entry.wrapper);
+                    this._icons.layout_manager.attach(entry.wrapper, position % 6,
+                        Math.floor(position / 6), 1, 1);
+                    entry.position = position;
+                }
                 if (location !== 'hidden')
                     position++;
             }
@@ -166,9 +178,6 @@ export default class UserTray {
                 }
             }
         }
-        this._manage.get_parent()?.remove_child(this._manage);
-        this._icons.layout_manager.attach(this._manage, position % 6,
-            Math.floor(position / 6), 1, 1);
         this._section.visible = unlocked && this._entries.size > 0;
         if (!unlocked) {
             this._menus.activeMenu?.close();
@@ -203,7 +212,7 @@ export default class UserTray {
         Main.uiGroup.add_child(menu.actor);
         menu.actor.hide();
         // A separate grab also works when the source is pinned to the panel.
-        this._contextManager ??= new PopupMenu.PopupMenuManager(this._manage);
+        this._contextManager ??= new PopupMenu.PopupMenuManager(this._icons);
         this._contextManager.addMenu(menu);
         const entries = selected ? [selected] : [...this._entries.values()];
         for (const entry of entries) {
@@ -217,6 +226,16 @@ export default class UserTray {
                 this._setLocation(entry, location === 'hidden' ? 'menu' : 'hidden'));
             actions.addAction(trayText(location === 'panel' ? 'menu' : 'panel'), () =>
                 this._setLocation(entry, location === 'panel' ? 'menu' : 'panel'));
+        }
+        if (selected && [...this._entries.values()].some(entry => this._preferences[entry.key] === 'hidden')) {
+            const allApps = new PopupMenu.PopupSubMenuMenuItem(trayText('manage'));
+            menu.addMenuItem(allApps);
+            for (const entry of this._entries.values()) {
+                if (this._preferences[entry.key] !== 'hidden')
+                    continue;
+                allApps.menu.addAction(`${trayText('show')}: ${entry.indicator.accessible_name || entry.key}`,
+                    () => this._setLocation(entry, 'menu'));
+            }
         }
         menu.open();
     }
