@@ -1,5 +1,34 @@
 [
   {
+    "id": "2026-11-16-ac34cf0",
+    "date": "2026-11-16",
+    "title": "InfinityOS _02: the pull-down terminal lands in fresh ISOs",
+    "summary": "Verified ARM64 and x64 images now include the adaptive InfinityTerminal handle, more flexible resizing and improved dock behavior in live sessions.",
+    "buildSha": "ac34cf00730b77870296edddd5faab0e5a8df0f3",
+    "changes": [
+      {
+        "title": "Pull down to open",
+        "text": "A symmetrical handle below the clock opens InfinityTerminal with a click or a downward drag. The terminal follows the pointer, keeps the chosen height on release and receives keyboard focus. Short pulls close it again, while Escape cancels the gesture."
+      },
+      {
+        "title": "A handle that adapts",
+        "text": "The centered handle animates to half size when the terminal is open or a window reaches the panel beneath it. It supports light and dark themes and respects reduced motion. Overview and the lock screen hide the controls; fullscreen retains GNOME's panel visibility behavior."
+      },
+      {
+        "title": "More room to resize",
+        "text": "The terminal can now be resized below half the screen, down to a 96-pixel minimum. Dragging its lower edge back to the top panel hides it."
+      },
+      {
+        "title": "A more responsive dock",
+        "text": "Window overlap detection now works in live sessions and ignores minimized windows. The dock respects fullscreen visibility in the live desktop, and adaptive backgrounds gain a subtle top border matched to the active theme."
+      },
+      {
+        "title": "Verified images and release cleanup",
+        "text": "Both architecture builds passed verification and uploaded their ISO artifacts. The R2 publication job also completed successfully. Release cleanup now waits six minutes after promoting the new pair before removing older versioned files, allowing the website cache to refresh."
+      }
+    ]
+  },
+  {
     "id": "2026-11-15-terminal-pull-handle",
     "date": "2026-11-15",
     "title": "InfinityOS _02: pull down, get to work.",
