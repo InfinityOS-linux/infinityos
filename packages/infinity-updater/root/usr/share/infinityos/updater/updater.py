@@ -622,7 +622,7 @@ def main():
             self.release()
             return GLib.SOURCE_REMOVE
 
-        def finish_error(self, message):
+        def finish_error(self, message, downloaded=False):
             if self.checking and network_is_offline(self.network_monitor, Gio):
                 return self.finish_offline()
             self.state = read_state()
@@ -632,6 +632,8 @@ def main():
             self.spinner.stop()
             self.stop_progress()
             self.render()
+            if downloaded:
+                self.notify_downloaded()
             self.release()
             return GLib.SOURCE_REMOVE
 
@@ -724,13 +726,13 @@ def main():
                     state['errors'] = errors + state['errors']
                     save_state(state)
                 except Exception as error:
-                    GLib.idle_add(self.finish_error, str(error))
+                    GLib.idle_add(self.finish_error, str(error), prepared)
                 else:
                     notice = (tr('Some updates could not be installed.') if errors else
                               tr('Updates downloaded, restart to update.')
                               if prepared else tr('Firmware updated. Restart may be required.')
                               if firmware_updated else tr('Updates installed.'))
-                    GLib.idle_add(self.finish_refresh, state, notice, None, prepared and not errors)
+                    GLib.idle_add(self.finish_refresh, state, notice, None, prepared)
 
 
             threading.Thread(target=work, daemon=True).start()
@@ -768,7 +770,7 @@ def main():
                     state = check_updates()
                     save_state(state)
                 except Exception as error:
-                    GLib.idle_add(self.finish_error, str(error))
+                    GLib.idle_add(self.finish_error, str(error), offline_status().get('pending', False))
                 else:
                     GLib.idle_add(self.finish_refresh, state,
                                   tr('Infinity OS {version} prepared. Restart to back up and install.').format(
