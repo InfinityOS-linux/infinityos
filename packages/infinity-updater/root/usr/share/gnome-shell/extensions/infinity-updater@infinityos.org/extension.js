@@ -229,7 +229,7 @@ export default class InfinityUpdater extends Extension {
     _placeDrawer(window) {
         const area = Main.layoutManager.getWorkAreaForMonitor(window.get_monitor() >= 0 ? window.get_monitor() : Main.layoutManager.primaryIndex);
         const width = Math.min(460, area.width);
-        window.unmaximize(Meta.MaximizeFlags.BOTH);
+        window.unmaximize();
         window.move_resize_frame(false, area.x + area.width - width, area.y,
             width, area.height);
         return {x: area.x + area.width - width, y: area.y, width, height: area.height};

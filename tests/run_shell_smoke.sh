@@ -4,6 +4,12 @@ repo=$(cd "$(dirname "$0")/.." && pwd)
 sandbox=$(mktemp -d)
 cleanup() {
     if mountpoint -q "$sandbox/run/doc"; then umount -l "$sandbox/run/doc" 2>/dev/null || true; fi
+    # D-Bus activated services can finish writing after the bus exits.
+    # Retry briefly instead of letting this teardown race fail a passing test.
+    for attempt in $(seq 1 10); do
+        if rm -rf "$sandbox" 2>/dev/null; then return 0; fi
+        sleep 0.5
+    done
     rm -rf "$sandbox"
 }
 trap cleanup EXIT
@@ -34,7 +40,7 @@ dbus-run-session -- bash -euo pipefail -c '
     gsettings set org.gnome.shell enabled-extensions "[\"infinity-smoke@test\"]"
     gnome-shell --headless --virtual-monitor 1280x800 >"$SMOKE_LOG" 2>&1 &
     shell_pid=$!
-    trap '\''kill "$shell_pid" 2>/dev/null || true'\'' EXIT
+    trap '\''kill "$shell_pid" 2>/dev/null || true; wait "$shell_pid" 2>/dev/null || true'\'' EXIT
     for attempt in $(seq 1 90); do
         if grep -q INFINITY_SMOKE_PASS "$SMOKE_LOG"; then
             if grep -q "JS ERROR" "$SMOKE_LOG"; then cat "$SMOKE_LOG"; exit 1; fi
