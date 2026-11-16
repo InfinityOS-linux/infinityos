@@ -1482,7 +1482,8 @@ export class QuickSettingsPowerManager {
         const showPowerOptions = this._settings.get_boolean('show-power-options');
         const hideQsPowerOptions = this._settings.get_boolean('hide-qs-power-options');
 
-        const shouldHideAllQsPower = showLogoMenu && showPowerOptions && hideQsPowerOptions;
+        const shouldHideAllQsPower = !this._extension._userTray &&
+            showLogoMenu && showPowerOptions && hideQsPowerOptions;
 
         const powerItems = this._getPowerItems();
         powerItems.forEach(item => {
@@ -1558,3 +1559,4 @@ export class QuickSettingsPowerManager {
         });
     }
 }
+

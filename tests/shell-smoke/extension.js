@@ -3,6 +3,8 @@ import GLib from 'gi://GLib';
 import St from 'gi://St';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import UserTray from '../wack-shell@rinzler69-wastaken.github.com/userTray.js';
 import {TerminalPullHandle} from '../ghostty@infinityos.org/pull-handle.js';
 import {HardwareMonitor} from '../ghostty@infinityos.org/hardware-monitor.js';
 import {widgetChoices} from '../ghostty@infinityos.org/monitor-widgets.js';
@@ -102,6 +104,45 @@ export default class Smoke extends Extension {
         nowplay._ui.showPopup(player, [player]); await wait();
         check(nowplay._ui.popupVisible, 'NowPlay did not open');
         nowplay._ui.destroyPopup();
+        const trayApp = new PanelMenu.Button(0, 'Tray smoke');
+        trayApp.add_child(new St.Icon({icon_name: 'edit-paste-symbolic', icon_size: 18}));
+        trayApp.menu.addAction('Test action', () => {});
+        Main.panel.addToStatusArea('infinity-tray-smoke', trayApp);
+        let tray = new UserTray();
+        this._objects.push({disable: () => { tray?.destroy(); trayApp.destroy(); }});
+        await wait();
+        const entry = tray._entries.get(trayApp);
+        check(entry && entry.wrapper.get_parent() === tray._icons, 'tray app was not moved');
+        const quick = Main.panel.statusArea.quickSettings;
+        // Headless CI has no audio device, so the output slider is normally
+        // invisible and has no meaningful allocation. Show it for layout checks.
+        const output = quick._volumeOutput.quickSettingsItems[0];
+        const outputVisible = output.visible;
+        output.show();
+        quick.menu.open(); await wait();
+        const quickChildren = quick.menu._grid.get_children();
+        check(quickChildren.indexOf(tray._section) > quickChildren.indexOf(output),
+            'tray grid order is above system volume');
+        check(tray._section.get_transformed_position()[1] >
+            output.get_transformed_position()[1],
+        `tray allocation is above volume: ${tray._section.get_transformed_position()} / ${output.get_transformed_position()}`);
+        trayApp.menu.open(); await wait();
+        check(quick.menu.isOpen && trayApp.menu.isOpen, 'app menu closed Quick Settings');
+        trayApp.menu.close();
+        tray._openMenu(trayApp, entry); await wait();
+        check(tray._context.isOpen, 'tray context menu failed'); tray._context.close();
+        tray._setLocation(entry, 'panel');
+        check(entry.wrapper.get_parent() === Main.panel._rightBox, 'pin failed');
+        tray._setLocation(entry, 'hidden'); check(!entry.wrapper.visible, 'hide failed');
+        tray._openMenu(tray._manage); await wait();
+        check(tray._context.numMenuItems > 0, 'hidden icon cannot be restored');
+        tray._context.close();
+        tray._setLocation(entry, 'menu');
+        check(entry.wrapper.visible, 'show failed');
+        quick.menu.close();
+        output.visible = outputVisible;
+        tray.destroy(); tray = null;
+        check(trayApp.container.get_parent() === Main.panel._rightBox, 'tray disable lost app');
         const updater = new Updater(metadata('infinity-updater@infinityos.org'));
         this._objects.push(updater); updater.enable();
         check(Main.panel.statusArea['infinity-updater'], 'updater indicator failed');
@@ -136,3 +177,4 @@ app.run(None)
         this._objects = [];
     }
 }
+
