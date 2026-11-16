@@ -26,7 +26,7 @@ const panel = new Actor();
 const Main = {panel: {_rightBox: panel, statusArea: {}, menuManager: {addMenu() {}, removeMenu() {}}},
     sessionMode: {isLocked: false, currentMode: 'user'}};
 const {UserTray, trayRows, trayPlacement} = runInNewContext(`${source}\n({UserTray, trayRows, trayPlacement})`, {
-    St: {BoxLayout: Actor, Button: Actor}, Main, Clutter: {ActorAlign: {CENTER: 0}},
+    St: {BoxLayout: Actor, Button: Actor}, Main, Clutter: {ActorAlign: {CENTER: 0}, Orientation: {VERTICAL: 1}},
 });
 
 test('tray wraps at six icons and never grows a seventh column', () => {

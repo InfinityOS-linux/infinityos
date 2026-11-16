@@ -20,10 +20,10 @@ export default class UserTray {
         this._quick = Main.panel.statusArea.quickSettings;
         if (!this._quick?.menu?._grid)
             return;
-        this._section = new St.BoxLayout({vertical: true, style_class: 'infinity-user-tray', reactive: true});
+        this._section = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, style_class: 'infinity-user-tray', reactive: true});
         this._parking = new St.BoxLayout({visible: false});
         this._section.add_child(this._parking);
-        this._body = new St.BoxLayout({vertical: true, style_class: 'infinity-user-tray-body'});
+        this._body = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, style_class: 'infinity-user-tray-body'});
         this._section.add_child(new St.Widget({style_class: 'infinity-tray-divider'}));
         this._section.add_child(this._body);
         this._section.add_child(new St.Widget({style_class: 'infinity-tray-divider'}));
