@@ -1,5 +1,38 @@
 [
   {
+    "id": "2026-11-17-tray-and-updater",
+    "date": "2026-11-17",
+    "title": "InfinityOS _02: a cleaner tray and more reliable updates",
+    "summary": "Quick Settings gains compact, centered app icons, InfinityUpdater stays on the top bar, and cancelling installation preserves the available update list.",
+    "buildSha": "419c134d9ce066a293c8b85434d5e5c1066ccfae",
+    "changes": [
+      {
+        "title": "App icons in Quick Settings",
+        "text": "Tray apps now sit below the system controls and volume sliders, between neutral separators. Compact, equal-sized cells keep a small group of icons centered with consistent spacing, without a three-dot button."
+      },
+      {
+        "title": "Keep important apps on the top bar",
+        "text": "Right-click an app icon to move it to the top bar or back into Quick Settings, or hide it. Preferences persist across sessions, with localized actions. Hidden apps can be restored from the tray area's context menu."
+      },
+      {
+        "title": "InfinityUpdater stays within reach",
+        "text": "The updater icon stays in the top bar even when no updates are available. Only its count badge disappears at zero, and saved app-tray hiding preferences do not affect it."
+      },
+      {
+        "title": "Cancelled installation keeps the update list",
+        "text": "If every installation command fails, including when authorization is cancelled, InfinityUpdater keeps the saved list and reports the error instead of replacing it through an automatic follow-up check. Successful or partly successful installations still check what remains, and existing restart notifications are preserved."
+      },
+      {
+        "title": "Stable tray behavior",
+        "text": "Unchanged icons stay attached during synchronization, avoiding unnecessary layout work and menu closures. Reloading the extension preserves icon order, including pinned apps and apps that start later."
+      },
+      {
+        "title": "Tested desktop changes",
+        "text": "Regression checks cover tray spacing, centering, icon size, app menus, saved preferences, locking, late arrivals, update authorization failures and restart notifications. The release also passes native GNOME 51 and GTK checks."
+      }
+    ]
+  },
+  {
     "id": "2026-11-16-clock-and-handle-polish",
     "date": "2026-11-16",
     "title": "InfinityOS _02: a sharper clock and a seamless terminal handle",
