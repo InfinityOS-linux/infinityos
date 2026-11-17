@@ -386,7 +386,7 @@ export default class InfinityUpdater extends Extension {
         const total = count + (release ? 1 : 0);
         this._badge.text = total > 99 ? '99+' : String(total);
         this._badge.visible = total > 0;
-        this._indicator.visible = true;
+        this._indicator.visible = total > 0;
         this._indicator.accessible_name = release
             ? `Infinity OS ${release} is available`
             : count > 0 ? `${count} Infinity OS updates available`
