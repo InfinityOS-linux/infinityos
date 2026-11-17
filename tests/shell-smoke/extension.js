@@ -186,7 +186,19 @@ export default class Smoke extends Extension {
         updaterTray._sync();
         check(updater._indicator.container.get_parent() === Main.panel._rightBox,
             'updater moved away from top bar');
-        check(updater._indicator.visible, 'updater is hidden without updates');
+        check(!updater._indicator.visible, 'updater is visible without updates');
+        GLib.file_set_contents(updater._stateFile, JSON.stringify({
+            checked_at: new Date().toISOString(), updates: [{kind: 'Flatpak user', name: 'smoke'}],
+        }));
+        updater._refresh();
+        check(updater._indicator.visible && updater._badge.visible && updater._badge.text === '1',
+            'pending updates do not show the indicator and badge');
+        updaterTray._sync();
+        check(updater._indicator.visible, 'tray preferences hid pending updates');
+        GLib.file_set_contents(updater._stateFile, JSON.stringify({updates: []}));
+        updater._refresh();
+        check(!updater._indicator.visible && !updater._badge.visible,
+            'empty update list left the indicator visible');
         const client = Gio.Subprocess.new(['python3', '-c', `
 import gi
 gi.require_version('Gtk', '4.0')
