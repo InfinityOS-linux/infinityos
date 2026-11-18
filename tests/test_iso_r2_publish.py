@@ -60,10 +60,11 @@ class R2PublishTests(unittest.TestCase):
                 self.assertEqual(len(image['md5']), 32)
             # A failed transfer must never promote an incomplete pair.
             calls.clear()
-            with patch.object(publisher.subprocess, 'run', side_effect=subprocess.CalledProcessError(1, 'aws')) as aws:
+            with patch.object(publisher.subprocess, 'run', side_effect=subprocess.CalledProcessError(1, 'aws')) as aws, \
+                 patch.object(publisher.time, 'sleep'):
                 with self.assertRaises(subprocess.CalledProcessError):
                     publisher.publish(directory, REVISION)
-                self.assertEqual(aws.call_count, 1)
+                self.assertEqual(aws.call_count, 3)
                 self.assertNotIn('s3://infinityos-releases/latest.json', aws.call_args.args[0])
             paths[1].write_bytes(b'corrupt')
             with patch.object(publisher.subprocess, 'run') as aws:
