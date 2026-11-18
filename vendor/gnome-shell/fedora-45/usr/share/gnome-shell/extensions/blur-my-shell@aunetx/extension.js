@@ -256,7 +256,8 @@ export default class BlurMyShell extends Extension {
     /// the user really needs it, as clipped redraws are a huge performance
     /// boost for the compositor.
     _update_clipped_redraws() {
-        if (this._settings.HACKS_LEVEL === 2)
+        if (this._settings.HACKS_LEVEL === 2 ||
+            this._panel_blur?.matchingBackdropsNeedFullRedraw)
             this._disable_clipped_redraws();
         else
             this._reenable_clipped_redraws();
@@ -699,3 +700,4 @@ export default class BlurMyShell extends Extension {
             console.log(`[Blur my Shell > extension]    ${str}`);
     }
 }
+

@@ -366,6 +366,11 @@ export const PanelBlur = class PanelBlur {
     // Reuse the panel's live settings/pipeline for an application backdrop.
     // The caller owns the container and its geometry; never share an effect
     // instance between the panel and a window or lower the window's opacity.
+    get matchingBackdropsNeedFullRedraw() {
+        return [...(this._matchingBackdrops ?? [])].some(backdrop =>
+            !backdrop.destroyed && !backdrop.staticBlur);
+    }
+
     createMatchingBackdrop(container, monitorIndex) {
         if (!this.enabled) return null;
         const managers = [];
@@ -397,11 +402,16 @@ export const PanelBlur = class PanelBlur {
                 if (backdrop.destroyed) return;
                 backdrop.destroyed = true;
                 this._matchingBackdrops.delete(backdrop);
+                global.blur_my_shell?._update_clipped_redraws?.();
                 pipeline.destroy();
                 managers.forEach(manager => manager.destroy());
                 background.destroy();
             }};
         this._matchingBackdrops.add(backdrop);
+        // A live BACKGROUND blur needs pixels outside GTK's damage rectangles.
+        // Scope full redraws to this backdrop's lifetime rather than leaving
+        // the compositor's global artifact setting changed after drawer close.
+        global.blur_my_shell?._update_clipped_redraws?.();
         return backdrop;
     }
 
@@ -892,3 +902,4 @@ export const PanelBlur = class PanelBlur {
         console.warn(`[Blur my Shell > panel]        ${str}`);
     }
 };
+

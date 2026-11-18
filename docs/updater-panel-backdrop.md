@@ -19,12 +19,23 @@ changes and Shell owner loss. A delayed setup or a failed first attempt can reco
 while the window stays open, without a blocking extension-state RPC.
 The header and footer add a subtle black overlay in both color schemes.
 With a ready backdrop, GTK window shadows, button ripple filters and the external
-restart glow are disabled. Buttons keep their opaque rounded fill and an inset
-keyboard focus outline; these controls must not paint rectangular shadow bounds
+restart glow are disabled. Buttons keep their opaque rounded fill and a rounded
+keyboard focus border; these controls must not paint rectangular shadow bounds
 over the transparent window. The opaque fallback retains its existing styling.
 Without the extension the app keeps its opaque fallback; disabling panel blur
 also restores an opaque backdrop. Closing/minimizing the drawer, disabling the
 extension, and rebuilding the panel release the extra effects and timers.
+
+Live matching backdrops request unclipped compositor redraws only for their
+lifetime. Native background blur cannot reliably sample pixels outside a GTK
+hover damage rectangle under clipped redraws; CSS-only checks cannot detect this
+feedback. The existing BMS artifact preference remains in force after the last
+drawer backdrop is destroyed. Static wallpaper blur does not request full frames.
+
+The top bar suppresses the power-profile glyph and connected Ethernet glyph.
+Wi-Fi keeps its native signal icon, including when Ethernet is also active.
+Without either active link, the primary network glyph shows disconnected.
+VPN status and Quick Settings controls are preserved.
 
 ## Validation
 

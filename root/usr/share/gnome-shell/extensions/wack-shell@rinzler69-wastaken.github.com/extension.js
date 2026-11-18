@@ -20,6 +20,7 @@ import VibrancyManager from './vibrancyManager.js';
 import InstallerDim from './installerDim.js';
 import AppDashboard from './appDashboard.js';
 import UserTray from './userTray.js';
+import PanelIndicators from './panelIndicators.js';
 import { createWarpButton } from './warpButton.js';
 import { APP_GRID_WORKSPACE_RATIO, APP_GRID_WORKSPACE_FADE_RANGE, APP_GRID_WORKSPACE_FADE_SNAP } from './constants.js';
 
@@ -107,6 +108,7 @@ this._settings.connectObject(
         // Initialize QuickSettings power controls manager
         this._qsPowerManager = new QuickSettingsPowerManager(this);
         this._userTray = new UserTray();
+        this._panelIndicators = new PanelIndicators();
         this._qsPowerManager.sync();
 
         this._windowSnapshotCachingEnabled = true;
@@ -196,6 +198,8 @@ this._settings.connectObject(
     }
 
     disable() {
+        this._panelIndicators?.destroy();
+        this._panelIndicators = null;
         this._userTray?.destroy();
         this._userTray = null;
         this._installerDim?.destroy();
@@ -1607,4 +1611,5 @@ _disconnectDockSnapshotWatchers() {
         }
     }
 }
+
 
