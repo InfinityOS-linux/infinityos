@@ -29,7 +29,7 @@ static-blur=false
 override-background=false
 customize=true
 sigma=28
-brightness=1.0
+brightness=0.9
 corner-radius=28
 
 [org/gnome/shell/extensions/blur-my-shell/screenshot]

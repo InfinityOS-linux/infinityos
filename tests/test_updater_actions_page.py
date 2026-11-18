@@ -101,6 +101,9 @@ class UpdaterActionsTests(unittest.TestCase):
         end = next(i for i, node in enumerate(body) if isinstance(node, ast.Assign)
                    and ast.unparse(node.targets[0]) == 'self.release_apply')
         exec(compile(ast.Module(body=body[start:end], type_ignores=[]), str(source), 'exec'), namespace)
+        self.assertEqual(app.refresh.get_icon_name(), 'view-refresh-symbolic')
+        self.assertIsNone(app.refresh.get_label())
+        self.assertEqual(app.refresh.get_tooltip_text(), 'Check again')
         for ready, visible in ((False, True), (True, False), (True, True), (False, False), (False, True)):
             app.restart_ready = ready
             app.apply.set_visible(visible)

@@ -427,7 +427,9 @@ def main():
             self.actions = Gtk.CenterBox()
             actions = self.actions
             actions.add_css_class('update-actions')
-            self.refresh = Gtk.Button(label=tr('Check again'))
+            self.refresh = Gtk.Button(icon_name='view-refresh-symbolic')
+            self.refresh.set_tooltip_text(tr('Check again'))
+            self.refresh.update_property([Gtk.AccessibleProperty.LABEL], [tr('Check again')])
             self.refresh.add_css_class('secondary')
             self.refresh.connect('clicked', self.on_refresh_action)
             actions.set_start_widget(self.refresh)
@@ -562,7 +564,13 @@ def main():
             offline = offline_status()
             updates = update_rows(self.state.get('updates', []), offline)
             self.restart_ready = restart_ready(offline)
-            self.refresh.set_label(tr('Restart to update' if self.restart_ready else 'Check again'))
+            if self.restart_ready:
+                self.refresh.set_label(tr('Restart to update'))
+            else:
+                self.refresh.set_icon_name('view-refresh-symbolic')
+            action_name = tr('Restart to update' if self.restart_ready else 'Check again')
+            self.refresh.set_tooltip_text(action_name)
+            self.refresh.update_property([Gtk.AccessibleProperty.LABEL], [action_name])
             self.refresh.remove_css_class('secondary' if self.restart_ready else 'restart')
             self.refresh.add_css_class('restart' if self.restart_ready else 'secondary')
             if self.checking:
