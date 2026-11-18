@@ -318,7 +318,8 @@ export default class Smoke extends Extension {
             pointer.notify_absolute_motion(GLib.get_monotonic_time(),
                 frame.x + button.x + button.width / 2, frame.y + button.y + button.height / 2);
             await wait();
-            check(readBackdrop().buttons.some(item => item.hover), 'pointer did not hover a production GTK button');
+            check(readBackdrop().buttons.some(item => item.hover),
+                `pointer missed GTK button: target=${JSON.stringify(button)} pointer=${global.get_pointer()} frame=${JSON.stringify(frame)} buffer=${JSON.stringify(drawer.meta_window.get_buffer_rect())} report=${JSON.stringify(readBackdrop())}`);
             check(redrawOwner.fullRedraw, 'hover disabled complete-frame blur repaint');
         }
         pointer.notify_absolute_motion(GLib.get_monotonic_time(), 10, 100);
