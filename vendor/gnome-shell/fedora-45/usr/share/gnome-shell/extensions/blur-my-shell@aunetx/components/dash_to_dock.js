@@ -443,7 +443,9 @@ export const DashBlur = class DashBlur extends Signals.EventEmitter {
         );
 
         const slider = dash_container._slider;
-        if (slider) {
+        // Infinity's compatibility slider supplies geometry methods only.
+        // Its real dock container already supplies allocation/position signals.
+        if (typeof slider?.connect === 'function') {
             this.connections.connect(
                 slider,
                 ['notify::slide-x', 'notify::allocation'],
@@ -457,6 +459,9 @@ export const DashBlur = class DashBlur extends Signals.EventEmitter {
 
         if (!dash_background)
             return null;
+        // Animated docks can resize their visible pill without reallocating
+        // the discovery proxy or outer container (for example on magnification).
+        this.connections.connect(dash_background, 'notify::allocation', () => this.update_size());
         // create infos
         let infos = new DashInfos(
             this,
@@ -510,7 +515,10 @@ export const DashBlur = class DashBlur extends Signals.EventEmitter {
         else {
             const pipeline = new DummyPipeline(
                 global.blur_my_shell._effects_manager,
-                this.settings.dash_to_dock
+                this.settings.dash_to_dock, null, {
+                    corner_radius_getter: () => dash_container?.extension?.computed_border_radius
+                        ?? this.settings.dash_to_dock.CORNER_RADIUS,
+                }
             );
             [background, bg_manager] = pipeline.create_background_with_effect(
                 background_group, 'bms-dash-blurred-widget'

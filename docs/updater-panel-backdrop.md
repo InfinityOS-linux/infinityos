@@ -65,3 +65,12 @@ Check that a user-installed copy of an extension is not masking the RPM files.
 
 Rebuild `infinity-updater` and `infinityos-shell-extensions` from the same commit
 before publishing an image. Preserve the existing package build-revision markers.
+
+The updater's normal check action uses `view-refresh-symbolic`, with a localized
+tooltip and accessible name. The restart action retains its text label.
+
+The dock's BMS discovery proxy is mapped and bound to the dock's size, and points
+at the actual visible pill. Native blur follows pill allocation changes and sits
+below the tint and icons. Default dock brightness is 0.9, with the blur corner
+radius taken from the dock itself. The native Shell smoke test verifies discovery,
+GPU-effect creation, geometry, resizing and hiding.

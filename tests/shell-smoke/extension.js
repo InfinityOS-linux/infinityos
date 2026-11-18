@@ -15,6 +15,9 @@ import NowPlay from '../nowplay@LalaloyXyz/extension.js';
 import Raccoon from '../raccoonlauncher@shimafallah.github.io/extension.js';
 import Updater from '../infinity-updater@infinityos.org/extension.js';
 import {opticalMetrics} from '../dash2dock-animated@infinityos.org/optical-icons.mjs';
+import {createDockBlurProxy} from '../dash2dock-animated@infinityos.org/dock.js';
+import {DashBlur} from '../blur-my-shell@aunetx/components/dash_to_dock.js';
+import {Connections} from '../blur-my-shell@aunetx/conveniences/connections.js';
 import {DockBackground} from '../dash2dock-animated@infinityos.org/dockItems.js';
 import {PanelBlur} from '../blur-my-shell@aunetx/components/panel.js';
 import BlurMyShell from '../blur-my-shell@aunetx/extension.js';
@@ -152,6 +155,46 @@ export default class Smoke extends Extension {
         blurController.update_size(blurActors);
         await wait();
         check(blurBackground.height > Main.panel.height, 'panel blur stops above pull handle');
+        // Use the production discovery proxy and native BMS dock pipeline.
+        const dockHolder = new St.Widget({width: 420, height: 72, x: 80, y: 650});
+        dockHolder._background = new St.Widget({x: 8, y: 6, width: 400, height: 60,
+            style: 'background: rgba(18,18,23,.26); border-radius: 28px;'});
+        dockHolder.add_child(dockHolder._background);
+        dockHolder.extension = {computed_border_radius: 28};
+        dockHolder._slider = {get_child: () => dockHolder};
+        const proxy = createDockBlurProxy(dockHolder);
+        Main.layoutManager.addTopChrome(dockHolder);
+        redrawOwner._effects_manager = blurController.effects_manager;
+        const dockConnections = new Connections();
+        const dockSettings = {DEBUG: false, HACKS_LEVEL: 0,
+            dash_to_dock: {STATIC_BLUR: false, SIGMA: 28, BRIGHTNESS: .9,
+                CORNER_RADIUS: 28, OVERRIDE_BACKGROUND: false,
+                settings: {connect: () => 0, disconnect() {}}}};
+        const dockBlur = new DashBlur(dockConnections, dockSettings);
+        this._objects.push({disable: () => {
+            dockBlur.disable();
+            Main.layoutManager.removeChrome(dockHolder); dockHolder.destroy();
+        }});
+        await wait();
+        check(proxy.has_allocation() && proxy.width === dockHolder.width && proxy.height === dockHolder.height,
+            'dock blur discovery proxy is unallocated');
+        dockBlur.try_blur(dockHolder);
+        await wait();
+        check(dockBlur.dashes.length === 1, 'native dock blur did not attach');
+        const dockInfo = dockBlur.dashes[0];
+        check(dockInfo.background.width === 400 && dockInfo.background.height === 60,
+            'native dock blur does not fill the visible pill');
+        check(dockInfo.background.get_effects().length > 0, 'dock blur has no GPU effect');
+        check(dockHolder.get_children().indexOf(dockInfo.background_group) <
+            dockHolder.get_children().indexOf(dockHolder._background), 'dock blur covers its tint or icons');
+        dockHolder._background.set_size(360, 56);
+        await wait();
+        check(dockInfo.background.width === 360 && dockInfo.background.height === 56,
+            'dock blur did not follow pill resizing');
+        dockHolder.hide();
+        check(!dockInfo.background.is_mapped(), 'hidden dock left its blur visible');
+        dockHolder.show();
+
         check(blurActors.terminalClip, 'native panel blur has no handle contour');
         terminalWindow.minimized = false; pull.sync();
         await wait();

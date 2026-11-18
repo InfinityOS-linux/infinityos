@@ -49,6 +49,18 @@ const ANIM_DEBOUNCE_END_DELAY = 750;
 const MIN_SCROLL_RESOLUTION = 4;
 const MAX_SCROLL_RESOLUTION = 10;
 
+// BMS discovers a child named "dash". It needs an allocated actor and the
+// actual visible background, not an invisible, zero-size placeholder.
+export function createDockBlurProxy(dock) {
+  const proxy = new St.Widget({name: 'dash', reactive: false,
+    style: 'background: transparent; padding: 0; border: 0;'});
+  proxy._background = dock._background;
+  proxy.add_constraint(new Clutter.BindConstraint({source: dock,
+    coordinate: Clutter.BindCoordinate.SIZE}));
+  dock.add_child(proxy);
+  return proxy;
+}
+
 function toggleInfinityTerminal() {
   Main.overview.hide();
   try {
@@ -96,14 +108,7 @@ export let Dock = GObject.registerClass(
 
       // pretend to be Dash-to-Dock
       // required by blur-my-shell to find the dash upon disabling
-      this.fake_dash = new St.Widget({ name: 'dash' });
-      this.add_child(this.fake_dash);
-      this.fake_dash_background = new St.Widget({
-        style_class: 'dash-background',
-      });
-      this.fake_dash.add_child(this.fake_dash_background);
-      this.fake_dash._background = this.fake_dash_background;
-      this.fake_dash.visible = false;
+      this.fake_dash = createDockBlurProxy(this);
 
       this.renderArea = new St.Widget({
         name: 'DockRenderArea',
