@@ -88,7 +88,10 @@ class NativeSolverTests(unittest.TestCase):
             for path in (repo, system, top / 'SPECS'):
                 path.mkdir(parents=True)
             def run(args):
-                return subprocess.check_output(args, text=True, stderr=subprocess.STDOUT)
+                try:
+                    return subprocess.check_output(args, text=True, stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError as error:
+                    self.fail(f'{args}:\n{error.output}')
             def build(name, version, requires=''):
                 spec = top / 'SPECS' / f'{name}-{version}.spec'
                 spec.write_text(f'''Name: {name}
@@ -109,7 +112,7 @@ A metadata-only dependency solver test package.
                 shutil.copy2(build(name, '2', requires), repo)
             run(['createrepo_c', '--quiet', str(repo)])
             run(['rpm', '--root', str(system), '--initdb'])
-            run(['rpm', '--root', str(system), '-i', '--nodeps', *map(str, old)])
+            run(['rpm', '--root', str(system), '-i', '--nodeps', '--nosignature', *map(str, old)])
             installed = run(['rpm', '--root', str(system), '-qa'])
             rows = [row(name, arch='noarch') for name in ('infinity-test-ready', 'infinity-test-held')]
             def inspect(phase):
