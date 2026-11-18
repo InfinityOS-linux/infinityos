@@ -138,3 +138,6 @@
   margin: 0;
 }
 
+.workspace-thumbnails.infinity-dashboard-previews {
+    spacing: 10px;
+}
