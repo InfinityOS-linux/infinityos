@@ -4,7 +4,7 @@
     "date": "2026-11-18",
     "title": "Terminal handle, dock and updater",
     "summary": "Glove cursors and smoother terminal dragging, consistent dock corners, updater blur, and tray and update-list fixes.",
-    "buildSha": "6ae1112b6846e455bd68c74f585ce1625276b87c",
+    "buildSha": "1121f5365d587876e9c220afdbcf1702054598b9",
     "changes": [
       {
         "title": "Terminal handle",
