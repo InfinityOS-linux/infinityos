@@ -23,7 +23,7 @@ def includes_extension_update(updates):
 
 def pending_rpm_names(before, after):
     requested = {item['name'] for item in before if item['kind'] == 'RPM'}
-    return sorted(requested & {item['name'] for item in after if item['kind'] == 'RPM'})
+    return sorted(requested & {item['name'] for item in after if item['kind'] == 'RPM' and not item.get('deferred')})
 
 
 STYLE = b'''
@@ -209,7 +209,7 @@ def update_rows(updates, offline):
             p['name'] == item['name'] and (not item.get('arch') or p['arch'] == item['arch'])
             and p['version'] == item['version'].removeprefix('0:')
             for p in queued)
-        rows.append({**item, 'pending': ready})
+        rows.append({**item, 'pending': ready, **({'deferred': False} if ready else {})})
     names = {(item['name'], item.get('arch')) for item in updates if item['kind'] == 'RPM'}
     rows.extend({**item, 'pending': True} for item in queued
                 if (item['name'], item['arch']) not in names and (item['name'], None) not in names)
@@ -221,6 +221,7 @@ def restart_ready(offline):
 
 
 def install_commands(updates):
+    updates = [item for item in updates if not item.get('deferred')]
     kinds = {item['kind'] for item in updates}
     commands = []
     if 'RPM' in kinds:
@@ -560,9 +561,31 @@ def main():
             else:
                 self.window.add_css_class('light-mode')
 
+        def update_card(self, item):
+            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+            card.add_css_class('update-card')
+            name = Gtk.Label(label=item['name'], xalign=0)
+            name.add_css_class('update-name')
+            name.set_ellipsize(Pango.EllipsizeMode.END)
+            title_row = Gtk.Box(spacing=8)
+            name.set_hexpand(True)
+            title_row.append(name)
+            if item.get('pending'):
+                restart = Gtk.Image.new_from_icon_name('system-reboot-symbolic')
+                restart.set_tooltip_text(tr('Downloaded — installs after restart'))
+                title_row.append(restart)
+            card.append(title_row)
+            detail = Gtk.Label(label=f"{item['kind']}  ·  {item['version']}  ·  {item['source']}", xalign=0)
+            detail.add_css_class('muted')
+            detail.set_ellipsize(Pango.EllipsizeMode.END)
+            card.append(detail)
+            return card
+
         def render(self):
             offline = offline_status()
-            updates = update_rows(self.state.get('updates', []), offline)
+            rows = update_rows(self.state.get('updates', []), offline)
+            deferred = [item for item in rows if item.get('deferred')]
+            updates = [item for item in rows if not item.get('deferred')]
             self.restart_ready = restart_ready(offline)
             if self.restart_ready:
                 self.refresh.set_label(tr('Restart to update'))
@@ -593,7 +616,7 @@ def main():
                 self.items.remove(child)
             errors = self.state.get('errors', [])
             release = self.state.get('release')
-            empty_state = not (updates or errors or release or offline.get('pending') or offline.get('status') == 'failed')
+            empty_state = not (updates or deferred or errors or release or offline.get('pending') or offline.get('status') == 'failed')
             self.items.set_valign(Gtk.Align.CENTER if empty_state else Gtk.Align.FILL)
             if release:
                 card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
@@ -616,29 +639,25 @@ def main():
             self.items.append(count_row)
             if not updates:
                 message = (tr('Could not confirm whether updates are available.') if errors
+                           else tr('No updates ready to install.') if deferred
                            else tr('Your system is up to date.'))
                 empty = Gtk.Label(label=message, xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER)
                 empty.set_margin_top(24)
                 self.items.append(empty)
             for item in updates:
-                card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
-                card.add_css_class('update-card')
-                name = Gtk.Label(label=item['name'], xalign=0)
-                name.add_css_class('update-name')
-                name.set_ellipsize(Pango.EllipsizeMode.END)
-                title_row = Gtk.Box(spacing=8)
-                name.set_hexpand(True)
-                title_row.append(name)
-                if item.get('pending'):
-                    restart = Gtk.Image.new_from_icon_name('system-reboot-symbolic')
-                    restart.set_tooltip_text(tr('Downloaded — installs after restart'))
-                    title_row.append(restart)
-                card.append(title_row)
-                detail = Gtk.Label(label=f"{item['kind']}  ·  {item['version']}  ·  {item['source']}", xalign=0)
-                detail.add_css_class('muted')
-                detail.set_ellipsize(Pango.EllipsizeMode.END)
-                card.append(detail)
-                self.items.append(card)
+                self.items.append(self.update_card(item))
+            if deferred:
+                group = Gtk.Expander(label=tr('Waiting for compatibility ({count})').format(count=len(deferred)))
+                group.set_margin_top(12)
+                held = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+                note = Gtk.Label(label=tr('These packages will be offered automatically when compatible dependencies are available.'),
+                                 xalign=0, wrap=True)
+                note.add_css_class('muted')
+                held.append(note)
+                for item in deferred:
+                    held.append(self.update_card(item))
+                group.set_child(held)
+                self.items.append(group)
             if errors:
                 warning = Gtk.Label(label=tr('Some sources could not be checked:\n') +
                                     '\n'.join(errors), xalign=0)
@@ -809,7 +828,7 @@ def main():
 
         def on_apply(self, _button):
             updates = [item for item in update_rows(self.state['updates'], offline_status())
-                       if not item.get('pending')]
+                       if not item.get('pending') and not item.get('deferred')]
             commands = install_commands(updates)
             if not commands:
                 return
@@ -871,7 +890,9 @@ def main():
                     notice = (tr('Some updates could not be installed.') if errors else
                               tr('Updates downloaded, restart to update.')
                               if prepared else tr('Firmware updated. Restart may be required.')
-                              if firmware_updated else tr('Updates installed.'))
+                              if firmware_updated else tr('Some packages are waiting for compatible versions.')
+                              if any(item.get('deferred') for item in state['updates'])
+                              else tr('Updates installed.'))
                     GLib.idle_add(self.finish_refresh, state, notice, None, prepared)
 
 

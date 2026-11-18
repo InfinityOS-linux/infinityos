@@ -170,3 +170,53 @@ class UpdaterActionsTests(unittest.TestCase):
             window.destroy()
             Gtk.StyleContext.remove_provider_for_display(display, provider)
             Gtk.StyleContext.remove_provider_for_display(display, user_theme)
+
+    def test_compatibility_group_is_separate_from_installable_rows_and_rechecks_clear_it(self):
+        if not Gtk.init_check():
+            self.skipTest('GTK needs a display')
+        from gi.repository import Pango
+        from datetime import datetime
+        import importlib.util
+        import sys
+        source = Path(__file__).resolve().parents[1] / 'packages/infinity-updater/root/usr/share/infinityos/updater/updater.py'
+        sys.path.insert(0, str(source.parent))
+        sys.path.insert(0, str(source.parents[6] / 'infinity-setup/root/usr/share/infinityos'))
+        spec = importlib.util.spec_from_file_location('compatibility_page_updater', source)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        tree = ast.parse(source.read_text())
+        methods = [node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+                   and node.name in ('render', 'update_card')]
+        namespace = {'Gtk': Gtk, 'Pango': Pango, 'datetime': datetime,
+                     'tr': lambda text: text, 'update_count': lambda count: f'{count} available updates',
+                     'offline_status': lambda: {}, 'update_rows': module.update_rows,
+                     'restart_ready': module.restart_ready}
+        exec(compile(ast.Module(body=methods, type_ignores=[]), str(source), 'exec'), namespace)
+        held = dict(kind='RPM', name='held', version='2-1', source='repo', arch='x86_64', deferred=True)
+        ready = dict(kind='RPM', name='ready', version='2-1', source='repo', arch='x86_64')
+        app = SimpleNamespace(state={'updates': [held], 'errors': []}, checking=False,
+                              offline=False, busy=False, items=Gtk.Box(), content=Mock(),
+                              refresh=Gtk.Button(), apply=Gtk.Button(), release_apply=Gtk.Button(),
+                              status=Gtk.Label(), layout_actions=Mock())
+        app.update_card = lambda item: namespace['update_card'](app, item)
+        def children(widget):
+            result = []
+            child = widget.get_first_child()
+            while child:
+                result.append(child)
+                child = child.get_next_sibling()
+            return result
+        for updates, count, grouped in (([held], 0, True), ([ready, held], 1, True),
+                                        ([ready, {**held, 'deferred': False}], 2, False)):
+            app.state['updates'] = updates
+            namespace['render'](app)
+            widgets = children(app.items)
+            self.assertEqual(widgets[0].get_first_child().get_label(), f'{count} available updates')
+            groups = [widget for widget in widgets if isinstance(widget, Gtk.Expander)]
+            self.assertEqual(bool(groups), grouped)
+            self.assertEqual(app.apply.get_visible(), count > 0)
+            if grouped:
+                self.assertEqual(groups[0].get_label(), 'Waiting for compatibility (1)')
+                self.assertFalse(groups[0].get_expanded())
+                normal_cards = [widget for widget in widgets if widget.has_css_class('update-card')]
+                self.assertEqual(len(normal_cards), count)

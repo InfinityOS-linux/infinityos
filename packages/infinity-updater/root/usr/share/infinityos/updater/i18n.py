@@ -4,6 +4,12 @@ import locale
 
 
 POLISH = {
+    'Waiting for compatibility ({count})': 'Oczekują na zgodność ({count})',
+    'These packages will be offered automatically when compatible dependencies are available.':
+        'Pakiety pojawią się w dostępnych aktualizacjach, gdy będą dostępne zgodne zależności.',
+    'No updates ready to install.': 'Brak aktualizacji gotowych do zainstalowania.',
+    'Some packages are waiting for compatible versions.': 'Niektóre pakiety oczekują na zgodne wersje.',
+
     'Last system operation: {status}; backup #{snapshot}': 'Ostatnia operacja systemowa: {status}; kopia #{snapshot}',
     'Restore system and /var from Backups in the boot menu. /home is preserved.': 'System i /var możesz przywrócić przez Backups w menu rozruchowym. /home pozostaje bez zmian.',
     'History': 'Historia', 'No update history yet.': 'Brak historii aktualizacji.',
