@@ -131,3 +131,8 @@ if not source_tree:
             raise SystemExit(f"Enabled GNOME extension missing from image: {uuid}")
 
 print("Verified GNOME extension UUIDs and Infinity OS dock behavior")
+cursor_root = root / "root" if source_tree else root
+cursor_theme = cursor_root / "usr/share/icons/InfinityOS-Modern-Ice"
+for name in ("grab", "grabbing"):
+    if not (cursor_theme / "cursors" / name).is_file() or (cursor_theme / "cursors" / name).read_bytes()[:4] != b"Xcur":
+        raise SystemExit(f"Infinity OS glove cursor missing or invalid: {name}")

@@ -476,14 +476,15 @@ export default class InfinityTerminal extends Extension {
         }
     }
 
-    _showTerminal() {
+    _showTerminal({bounce = true} = {}) {
+        this._pendingBounce = bounce;
         if (this._firstFrame) {
             this._pendingShow = true;
             return;
         }
         const window = this._findWindow();
         if (!window || window.minimized)
-            this._toggle();
+            this._toggle({bounce});
     }
 
     _findWindow() {
@@ -605,7 +606,7 @@ export default class InfinityTerminal extends Extension {
             this._place(window);
             if (this._pendingShow) {
                 this._pendingShow = false;
-                this._reveal(window);
+                this._reveal(window, {bounce: this._pendingBounce ?? true});
             } else if (fresh) {
                 const actor = window.get_compositor_private();
                 if (actor)
@@ -663,7 +664,8 @@ export default class InfinityTerminal extends Extension {
         this._syncResizeHandle();
     }
 
-    _toggle() {
+    _toggle({bounce = true} = {}) {
+        this._pendingBounce = bounce;
         if (this._firstFrame) {
             this._pendingShow = !this._pendingShow;
             return;
@@ -673,7 +675,7 @@ export default class InfinityTerminal extends Extension {
             this._pendingShow = true;
             this._spawn();
         } else if (window.minimized) {
-            this._reveal(window);
+            this._reveal(window, {bounce});
         } else {
             this._hide(window);
         }
@@ -684,7 +686,7 @@ export default class InfinityTerminal extends Extension {
         return -window.get_frame_rect().height - this._topInset() - 16;
     }
 
-    _reveal(window) {
+    _reveal(window, {bounce = true} = {}) {
         this._selectMonitor();
         this._sliding = true;
         const actor = window.get_compositor_private();
@@ -719,6 +721,11 @@ export default class InfinityTerminal extends Extension {
                     this._sliding = false;
                     this._syncResizeHandle();
                 };
+                if (!bounce) {
+                    actor.ease({translation_y: 0, duration: animate ? 120 : 0,
+                        mode: Clutter.AnimationMode.EASE_OUT_CUBIC, onComplete: settled});
+                    return GLib.SOURCE_REMOVE;
+                }
                 actor.ease({translation_y: animate ? 24 : 0, duration: animate ? 420 : 0,
                     mode: Clutter.AnimationMode.EASE_IN_CUBIC,
                     onComplete: () => {

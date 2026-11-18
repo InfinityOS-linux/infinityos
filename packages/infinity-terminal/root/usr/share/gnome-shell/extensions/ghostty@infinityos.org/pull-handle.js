@@ -67,6 +67,7 @@ export class TerminalPullHandle {
             accessible_role: Atk.Role.PUSH_BUTTON});
         this.actor.connect('repaint', () => this.paint());
         this.actor.connect('notify::hover', () => this.actor.queue_repaint());
+        this.actor.set_cursor_type(Clutter.CursorType.GRAB);
         Main.layoutManager.addTopChrome(this.actor, {affectsStruts: false, trackFullscreen: true});
         const connect = (object, signal, callback) => {
             this.signals.push([object, object.connect(signal, callback)]);
@@ -391,6 +392,7 @@ export class TerminalPullHandle {
             this.drag = {startY: event.get_coords()[1], y: event.get_coords()[1],
                 moved: false, initialHeight: window && !window.minimized ? window.get_frame_rect().height : 0,
                 wasOpen: !!window && !window.minimized};
+            this.showGrabCursor();
             // Keep tracking across native Wayland surfaces without a modal grab.
             this.poll = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 16, () => {
                 const [x, y, state] = global.get_pointer();
@@ -407,7 +409,7 @@ export class TerminalPullHandle {
             this.drag.y = event.get_coords()[1];
             if (!this.drag.moved && Math.abs(this.drag.y - this.drag.startY) > 6) {
                 this.drag.moved = true;
-                this.terminal._showTerminal();
+                this.terminal._showTerminal({bounce: false});
             }
             if (this.drag.moved) {
                 try { this.apply(); }
@@ -420,6 +422,24 @@ export class TerminalPullHandle {
             return Clutter.EVENT_STOP;
         }
         return Clutter.EVENT_PROPAGATE;
+    }
+
+    showGrabCursor() {
+        // A temporary transparent hit surface keeps the grab cursor over native
+        // Wayland clients while the handle owns this pointer gesture.
+        this.actor.set_cursor_type(Clutter.CursorType.GRABBING);
+        const [width, height] = global.stage.get_size();
+        this.cursorSurface = new St.Widget({reactive: true, width, height});
+        this.cursorSurface.set_cursor_type(Clutter.CursorType.GRABBING);
+        Main.layoutManager.addTopChrome(this.cursorSurface, {affectsStruts: false});
+    }
+
+    clearGrabCursor() {
+        this.actor.set_cursor_type(Clutter.CursorType.GRAB);
+        if (!this.cursorSurface) return;
+        Main.layoutManager.removeChrome(this.cursorSurface);
+        this.cursorSurface.destroy();
+        this.cursorSurface = null;
     }
 
     apply() {
@@ -444,6 +464,7 @@ export class TerminalPullHandle {
     finish(cancel = false) {
         const drag = this.drag;
         this.drag = null;
+        this.clearGrabCursor();
         if (this.poll) { GLib.Source.remove(this.poll); this.poll = 0; }
         this.grab?.dismiss(); this.grab = null;
         if (!drag) return;

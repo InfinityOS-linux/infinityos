@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Compile the approved glove artwork into multi-size native Xcursor files."""
+import argparse
+from pathlib import Path
+import shutil
+import struct
+import subprocess
+
+SIZES = (16, 24, 32, 48, 64, 96, 128)
+IMAGE = 0xFFFD0002
+
+
+def encode(frames):
+    offset = 16 + len(frames) * 12
+    toc, chunks = [], []
+    for size, rgba in frames:
+        if len(rgba) != size * size * 4:
+            raise ValueError('Unexpected RGBA buffer size')
+        pixels = bytearray(len(rgba))
+        for i in range(0, len(rgba), 4):
+            r, g, b, a = rgba[i:i + 4]
+            if a < 3:
+                a = 0
+            pixels[i:i + 4] = bytes(((b * a + 127) // 255,
+                (g * a + 127) // 255, (r * a + 127) // 255, a))
+        # Both states keep the same palm hotspot, so grabbing never moves the
+        # terminal's drag origin even though the glove's fingers close.
+        chunk = struct.pack('<9I', 36, IMAGE, size, 1, size, size,
+                            size // 2, round(size * .625), 0) + pixels
+        toc.append(struct.pack('<3I', IMAGE, size, offset))
+        chunks.append(chunk)
+        offset += len(chunk)
+    return struct.pack('<4s3I', b'Xcur', 16, 0x10000, len(toc)) + b''.join(toc + chunks)
+
+
+def main():
+    root = Path(__file__).resolve().parents[1]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--source', type=Path, default=root / 'assets/cursors')
+    parser.add_argument('--output', type=Path,
+                        default=root / 'root/usr/share/icons/InfinityOS-Modern-Ice/cursors')
+    args = parser.parse_args()
+    magick = shutil.which('magick')
+    if not magick:
+        raise SystemExit('ImageMagick is required to rebuild cursor artwork')
+    args.output.mkdir(parents=True, exist_ok=True)
+    for name in ('grab', 'grabbing'):
+        frames = []
+        for size in SIZES:
+            result = subprocess.run([magick, str(args.source / f'{name}.png'),
+                '-filter', 'Lanczos', '-resize', f'{size}x{size}!',
+                '-depth', '8', 'rgba:-'], check=True, capture_output=True)
+            frames.append((size, result.stdout))
+        (args.output / name).write_bytes(encode(frames))
+
+
+if __name__ == '__main__':
+    main()

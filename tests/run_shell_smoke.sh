@@ -18,6 +18,8 @@ export XDG_DATA_DIRS="$sandbox/system:/usr/local/share:/usr/share"
 export SMOKE_EXTENSIONS="$sandbox/system/gnome-shell/extensions"
 export XDG_RUNTIME_DIR="$sandbox/run" LIBGL_ALWAYS_SOFTWARE=1
 mkdir -p "$SMOKE_EXTENSIONS" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_RUNTIME_DIR"
+mkdir -p "$sandbox/system/icons"
+cp -a "$repo/root/usr/share/icons/InfinityOS-Modern-Ice" "$sandbox/system/icons/"
 chmod 700 "$XDG_RUNTIME_DIR"
 for uuid in nowplay@LalaloyXyz raccoonlauncher@shimafallah.github.io dash2dock-animated@infinityos.org wack-shell@rinzler69-wastaken.github.com; do
     cp -a "$repo/root/usr/share/gnome-shell/extensions/$uuid" "$SMOKE_EXTENSIONS/"
@@ -38,6 +40,7 @@ dbus-run-session -- bash -euo pipefail -c '
     # Test vendored code, never replace it with extensions.gnome.org downloads.
     gsettings set org.gnome.shell allow-extension-installation false
     gsettings set org.gnome.shell disable-user-extensions false
+    gsettings set org.gnome.desktop.interface cursor-theme InfinityOS-Modern-Ice
     gsettings set org.gnome.shell enabled-extensions "[\"infinity-smoke@test\"]"
     gnome-shell --headless --virtual-monitor 1280x800 >"$SMOKE_LOG" 2>&1 &
     shell_pid=$!

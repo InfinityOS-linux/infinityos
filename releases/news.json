@@ -2,10 +2,18 @@
   {
     "id": "2026-11-18-dock-and-updater-backdrop",
     "date": "2026-11-18",
-    "title": "Dock corners and a blurred updater",
-    "summary": "Fixed the dock's lower corners. InfinityUpdater now uses the top bar's blur settings, with a darker header and button area.",
+    "title": "Dock corners, updater blur and hand cursors",
+    "summary": "Fixed the dock corners, matched the updater background to the top bar, and added glove cursors for the terminal handle.",
     "buildSha": null,
     "changes": [
+      {
+        "title": "Terminal handle cursors",
+        "text": "An open glove appears over the handle and closes while dragging. The remaining pointer shapes keep the Bibata Modern Ice style."
+      },
+      {
+        "title": "Drag without bounce",
+        "text": "Pulling the terminal down by hand follows the pointer and settles without an elastic bounce. Clicking the handle or pressing Super+T keeps the bounce animation."
+      },
       {
         "title": "Dock",
         "text": "The lower corners now use the same outline color as the sides. The thicker top edge is unchanged."
