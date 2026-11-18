@@ -199,6 +199,37 @@ test('reduced motion disables slide animation', () => {
     assert.ok(f.animations.every(animation => animation.duration === 0));
 });
 
+for (const cold of [false, true]) {
+    test(`manual pull has no overshoot or elastic bounce, cold=${cold}`, () => {
+        const f = fixture();
+        f.controller._pendingBounce = false;
+        f.controller._track(f.window, true, cold);
+        if (cold) f.firstFrame();
+        f.flush();
+        assert.equal(f.animations.length, 1);
+        assert.equal(f.animations[0].translation_y, 0);
+        assert.equal(f.animations[0].mode, 1);
+        assert.equal(f.animations[0].duration, 120);
+        f.animations[0].onComplete();
+        assert.equal(f.animations.length, 1);
+        assert.equal(f.controller._sliding, false);
+    });
+}
+
+test('a regular click or keyboard toggle restores the default bounce after a manual pull', () => {
+    const f = fixture();
+    f.controller._pendingBounce = false;
+    f.controller._findWindow = () => null;
+    f.controller._spawn = () => {};
+    f.controller._toggle();
+    assert.equal(f.controller._pendingBounce, true);
+    f.controller._track(f.window, true, true);
+    f.firstFrame(); f.flush();
+    assert.equal(f.animations[0].translation_y, 24);
+    f.animations[0].onComplete();
+    assert.equal(f.animations[1].mode, 3);
+});
+
 for (const inset of [72, 144, 176]) {
     test(`the entire terminal begins above the screen with ${inset}px inset`, () => {
         const f = fixture(true, inset);

@@ -25,6 +25,15 @@ apply_theme() {
     gsettings set org.gnome.shell.extensions.user-theme name "$theme"
 }
 
+cursor_marker="${XDG_STATE_HOME:-$HOME/.local/state}/infinityos/hand-cursors-v1"
+if [[ ! -e "$cursor_marker" ]]; then
+    if [[ $(gsettings get org.gnome.desktop.interface cursor-theme) == "'Bibata-Modern-Ice'" ]]; then
+        gsettings set org.gnome.desktop.interface cursor-theme InfinityOS-Modern-Ice
+    fi
+    mkdir -p "$(dirname "$cursor_marker")"
+    touch "$cursor_marker"
+fi
+
 apply_theme
 gsettings monitor org.gnome.desktop.interface color-scheme | while IFS= read -r _; do
     apply_theme

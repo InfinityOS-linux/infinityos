@@ -1,5 +1,6 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import Meta from 'gi://Meta';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -95,6 +96,13 @@ export default class Smoke extends Extension {
         const primary = Main.layoutManager.primaryMonitor;
         check(Math.abs(pull.actor.x + pull.actor.width / 2 - primary.x - primary.width / 2) < 1, 'pull handle is not centered');
         check(pull.actor.visible, 'closed terminal has no pull handle');
+        check(pull.actor.get_cursor_type() === Clutter.CursorType.GRAB, 'handle has no open glove cursor');
+        pull.showGrabCursor();
+        check(pull.cursorSurface.get_cursor_type() === Clutter.CursorType.GRABBING,
+            'drag does not keep its closed glove over Wayland windows');
+        pull.clearGrabCursor();
+        check(!pull.cursorSurface && pull.actor.get_cursor_type() === Clutter.CursorType.GRAB,
+            'drag cursor surface survives release');
         // Exercise the real BMS geometry and native GPU paint path. Mock-only
         // tests cannot detect a clipped-off handle or an invalid paint context.
         const {default: NativeBlur} = await import('gi://Blur');

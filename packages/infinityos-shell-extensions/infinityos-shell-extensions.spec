@@ -71,6 +71,8 @@ gtk-update-icon-cache -f -q /usr/share/icons/hicolor || :
 
 %files
 /usr/libexec/infinityos-enable-desktop-additions
+/usr/libexec/infinityos-theme-sync
+/usr/share/icons/InfinityOS-Modern-Ice/
 /etc/xdg/autostart/infinityos-enable-desktop-additions.desktop
 /usr/share/gnome-shell/extensions/nowplay@LalaloyXyz/
 /usr/share/gnome-shell/extensions/raccoonlauncher@shimafallah.github.io/

@@ -11,7 +11,7 @@ function fixture() {
     const actor = {translation_y: 0, remove_all_transitions() {}, ease(values) { this.translation_y = values.translation_y; values.onComplete?.(); }};
     const window = {minimized: true, activate() {this.activated=true;}, get_frame_rect: () => ({height:500}), get_compositor_private: () => actor};
     const terminal = {_indicator: {get_preferred_width:()=>[24,24], set_size(w,h){this.width=w;this.height=h;}, set_position(x,y){this.x=x;this.y=y;}}, _findWindow: () => window, _toggle() {toggle++;},
-        _showTerminal() {shown++; window.minimized = false;}, _hide() {hidden++;},
+        _showTerminal(options) {terminal.showOptions = options; shown++; window.minimized = false;}, _hide() {hidden++;},
         _monitor: () => ({height:1000,y:0}), _topInset: () => 30, _settings: {set_double(k,v) {terminal.savedHeight=v*1000;}}, _place() {}, _offscreenOffset: () => -500, _syncResizeHandle() {}};
     const Main = {panel: {...signal, statusArea: {dateMenu: {...signal, get_transformed_position: () => [662, 0], get_transformed_size: () => [100, 32]}},
         get_transformed_position: () => [0, -52], get_transformed_size: () => [1500, 32], get_theme_node: () => ({get_background_color: () => ({red: 11, green: 9, blue: 18, alpha: 255})})},
@@ -25,9 +25,9 @@ function fixture() {
         St: {DrawingArea: class {constructor() {Object.assign(this, signal); this.visible = true; this.mapped = true;}
             get_transformed_position() {return [this.x + this.width * (1 - this.scale_x) / 2, this.y];}
             get_transformed_size() {return [this.width * this.scale_x, this.height * this.scale_y];}
-            contains(a) {return a === this;} set_pivot_point() {} ease(values) {Object.assign(this, values);} set_size(w,h) {this.width=w;this.height=h;} set_position(x,y) {this.x=x;this.y=y;} queue_repaint() {} get_context() {return cr;} get_surface_size() {return [180,18];} hide() {this.visible=false;} destroy() {}}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}, Settings: {get: () => ({enable_animations: true})}},
-        Clutter: {Effect: class {}, EventType: {BUTTON_PRESS: 1, BUTTON_RELEASE: 2, MOTION: 3, KEY_PRESS: 4}, ModifierType: {BUTTON1_MASK: 1}, KEY_Escape: 27, KEY_Return: 13, KEY_space: 32, EVENT_STOP: true, EVENT_PROPAGATE: false, AnimationMode: {EASE_OUT_CUBIC: 1}},
-        global: {get_current_time: () => 1, get_window_actors: () => terminal.windows || [], display: {...signal, get_monitor_in_fullscreen: () => fullscreen}, stage: {...signal, set_key_focus() {}, get_event_actor: () => handle.actor, grab() {grabs++;return {dismiss() {dismissed++;}};}}}, terminal};
+            set_cursor_type(value) {this.cursor=value;} contains(a) {return a === this;} set_pivot_point() {} ease(values) {Object.assign(this, values);} set_size(w,h) {this.width=w;this.height=h;} set_position(x,y) {this.x=x;this.y=y;} queue_repaint() {} get_context() {return cr;} get_surface_size() {return [180,18];} hide() {this.visible=false;} destroy() {this.destroyed=true;}}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}, Settings: {get: () => ({enable_animations: true})}},
+        Clutter: {Effect: class {}, CursorType: {GRAB: 17, GRABBING: 18}, EventType: {BUTTON_PRESS: 1, BUTTON_RELEASE: 2, MOTION: 3, KEY_PRESS: 4}, ModifierType: {BUTTON1_MASK: 1}, KEY_Escape: 27, KEY_Return: 13, KEY_space: 32, EVENT_STOP: true, EVENT_PROPAGATE: false, AnimationMode: {EASE_OUT_CUBIC: 1}},
+        global: {get_current_time: () => 1, get_window_actors: () => terminal.windows || [], display: {...signal, get_monitor_in_fullscreen: () => fullscreen}, stage: {...signal, get_size: () => [1500, 1000], set_key_focus() {}, get_event_actor: () => handle.actor, grab() {grabs++;return {dismiss() {dismissed++;}};}}}, terminal};
     context.St.Widget = context.St.DrawingArea;
     const handle = vm.runInNewContext(`${source}\nnew TerminalPullHandle(terminal)`,context);
     const event = (type,y,held=1,key=0) => handle.event({type:()=>type,get_coords:()=>[750,y],get_button:()=>1,get_state:()=>held,get_key_symbol:()=>key});
@@ -92,6 +92,25 @@ test('fullscreen compacts bulge; overview and lock hide activators',()=>{
     f.Main.overview.visible=false;f.Main.sessionMode.isLocked=true;f.handle.sync();assert.equal(f.handle.actor.visible,false);
 });
 test('destroy releases active pointer grab',()=>{const f=fixture();f.event(1,40);f.event(3,200);f.handle.destroy();assert(f.balanced);});
+
+test('glove cursors switch on press and restore after release, Escape and destroy', () => {
+    for (const finish of ['release', 'escape', 'destroy']) {
+        const f = fixture();
+        assert.equal(f.handle.actor.cursor, 17);
+        f.event(1, 40);
+        const surface = f.handle.cursorSurface;
+        assert.equal(surface.cursor, 18);
+        assert.equal(f.handle.actor.cursor, 18);
+        f.event(3, 200);
+        assert.equal(f.terminal.showOptions.bounce, false);
+        if (finish === 'release') f.event(2, 200);
+        else if (finish === 'escape') f.event(4, 200, 1, 27);
+        else f.handle.destroy();
+        assert(surface.destroyed);
+        assert.equal(f.handle.cursorSurface, null);
+        assert.equal(f.handle.actor.cursor, 17);
+    }
+});
 
 test('pulling an open terminal into the panel hides it without saving a tiny height',()=>{
  const f=fixture(); f.window.minimized=false; f.event(1,40); f.event(3,20); f.event(2,20);
