@@ -112,6 +112,35 @@ window.infinity-updater.motion-enabled button.restart:not(:disabled) {
 window.infinity-updater button.restart:disabled { animation: none; box-shadow: none; }
 window.infinity-updater .update-actions button { padding: 9px 12px; }
 
+/* The Shell renders the panel-matched blur below this transparent GTK surface.
+   A missing/disabled Shell extension retains the opaque defaults above. */
+window.infinity-updater.shell-backdrop,
+window.infinity-updater.shell-backdrop > box,
+window.infinity-updater.shell-backdrop stack,
+window.infinity-updater.shell-backdrop .infinity-results,
+window.infinity-updater.shell-backdrop .infinity-results viewport {
+  background: transparent;
+  background-image: none;
+}
+window.infinity-updater.shell-backdrop .hero,
+window.infinity-updater.shell-backdrop .footer {
+  background: rgba(0, 0, 0, 0.14);
+  border-color: rgba(184, 166, 217, 0.20);
+}
+window.infinity-updater.shell-backdrop .update-card {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(184, 166, 217, 0.18);
+}
+window.infinity-updater.shell-backdrop.light-mode .hero,
+window.infinity-updater.shell-backdrop.light-mode .footer {
+  background: rgba(0, 0, 0, 0.07);
+  border-color: rgba(70, 40, 100, 0.16);
+}
+window.infinity-updater.shell-backdrop.light-mode .update-card {
+  background: rgba(255, 255, 255, 0.48);
+  border-color: rgba(70, 40, 100, 0.16);
+}
+
 '''
 
 
@@ -263,6 +292,7 @@ def main():
             self.color_settings.connect('changed::color-scheme', self._sync_color_scheme)
             self.color_settings.connect('changed::enable-animations', self._sync_color_scheme)
             self._sync_color_scheme()
+            self._setup_shell_backdrop()
             self.window.set_default_size(460, 680)
 
             layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -411,10 +441,48 @@ def main():
                 self.render()
 
         def do_shutdown(self):
+            proxy = getattr(self, '_shell_proxy', None)
+            if proxy:
+                for signal in self._shell_proxy_signals:
+                    proxy.disconnect(signal)
+                self._shell_proxy = None
             if self.state_monitor:
                 self.state_monitor.cancel()
                 self.state_monitor = None
             Gtk.Application.do_shutdown(self)
+
+        def _setup_shell_backdrop(self):
+            self._shell_proxy = None
+            self._shell_proxy_signals = []
+            try:
+                self._shell_proxy = Gio.DBusProxy.new_for_bus_sync(
+                    Gio.BusType.SESSION, Gio.DBusProxyFlags.DO_NOT_AUTO_START, None,
+                    'org.gnome.Shell', '/org/gnome/Shell/Extensions',
+                    'org.gnome.Shell.Extensions', None)
+                self._shell_proxy_signals.append(self._shell_proxy.connect(
+                    'g-signal', lambda _proxy, _sender, name, _params:
+                    self._sync_shell_backdrop() if name == 'ExtensionStateChanged' else None))
+                self._shell_proxy_signals.append(self._shell_proxy.connect(
+                    'notify::g-name-owner', self._sync_shell_backdrop))
+            except GLib.Error:
+                pass
+            self._sync_shell_backdrop()
+
+        def _sync_shell_backdrop(self, *_args):
+            active = False
+            try:
+                if self._shell_proxy and self._shell_proxy.get_name_owner():
+                    reply = self._shell_proxy.call_sync('GetExtensionInfo',
+                        GLib.Variant('(s)', ('infinity-updater@infinityos.org',)),
+                        Gio.DBusCallFlags.NONE, 300, None)
+                    state = reply.unpack()[0].get('state')
+                    active = (state.unpack() if hasattr(state, 'unpack') else state) == 1
+            except GLib.Error:
+                pass
+            if active:
+                self.window.add_css_class('shell-backdrop')
+            else:
+                self.window.remove_css_class('shell-backdrop')
 
         def on_close_request(self, window):
             if not self.busy:

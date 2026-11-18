@@ -20,6 +20,7 @@ import {
 } from 'resource:///org/gnome/shell/ui/dash.js';
 
 import { DockPosition } from './dock.js';
+import { paintDockOutline } from './dock-outline.mjs';
 
 class DockItemMenu extends PopupMenu.PopupMenu {
   constructor(sourceActor, side = St.Side.TOP, params = {}) {
@@ -340,15 +341,35 @@ export const DockItemContainer = GObject.registerClass(
 
 export const DockBackground = GObject.registerClass(
   {},
-  class DockBackground extends St.Widget {
+  class DockBackground extends St.DrawingArea {
     _init(params) {
       super._init({
         name: 'DockBackground',
         ...(params || {}),
       });
+      this.connect('repaint', () => {
+        const cr = this.get_context();
+        try {
+          const ext = this._dock?.extension;
+          if (!ext?.adaptive_background || ext.panel_mode) return;
+          const [width, height] = this.get_surface_size();
+          paintDockOutline(cr, width, height, ext.computed_border_radius,
+            ext.border_thickness, ext._getPreferredColorScheme() === 'light',
+            St.ThemeContext.get_for_stage(global.stage).scale_factor);
+        } finally { cr.$dispose(); }
+      });
+      this.connect('style-changed', () => this.queue_repaint());
     }
 
     update(params) {
+      this._dock = params.dock;
+      const ext = params.dock.extension;
+      const signature = [ext.adaptive_background, ext.panel_mode, ext.computed_border_radius,
+        ext.border_thickness, ext._getPreferredColorScheme()].join(':');
+      if (signature !== this._outlineSignature) {
+        this._outlineSignature = signature;
+        this.queue_repaint();
+      }
       let {
         first,
         last,

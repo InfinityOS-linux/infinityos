@@ -13,15 +13,15 @@ function border(overrides = {}) {
   update.call(dock);
   return dock._backgroundStyle;
 }
-test('adaptive dock sides and lower corners share one border in both themes', () => {
-  for (const [theme, color] of [['dark', '0.87,0.8,1,0.32'], ['light', '1,1,1,0.65']]) {
+test('adaptive dock delegates its outline to a single Cairo contour in both themes', () => {
+  for (const theme of ['dark', 'light']) {
     const style = border({ _getPreferredColorScheme: () => theme });
-    assert.ok(style.includes(`border: 1px solid rgba(${color})`));
+    assert.ok(style.includes('border: 0px solid transparent'));
     assert.doesNotMatch(style, /border-(?:color|bottom|left|right):/);
   }
 });
-test('adaptive upper edge is brighter and one pixel thicker while custom borders retain their settings', () => {
-  assert.match(border({ border_thickness: 0 }), /border-top: 1.75px solid rgba\(218, 199, 255, 0.55\)/);
+test('custom borders retain their settings without the adaptive contour', () => {
+  assert.doesNotMatch(border({ border_thickness: 0 }), /border-top/);
   assert.equal(border({ border_thickness: 0, adaptive_background: false }).trim(), '');
   assert.match(border({ adaptive_background: false }), /border: 1px solid rgba\(1,0,0,1\)/);
   assert.doesNotMatch(border({ adaptive_background: false }), /transparent/);

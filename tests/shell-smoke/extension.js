@@ -6,6 +6,7 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import UserTray from '../wack-shell@rinzler69-wastaken.github.com/userTray.js';
+import AppDashboard from '../wack-shell@rinzler69-wastaken.github.com/appDashboard.js';
 import {TerminalPullHandle} from '../ghostty@infinityos.org/pull-handle.js';
 import {HardwareMonitor} from '../ghostty@infinityos.org/hardware-monitor.js';
 import {widgetChoices} from '../ghostty@infinityos.org/monitor-widgets.js';
@@ -13,6 +14,7 @@ import NowPlay from '../nowplay@LalaloyXyz/extension.js';
 import Raccoon from '../raccoonlauncher@shimafallah.github.io/extension.js';
 import Updater from '../infinity-updater@infinityos.org/extension.js';
 import {opticalMetrics} from '../dash2dock-animated@infinityos.org/optical-icons.mjs';
+import {DockBackground} from '../dash2dock-animated@infinityos.org/dockItems.js';
 import {PanelBlur} from '../blur-my-shell@aunetx/components/panel.js';
 
 function check(ok, message) { if (!ok) throw new Error(message); }
@@ -49,6 +51,27 @@ export default class Smoke extends Extension {
         this._objects.push({disable: () => monitor.destroy()});
         monitor.sync({x: 0, y: 150, width: 1280}, true);
         const wait = () => new Promise(resolve => GLib.timeout_add(GLib.PRIORITY_DEFAULT, 750, () => { resolve(); return GLib.SOURCE_REMOVE; }));
+        const dockOutline = new DockBackground({width: 420, height: 72});
+        dockOutline._dock = {extension: {adaptive_background: true, panel_mode: false,
+            computed_border_radius: 40, border_thickness: 1, _getPreferredColorScheme: () => 'dark'}};
+        Main.layoutManager.addTopChrome(dockOutline);
+        this._objects.push({disable: () => {
+            Main.layoutManager.removeChrome(dockOutline); dockOutline.destroy();
+        }});
+        dockOutline.queue_repaint();
+        const dashboard = new AppDashboard();
+        this._objects.push({disable: () => dashboard.destroy()});
+        const preview = new St.Widget({width: 240, height: 150,
+            style: 'background-color: #604080;'});
+        Main.layoutManager.addTopChrome(preview);
+        this._objects.push({disable: () => {
+            Main.layoutManager.removeChrome(preview); preview.destroy();
+        }});
+        const dashboardBox = dashboard._box;
+        dashboard._box = {_thumbnails: [preview]};
+        try { dashboard._syncPreviews(); }
+        finally { dashboard._box = dashboardBox; }
+        check(dashboard._previews.has(preview), 'rounded preview shader failed to attach');
         await wait();
         check(iconLoaded, 'native dock icon measurement failed');
         check(monitor._cells.length === 8, 'sensor/widget construction');
@@ -83,6 +106,17 @@ export default class Smoke extends Extension {
         blurGroup.add_child(blurBackground);
         Main.panel.get_parent().insert_child_at_index(blurGroup, 0);
         const blurController = new PanelBlur(null, {DEBUG: false}, null);
+        // Exercise the real matching-backdrop factory with native GPU effects.
+        blurController.settings.panel = {STATIC_BLUR: false, PIPELINE: 'pipeline_default',
+            SIGMA: 28, BRIGHTNESS: .64, CORNER_RADIUS: 0,
+            settings: {connect: () => 0, disconnect() {}}};
+        blurController.effects_manager = {
+            new_native_dynamic_gaussian_blur_effect: params => new NativeBlur.BlurEffect({
+                mode: NativeBlur.BlurMode.BACKGROUND,
+                radius: params.unscaled_radius, brightness: params.brightness,
+            }),
+            remove: effect => effect.get_actor()?.remove_effect(effect),
+        };
         const blurActors = {widgets: {panel: Main.panel, geometry_actor: Main.panel,
             panel_box: Main.panel.get_parent(), background: blurBackground,
             background_group: blurGroup}, static_blur: false, is_dtp_panel: false};
@@ -237,6 +271,10 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 app = Gtk.Application(application_id='org.infinityos.Updater')
 def activate(app):
+    from gi.repository import Gdk
+    css = Gtk.CssProvider()
+    css.load_from_data(b'window { background: transparent; }')
+    Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css, 800)
     window = Gtk.ApplicationWindow(application=app, title='InfinityUpdater smoke')
     window.set_decorated(False)
     window.set_default_size(160, 100)
@@ -253,6 +291,12 @@ app.run(None)
         const area = Main.layoutManager.getWorkAreaForMonitor(drawer.meta_window.get_monitor());
         check(frame.width === Math.min(460, area.width) && frame.height === area.height, 'updater remained at initial size');
         check(drawer.opacity === 255 && Math.abs(drawer.translation_x) < 1, 'updater did not finish its spring slide');
+        const drawerBackdrop = updater._drawerBackdrop._entries.get(drawer.meta_window);
+        check(drawerBackdrop?.backdrop, 'updater has no panel-matched native blur');
+        check(drawerBackdrop.container.clip_to_allocation, 'updater blur includes the window shadow');
+        check(drawerBackdrop.backdrop.background.width === frame.width &&
+            drawerBackdrop.backdrop.background.height === frame.height, 'updater blur does not fill the drawer');
+        check(drawer.get_children().indexOf(drawerBackdrop.container) === 0, 'updater blur covers GTK contents');
         this.disable();
         console.log('INFINITY_SMOKE_PASS');
     }

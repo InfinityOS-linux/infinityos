@@ -363,6 +363,48 @@ export const PanelBlur = class PanelBlur {
         if (primary) this.queue_update_size(primary);
     }
 
+    // Reuse the panel's live settings/pipeline for an application backdrop.
+    // The caller owns the container and its geometry; never share an effect
+    // instance between the panel and a window or lower the window's opacity.
+    createMatchingBackdrop(container, monitorIndex) {
+        if (!this.enabled) return null;
+        const managers = [];
+        const staticBlur = this.settings.panel.STATIC_BLUR;
+        let pipeline, background;
+        try {
+            if (staticBlur) {
+                pipeline = new Pipeline(this.effects_manager,
+                    global.blur_my_shell._pipelines_manager, this.settings.panel.PIPELINE);
+                background = pipeline.create_background_with_effects(
+                    monitorIndex, managers, container, 'infinity-panel-matched-backdrop', false);
+            } else {
+                pipeline = new DummyPipeline(this.effects_manager, this.settings.panel,
+                    null, {corner_radius_getter: () => 0});
+                const [widget, manager] = pipeline.create_background_with_effect(
+                    container, 'infinity-panel-matched-backdrop');
+                background = widget;
+                managers.push(manager);
+            }
+        } catch (error) {
+            pipeline?.destroy();
+            managers.forEach(manager => manager.destroy());
+            background?.destroy();
+            throw error;
+        }
+        this._matchingBackdrops ??= new Set();
+        const backdrop = {background, staticBlur, offsetY: background.y,
+            destroyed: false, destroy: () => {
+                if (backdrop.destroyed) return;
+                backdrop.destroyed = true;
+                this._matchingBackdrops.delete(backdrop);
+                pipeline.destroy();
+                managers.forEach(manager => manager.destroy());
+                background.destroy();
+            }};
+        this._matchingBackdrops.add(backdrop);
+        return backdrop;
+    }
+
     update_size(actors) {
         let geometry_actor = actors.widgets.geometry_actor;
         let panel_box = actors.widgets.panel_box;
@@ -815,6 +857,8 @@ export const PanelBlur = class PanelBlur {
     }
 
     disable() {
+        for (const backdrop of [...(this._matchingBackdrops ?? [])])
+            backdrop.destroy();
         if (!this.enabled) {
             this._log("blur already removed");
             return;

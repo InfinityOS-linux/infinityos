@@ -300,10 +300,12 @@ test('closing before the first redraw cancels the delayed opening', () => {
 });
 
 
-test('panel surface is shared while open and restored after closing', () => {
+test('drawer backdrop follows opening and closing without covering the top bar', () => {
     const {extension, window, calls} = drawer({x: 0, y: 32, width: 1280, height: 688});
-    const surface = {visible: false, show() { this.visible = true; }, hide() { this.visible = false; }};
-    extension._panelSurface = surface;
+    const surface = {visible: false,
+        attach(w) { assert.equal(w, window); this.visible = true; },
+        detach(w) { assert.equal(w, window); this.visible = false; }};
+    extension._drawerBackdrop = surface;
     extension._showDrawer(window);
     assert.equal(surface.visible, true);
     extension._hideDrawer(window);

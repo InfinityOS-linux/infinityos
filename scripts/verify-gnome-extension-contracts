@@ -104,11 +104,18 @@ for uuid in enabled:
         raise SystemExit(f"GNOME {shell_major} is unsupported by enabled extension: {uuid}")
 
 dock = extensions / new_dock
-for name in ("extension.js", "dockItemMenu.js", "folderClick.js", "metadata.json"):
+for name in ("extension.js", "dockItemMenu.js", "folderClick.js", "dock-outline.mjs", "metadata.json"):
     if not (dock / name).is_file():
         raise SystemExit(f"Infinity OS dock file missing: {name}")
 if "./folderClick.js" not in (dock / "dockItemMenu.js").read_text():
     raise SystemExit("Empty-folder behavior is no longer connected to the dock")
+
+updater_root = root / "packages/infinity-updater/root" if source_tree else root
+updater = updater_root / "usr/share/gnome-shell/extensions/infinity-updater@infinityos.org"
+if not (updater / "panel-backdrop.js").is_file():
+    raise SystemExit("InfinityUpdater panel-matched backdrop is missing")
+if "./panel-backdrop.js" not in (updater / "extension.js").read_text():
+    raise SystemExit("InfinityUpdater backdrop is not connected")
 
 if not source_tree:
     links = {
