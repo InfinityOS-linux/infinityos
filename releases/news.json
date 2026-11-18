@@ -2,54 +2,33 @@
   {
     "id": "2026-11-18-dock-and-updater-backdrop",
     "date": "2026-11-18",
-    "title": "Dock corners, updater blur and hand cursors",
-    "summary": "Fixed the dock corners, matched the updater background to the top bar, and added glove cursors for the terminal handle.",
-    "buildSha": null,
+    "title": "Terminal handle, dock and updater",
+    "summary": "Glove cursors and smoother terminal dragging, consistent dock corners, updater blur, and tray and update-list fixes.",
+    "buildSha": "6ae1112b6846e455bd68c74f585ce1625276b87c",
     "changes": [
       {
-        "title": "Terminal handle cursors",
-        "text": "An open glove appears over the handle and closes while dragging. The remaining pointer shapes keep the Bibata Modern Ice style."
+        "title": "Terminal handle",
+        "text": "The handle uses the top bar's actual blur and reconnects when the panel background reloads. An open glove appears on hover and closes while dragging."
       },
       {
         "title": "Drag without bounce",
-        "text": "Pulling the terminal down by hand follows the pointer and settles without an elastic bounce. Clicking the handle or pressing Super+T keeps the bounce animation."
+        "text": "Pulling the terminal by hand follows the pointer and settles without bounce. Clicking the handle or pressing Super+T keeps the bounce animation."
       },
       {
-        "title": "Dock",
-        "text": "The lower corners now use the same outline color as the sides. The thicker top edge is unchanged."
+        "title": "Dock corners",
+        "text": "The lower corners use the same outline color as the sides. The thicker top edge is unchanged."
       },
       {
-        "title": "InfinityUpdater",
-        "text": "The background uses the same blur settings as the top bar and terminal handle. The header and button area are slightly darker. Text and controls stay sharp."
+        "title": "InfinityUpdater background",
+        "text": "The window uses the same blur settings as the top bar and terminal handle. Its header and button area are slightly darker, while text and controls stay sharp."
       },
-      {
-        "title": "InfinityTerminal",
-        "text": "The handle uses the panel's actual blur instead of an estimated color. It reconnects when the panel background reloads."
-      },
-      {
-        "title": "Quick Settings",
-        "text": "Large tray icons now fit inside their cells, including icons from apps that start later."
-      },
-      {
-        "title": "GNOME 51 fixes",
-        "text": "Fixed an error when drawing rounded workspace previews and removed obsolete arguments from terminal window resizing."
-      }
-    ]
-  },
-  {
-    "id": "2026-11-17-tray-and-updater",
-    "date": "2026-11-17",
-    "title": "Tray icons and update cancellation",
-    "summary": "App tray icons moved into Quick Settings. Cancelling an installation no longer clears the update list.",
-    "buildSha": "419c134d9ce066a293c8b85434d5e5c1066ccfae",
-    "changes": [
       {
         "title": "Tray layout",
-        "text": "App icons sit below the system controls and volume sliders. Spacing is consistent, and small groups are centered. The three-dot button was removed."
+        "text": "App tray icons sit in Quick Settings below the system controls and volume sliders. Large icons fit their cells, spacing is consistent, and small groups are centered. The three-dot button was removed."
       },
       {
-        "title": "Pin or hide an app",
-        "text": "Right-click an icon to pin it to the top bar, return it to Quick Settings, or hide it. These choices are saved. The tray's context menu can restore hidden apps."
+        "title": "Tray controls",
+        "text": "Right-click an icon to pin it to the top bar, return it to Quick Settings, or hide it. These choices are saved, and hidden apps can be restored from the tray's context menu. Menus stay open during refreshes and icon order survives extension reloads."
       },
       {
         "title": "Update indicator",
@@ -57,11 +36,11 @@
       },
       {
         "title": "Cancelled installation",
-        "text": "Cancelling the password prompt keeps the available updates on screen. A failed installation reports the error instead of clearing the list."
+        "text": "Cancelling the password prompt keeps available updates on screen. A failed installation reports the error instead of clearing the list."
       },
       {
-        "title": "App menus",
-        "text": "Tray menus stay open during routine refreshes, and icon order is preserved when extensions reload."
+        "title": "GNOME 51 fixes",
+        "text": "Fixed an error when drawing rounded workspace previews and removed obsolete arguments from terminal window resizing."
       }
     ]
   },
