@@ -39,12 +39,13 @@ jobs:
       - name: Build and verify a fresh Fedora 45 ISO
         env:
           TARGET_ARCH: ${{ matrix.arch }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           sudo modprobe erofs
           sudo modprobe btrfs
           mkdir -p "$RUNNER_TEMP/iso-output"
-          docker run --rm --privileged -e GITHUB_SHA -e TARGET_ARCH \
+          docker run --rm --privileged -e GITHUB_SHA -e TARGET_ARCH -e GH_TOKEN \
             -v "$PWD:/work" -v "$RUNNER_TEMP/iso-output:/output" -w /work \
             fedora:45 bash -euo pipefail -c '
               dnf -y install kiwi kiwi-systemdeps distribution-gpg-keys erofs-utils dosfstools xorriso isomd5sum bsdtar git nodejs curl btrfs-progs acl
