@@ -28,6 +28,12 @@ Package installation includes the entire extension directory, including
 pull-handle.js. Rebuild infinity-terminal from the source commit before producing
 an ISO; the package build-revision marker remains required.
 
+The handle reconnects when Blur My Shell initializes late or replaces its panel
+background. Its blur contour repaints throughout the compact-size animation.
+The native Shell smoke test exercises the BMS panel sizing and GPU clip path.
+After installing updated GNOME extensions on Wayland, log out and back in so
+the session loads the new JavaScript for both the panel and terminal together.
+
 The handle remains usable while compact. Its panel outline remains visible.
 Light and dark styles follow the system preference and panel theme. The hamburger
 is raised three logical pixels inside the unchanged curve. The adaptive dock
@@ -36,3 +42,4 @@ gets a matching top hairline; custom dock borders keep their chosen colors.
 Window movement, resizing, minimization and workspace changes update the compact
 state. Reduced motion switches size without animation. Dock overlap detection
 also runs in live sessions, while retaining pointer access and installer rules.
+

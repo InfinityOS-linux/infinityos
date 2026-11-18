@@ -54,6 +54,7 @@ function setup() {
         }
         hide() { this.visible = false; }
     }
+    class Icon extends Actor {}
     class Menu extends Actor {
         constructor() { super(); this.actor = new Actor(); this.actions = []; }
         addAction(label, callback) { this.actions.push({label, callback}); }
@@ -101,7 +102,7 @@ function setup() {
             get_language_names: () => ['pl_PL.UTF-8', 'pl'], mkdir_with_parents() {},
             idle_add: (_priority, callback) => { pending.set(++id, callback); return id; },
             source_remove: key => pending.delete(key)},
-        St: {BoxLayout: Actor, Widget: Actor, Button: Actor, Icon: Actor, Bin: Actor, Side: {TOP: 0}},
+        St: {BoxLayout: Actor, Widget: Actor, Button: Actor, Icon, Bin: Actor, Side: {TOP: 0}},
         Clutter: {Orientation: {VERTICAL: 1}, ActorAlign: {CENTER: 0}, GridLayout: class {
             attach(actor) { this.owner.add_child(actor); }
         }, EventType: {BUTTON_PRESS: 1, BUTTON_RELEASE: 2, KEY_PRESS: 3},
@@ -126,6 +127,7 @@ function setup() {
         for (const [key, callback] of [...pending]) { pending.delete(key); callback(); }
     };
     return {context, panel, Main, grid, system, volume, microphone, brightness, wifi, add, flush,
+        Actor, Icon,
         create: () => new context.UserTray(), saved: () => JSON.parse(saved),
         failWrite: () => { failWrite = true; }};
 }
@@ -146,6 +148,31 @@ test('moves live app actors below system/audio, keeps native controls and late a
     assert.equal(app.destroyed, undefined);
     assert.ok(s.panel.menuManager.menus.has(app.menu));
     assert.deepEqual(s.grid.children, [s.system, s.volume, s.microphone, s.brightness, s.wifi]);
+});
+
+test('oversized and late nested icons fit their cells and restore on pin/disable', () => {
+    const s = setup();
+    const app = s.add('clipboard');
+    const box = new s.Actor();
+    const icon = new s.Icon({icon_size: 48, style: 'icon-size: 48px; color: red;'});
+    box.add_child(icon); app.container.add_child(box);
+    const tray = s.create();
+    assert.equal(icon.icon_size, 18);
+    assert.match(icon.style, /icon-size: 18px !important/);
+    assert.equal(tray._entries.get(app).wrapper.clip_to_allocation, true);
+    const late = new s.Icon({icon_size: 64});
+    box.add_child(late); s.flush();
+    assert.equal(late.icon_size, 18);
+    const entry = tray._entries.get(app);
+    tray._setLocation(entry, 'panel');
+    assert.equal(icon.icon_size, 48);
+    assert.equal(icon.style, 'icon-size: 48px; color: red;');
+    assert.equal(late.icon_size, 64);
+    tray._setLocation(entry, 'menu');
+    assert.equal(icon.icon_size, 18);
+    tray.destroy();
+    assert.equal(icon.icon_size, 48);
+    assert.equal(late.icon_size, 64);
 });
 
 test('pin/hide/show are persisted per app and survive extension reload', () => {
@@ -242,3 +269,4 @@ test('locale variants and all bundled labels cover every action', () => {
         assert.ok(values.every(value => typeof value === 'string' && value.length > 0));
     }
 });
+

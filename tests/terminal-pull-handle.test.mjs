@@ -31,8 +31,28 @@ function fixture() {
     context.St.Widget = context.St.DrawingArea;
     const handle = vm.runInNewContext(`${source}\nnew TerminalPullHandle(terminal)`,context);
     const event = (type,y,held=1,key=0) => handle.event({type:()=>type,get_coords:()=>[750,y],get_button:()=>1,get_state:()=>held,get_key_symbol:()=>key});
-    return {handle,terminal,actor,window,drawing,Main,event,get toggle(){return toggle;},get shown(){return shown;},get hidden(){return hidden;},get balanced(){return grabs===dismissed;},fullscreen(value){fullscreen=value;handle.sync();}};
+    return {handle,terminal,actor,window,drawing,Main,event,global:context.global,get toggle(){return toggle;},get shown(){return shown;},get hidden(){return hidden;},get balanced(){return grabs===dismissed;},fullscreen(value){fullscreen=value;handle.sync();}};
 }
+
+test('late and rebuilt native panel backdrops reconnect without changing handle height', () => {
+ const f=fixture();
+ let refreshed=0, repainted=0;
+ const create=()=>({widgets:{panel:f.Main.panel,
+  background_group:{queue_redraw(){repainted++;}}},is_dtp_panel:false});
+ const native=create();
+ const blur={actors_list:[native],refreshTerminalHandle(){refreshed++;}};
+ f.global.blur_my_shell={_panel_blur:blur};
+ f.handle.sync();
+ assert.equal(refreshed,1);
+ assert.equal(repainted,1);
+ // Retry until the asynchronous BMS allocation actually attaches its effect.
+ f.handle.sync(); assert.equal(refreshed,2);
+ native.terminalClip={handle:f.handle};
+ f.handle.sync(); assert.equal(refreshed,2);
+ blur.actors_list=[create()];
+ f.handle.sync(); assert.equal(refreshed,3);
+ assert.equal(repainted,4);
+});
 test('symmetric curve stays screen-centered despite stale clock allocation',()=>{
     const f=fixture();assert.equal(f.handle.actor.x,660);assert.equal(f.handle.actor.y,30);f.handle.paint();
     const curves=f.drawing.filter(x=>x[0]==='curveTo');assert.equal(curves.length,4);
@@ -180,3 +200,4 @@ test('odd-width clock lands on an integer origin and does not oscillate', () => 
   assert.equal(clock.translation_x,translation);
  }
 });
+

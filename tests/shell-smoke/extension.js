@@ -1,6 +1,7 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
+import Meta from 'gi://Meta';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
@@ -12,6 +13,7 @@ import NowPlay from '../nowplay@LalaloyXyz/extension.js';
 import Raccoon from '../raccoonlauncher@shimafallah.github.io/extension.js';
 import Updater from '../infinity-updater@infinityos.org/extension.js';
 import {opticalMetrics} from '../dash2dock-animated@infinityos.org/optical-icons.mjs';
+import {PanelBlur} from '../blur-my-shell@aunetx/components/panel.js';
 
 function check(ok, message) { if (!ok) throw new Error(message); }
 
@@ -70,6 +72,33 @@ export default class Smoke extends Extension {
         const primary = Main.layoutManager.primaryMonitor;
         check(Math.abs(pull.actor.x + pull.actor.width / 2 - primary.x - primary.width / 2) < 1, 'pull handle is not centered');
         check(pull.actor.visible, 'closed terminal has no pull handle');
+        // Exercise the real BMS geometry and native GPU paint path. Mock-only
+        // tests cannot detect a clipped-off handle or an invalid paint context.
+        const {default: NativeBlur} = await import('gi://Blur');
+        const blurGroup = new Meta.BackgroundGroup({width: 0, height: 0});
+        const blurBackground = new St.Widget();
+        blurBackground.add_effect(new NativeBlur.BlurEffect({
+            mode: NativeBlur.BlurMode.BACKGROUND, radius: 56, brightness: .64,
+        }));
+        blurGroup.add_child(blurBackground);
+        Main.panel.get_parent().insert_child_at_index(blurGroup, 0);
+        const blurController = new PanelBlur(null, {DEBUG: false}, null);
+        const blurActors = {widgets: {panel: Main.panel, geometry_actor: Main.panel,
+            panel_box: Main.panel.get_parent(), background: blurBackground,
+            background_group: blurGroup}, static_blur: false, is_dtp_panel: false};
+        blurController.actors_list.push(blurActors);
+        blurController.enabled = true;
+        const previousBlur = global.blur_my_shell;
+        global.blur_my_shell = {_panel_blur: blurController};
+        this._objects.push({disable: () => {
+            global.blur_my_shell = previousBlur;
+            blurController.enabled = false;
+            blurGroup.destroy();
+        }});
+        blurController.update_size(blurActors);
+        await wait();
+        check(blurBackground.height > Main.panel.height, 'panel blur stops above pull handle');
+        check(blurActors.terminalClip, 'native panel blur has no handle contour');
         terminalWindow.minimized = false; pull.sync();
         await wait();
         check(pull.actor.visible && pull.actor.scale_y === .5, 'open terminal did not compact handle');
@@ -105,7 +134,8 @@ export default class Smoke extends Extension {
         check(nowplay._ui.popupVisible, 'NowPlay did not open');
         nowplay._ui.destroyPopup();
         const trayApp = new PanelMenu.Button(0, 'Tray smoke');
-        const trayIcon = new St.Icon({icon_name: 'edit-paste-symbolic', style_class: 'system-status-icon'});
+        const trayIcon = new St.Icon({icon_name: 'edit-paste-symbolic', style_class: 'system-status-icon',
+            icon_size: 48, style: 'icon-size: 48px;'});
         trayApp.add_child(trayIcon);
         trayApp.menu.addAction('Test action', () => {});
         Main.panel.addToStatusArea('infinity-tray-smoke', trayApp);
@@ -146,6 +176,8 @@ export default class Smoke extends Extension {
         const centers = cells.map(cell => cell.get_transformed_position()[0] + cell.get_transformed_size()[0] / 2);
         check(Math.abs((centers[1] - centers[0]) - (centers[2] - centers[1])) <= 1,
             `tray spacing is unequal: ${centers}`);
+        check(centers[1] - centers[0] >= cellWidth,
+            'tray cells overlap');
         const [groupX] = tray._icons.get_transformed_position();
         const [groupWidth] = tray._icons.get_transformed_size();
         const [sectionX] = tray._section.get_transformed_position();
@@ -230,5 +262,6 @@ app.run(None)
         this._objects = [];
     }
 }
+
 
 

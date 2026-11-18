@@ -25,6 +25,7 @@ done
 for package in infinity-terminal infinity-updater; do
     cp -a "$repo/packages/$package/root/usr/share/gnome-shell/extensions/." "$SMOKE_EXTENSIONS/"
 done
+cp -a "$repo/vendor/gnome-shell/fedora-45/usr/share/gnome-shell/extensions/blur-my-shell@aunetx" "$SMOKE_EXTENSIONS/"
 cp -a "$repo/tests/shell-smoke" "$SMOKE_EXTENSIONS/infinity-smoke@test"
 for schemas in "$SMOKE_EXTENSIONS"/*/schemas; do glib-compile-schemas --strict "$schemas"; done
 cmp "$repo/root/usr/share/gnome-shell/extensions/nowplay@LalaloyXyz/ui.js" "$SMOKE_EXTENSIONS/nowplay@LalaloyXyz/ui.js"
@@ -52,4 +53,5 @@ dbus-run-session -- bash -euo pipefail -c '
     cat "$SMOKE_LOG"; exit 1
 '
 cat "$SMOKE_LOG"
+
 

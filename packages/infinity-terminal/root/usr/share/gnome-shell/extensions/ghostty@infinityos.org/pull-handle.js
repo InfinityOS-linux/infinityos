@@ -74,8 +74,12 @@ export class TerminalPullHandle {
         connect(this.actor, 'notify::scale-x', () => {
             this.syncPanelLine();
             this.actor.queue_repaint();
+            this.repaintBackdrop();
         });
-        connect(this.actor, 'notify::scale-y', () => this.actor.queue_repaint());
+        connect(this.actor, 'notify::scale-y', () => {
+            this.actor.queue_repaint();
+            this.repaintBackdrop();
+        });
         connect(Main.panel, 'child-added', sync);
         connect(Main.panel, 'child-removed', sync);
         this.interfaceSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
@@ -162,10 +166,19 @@ export class TerminalPullHandle {
     }
 
     syncBackdrop(extension) {
-        if (extension !== this.backdropExtension) {
-            this.backdropExtension = extension;
-            global.blur_my_shell?._panel_blur?.refreshTerminalHandle?.();
-        }
+        const blur = global.blur_my_shell?._panel_blur;
+        const native = blur?.actors_list?.find(actors =>
+            actors.widgets.panel === Main.panel && !actors.is_dtp_panel);
+        // BMS may initialize or rebuild its background after the handle. The
+        // handle's height alone is not a sufficient cache key for that source.
+        const changed = extension !== this.backdropExtension || blur !== this.panelBlur ||
+            native !== this.nativeBackdrop;
+        this.backdropExtension = extension;
+        this.panelBlur = blur;
+        this.nativeBackdrop = native;
+        if (changed || (extension && native && native.terminalClip?.handle !== this))
+            blur?.refreshTerminalHandle?.();
+        this.repaintBackdrop();
         const layers = (Main.panel.get_children?.() ?? []).filter(layer => PANEL_LAYERS.has(layer.name));
         if (layers.length === this.panelLayers.length &&
             layers.every((layer, i) => layer === this.panelLayers[i])) return;
@@ -175,6 +188,12 @@ export class TerminalPullHandle {
         const repaint = () => this.actor.queue_repaint();
         for (const layer of layers)
             layer.connectObject('style-changed', repaint, 'notify::opacity', repaint, 'notify::visible', repaint, this.actor);
+    }
+
+    repaintBackdrop() {
+        // The contour is painted by the panel's blur actor, independently of
+        // this DrawingArea. Invalidate that actor during every animation frame.
+        this.nativeBackdrop?.widgets.background_group?.queue_redraw();
     }
 
     paintBackdrop(cr, height) {
@@ -471,3 +490,4 @@ export class TerminalPullHandle {
         this.actor.destroy();
     }
 }
+
