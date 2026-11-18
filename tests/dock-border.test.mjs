@@ -13,9 +13,12 @@ function border(overrides = {}) {
   update.call(dock);
   return dock._backgroundStyle;
 }
-test('adaptive dock highlights only its top edge in both themes', () => {
-  assert.match(border(), /border-color: rgba\(0.87,0.8,1,0.32\) transparent transparent transparent/);
-  assert.match(border({ _getPreferredColorScheme: () => 'light' }), /border-color: rgba\(1,1,1,0.65\) transparent transparent transparent/);
+test('adaptive dock sides and lower corners share one border in both themes', () => {
+  for (const [theme, color] of [['dark', '0.87,0.8,1,0.32'], ['light', '1,1,1,0.65']]) {
+    const style = border({ _getPreferredColorScheme: () => theme });
+    assert.ok(style.includes(`border: 1px solid rgba(${color})`));
+    assert.doesNotMatch(style, /border-(?:color|bottom|left|right):/);
+  }
 });
 test('adaptive upper edge is brighter and one pixel thicker while custom borders retain their settings', () => {
   assert.match(border({ border_thickness: 0 }), /border-top: 1.75px solid rgba\(218, 199, 255, 0.55\)/);
