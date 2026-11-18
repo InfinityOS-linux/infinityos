@@ -59,7 +59,7 @@ test('native clip paints through the GNOME 51 GJS API without PaintContext.get_s
  f.Main.panel.get_transformed_position=()=>[0,0];
  const calls=[];
  const framebuffer={push_region_clip(region){calls.push(region.rows);},pop_clip(){calls.push('pop');}};
- const view={get_layout:()=>({x:0,y:0}),get_scale:()=>1,get_framebuffer:()=>framebuffer};
+ const view={layout:{x:0,y:0},get_scale:()=>1,get_framebuffer:()=>framebuffer};
  f.Main.panel.peek_stage_views=()=>[view];
  const clip=f.handle.createBackdropClip();
  clip.get_actor=()=>({continue_paint(){calls.push('paint');}});
@@ -165,7 +165,7 @@ test('native panel blur extends through the contour and follows compact mode', (
  const f=fixture();
  f.Main.panel.get_transformed_position=()=>[0,0];
  const framebuffer={};
- const view={get_layout:()=>({x:0,y:0}), get_scale:()=>1, get_framebuffer:()=>framebuffer};
+ const view={layout:{x:0,y:0}, get_scale:()=>1, get_framebuffer:()=>framebuffer};
  const region=()=>f.handle.backdropRegion(view, framebuffer).rows;
  const rows=region();
  assert.deepEqual({...rows[0]}, {x:0,y:0,width:1500,height:32});

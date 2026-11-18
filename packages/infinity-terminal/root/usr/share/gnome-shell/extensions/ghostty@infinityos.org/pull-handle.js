@@ -141,7 +141,9 @@ export class TerminalPullHandle {
         const region = Mtk.Region.create();
         const [px, py] = Main.panel.get_transformed_position();
         const [pw, ph] = Main.panel.get_transformed_size();
-        const layout = view?.get_layout();
+        // The boxed property is directly readable in GJS; get_layout() takes
+        // a caller-allocated rectangle rather than returning one.
+        const layout = view?.layout;
         const scale = view?.get_scale() ?? 1;
         const x = value => Math.round((value - (layout?.x ?? 0)) * scale);
         const y = value => Math.round((value - (layout?.y ?? 0)) * scale);
