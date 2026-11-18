@@ -74,3 +74,17 @@ at the actual visible pill. Native blur follows pill allocation changes and sits
 below the tint and icons. Default dock brightness is 0.9, with the blur corner
 radius taken from the dock itself. The native Shell smoke test verifies discovery,
 GPU-effect creation, geometry, resizing and hiding.
+
+RPM candidates explicitly skipped by DNF's dependency solver are grouped under
+"Waiting for compatibility". This is a read-only resolve with the installer's
+no-best policy, not a download or a staged transaction. The grouping matches
+name, architecture and version, is recalculated on each check, and does not use
+package-name heuristics. If the solver fails, candidates stay visible with a
+check warning. Missing solver bindings on older installations also retain the
+normal candidates until the new RPM dependency is installed.
+
+Held candidates do not count toward the available-update pill or panel badge,
+and cannot enable an install action by themselves. Downloaded offline versions
+remain in the restart-required flow. The Fedora gate builds a disposable local
+RPM repository to verify a dependency hold and its automatic release, while
+checking that the installed RPM database remains unchanged.

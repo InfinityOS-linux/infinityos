@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from release import available_release, installed_version, load_manifest
 from github_update import check_github_updates
 from pending import packages as pending_packages
+from compatibility import classify_updates
 
 
 def offline_status(directory=Path('/var/lib/infinityos'), trigger=Path('/system-update')):
@@ -93,6 +94,14 @@ def check_updates(report=None):
                                 **({'arch': fields[3]} if len(fields) == 4 else {})})
     else:
         errors.append('RPM: ' + (result.stderr.strip() or 'Could not check updates'))
+
+    if rpm_check_ok:
+        try:
+            updates = classify_updates(updates)
+        except Exception as error:
+            # Keep candidates visible when the solver or metadata is unavailable.
+            errors.append('RPM compatibility: ' + str(error))
+            rpm_check_ok = False
 
     report("InfinitySetup apps")
     github_updates, github_errors = check_github_updates()

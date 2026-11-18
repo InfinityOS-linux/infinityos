@@ -349,7 +349,7 @@ export default class InfinityUpdater extends Extension {
             const [ok, contents] = GLib.file_get_contents(this._stateFile);
             if (ok) {
                 const state = JSON.parse(new TextDecoder().decode(contents));
-                count = Array.isArray(state.updates) ? state.updates.length : 0;
+                count = Array.isArray(state.updates) ? state.updates.filter(update => !update.deferred).length : 0;
                 release = state.release?.version ?? null;
                 // Offline RPM installation cannot update each user's cached results.
                 try {
@@ -361,7 +361,7 @@ export default class InfinityUpdater extends Extension {
                     if (result.status === 'success' &&
                         Date.parse(state.checked_at) < info.get_attribute_uint64('time::modified') * 1000) {
                         count = Array.isArray(state.updates)
-                            ? state.updates.filter(update => update.kind !== 'RPM').length : 0;
+                            ? state.updates.filter(update => update.kind !== 'RPM' && !update.deferred).length : 0;
                         release = null;
                     }
                 } catch (_error) {

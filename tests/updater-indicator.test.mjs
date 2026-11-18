@@ -10,6 +10,8 @@ for (const [name, state, total] of [
     ['failed check without updates stays hidden', {errors: ['offline'], updates: []}, 0],
     ['no updates hides the indicator', {updates: []}, 0],
     ['partial results keep their count', {errors: ['firmware'], updates: [{}, {}]}, 2],
+    ['compatibility-only packages do not show a pending badge', {updates: [{kind: 'RPM', deferred: true}]}, 0],
+    ['mixed list counts only installable packages', {updates: [{kind: 'RPM', deferred: true}, {kind: 'RPM'}]}, 1],
     ['release remains visible', {updates: [], release: {version: '2.1'}}, 1],
 ]) {
     test(name, () => {

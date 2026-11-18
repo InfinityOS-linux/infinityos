@@ -18,6 +18,7 @@ Requires:       infinityos-repos >= 1.0.0
 Requires:       infinityos-shell-extensions >= 1.0.0
 Requires:       infinity-setup >= 1.0.1
 Requires:       python3-rpm
+Requires:       python3-libdnf5
 Requires:       dracut
 
 %description
