@@ -17,7 +17,10 @@ backdrop. The extension exports a `Ready` property on
 `org.infinityos.UpdaterBackdrop`. GTK loads it asynchronously and follows property
 changes and Shell owner loss. A delayed setup or a failed first attempt can recover
 while the window stays open, without a blocking extension-state RPC.
-The header and footer add a subtle black overlay in both color schemes.
+The header stays transparent and uses the same backdrop as the content area.
+The footer adds a subtle black overlay in both color schemes.
+The drawer opens with one cubic ease-out slide directly to its resting position,
+without overshoot or an elastic return; reduced motion disables the slide.
 With a ready backdrop, GTK window shadows, button ripple filters and the external
 restart glow are disabled. Buttons keep their opaque rounded fill and a rounded
 keyboard focus border; these controls must not paint rectangular shadow bounds
@@ -51,7 +54,9 @@ is stubbed in this client.
 After updating the extension RPMs, sign out and back in on Wayland. Check the
 lower dock arcs at 100%, fractional and 200% scale, then open/close the drawer,
 switch themes and monitors, and change the panel's static/dynamic blur settings.
-Confirm that header/footer shading is subtle and GTK labels/buttons stay sharp.
+Confirm that the header matches the content backdrop, the footer shading is
+subtle, and GTK labels/buttons stay sharp. Opening must slow to a stop without
+overshoot, including after quickly reversing a closing drawer.
 The GTK gate renders the window surface and every action button against the
 bundled light/dark Orchis theme in normal, hover, pressed, keyboard-focus,
 unfocused and disabled states. It checks that button corners and surrounding

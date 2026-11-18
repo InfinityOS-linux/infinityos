@@ -116,6 +116,7 @@ window.infinity-updater .update-actions button { padding: 9px 12px; }
    A missing/disabled Shell extension retains the opaque defaults above. */
 window.infinity-updater.shell-backdrop,
 window.infinity-updater.shell-backdrop > box,
+window.infinity-updater.shell-backdrop .hero,
 window.infinity-updater.shell-backdrop stack,
 window.infinity-updater.shell-backdrop .infinity-results,
 window.infinity-updater.shell-backdrop .infinity-results viewport {
@@ -170,7 +171,6 @@ window.infinity-updater.shell-backdrop button.secondary:hover {
 window.infinity-updater.shell-backdrop.light-mode button.secondary:hover {
   background-color: #ded2ea;
 }
-window.infinity-updater.shell-backdrop .hero,
 window.infinity-updater.shell-backdrop .footer {
   background: rgba(0, 0, 0, 0.14);
   box-shadow: none;
@@ -180,7 +180,6 @@ window.infinity-updater.shell-backdrop .update-card {
   background: rgba(255, 255, 255, 0.055);
   border-color: rgba(184, 166, 217, 0.18);
 }
-window.infinity-updater.shell-backdrop.light-mode .hero,
 window.infinity-updater.shell-backdrop.light-mode .footer {
   background: rgba(0, 0, 0, 0.07);
   border-color: rgba(70, 40, 100, 0.16);

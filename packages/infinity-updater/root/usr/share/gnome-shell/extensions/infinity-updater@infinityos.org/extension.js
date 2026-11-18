@@ -286,14 +286,9 @@ export default class InfinityUpdater extends Extension {
             if (!reversing) actor.translation_x = window.get_frame_rect().width + 16;
             actor.opacity = 255;
             const animate = St.Settings.get().enable_animations;
-            actor.ease({translation_x: animate ? -24 : 0, duration: animate ? 420 : 0,
-                mode: Clutter.AnimationMode.EASE_IN_CUBIC,
-                onComplete: () => {
-                    if (!animate || window.minimized || this._closingWindows?.has(window) ||
-                        window.get_compositor_private() !== actor) return;
-                    actor.ease({translation_x: 0, duration: 460,
-                        mode: Clutter.AnimationMode.EASE_OUT_ELASTIC});
-                }});
+            // Decelerate directly into place, without overshoot or a return tween.
+            actor.ease({translation_x: 0, duration: animate ? 420 : 0,
+                mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
             return false;
         });
         window.activate(global.get_current_time());
