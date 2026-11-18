@@ -20,7 +20,7 @@
       },
       {
         "title": "InfinityUpdater background",
-        "text": "The window uses the same blur settings as the top bar and terminal handle. Its header and button area are slightly darker, while text and controls stay sharp."
+        "text": "The window uses the top bar's blur with slightly darker header and button areas. Fixed the solid background remaining after a delayed blur setup; transparency now follows the backdrop's readiness and recovers when it is rebuilt. Text and controls stay sharp."
       },
       {
         "title": "Tray layout",
