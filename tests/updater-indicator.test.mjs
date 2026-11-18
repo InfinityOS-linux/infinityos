@@ -7,7 +7,8 @@ const source = readFileSync(new URL('../packages/infinity-updater/root/usr/share
     .replace(/^import .*;\n/gm, '').replace('export default class', 'class');
 
 for (const [name, state, total] of [
-    ['failed check stays hidden', {errors: ['offline'], updates: []}, 0],
+    ['failed check without updates stays hidden', {errors: ['offline'], updates: []}, 0],
+    ['no updates hides the indicator', {updates: []}, 0],
     ['partial results keep their count', {errors: ['firmware'], updates: [{}, {}]}, 2],
     ['release remains visible', {updates: [], release: {version: '2.1'}}, 1],
 ]) {
@@ -22,6 +23,7 @@ for (const [name, state, total] of [
         indicator._icon = {icon_name: 'infinity-update-available-symbolic'};
         indicator._refresh();
         assert.equal(indicator._indicator.visible, total > 0);
+        assert.equal(indicator._badge.visible, total > 0);
         assert.equal(indicator._badge.text, String(total));
         assert.equal(indicator._icon.icon_name, 'infinity-update-available-symbolic');
     });
@@ -48,6 +50,7 @@ for (const [name, status, checkedAt, remaining] of [
         indicator._refresh();
         assert.equal(indicator._badge.text, String(remaining));
         assert.equal(indicator._indicator.visible, remaining > 0);
+        assert.equal(indicator._badge.visible, remaining > 0);
         state.updates.push({kind: 'Flatpak user'});
         indicator._refresh();
         assert.equal(indicator._badge.text, String(remaining + 1));
@@ -329,3 +332,4 @@ test('Wayland initial small surface stays hidden until its resize is acknowledge
     assert.equal(calls.at(-1).mode, 3);
     assert.equal(calls.at(-1).duration, 460);
 });
+

@@ -1220,12 +1220,9 @@ export default class Dash2DockLiteExt extends Extension {
         : this.border_color;
       let rgba = this._style.rgba(borderColor);
       border_style = `border: ${this.border_thickness}px solid rgba(${rgba}) !important;`;
-      if (this.adaptive_background && !this.panel_mode) {
-        border_style += ` border-color: rgba(${rgba}) transparent transparent transparent !important;`;
-      }
     }
 
-    // A brighter upper edge follows the rounded dock without outlining its base.
+    // Keep the upper highlight while the sides and lower corners share the base border.
     if (this.adaptive_background && !this.panel_mode) {
       const edge = this._getPreferredColorScheme() === 'dark'
         ? '218, 199, 255, 0.55' : '70, 40, 100, 0.35';

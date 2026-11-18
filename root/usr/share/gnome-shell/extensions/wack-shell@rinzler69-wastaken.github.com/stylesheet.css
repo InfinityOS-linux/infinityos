@@ -124,12 +124,17 @@
   opacity: 1.0 !important;
 }
 
-/* Neutral separators inherit foreground for light and dark Shell themes. */
-.infinity-user-tray { spacing: 12px; }
-.infinity-tray-divider { height: 1px; background-color: rgba(128, 128, 128, 0.3); }
-.infinity-user-tray-body { spacing: 8px; }
-.infinity-tray-row { spacing: 10px; }
-.infinity-tray-icon { border-radius: 20px; }
-.infinity-tray-icon .panel-button { padding: 0; border-radius: 20px; }
-.infinity-tray-hidden-toggle { padding: 6px 12px; border-radius: 8px; }
-.infinity-tray-hidden-toggle:hover { background-color: rgba(128, 128, 128, 0.18); }
+/* Tray actors leave #panel, so explicitly retain compact icon metrics. */
+.infinity-user-tray-icons StIcon {
+  icon-size: 18px;
+}
+
+.infinity-user-tray-icons .panel-button {
+  width: 32px;
+  height: 32px;
+  -minimum-hpadding: 0px;
+  -natural-hpadding: 0px;
+  padding: 0;
+  margin: 0;
+}
+

@@ -2,12 +2,6 @@
 <schemalist>
   <schema path="/org/gnome/shell/extensions/wack-shell/" id="org.gnome.shell.extensions.wack-shell">
 
-    <key type="a{ss}" name="user-tray-placements">
-      <default>{}</default>
-      <summary>User tray icon placement</summary>
-      <description>Per-application hidden or panel placement; other icons appear in Quick Settings.</description>
-    </key>
-
     <!-- Visibility Switches -->
     <key type="b" name="show-logo-menu">
       <default>true</default>

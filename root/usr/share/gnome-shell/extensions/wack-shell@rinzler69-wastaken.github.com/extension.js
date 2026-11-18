@@ -105,6 +105,8 @@ this._settings.connectObject(
 
         // Initialize QuickSettings power controls manager
         this._qsPowerManager = new QuickSettingsPowerManager(this);
+        this._userTray = new UserTray();
+        this._qsPowerManager.sync();
 
         this._windowSnapshotCachingEnabled = true;
         this._lockscreenSettings = null;
@@ -161,7 +163,6 @@ this._settings.connectObject(
 
         this._setupWindowCache();
         this._initWorkspacesAppGrid();
-        this._userTray = new UserTray(this);
         if (!global.infinityosPanelEntrancePlayed && Main.sessionMode.currentMode === 'user') {
             global.infinityosPanelEntrancePlayed = true;
             const animations = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'})
@@ -1602,3 +1603,4 @@ _disconnectDockSnapshotWatchers() {
         }
     }
 }
+

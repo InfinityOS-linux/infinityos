@@ -441,3 +441,4 @@ export default class InfinityUpdater extends Extension {
         this._monitor = null;
     }
 }
+

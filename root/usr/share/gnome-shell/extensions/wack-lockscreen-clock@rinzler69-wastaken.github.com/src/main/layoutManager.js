@@ -33,7 +33,15 @@ class WackLayout extends Clutter.LayoutManager {
 
         // Allocate notifications with independent width to prevent auth prompt stretching
         const notifBox = new Clutter.ActorBox();
-        const maxNotifHeight = Math.min(notifHeight, height - (height * NOTIF_MIN_TOP_MARGIN_FRACTION) - stackHeight);
+        const classic = this._extension._lockscreenMode !== 'cupertino';
+        const clockBottom = classic
+            ? this._extension._clockLayoutManager?.getClockBottom(height) ?? 0
+            : 0;
+        // Notifications yield space to authentication, never push its avatar
+        // into the clock on short displays.
+        const promptTop = classic ? clockBottom + 24 : height * NOTIF_MIN_TOP_MARGIN_FRACTION;
+        const maxNotifHeight = Math.max(0, Math.min(notifHeight,
+            height - promptTop - stackHeight - SWITCH_USER_MARGIN));
         
         notifBox.x1 = Math.floor((width - notifWidth) / 2.0);
         notifBox.y1 = height - maxNotifHeight;
@@ -60,7 +68,6 @@ class WackLayout extends Clutter.LayoutManager {
         } else {
             // Center the complete avatar/password group, not its top edge.
             // Reserve the actual clock bounds, including theme/font scaling.
-            const clockBottom = this._extension._clockLayoutManager?.getClockBottom(height) ?? 0;
             const availableBottom = height - maxNotifHeight - SWITCH_USER_MARGIN;
             stackY = Math.max(0, Math.min(
                 Math.max(Math.floor((height - stackHeight) / 2), clockBottom + 24),

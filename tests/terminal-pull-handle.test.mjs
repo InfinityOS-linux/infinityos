@@ -16,7 +16,7 @@ function fixture() {
     const Main = {panel: {...signal, statusArea: {dateMenu: {...signal, get_transformed_position: () => [662, 0], get_transformed_size: () => [100, 32]}},
         get_transformed_position: () => [0, -52], get_transformed_size: () => [1500, 32], get_theme_node: () => ({get_background_color: () => ({red: 11, green: 9, blue: 18, alpha: 255})})},
         layoutManager: {...signal, primaryMonitor: {index: 0, x:0, y: 0,width:1500}, addTopChrome() {}, removeChrome() {}}, overview: {...signal, visible: false}, sessionMode: {...signal, isLocked: false}};
-    const context = {Shell: {Screenshot: class {pick_color(x,y,callback){terminal.sampleCallback=callback;} pick_color_finish(){return [true,{red:20,green:25,blue:30}];}}}, Meta: {MaximizeFlags: {VERTICAL: 2}}, Gio: {Settings: class {constructor(){Object.assign(this, signal);} get_string(){return terminal.scheme || 'prefer-dark';}}}, GLib: {PRIORITY_DEFAULT: 0, timeout_add: () => 1, Source: {remove() {}}}, Main, Atk: {Role: {PUSH_BUTTON: 1}}, console,
+    const context = {Shell: {Screenshot: class {pick_color(x,y,callback){terminal.samplePoint=[x,y];terminal.sampleCallback=callback;} pick_color_finish(){return [true,{red:20,green:25,blue:30}];}}}, Meta: {MaximizeFlags: {VERTICAL: 2}}, Gio: {Settings: class {constructor(){Object.assign(this, signal);} get_string(){return terminal.scheme || 'prefer-dark';}}}, GLib: {PRIORITY_DEFAULT: 0, timeout_add: () => 1, Source: {remove() {}}}, Main, Atk: {Role: {PUSH_BUTTON: 1}}, console,
         St: {DrawingArea: class {constructor() {Object.assign(this, signal); this.visible = true;} contains(a) {return a === this;} set_pivot_point() {} ease(values) {Object.assign(this, values);} set_size(w,h) {this.width=w;this.height=h;} set_position(x,y) {this.x=x;this.y=y;} queue_repaint() {} get_context() {return cr;} get_surface_size() {return [180,18];} hide() {this.visible=false;} destroy() {}}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}, Settings: {get: () => ({enable_animations: true})}},
         Clutter: {EventType: {BUTTON_PRESS: 1, BUTTON_RELEASE: 2, MOTION: 3, KEY_PRESS: 4}, ModifierType: {BUTTON1_MASK: 1}, KEY_Escape: 27, KEY_Return: 13, KEY_space: 32, EVENT_STOP: true, EVENT_PROPAGATE: false, AnimationMode: {EASE_OUT_CUBIC: 1}},
         global: {get_current_time: () => 1, get_window_actors: () => terminal.windows || [], display: {...signal, get_monitor_in_fullscreen: () => fullscreen}, stage: {...signal, set_key_focus() {}, get_event_actor: () => handle.actor, grab() {grabs++;return {dismiss() {dismissed++;}};}}}, terminal};
@@ -155,4 +155,13 @@ test('odd-width clock lands on an integer origin and does not oscillate', () => 
   for(let i=0;i<20;i++) f.handle.sync();
   assert.equal(clock.translation_x,translation);
  }
+});
+
+
+test('panel sample is centered below the clock and above the handle overlap', () => {
+ const f=fixture(); f.Main.panel.visible=true;
+ f.Main.panel.get_transformed_position=()=>[0,0];
+ f.handle.samplePanelColor();
+ assert.deepEqual(f.terminal.samplePoint,[750,28]);
+ assert(f.terminal.samplePoint[1] < f.handle.actor.y);
 });
