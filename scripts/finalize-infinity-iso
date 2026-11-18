@@ -108,7 +108,8 @@ umount "$efi_mount"
 new="$work/InfinityOS-refind.iso"
 xorriso -indev "$iso" -outdev "$new" \
     -boot_image any discard \
-    -rm_r /boot/grub2 "/boot/$arch/loader/grub2" -- \
+    -find / -wholename /boot/grub2 -exec rm_r -- \
+    -find / -wholename "/boot/$arch/loader/grub2" -exec rm_r -- \
     -boot_image any partition_offset=16 \
     -boot_image any cat_path=/boot/boot.cat \
     -boot_image any cat_hidden=on \
