@@ -119,9 +119,9 @@ export default class UserTray {
             const parent = actor.get_parent();
             const key = String(indicator._indicator?.id ?? role);
             const entry = {indicator, actor, parent, key,
-                style: actor.get_style(), menu: null,
+                style: actor.get_style(), menu: null, icons: new Map(), iconNodes: new Map(),
                 wrapper: new St.Bin({y_align: Clutter.ActorAlign.CENTER,
-                    x_align: Clutter.ActorAlign.CENTER})};
+                    x_align: Clutter.ActorAlign.CENTER, clip_to_allocation: true})};
             this._entries.set(indicator, entry);
             // Capture before the app's right-click handler or click gesture.
             entry.event = indicator.connect('captured-event', (_actor, event) => {
@@ -144,6 +144,7 @@ export default class UserTray {
                 if (entry.menu)
                     this._menus.removeMenu(entry.menu);
                 this._entries.delete(indicator);
+                this._restoreIcons(entry);
                 entry.wrapper.set_child(null);
                 entry.wrapper.destroy();
                 this._queueSync();
@@ -175,6 +176,10 @@ export default class UserTray {
             }
             entry.wrapper.visible = unlocked && location !== 'hidden';
             entry.actor.set_style(pinned ? entry.style : 'width: 32px; height: 32px; min-width: 0; min-height: 0; padding: 0;');
+            if (pinned)
+                this._restoreIcons(entry);
+            else
+                this._sizeIcons(entry);
             // Use a separate manager for nested menus so opening an app does
             // not close Quick Settings and unmap the menu's source actor.
             const menu = entry.indicator.menu;
@@ -204,6 +209,42 @@ export default class UserTray {
                 continue;
             this._grid.set_child_at_index(item, order++);
         }
+    }
+
+    _sizeIcons(entry) {
+        // Panel CSS no longer applies after reparenting into Quick Settings.
+        // Set the actual icon property as well: app extensions and popup themes
+        // can otherwise override icon-size and paint outside the 32px cell.
+        const visit = actor => {
+            if (!entry.iconNodes.has(actor)) {
+                const added = actor.connect('child-added', () => this._queueSync());
+                const destroyed = actor.connect('destroy', () => {
+                    entry.iconNodes.delete(actor);
+                    entry.icons.delete(actor);
+                });
+                entry.iconNodes.set(actor, [added, destroyed]);
+            }
+            if (actor instanceof St.Icon) {
+                if (!entry.icons.has(actor))
+                    entry.icons.set(actor, {size: actor.icon_size, style: actor.get_style()});
+                actor.icon_size = 18;
+                const original = entry.icons.get(actor).style ?? '';
+                actor.set_style(`${original}; icon-size: 18px !important;`);
+            }
+            actor.get_children().forEach(visit);
+        };
+        visit(entry.actor);
+    }
+
+    _restoreIcons(entry) {
+        for (const [actor, ids] of entry.iconNodes)
+            ids.forEach(id => actor.disconnect(id));
+        entry.iconNodes.clear();
+        for (const [icon, original] of entry.icons) {
+            icon.icon_size = original.size;
+            icon.set_style(original.style);
+        }
+        entry.icons.clear();
     }
 
     _setLocation(entry, location) {
@@ -266,6 +307,7 @@ export default class UserTray {
         for (const entry of this._entries.values()) {
             entry.indicator.disconnect(entry.event);
             entry.indicator.disconnect(entry.destroy);
+            this._restoreIcons(entry);
             if (entry.menu) {
                 this._menus.removeMenu(entry.menu);
                 Main.panel.menuManager.addMenu(entry.menu);
@@ -294,3 +336,4 @@ export default class UserTray {
         }
     }
 }
+
