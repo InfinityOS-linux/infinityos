@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 import time
 from urllib.parse import urlsplit
 
@@ -45,17 +46,41 @@ def publish(directory, revision):
 
     endpoint = f"https://{account}.r2.cloudflarestorage.com"
     def aws(*args):
-        return subprocess.run(["aws", "--endpoint-url", endpoint, *args],
-                              check=True, stdout=subprocess.PIPE, text=True).stdout
+        # R2 requires uniform multipart sizes. Avoid the runner's auto-selected
+        # CRT transfer client and keep this configuration private to this process.
+        with tempfile.NamedTemporaryFile(mode="w") as config:
+            config.write("[default]\nregion = auto\ns3 =\n"
+                         "    preferred_transfer_client = classic\n"
+                         "    multipart_threshold = 64MB\n"
+                         "    multipart_chunksize = 64MB\n"
+                         "    max_concurrent_requests = 4\n")
+            config.flush()
+            environment = dict(os.environ, AWS_CONFIG_FILE=config.name,
+                               AWS_PROFILE="default", AWS_DEFAULT_PROFILE="default",
+                               AWS_RETRY_MODE="standard", AWS_MAX_ATTEMPTS="10",
+                               AWS_REQUEST_CHECKSUM_CALCULATION="WHEN_REQUIRED",
+                               AWS_RESPONSE_CHECKSUM_VALIDATION="WHEN_REQUIRED")
+            return subprocess.run(["aws", "--endpoint-url", endpoint, *args],
+                                  check=True, stdout=subprocess.PIPE, text=True,
+                                  env=environment).stdout
 
     for image in images.values():
         path = directory / image["filename"]
         key = f"releases/{revision}/{path.name}"
-        aws("s3", "cp", str(path), f"s3://{bucket}/{key}", "--only-show-errors",
-            "--content-type", "application/octet-stream",
-            "--content-disposition", f'attachment; filename="{path.name}"',
-            "--cache-control", "public, max-age=31536000, immutable",
-            "--metadata", f'sha256={image["sha256"]},md5={image["md5"]}')
+        # A failed CompleteMultipartUpload must restart with a fresh upload ID.
+        for attempt in range(3):
+            try:
+                aws("s3", "cp", str(path), f"s3://{bucket}/{key}", "--only-show-errors",
+                    "--content-type", "application/octet-stream",
+                    "--content-disposition", f'attachment; filename="{path.name}"',
+                    "--cache-control", "public, max-age=31536000, immutable",
+                    "--metadata", f'sha256={image["sha256"]},md5={image["md5"]}')
+                break
+            except subprocess.CalledProcessError:
+                if attempt == 2:
+                    raise
+                print(f"Retrying ISO upload: {path.name} (attempt {attempt + 2}/3)", flush=True)
+                time.sleep(10 * (attempt + 1))
         remote = json.loads(aws("s3api", "head-object", "--bucket", bucket, "--key", key))
         if remote["ContentLength"] != image["bytes"] or remote.get("Metadata", {}).get("sha256") != image["sha256"]:
             raise ValueError(f"R2 upload verification failed: {path.name}")
@@ -86,3 +111,4 @@ def publish(directory, revision):
 
 if __name__ == "__main__":
     publish(*sys.argv[1:])
+
