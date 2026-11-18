@@ -34,7 +34,12 @@ class UpdaterActionsTests(unittest.TestCase):
         for name in ('infinity-updater', 'csd', 'shell-backdrop', 'motion-enabled'):
             window.add_css_class(name)
         button = Gtk.Button(label='Install updates')
-        window.set_child(button)
+        layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        hero = Gtk.Box()
+        hero.add_css_class('hero')
+        layout.append(hero)
+        layout.append(button)
+        window.set_child(layout)
 
         def alpha(widget, x, y):
             surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 208, 104)
@@ -63,6 +68,8 @@ class UpdaterActionsTests(unittest.TestCase):
                     window.set_state_flags(state, True)
                     self.assertEqual(alpha(window, 100, 20), 0, (light, state, 'above title'))
                     self.assertEqual(alpha(window, 100, 50), 0, (light, state, 'window surface'))
+                    hero.set_state_flags(state, True)
+                    self.assertEqual(alpha(hero, 100, 50), 0, (light, state, 'header matches the body backdrop'))
                     for name in ('primary', 'secondary', 'restart'):
                         with self.subTest(light=light, state=state, button=name):
                             button.add_css_class(name)

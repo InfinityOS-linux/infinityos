@@ -57,7 +57,7 @@ for (const [name, status, checkedAt, remaining] of [
     });
 }
 
-function drawer(area, deferred = false) {
+function drawer(area, deferred = false, animations = true) {
     const redraws = new Map();
     const calls = [];
     const timers = new Map();
@@ -82,7 +82,7 @@ function drawer(area, deferred = false) {
         GLib: {PRIORITY_DEFAULT: 0, SOURCE_REMOVE: false,
             timeout_add(_priority, delay, callback) { const id = nextId++; timers.set(id, {delay, callback}); return id; },
             Source: {remove: id => timers.delete(id)}},
-        St: {Settings: {get: () => ({enable_animations: true})}},
+        St: {Settings: {get: () => ({enable_animations: animations})}},
         Clutter: {AnimationMode: {EASE_OUT_CUBIC: 1, EASE_IN_CUBIC: 2, EASE_OUT_ELASTIC: 3}},
         global: {get_current_time: () => 1, compositor: {get_laters: () => ({
             add(_type, callback) { const id = nextId++; if (deferred) redraws.set(id, callback); else callback(); return id; },
@@ -98,7 +98,7 @@ test('drawer opens from the right within the selected monitor work area', () => 
     extension._showDrawer(window);
     assert.deepEqual(calls[0], [false, -460, 32, 460, 688]);
     assert.equal(actor.translation_x, 476);
-    assert.equal(calls[1].translation_x, -24);
+    assert.equal(calls[1].translation_x, 0);
     assert.equal(calls[1].duration, 420);
 });
 
@@ -158,7 +158,7 @@ test('rapid toggle reverses closing and repeated outside clicks do not restart i
     actor.translation_x = 120;
     extension._toggleDrawer(window);
     assert.equal(actor.translation_x, 120, 'reverse from the current position');
-    assert.equal(calls.at(-1).translation_x, -24);
+    assert.equal(calls.at(-1).translation_x, 0);
     closing.onComplete();
     assert.equal(calls.includes('minimized'), false, 'an obsolete completion must not hide the reopened drawer');
     extension._toggleDrawer(window);
@@ -284,7 +284,7 @@ test('first map stays invisible until placement and restore handlers finish', ()
     callback();
     assert.equal(actor.opacity, 255);
     assert.equal(actor.translation_x, 476);
-    assert.equal(calls[1].translation_x, -24);
+    assert.equal(calls[1].translation_x, 0);
     assert.equal(extension._openingWindows.size, 0);
 });
 
@@ -328,10 +328,22 @@ test('Wayland initial small surface stays hidden until its resize is acknowledge
     assert.equal(redraw(), false);
     assert.equal(actor.opacity, 255);
     const entry = calls.at(-1);
-    assert.equal(entry.translation_x, -24);
-    entry.onComplete();
-    assert.equal(calls.at(-1).translation_x, 0);
-    assert.equal(calls.at(-1).mode, 3);
-    assert.equal(calls.at(-1).duration, 460);
+    assert.equal(entry.translation_x, 0);
+    assert.equal(entry.mode, 1, 'opening decelerates without elastic overshoot');
+    assert.equal(entry.duration, 420);
+    assert.equal(entry.onComplete, undefined, 'no return/bounce animation is queued');
 });
 
+
+test('opening uses one decelerating transition and respects reduced motion', () => {
+    for (const animations of [true, false]) {
+        const {extension, window, calls} = drawer({x: 0, y: 32, width: 1280, height: 688}, false, animations);
+        extension._showDrawer(window);
+        const transitions = calls.filter(call => !Array.isArray(call));
+        assert.equal(transitions.length, 1);
+        assert.equal(transitions[0].translation_x, 0);
+        assert.equal(transitions[0].mode, 1);
+        assert.equal(transitions[0].duration, animations ? 420 : 0);
+        assert.equal(transitions[0].onComplete, undefined);
+    }
+});
