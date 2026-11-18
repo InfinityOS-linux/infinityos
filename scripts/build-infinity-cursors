@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Compile the approved glove artwork into multi-size native Xcursor files."""
 import argparse
+import math
 from pathlib import Path
 import shutil
 import struct
@@ -8,12 +9,57 @@ import subprocess
 
 SIZES = (16, 24, 32, 48, 64, 96, 128)
 IMAGE = 0xFFFD0002
+# GTK/CSS wait and progress, X11 names and legacy toolkit hashes.
+WAIT_ALIASES = ('watch', 'progress', 'left_ptr_watch', 'default_wait',
+                'half-busy', 'busy', '0426c94ea35c87780ff01dc239897213',
+                '08e8e1c95fe2fc01f976f1e063a24ccd',
+                '3ecb610c1bf2410f44200f48c40d3599')
+
+
+def waiting_svg(pressures):
+    """Only fingertip control points move; palm, thumb and cuff are fixed."""
+    i, m, r, l = (round(value * distance, 3) for value, distance in
+                  zip(pressures, (36, 52, 38, 30)))
+    outline = f"""M 83,134
+      C 87,139 89,133 86,121
+      L 67,{72+i} C 63,{58+i} 69,{48+i} 80,{48+i}
+      C 91,{46+i} 98,{55+i} 101,{69+i} L 110,114
+      L 104,{51+m} C 103,{38+m} 110,{29+m} 121,{29+m}
+      C 133,{29+m} 140,{38+m} 139,{51+m} L 136,112
+      L 143,{69+r} C 145,{55+r} 152,{48+r} 163,{49+r}
+      C 176,{49+r} 182,{59+r} 178,{74+r} L 165,119
+      L 177,{99+l} C 181,{86+l} 188,{82+l} 198,{87+l}
+      C 208,{92+l} 210,{101+l} 206,{114+l}
+      L 190,169 C 183,195 165,209 140,211
+      L 116,211 C 97,210 84,202 71,188
+      L 33,141 C 24,130 29,116 41,113
+      C 49,111 55,116 64,125 Z"""
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+      <g stroke="#111111" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+        <path fill="#ffffff" d="M 84,204 C 71,210 72,226 84,233 C 104,245 149,245 166,234 C 179,227 178,211 167,205 Z"/>
+        <path fill="#ffffff" d="{outline}"/>
+      </g>
+      <g fill="none" stroke="#c1c1c1" stroke-width="11" stroke-linecap="round">
+        <path d="M 105,148 L 111,174"/><path d="M 130,146 L 130,173"/><path d="M 155,149 L 148,175"/>
+      </g>
+    </svg>""".encode()
+
+
+def waiting_poses():
+    # A relaxed pause, then four taps. Six samples per tap keep the return smooth.
+    yield (0., 0., 0., 0.), 650
+    for finger in range(4):
+        for step in range(1, 7):
+            pressure = [0.] * 4
+            pressure[finger] = math.sin(math.pi * step / 6) ** 2
+            yield tuple(pressure), 35
+
 
 
 def encode(frames):
     offset = 16 + len(frames) * 12
     toc, chunks = [], []
-    for size, rgba in frames:
+    for size, rgba, delay in frames:
         if len(rgba) != size * size * 4:
             raise ValueError('Unexpected RGBA buffer size')
         pixels = bytearray(len(rgba))
@@ -26,7 +72,7 @@ def encode(frames):
         # Both states keep the same palm hotspot, so grabbing never moves the
         # terminal's drag origin even though the glove's fingers close.
         chunk = struct.pack('<9I', 36, IMAGE, size, 1, size, size,
-                            size // 2, round(size * .625), 0) + pixels
+                            size // 2, round(size * .625), delay) + pixels
         toc.append(struct.pack('<3I', IMAGE, size, offset))
         chunks.append(chunk)
         offset += len(chunk)
@@ -50,8 +96,30 @@ def main():
             result = subprocess.run([magick, str(args.source / f'{name}.png'),
                 '-filter', 'Lanczos', '-resize', f'{size}x{size}!',
                 '-depth', '8', 'rgba:-'], check=True, capture_output=True)
-            frames.append((size, result.stdout))
+            frames.append((size, result.stdout, 0))
         (args.output / name).write_bytes(encode(frames))
+    poses = list(waiting_poses())
+    frames = []
+    for size in SIZES:
+        fixed_palm = None
+        for pressure, delay in poses:
+            result = subprocess.run([magick, '-background', 'none', 'svg:-',
+                '-filter', 'Lanczos', '-resize', f'{size}x{size}!',
+                '-depth', '8', 'rgba:-'], input=waiting_svg(pressure),
+                check=True, capture_output=True)
+            rgba = result.stdout
+            # Freeze the lower hand byte-for-byte, including any filter fringe.
+            palm_start = round(size * .56) * size * 4
+            if fixed_palm is None:
+                fixed_palm = rgba[palm_start:]
+            rgba = rgba[:palm_start] + fixed_palm
+            frames.append((size, rgba, delay))
+    (args.output / 'wait').write_bytes(encode(frames))
+    for name in WAIT_ALIASES:
+        alias = args.output / name
+        if alias.is_symlink() or alias.exists():
+            alias.unlink()
+        alias.symlink_to('wait')
 
 
 if __name__ == '__main__':
