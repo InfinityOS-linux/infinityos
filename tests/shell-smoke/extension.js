@@ -3,6 +3,8 @@ import GLib from 'gi://GLib';
 import St from 'gi://St';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import UserTray from '../wack-shell@rinzler69-wastaken.github.com/userTray.js';
 import {TerminalPullHandle} from '../ghostty@infinityos.org/pull-handle.js';
 import {HardwareMonitor} from '../ghostty@infinityos.org/hardware-monitor.js';
 import {widgetChoices} from '../ghostty@infinityos.org/monitor-widgets.js';
@@ -30,7 +32,7 @@ export default class Smoke extends Extension {
             return {...JSON.parse(new TextDecoder().decode(bytes)), dir, path: dir.get_path()};
         };
         const theme = St.ThemeContext.get_for_stage(global.stage).get_theme();
-        for (const uuid of ['ghostty@infinityos.org', 'nowplay@LalaloyXyz', 'raccoonlauncher@shimafallah.github.io', 'infinity-updater@infinityos.org']) {
+        for (const uuid of ['ghostty@infinityos.org', 'nowplay@LalaloyXyz', 'raccoonlauncher@shimafallah.github.io', 'infinity-updater@infinityos.org', 'wack-shell@rinzler69-wastaken.github.com']) {
             const file = root.get_child(uuid).get_child('stylesheet.css');
             if (file.query_exists(null)) theme.load_stylesheet(file);
         }
@@ -102,9 +104,101 @@ export default class Smoke extends Extension {
         nowplay._ui.showPopup(player, [player]); await wait();
         check(nowplay._ui.popupVisible, 'NowPlay did not open');
         nowplay._ui.destroyPopup();
+        const trayApp = new PanelMenu.Button(0, 'Tray smoke');
+        const trayIcon = new St.Icon({icon_name: 'edit-paste-symbolic', style_class: 'system-status-icon'});
+        trayApp.add_child(trayIcon);
+        trayApp.menu.addAction('Test action', () => {});
+        Main.panel.addToStatusArea('infinity-tray-smoke', trayApp);
+        const extraTrayApps = [1, 2].map(index => {
+            const app = new PanelMenu.Button(0, `Tray spacing ${index}`);
+            app.add_child(new St.Icon({icon_name: 'view-grid-symbolic', style_class: 'system-status-icon'}));
+            Main.panel.addToStatusArea(`infinity-tray-spacing-${index}`, app);
+            return app;
+        });
+        let tray = new UserTray();
+        this._objects.push({disable: () => { tray?.destroy(); trayApp.destroy(); extraTrayApps.forEach(app => app.destroy()); }});
+        await wait();
+        const entry = tray._entries.get(trayApp);
+        check(entry && entry.wrapper.get_parent() === tray._icons, 'tray app was not moved');
+        const quick = Main.panel.statusArea.quickSettings;
+        // Headless CI has no audio device, so the output slider is normally
+        // invisible and has no meaningful allocation. Show it for layout checks.
+        const output = quick._volumeOutput.quickSettingsItems[0];
+        const outputVisible = output.visible;
+        output.show();
+        quick.menu.open(); await wait();
+        const [iconWidth, iconHeight] = trayIcon.get_transformed_size();
+        // StIcon is allocated the whole click target but paints its natural icon
+        // centered inside it. Measure that natural size, not the target bounds.
+        const [, naturalWidth] = trayIcon.get_preferred_width(-1);
+        const [, naturalHeight] = trayIcon.get_preferred_height(-1);
+        check(naturalWidth <= 20 && naturalHeight <= 20,
+            `tray glyph is oversized: ${naturalWidth}x${naturalHeight}`);
+        const [, iconY] = trayIcon.get_transformed_position();
+        const [, cellY] = entry.wrapper.get_transformed_position();
+        const [cellWidth, cellHeight] = entry.wrapper.get_transformed_size();
+        check(Math.abs(cellWidth - cellHeight) <= 1, 'tray cell is not square');
+        check(Math.abs(iconY + iconHeight / 2 - cellY - cellHeight / 2) <= 1,
+            'tray icon is not vertically centered');
+        check(tray._icons.get_children().length === tray._entries.size,
+            'tray contains an extra overflow button');
+        const cells = [trayApp, ...extraTrayApps].map(app => tray._entries.get(app).wrapper);
+        const centers = cells.map(cell => cell.get_transformed_position()[0] + cell.get_transformed_size()[0] / 2);
+        check(Math.abs((centers[1] - centers[0]) - (centers[2] - centers[1])) <= 1,
+            `tray spacing is unequal: ${centers}`);
+        const [groupX] = tray._icons.get_transformed_position();
+        const [groupWidth] = tray._icons.get_transformed_size();
+        const [sectionX] = tray._section.get_transformed_position();
+        const [sectionWidth] = tray._section.get_transformed_size();
+        check(Math.abs(groupX + groupWidth / 2 - sectionX - sectionWidth / 2) <= 1,
+            'compact tray group is not centered in the row');
+        const quickChildren = quick.menu._grid.get_children();
+        check(quickChildren.indexOf(tray._section) > quickChildren.indexOf(output),
+            'tray grid order is above system volume');
+        check(tray._section.get_transformed_position()[1] >
+            output.get_transformed_position()[1],
+        `tray allocation is above volume: ${tray._section.get_transformed_position()} / ${output.get_transformed_position()}`);
+        trayApp.menu.open(); await wait();
+        check(quick.menu.isOpen && trayApp.menu.isOpen, 'app menu closed Quick Settings');
+        tray._sync(); await wait();
+        check(trayApp.menu.isOpen, 'unchanged sync closed app menu');
+        trayApp.menu.close();
+        tray._openMenu(trayApp, entry); await wait();
+        check(tray._context.isOpen, 'tray context menu failed'); tray._context.close();
+        tray._setLocation(entry, 'panel');
+        check(entry.wrapper.get_parent() === Main.panel._rightBox, 'pin failed');
+        tray._setLocation(entry, 'hidden'); check(!entry.wrapper.visible, 'hide failed');
+        tray._openMenu(tray._icons); await wait();
+        check(tray._context.numMenuItems > 0, 'hidden icon cannot be restored');
+        tray._context.close();
+        tray._setLocation(entry, 'menu');
+        check(entry.wrapper.visible, 'show failed');
+        quick.menu.close();
+        output.visible = outputVisible;
+        tray.destroy(); tray = null;
+        check(trayApp.container.get_parent() === Main.panel._rightBox, 'tray disable lost app');
         const updater = new Updater(metadata('infinity-updater@infinityos.org'));
         this._objects.push(updater); updater.enable();
         check(Main.panel.statusArea['infinity-updater'], 'updater indicator failed');
+        const updaterTray = new UserTray();
+        this._objects.push({disable: () => updaterTray.destroy()});
+        updaterTray._preferences['infinity-updater'] = 'hidden';
+        updaterTray._sync();
+        check(updater._indicator.container.get_parent() === Main.panel._rightBox,
+            'updater moved away from top bar');
+        check(!updater._indicator.visible, 'updater is visible without updates');
+        GLib.file_set_contents(updater._stateFile, JSON.stringify({
+            checked_at: new Date().toISOString(), updates: [{kind: 'Flatpak user', name: 'smoke'}],
+        }));
+        updater._refresh();
+        check(updater._indicator.visible && updater._badge.visible && updater._badge.text === '1',
+            'pending updates do not show the indicator and badge');
+        updaterTray._sync();
+        check(updater._indicator.visible, 'tray preferences hid pending updates');
+        GLib.file_set_contents(updater._stateFile, JSON.stringify({updates: []}));
+        updater._refresh();
+        check(!updater._indicator.visible && !updater._badge.visible,
+            'empty update list left the indicator visible');
         const client = Gio.Subprocess.new(['python3', '-c', `
 import gi
 gi.require_version('Gtk', '4.0')
@@ -136,3 +230,5 @@ app.run(None)
         this._objects = [];
     }
 }
+
+

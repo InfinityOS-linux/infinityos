@@ -152,10 +152,30 @@ def save_state(state, path=None):
 def read_state(path=None):
     try:
         with open(path or state_path(), encoding='utf-8') as file:
-            return json.load(file)
+            return reconcile_offline_result(json.load(file))
     except (OSError, ValueError):
         return {'checked_at': None, 'updates': [], 'release': None,
                 'rpm_check_ok': False, 'errors': []}
+
+
+def reconcile_offline_result(state, directory=Path('/var/lib/infinityos')):
+    """Do not display pre-install RPM results after a successful offline update.
+
+    Match the panel's offline-result handling before rendering cached rows. Keep
+    other update sources and failed transactions intact, and force a fresh check
+    instead of treating the reconciled cache as a new repository query.
+    """
+    try:
+        result_path = directory / 'offline-update-result.json'
+        result = json.loads(result_path.read_text())
+        checked = datetime.fromisoformat(state['checked_at']).timestamp()
+        if result.get('status') != 'success' or checked >= result_path.stat().st_mtime:
+            return state
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return state
+    return {**state, 'updates': [item for item in state.get('updates', [])
+                                if item.get('kind') != 'RPM'],
+            'release': None, 'checked_at': None, 'rpm_check_ok': False}
 
 
 def fresh_state(state, max_age=300):

@@ -40,7 +40,15 @@ export class ClockLayoutManager {
         this.dateLabel = dateLabel;
         this.timeLabel = timeLabel;
 
-        timeLabel.connectObject('notify::text', () => this.positionClock(), this);
+        // Clock labels live outside the prompt container. Their wake-time/font
+        // allocations must invalidate its layout as well.
+        for (const label of [timeLabel, dateLabel]) {
+            label.connectObject(
+                'notify::text', () => this.positionClock(),
+                'notify::height', () => this._extension._mainBox?.queue_relayout(),
+                this);
+        }
+        this.clockWrapper.connectObject('notify::mapped', () => this.positionClock(), this);
         centerClockLabel(timeLabel, this.clockWrapper);
         centerClockLabel(dateLabel, this.clockWrapper);
 
@@ -116,6 +124,7 @@ export class ClockLayoutManager {
         wrapper.set_position(monitorX, topY);
         wrapper.set_width(monitorWidth);
         wrapper.set_pivot_point(0.5, 0.5);
+        this._extension._mainBox?.queue_relayout();
     }
 
     getClockBottom(height) {
@@ -166,9 +175,9 @@ export class ClockLayoutManager {
     }
 
     teardown(dialog, lockDialogGroup) {
-        if (this.timeLabel) {
-            this.timeLabel.disconnectObject(this);
-        }
+        this.timeLabel?.disconnectObject(this);
+        this.dateLabel?.disconnectObject(this);
+        this.clockWrapper?.disconnectObject(this);
         if (this.hint) {
             this.hint.disconnectObject(this);
         }

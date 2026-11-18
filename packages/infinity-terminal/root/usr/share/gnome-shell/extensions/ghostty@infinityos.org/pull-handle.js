@@ -83,8 +83,10 @@ export class TerminalPullHandle {
         const [panelX, panelY] = Main.panel.get_transformed_position();
         const [panelWidth, panelHeight] = Main.panel.get_transformed_size();
         const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        // Sample blank panel background outside the clock, icon and handle overlap.
-        const x = Math.round(Math.min(panelX + panelWidth - 1, monitor.x + monitor.width / 2 + 120 * scale));
+        // Sample directly below the centered clock, above the handle overlap.
+        // A side sample can have a different composited color on translucent panels.
+        const x = Math.round(Math.max(panelX, Math.min(panelX + panelWidth - 1,
+            monitor.x + monitor.width / 2)));
         const y = Math.round(panelY + panelHeight - 4 * scale);
         if (x < 0 || y < 0) return;
         this.sampling = true;

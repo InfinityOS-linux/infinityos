@@ -116,3 +116,46 @@ test('classic Sonoma centers the full prompt below the clock at different screen
             assert.equal((result.y1 + result.y2) / 2, height / 2);
     }
 });
+
+test('Sonoma notification stack cannot push authentication into clock after resize', () => {
+    let prompt, notifications;
+    let clockBottom = 240;
+    const layout = new WackLayout();
+    layout._init({
+        _lockscreenMode: 'classic',
+        _clockLayoutManager: {getClockBottom: () => clockBottom},
+    }, {
+        get_preferred_size: () => [0, 0, 300, 220],
+        allocate: box => { prompt = box; },
+    }, {
+        get_preferred_size: () => [0, 0, 400, 500],
+        allocate: box => { notifications = box; },
+    }, null);
+    for (const height of [1080, 768, 600, 720, 1080]) {
+        for (clockBottom of [180, 240, 300]) {
+            layout.vfunc_allocate(null, {get_size: () => [1280, height]});
+            assert.equal(prompt.x1 + 150, 640);
+            assert.ok(prompt.y1 >= clockBottom + 24);
+            assert.ok(prompt.y2 <= height - 24);
+            assert.ok(notifications.y1 >= prompt.y2);
+            assert.ok(notifications.y2 >= notifications.y1);
+        }
+    }
+});
+
+test('clock positioning invalidates the independent prompt layout', () => {
+    const clockLayoutSource = readFileSync(new URL('../root/usr/share/gnome-shell/extensions/wack-lockscreen-clock@rinzler69-wastaken.github.com/src/main/clockLayoutManager.js', import.meta.url), 'utf8')
+        .replace(/^import[\s\S]*?;\n/gm, '')
+        .replace('export class ClockLayoutManager', 'class ClockLayoutManager');
+    const Manager = runInNewContext(`${clockLayoutSource}\nClockLayoutManager`, {
+        Main: {layoutManager: {primaryMonitor: {x: 0, y: 0, width: 1024, height: 600}}},
+        DATETIME_TOP_FRACTION: .09, TIME_LABEL_TOP_OFFSET: 12,
+    });
+    let relayouts = 0;
+    const manager = new Manager({_mainBox: {queue_relayout: () => relayouts++}});
+    manager.clockWrapper = {set_position() {}, set_width() {}, set_pivot_point() {}};
+    manager.dateLabel = {set_position() {}};
+    manager.timeLabel = {set_position() {}};
+    manager.positionClock();
+    assert.equal(relayouts, 1);
+});

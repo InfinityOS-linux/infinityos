@@ -124,6 +124,20 @@
   opacity: 1.0 !important;
 }
 
+/* Tray actors leave #panel, so explicitly retain compact icon metrics. */
+.infinity-user-tray-icons StIcon {
+  icon-size: 18px;
+}
+
+.infinity-user-tray-icons .panel-button {
+  width: 32px;
+  height: 32px;
+  -minimum-hpadding: 0px;
+  -natural-hpadding: 0px;
+  padding: 0;
+  margin: 0;
+}
+
 .workspace-thumbnails.infinity-dashboard-previews {
     spacing: 10px;
 }
