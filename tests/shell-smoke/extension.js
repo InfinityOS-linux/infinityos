@@ -315,11 +315,13 @@ export default class Smoke extends Extension {
         const pointer = global.stage.context.get_backend().get_default_seat()
             .create_virtual_device(Clutter.InputDeviceType.POINTER_DEVICE);
         for (const button of readBackdrop().buttons) {
-            pointer.notify_absolute_motion(GLib.get_monotonic_time(),
-                frame.x + button.x + button.width / 2, frame.y + button.y + button.height / 2);
+            const [originX, originY] = drawer.get_transformed_position();
+            const targetX = originX + button.x + button.width / 2;
+            const targetY = originY + button.y + button.height / 2;
+            pointer.notify_absolute_motion(GLib.get_monotonic_time(), targetX, targetY);
             await wait();
             check(readBackdrop().buttons.some(item => item.hover),
-                `pointer missed GTK button: target=${JSON.stringify(button)} pointer=${global.get_pointer()} frame=${JSON.stringify(frame)} buffer=${JSON.stringify(drawer.meta_window.get_buffer_rect())} report=${JSON.stringify(readBackdrop())}`);
+                `pointer missed GTK button: target=${targetX},${targetY} origin=${originX},${originY} pointer=${global.get_pointer()} report=${JSON.stringify(readBackdrop())}`);
             check(redrawOwner.fullRedraw, 'hover disabled complete-frame blur repaint');
         }
         pointer.notify_absolute_motion(GLib.get_monotonic_time(), 10, 100);
