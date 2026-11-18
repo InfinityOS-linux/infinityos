@@ -443,7 +443,9 @@ export const DashBlur = class DashBlur extends Signals.EventEmitter {
         );
 
         const slider = dash_container._slider;
-        if (slider) {
+        // Infinity's compatibility slider supplies geometry methods only.
+        // Its real dock container already supplies allocation/position signals.
+        if (typeof slider?.connect === 'function') {
             this.connections.connect(
                 slider,
                 ['notify::slide-x', 'notify::allocation'],
