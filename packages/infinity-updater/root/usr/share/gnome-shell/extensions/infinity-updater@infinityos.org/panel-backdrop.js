@@ -4,6 +4,9 @@ import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 const LAYERS = new Set(['wackPanelBackdrop', 'wackPanelBackdropOverlay', 'wackPanelProximityOverlay']);
+const BACKDROP_INTERFACE = `<node><interface name="org.infinityos.UpdaterBackdrop">
+    <property name="Ready" type="b" access="read"/>
+</interface></node>`;
 
 function backgroundStyle(actor) {
     const color = actor.get_theme_node().get_background_color();
@@ -17,9 +20,22 @@ function backgroundStyle(actor) {
 export class PanelBackdrop {
     constructor() {
         this._entries = new Map();
+        this._ready = false;
+        this._bus = Gio.DBusExportedObject.wrapJSObject(BACKDROP_INTERFACE, this);
+        this._bus.export(Gio.DBus.session, '/org/infinityos/UpdaterBackdrop');
         this._settings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
         this._colorId = this._settings.connect('changed::color-scheme', () => this.syncAll());
         this._extensionId = Main.extensionManager.connect('extension-state-changed', () => this.syncAll());
+    }
+
+    get Ready() { return this._ready; }
+
+    syncReady() {
+        const ready = [...this._entries.values()].some(entry =>
+            entry.backdrop && !entry.backdrop.destroyed);
+        if (ready === this._ready) return;
+        this._ready = ready;
+        this._bus.emit_property_changed('Ready', new GLib.Variant('b', ready));
     }
 
     attach(window) {
@@ -68,7 +84,8 @@ export class PanelBackdrop {
         const blur = global.blur_my_shell?._panel_blur;
         const source = blur?.enabled && blur.createMatchingBackdrop ? blur : null;
         const key = source ? `${monitorIndex}:${source.settings.panel.STATIC_BLUR}:${source.settings.panel.PIPELINE}` : '';
-        if (source !== entry.source || key !== entry.key || entry.backdrop?.destroyed) {
+        if (source !== entry.source || key !== entry.key || entry.backdrop?.destroyed ||
+            (source && !entry.backdrop)) {
             entry.backdrop?.destroy();
             entry.backdrop = null;
             entry.source = source;
@@ -108,6 +125,7 @@ export class PanelBackdrop {
             target.visible = source.visible;
             target.set_size(frame.width, frame.height);
         });
+        this.syncReady();
     }
 
     detach(window) {
@@ -117,6 +135,7 @@ export class PanelBackdrop {
         for (const [object, id] of entry.signals) object.disconnect(id);
         entry.backdrop?.destroy();
         entry.container.destroy();
+        this.syncReady();
         if (!this._entries.size && this._timer) {
             GLib.Source.remove(this._timer);
             this._timer = 0;
@@ -127,5 +146,6 @@ export class PanelBackdrop {
         for (const window of [...this._entries.keys()]) this.detach(window);
         this._settings.disconnect(this._colorId);
         Main.extensionManager.disconnect(this._extensionId);
+        this._bus.unexport();
     }
 }
