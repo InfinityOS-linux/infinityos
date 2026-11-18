@@ -173,7 +173,8 @@ class LiveBootContractTests(unittest.TestCase):
         self.assertIn("menuentry \"Launch system\"", finalizer)
         for label in ("live", "check", "safe"):
             self.assertIn(f"icon /EFI/BOOT/infinity-theme/icons/os_infinityos_{label}.png", finalizer)
-        self.assertIn("-rm_r /boot/grub2", finalizer)
+        self.assertIn("-find / -wholename /boot/grub2 -exec rm_r --", finalizer)
+        self.assertIn('-find / -wholename "/boot/$arch/loader/grub2" -exec rm_r --', finalizer)
 
 
 if __name__ == "__main__":
