@@ -10,6 +10,46 @@ THEME = ROOT / 'root/usr/share/icons/InfinityOS-Modern-Ice'
 
 
 class CursorAssetsTests(unittest.TestCase):
+    def test_wait_animation_keeps_palm_hotspot_and_transparency_fixed(self):
+        data = (THEME / 'cursors/wait').read_bytes()
+        magic, header, version, count = struct.unpack_from('<4s3I', data)
+        self.assertEqual((magic, header, version, count), (b'Xcur', 16, 0x10000, 175))
+        groups = {}
+        previous_end = header + count * 12
+        for index in range(count):
+            kind, size, offset = struct.unpack_from('<3I', data, header + index * 12)
+            self.assertEqual(offset, previous_end)
+            chunk = struct.unpack_from('<9I', data, offset)
+            self.assertEqual(chunk[:8], (36, 0xFFFD0002, size, 1, size, size,
+                                         size // 2, round(size * .625)))
+            pixels = data[offset + 36:offset + 36 + size * size * 4]
+            self.assertEqual(len(pixels), size * size * 4)
+            self.assertIn(0, pixels[3::4])
+            self.assertIn(255, pixels[3::4])
+            for b, g, r, alpha in struct.iter_unpack('4B', pixels):
+                self.assertLessEqual(max(r, g, b), alpha)
+            groups.setdefault(size, []).append((chunk[8], pixels))
+            previous_end = offset + 36 + len(pixels)
+        self.assertEqual(previous_end, len(data))
+        self.assertEqual(set(groups), {16, 24, 32, 48, 64, 96, 128})
+        for size, frames in groups.items():
+            self.assertEqual([delay for delay, _ in frames], [650] + [35] * 24)
+            # Below the finger roots, every pixel stays identical for the whole loop.
+            palm_start = round(size * .56) * size * 4
+            self.assertEqual(len({pixels[palm_start:] for _, pixels in frames}), 1)
+            self.assertGreaterEqual(len({pixels for _, pixels in frames}), 12)
+            self.assertEqual(frames[0][1], frames[-1][1])
+
+    def test_busy_names_resolve_to_the_wait_animation(self):
+        for name in ('watch', 'progress', 'left_ptr_watch', 'default_wait', 'half-busy',
+                     'busy', '0426c94ea35c87780ff01dc239897213',
+                     '08e8e1c95fe2fc01f976f1e063a24ccd',
+                     '3ecb610c1bf2410f44200f48c40d3599'):
+            with self.subTest(name=name):
+                path = THEME / 'cursors' / name
+                self.assertEqual(path.readlink().as_posix(), 'wait')
+                self.assertEqual(path.resolve(), (THEME / 'cursors/wait').resolve())
+
     def test_theme_inherits_existing_pointer_shapes(self):
         config = configparser.ConfigParser()
         config.read(THEME / 'index.theme')
@@ -58,3 +98,31 @@ class CursorAssetsTests(unittest.TestCase):
                     self.assertEqual((image.contents.xhot, image.contents.yhot), (size // 2, round(size * .625)))
                 finally:
                     lib.XcursorImageDestroy(image)
+
+    def test_native_xcursor_loader_reads_all_wait_frames(self):
+        library = ctypes.util.find_library('Xcursor')
+        if not library:
+            self.skipTest('Native libXcursor is unavailable on this host')
+        class Image(ctypes.Structure):
+            _fields_ = [(name, ctypes.c_uint) for name in
+                        ('version', 'size', 'width', 'height', 'xhot', 'yhot', 'delay')] + [('pixels', ctypes.c_void_p)]
+        class Images(ctypes.Structure):
+            _fields_ = [('nimage', ctypes.c_int),
+                        ('images', ctypes.POINTER(ctypes.POINTER(Image))),
+                        ('name', ctypes.c_char_p)]
+        lib = ctypes.CDLL(library)
+        lib.XcursorFilenameLoadImages.argtypes = [ctypes.c_char_p, ctypes.c_int]
+        lib.XcursorFilenameLoadImages.restype = ctypes.POINTER(Images)
+        lib.XcursorImagesDestroy.argtypes = [ctypes.POINTER(Images)]
+        for size in (16, 24, 32, 48, 64, 96, 128):
+            loaded = lib.XcursorFilenameLoadImages(bytes(THEME / 'cursors/wait'), size)
+            self.assertTrue(loaded)
+            try:
+                self.assertEqual(loaded.contents.nimage, 25)
+                for index in range(loaded.contents.nimage):
+                    image = loaded.contents.images[index].contents
+                    self.assertEqual((image.width, image.height), (size, size))
+                    self.assertEqual((image.xhot, image.yhot), (size // 2, round(size * .625)))
+                    self.assertEqual(image.delay, 650 if index == 0 else 35)
+            finally:
+                lib.XcursorImagesDestroy(loaded)

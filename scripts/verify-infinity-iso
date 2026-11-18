@@ -327,6 +327,8 @@ for required in \
     usr/share/icons/InfinityOS-Modern-Ice/index.theme \
     usr/share/icons/InfinityOS-Modern-Ice/cursors/grab \
     usr/share/icons/InfinityOS-Modern-Ice/cursors/grabbing \
+    usr/share/icons/InfinityOS-Modern-Ice/cursors/wait \
+    usr/share/icons/InfinityOS-Modern-Ice/cursors/progress \
     usr/share/gnome-shell/extensions/infinity-updater@infinityos.org/panel-backdrop.js \
     usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/schemas/gschemas.compiled \
     usr/share/gnome-shell/extensions/vertical-workspaces@G-dH.github.com/extension.js \

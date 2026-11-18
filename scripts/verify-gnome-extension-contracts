@@ -133,6 +133,6 @@ if not source_tree:
 print("Verified GNOME extension UUIDs and Infinity OS dock behavior")
 cursor_root = root / "root" if source_tree else root
 cursor_theme = cursor_root / "usr/share/icons/InfinityOS-Modern-Ice"
-for name in ("grab", "grabbing"):
+for name in ("grab", "grabbing", "wait", "watch", "progress", "left_ptr_watch"):
     if not (cursor_theme / "cursors" / name).is_file() or (cursor_theme / "cursors" / name).read_bytes()[:4] != b"Xcur":
         raise SystemExit(f"Infinity OS glove cursor missing or invalid: {name}")
