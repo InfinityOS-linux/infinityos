@@ -375,10 +375,10 @@ export default class InfinityTerminal extends Extension {
         const full = isFullHeight(monitor.height, this._topInset(), height);
         if (full && !this._hardware?.height) {
             if (!this._fullHeight)
-                this._resize.window.maximize(Meta.MaximizeFlags.BOTH);
+                this._resize.window.maximize();
         } else {
             if (this._fullHeight)
-                this._resize.window.unmaximize(Meta.MaximizeFlags.BOTH);
+                this._resize.window.unmaximize();
             const rect = this._resize.window.get_frame_rect();
             if (rect.x !== monitor.x || rect.y !== top || rect.width !== monitor.width || rect.height !== height)
                 this._resize.window.move_resize_frame(true, monitor.x, top, monitor.width, height);
@@ -654,12 +654,12 @@ export default class InfinityTerminal extends Extension {
         const y = monitor.y + this._topInset();
         const height = clampTerminalHeight(monitor.height, this._topInset(),
             monitor.height * this._settings.get_double('height-ratio'));
-        window.unmaximize(Meta.MaximizeFlags.BOTH);
+        window.unmaximize();
         window.move_resize_frame(true, monitor.x, y, monitor.width, height);
         window.move_frame(true, monitor.x, y);
         this._fullHeight = isFullHeight(monitor.height, this._topInset(), height);
         if (this._fullHeight && !this._hardware?.height)
-            window.maximize(Meta.MaximizeFlags.BOTH);
+            window.maximize();
         this._syncResizeHandle();
     }
 

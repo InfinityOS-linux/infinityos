@@ -1,26 +1,24 @@
 import Clutter from 'gi://Clutter';
+import Cogl from 'gi://Cogl';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 // Clip the composed preview, including wallpaper and window clones.
 const RoundedPreview = GObject.registerClass(class InfinityRoundedPreview extends Clutter.ShaderEffect {
-    _init() {
-        super._init({shader_type: Clutter.ShaderType.FRAGMENT_SHADER});
-        this.set_shader_source(`
-            uniform sampler2D tex;
+    vfunc_get_static_snippet() {
+        // GNOME 51 uses Cogl snippets instead of shader_type/set_shader_source.
+        // Apply the mask after the default fragment code has sampled the preview.
+        return Cogl.Snippet.new(Cogl.SnippetHook.FRAGMENT, `
             uniform float width;
             uniform float height;
-            uniform float radius;
-            void main() {
-                vec2 size = vec2(width, height);
-                vec2 p = cogl_tex_coord_in[0].xy * size;
-                vec2 q = abs(p - size * 0.5) - (size * 0.5 - radius);
-                float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
-                float alpha = 1.0 - smoothstep(-0.75, 0.75, d);
-                cogl_color_out = texture2D(tex, cogl_tex_coord_in[0].xy) * cogl_color_in * alpha;
-            }`);
-        this.set_uniform_value('tex', 0);
+            uniform float radius;`, `
+            vec2 size = vec2(width, height);
+            vec2 p = cogl_tex_coord_in[0].xy * size;
+            vec2 q = abs(p - size * 0.5) - (size * 0.5 - radius);
+            float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
+            float alpha = 1.0 - smoothstep(-0.75, 0.75, d);
+            cogl_color_out *= alpha;`);
     }
 });
 

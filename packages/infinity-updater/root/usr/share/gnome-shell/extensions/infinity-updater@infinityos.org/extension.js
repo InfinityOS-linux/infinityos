@@ -10,28 +10,21 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import * as NotificationDaemon from 'resource:///org/gnome/shell/ui/notificationDaemon.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import {PanelBackdrop} from './panel-backdrop.js';
 
 export default class InfinityUpdater extends Extension {
     enable() {
         this._configureUpdateNotifications();
         this._pendingWindows = new Map();
         this._windowCreatedId = global.display.connect('window-created', (_display, window) => this._watchDrawer(window));
-        // Cover only the panel backdrop while the drawer is open. The same
-        // opaque surface in GTK avoids a seam against the wallpaper tint.
-        this._panelSurface = new St.Widget({reactive: false, visible: false});
-        this._panelSurface.add_constraint(new Clutter.BindConstraint({
-            source: Main.panel, coordinate: Clutter.BindCoordinate.ALL}));
-        Main.panel.add_child(this._panelSurface);
-        Main.panel.set_child_below_sibling(this._panelSurface, Main.panel._leftBox);
-        this._colorSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
-        const syncSurface = () => this._panelSurface.set_style(
-            `background-color: ${this._colorSettings.get_string('color-scheme') === 'prefer-dark' ? '#181624' : '#faf7ff'};`);
-        this._colorId = this._colorSettings.connect('changed::color-scheme', syncSurface);
-        syncSurface();
+        this._drawerBackdrop = new PanelBackdrop();
+        for (const actor of global.get_window_actors())
+            if (this._isUpdater(actor.meta_window) && !actor.meta_window.minimized)
+                this._drawerBackdrop.attach(actor.meta_window);
         this._destroyId = global.window_manager.connect('destroy', (_wm, actor) => {
             if (this._isUpdater(actor.meta_window)) {
                 this._cancelOpening(actor.meta_window);
-                this._panelSurface.hide();
+                this._drawerBackdrop.detach(actor.meta_window);
             }
         });
         this._focusId = global.display.connect('notify::focus-window',
@@ -261,7 +254,7 @@ export default class InfinityUpdater extends Extension {
         this._cancelOpening(window);
         const actor = window.get_compositor_private();
         if (!actor) return;
-        this._panelSurface?.show();
+        this._drawerBackdrop?.attach(window);
         const reversing = this._closingWindows?.delete(window);
         Main.wm.skipNextEffect(actor);
         actor.remove_all_transitions();
@@ -325,7 +318,7 @@ export default class InfinityUpdater extends Extension {
                 this._closingWindows.delete(window);
                 Main.wm.skipNextEffect(actor);
                 window.minimize();
-                this._panelSurface?.hide();
+                this._drawerBackdrop?.detach(window);
                 actor.translation_x = 0;
                 this._scheduleClose(window);
             }});
@@ -405,10 +398,8 @@ export default class InfinityUpdater extends Extension {
         }
         this._pendingWindows.clear();
         global.window_manager.disconnect(this._destroyId);
-        this._colorSettings.disconnect(this._colorId);
-        this._colorSettings = null;
-        this._panelSurface.destroy();
-        this._panelSurface = null;
+        this._drawerBackdrop.destroy();
+        this._drawerBackdrop = null;
         for (const window of this._openingWindows?.keys() ?? []) {
             this._cancelOpening(window);
             const actor = window.get_compositor_private();

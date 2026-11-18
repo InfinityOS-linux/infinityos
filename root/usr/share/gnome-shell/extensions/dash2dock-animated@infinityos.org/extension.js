@@ -1222,11 +1222,10 @@ export default class Dash2DockLiteExt extends Extension {
       border_style = `border: ${this.border_thickness}px solid rgba(${rgba}) !important;`;
     }
 
-    // Keep the upper highlight while the sides and lower corners share the base border.
+    // The adaptive pill paints one continuous contour in DockBackground.
+    // Per-side St borders create different colors where the lower arcs join.
     if (this.adaptive_background && !this.panel_mode) {
-      const edge = this._getPreferredColorScheme() === 'dark'
-        ? '218, 199, 255, 0.55' : '70, 40, 100, 0.35';
-      border_style += ` border-top: 1.75px solid rgba(${edge}) !important;`;
+      border_style = 'border: 0px solid transparent !important;';
     }
 
     let panel_borders = '';

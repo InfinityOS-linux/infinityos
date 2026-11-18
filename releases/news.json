@@ -1,154 +1,179 @@
 [
   {
+    "id": "2026-11-18-dock-and-updater-backdrop",
+    "date": "2026-11-18",
+    "title": "Dock corners and a blurred updater",
+    "summary": "Fixed the dock's lower corners. InfinityUpdater now uses the top bar's blur settings, with a darker header and button area.",
+    "buildSha": null,
+    "changes": [
+      {
+        "title": "Dock",
+        "text": "The lower corners now use the same outline color as the sides. The thicker top edge is unchanged."
+      },
+      {
+        "title": "InfinityUpdater",
+        "text": "The background uses the same blur settings as the top bar and terminal handle. The header and button area are slightly darker. Text and controls stay sharp."
+      },
+      {
+        "title": "InfinityTerminal",
+        "text": "The handle uses the panel's actual blur instead of an estimated color. It reconnects when the panel background reloads."
+      },
+      {
+        "title": "Quick Settings",
+        "text": "Large tray icons now fit inside their cells, including icons from apps that start later."
+      },
+      {
+        "title": "GNOME 51 fixes",
+        "text": "Fixed an error when drawing rounded workspace previews and removed obsolete arguments from terminal window resizing."
+      }
+    ]
+  },
+  {
     "id": "2026-11-17-tray-and-updater",
     "date": "2026-11-17",
-    "title": "InfinityOS _02: a cleaner tray and more reliable updates",
-    "summary": "Quick Settings gains compact, centered app icons, InfinityUpdater stays on the top bar, and cancelling installation preserves the available update list.",
+    "title": "Tray icons and update cancellation",
+    "summary": "App tray icons moved into Quick Settings. Cancelling an installation no longer clears the update list.",
     "buildSha": "419c134d9ce066a293c8b85434d5e5c1066ccfae",
     "changes": [
       {
-        "title": "App icons in Quick Settings",
-        "text": "Tray apps now sit below the system controls and volume sliders, between neutral separators. Compact, equal-sized cells keep a small group of icons centered with consistent spacing, without a three-dot button."
+        "title": "Tray layout",
+        "text": "App icons sit below the system controls and volume sliders. Spacing is consistent, and small groups are centered. The three-dot button was removed."
       },
       {
-        "title": "Keep important apps on the top bar",
-        "text": "Right-click an app icon to move it to the top bar or back into Quick Settings, or hide it. Preferences persist across sessions, with localized actions. Hidden apps can be restored from the tray area's context menu."
+        "title": "Pin or hide an app",
+        "text": "Right-click an icon to pin it to the top bar, return it to Quick Settings, or hide it. These choices are saved. The tray's context menu can restore hidden apps."
       },
       {
-        "title": "InfinityUpdater stays within reach",
-        "text": "The updater icon stays in the top bar even when no updates are available. Only its count badge disappears at zero, and saved app-tray hiding preferences do not affect it."
+        "title": "Update indicator",
+        "text": "InfinityUpdater stays separate from the app tray. Its badge shows the number of available updates."
       },
       {
-        "title": "Cancelled installation keeps the update list",
-        "text": "If every installation command fails, including when authorization is cancelled, InfinityUpdater keeps the saved list and reports the error instead of replacing it through an automatic follow-up check. Successful or partly successful installations still check what remains, and existing restart notifications are preserved."
+        "title": "Cancelled installation",
+        "text": "Cancelling the password prompt keeps the available updates on screen. A failed installation reports the error instead of clearing the list."
       },
       {
-        "title": "Stable tray behavior",
-        "text": "Unchanged icons stay attached during synchronization, avoiding unnecessary layout work and menu closures. Reloading the extension preserves icon order, including pinned apps and apps that start later."
-      },
-      {
-        "title": "Tested desktop changes",
-        "text": "Regression checks cover tray spacing, centering, icon size, app menus, saved preferences, locking, late arrivals, update authorization failures and restart notifications. The release also passes native GNOME 51 and GTK checks."
+        "title": "App menus",
+        "text": "Tray menus stay open during routine refreshes, and icon order is preserved when extensions reload."
       }
     ]
   },
   {
     "id": "2026-11-16-clock-and-handle-polish",
     "date": "2026-11-16",
-    "title": "InfinityOS _02: a sharper clock and a seamless terminal handle",
-    "summary": "Desktop polish keeps the clock and terminal handle centered, matches the handle to the panel and gives the lock-screen prompt room to breathe.",
+    "title": "Clock, terminal handle and lock screen",
+    "summary": "Fixed clock alignment, compact-handle detection and lock-screen spacing.",
     "buildSha": null,
     "changes": [
       {
-        "title": "A sharp, steady clock",
-        "text": "The clock stays centered when opening and closing InfinityTerminal or when the time label changes width. Pixel-aligned positioning keeps the text sharp, and the terminal icon no longer takes space in the centered panel layout."
+        "title": "Clock",
+        "text": "The clock stays centered when the time changes or InfinityTerminal opens. Its position is aligned to whole pixels to avoid blurred text."
       },
       {
-        "title": "A handle that matches the panel",
-        "text": "The pull handle samples the visible panel background and periodically checks its position. Maximized windows now reliably trigger the compact handle, even when a theme leaves a small gap below the panel."
+        "title": "Terminal handle",
+        "text": "Maximized windows now shrink the handle even when the theme leaves a small gap below the top bar."
       },
       {
-        "title": "A balanced lock screen",
-        "text": "The classic Sonoma-style lock screen centers the avatar and password prompt as a group and reserves space below the large clock to prevent overlap."
+        "title": "Lock screen",
+        "text": "The avatar and password field are centered together, with enough space below the large clock."
       },
       {
-        "title": "A clearer dock edge",
-        "text": "A brighter top border adds one pixel of definition to the adaptive dock in both light and dark modes, while custom borders keep their settings."
+        "title": "Dock",
+        "text": "The adaptive dock has a stronger top edge. Custom border colors are preserved."
       }
     ]
   },
   {
     "id": "2026-11-16-ac34cf0",
     "date": "2026-11-16",
-    "title": "InfinityOS _02: the pull-down terminal lands in fresh ISOs",
-    "summary": "Verified ARM64 and x64 images now include the adaptive InfinityTerminal handle, more flexible resizing and improved dock behavior in live sessions.",
+    "title": "ARM64 and x64 images with the terminal handle",
+    "summary": "Both images include the pull-down terminal handle, smaller terminal sizes and dock overlap fixes for live sessions.",
     "buildSha": "ac34cf00730b77870296edddd5faab0e5a8df0f3",
     "changes": [
       {
-        "title": "Pull down to open",
-        "text": "A symmetrical handle below the clock opens InfinityTerminal with a click or a downward drag. The terminal follows the pointer, keeps the chosen height on release and receives keyboard focus. Short pulls close it again, while Escape cancels the gesture."
+        "title": "Open the terminal",
+        "text": "Click the handle below the clock or drag it down. Release to keep the chosen height. A short drag closes it; Escape cancels the gesture."
       },
       {
-        "title": "A handle that adapts",
-        "text": "The centered handle animates to half size when the terminal is open or a window reaches the panel beneath it. It supports light and dark themes and respects reduced motion. Overview and the lock screen hide the controls; fullscreen retains GNOME's panel visibility behavior."
+        "title": "Handle size",
+        "text": "The handle shrinks when the terminal is open or a window reaches the top bar. Overview and the lock screen hide it."
       },
       {
-        "title": "More room to resize",
-        "text": "The terminal can now be resized below half the screen, down to a 96-pixel minimum. Dragging its lower edge back to the top panel hides it."
+        "title": "Terminal height",
+        "text": "The terminal can be resized below half the screen, down to 96 pixels. Drag its lower edge up to the top bar to hide it."
       },
       {
-        "title": "A more responsive dock",
-        "text": "Window overlap detection now works in live sessions and ignores minimized windows. The dock respects fullscreen visibility in the live desktop, and adaptive backgrounds gain a subtle top border matched to the active theme."
+        "title": "Live-session dock",
+        "text": "Window overlap detection now works in the live desktop and ignores minimized windows."
       },
       {
-        "title": "Verified images and release cleanup",
-        "text": "Both architecture builds passed verification and uploaded their ISO artifacts. The R2 publication job also completed successfully. Release cleanup now waits six minutes after promoting the new pair before removing older versioned files, allowing the website cache to refresh."
+        "title": "Downloads",
+        "text": "ARM64 and x64 images were published to R2. Older files are kept for six minutes after the download links change so cached pages can catch up."
       }
     ]
   },
   {
     "id": "2026-11-15-terminal-pull-handle",
     "date": "2026-11-15",
-    "title": "InfinityOS _02: pull down, get to work.",
-    "summary": "InfinityTerminal gains a centered pull-down handle, smoother manual resizing and a cleaner fit with the desktop in light and dark modes.",
+    "title": "Terminal pull handle",
+    "summary": "InfinityTerminal can now be opened and resized by dragging from the top bar.",
     "buildSha": null,
     "changes": [
       {
-        "title": "A new way to open InfinityTerminal",
-        "text": "Click the symmetrical handle below the clock or drag it down to reveal the terminal. Release it at the height you want, or drag its lower edge back to the top panel to hide it."
+        "title": "Click or drag",
+        "text": "The handle below the clock opens the terminal with a click or downward drag. Releasing it keeps the selected height."
       },
       {
-        "title": "Out of the way when you need it",
-        "text": "The handle smoothly shrinks to half size when the terminal is open or a window reaches the top panel, including maximized windows. It returns to full size when the space is clear. Fullscreen keeps GNOME’s normal panel visibility; Overview and the lock screen hide the activators."
+        "title": "Hide the terminal",
+        "text": "Drag the lower edge back to the top bar, make a short pull, or use the existing keyboard shortcut."
       },
       {
-        "title": "Aligned and refined",
-        "text": "The handle stays centered independently of panel layout changes. Its hamburger sits slightly higher, and the panel outline joins the curved handle. Both light and dark themes are supported, with a subtle matching highlight along the adaptive dock’s top edge. The dock moves out of the way when a window touches its area, including in the live session."
+        "title": "Desktop behavior",
+        "text": "The handle shrinks near windows and stays centered independently of the clock layout. It follows the selected theme and reduced-motion setting."
       },
       {
-        "title": "Checked before release",
-        "text": "Regression tests cover click and drag behavior, cancellation, resizing, visibility and centering. Native GNOME checks also exercise the handle and theme switching. New ISO downloads and checksums appear only after both architecture builds pass verification and finish publishing."
+        "title": "Dock",
+        "text": "The dock moves out of the way when a window reaches its area, including in the live session."
       }
     ]
   },
   {
     "id": "2026-11-14",
     "date": "2026-11-14",
-    "title": "InfinityOS _02: a smoother desktop and fresh downloads",
-    "summary": "The latest 24 hours brought new ARM64 and x64 images, direct downloads, a more capable terminal, simpler setup and fixes across gaming, NVIDIA installation and system updates.",
+    "title": "ARM64 and x64 images, NVIDIA and Steam fixes",
+    "summary": "New Fedora 45 images, direct downloads and fixes for installation, Steam and the desktop tools.",
     "buildSha": "d100c91286f61d3b8fd5388601a1c7d105d21954",
     "changes": [
       {
-        "title": "Fresh ARM64 and x64 images",
-        "text": "Both Fedora 45 and GNOME 51 live images were built and verified from the same source revision. Downloads now open the ISO directly from Cloudflare R2; filenames, sizes and MD5 and SHA-256 checksums on the website come from the verified release manifest. Future successful builds replace the published pair automatically."
+        "title": "Downloads",
+        "text": "ARM64 and x64 ISOs are available directly from R2. The website reads filenames, sizes and MD5/SHA-256 checksums from the release manifest."
       },
       {
-        "title": "NVIDIA prepared before first boot",
-        "text": "On supported x64 NVIDIA hardware, installation now builds and checks the driver modules, rebuilds the boot image and updates the rEFInd copy before finishing. A failed driver setup stops installation instead of leaving the problem for the first desktop session. Network access is required."
+        "title": "NVIDIA installation",
+        "text": "On supported x64 hardware, installation builds and checks the driver modules before finishing. Driver failures stop installation rather than appearing at first boot. This step needs an internet connection."
       },
       {
-        "title": "Steam starts reliably on desktop and TV",
-        "text": "Desktop Steam and TV Mode now use the working runtime launcher. TV session startup, exit behavior and installation defaults were corrected. Steam remains closed after TV Mode setup so its first update can finish from the desktop."
+        "title": "Steam and TV Mode",
+        "text": "Both use the working Steam runtime launcher. TV-session startup and exit were corrected. Steam stays closed after setup so its first update can finish from the desktop."
       },
       {
-        "title": "A simpler first run",
-        "text": "InfinitySetup opens on the System tab with a centered loading message. Its search spans categories, while InfinityConfig drops its unnecessary search bar. Setup and Config retain their app icons, dock favorites appear in the app grid, and several changes applied together need only one administrator authentication."
+        "title": "InfinitySetup and InfinityConfig",
+        "text": "Setup opens on the System tab and searches across categories. Config's unused search bar was removed. Both apps have their own icons, and grouped setup changes need one administrator authorization."
       },
       {
-        "title": "A more useful InfinityTerminal",
-        "text": "Configurable widgets add available CPU and GPU readings, timers, Pomodoro, network transfer, battery, weather and a second time zone. Monitors can be moved and are centered in the terminal. The drop-down animation now enters fully from above the screen, and its panel icon follows the active theme."
+        "title": "InfinityTerminal",
+        "text": "Added configurable system readings, timers, Pomodoro, network transfer, battery, weather and a second time zone. The widget row can be reordered. The terminal now starts its opening animation fully above the screen."
       },
       {
-        "title": "A smoother InfinityUpdater",
-        "text": "The update drawer opens with a softer motion and keeps its actions readable in light and dark themes. Downloaded offline updates now trigger a notification with a localized restart action. Restart handling and update completion messages were also corrected."
+        "title": "InfinityUpdater",
+        "text": "Adjusted the opening animation and button contrast in both themes. Offline updates now show a restart notification. Restart handling and completion messages were fixed."
       },
       {
-        "title": "Desktop details and extensions",
-        "text": "Desktop icons and dock artwork are more compact, mounted-drive icons match the InfinityOS palette, and NowPlay and Raccoon Launcher are bundled. Animation fixes and native GNOME extension checks improve reliability, including with reduced motion enabled."
+        "title": "Desktop",
+        "text": "Adjusted desktop and dock icon sizes and mounted-drive artwork. NowPlay and Raccoon Launcher are included."
       },
       {
-        "title": "News from the live desktop",
-        "text": "Firefox in the live installer opens this changelog, making the latest build notes available before installation."
+        "title": "Live installer",
+        "text": "Firefox opens the changelog instead of the Fedora start page."
       }
     ]
   }

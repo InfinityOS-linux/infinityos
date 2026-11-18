@@ -323,6 +323,8 @@ for required in \
     usr/share/gnome-shell/extensions/caffeine@patapon.info/extension.js \
     usr/share/gnome-shell/extensions/GPaste@gnome-shell-extensions.gnome.org/extension.js \
     usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/extension.js \
+    usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/dock-outline.mjs \
+    usr/share/gnome-shell/extensions/infinity-updater@infinityos.org/panel-backdrop.js \
     usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/schemas/gschemas.compiled \
     usr/share/gnome-shell/extensions/vertical-workspaces@G-dH.github.com/extension.js \
     etc/dconf/db/local; do

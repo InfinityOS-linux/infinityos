@@ -13,7 +13,8 @@ function fixture() {
         get_compositor_private: () => ({opacity: 255}),
         move_resize_frame(_user, x, y, width, height) {moves++; Object.assign(rect, {x, y, width, height});},
         move_frame(_user, x, y) {Object.assign(rect, {x, y});},
-        maximize() {rect.height = 960;}, unmaximize() {}};
+        maximize(...args) {assert.equal(args.length, 0); rect.height = 960;},
+        unmaximize(...args) {assert.equal(args.length, 0);}};
     const handle = {visible: true, set_cursor_type(value) {cursor = value;}, set_position(x, y) {this.x = x; this.y = y;}, set_size() {}};
     const layout = {primaryMonitor: {x: 0, y: 0, width: 1600, height: 1000}};
     const controller = vm.runInNewContext(`${source}\nnew InfinityTerminal()`, {
@@ -72,6 +73,17 @@ test('hover changes cursor but cannot resize, even after a lost release', () => 
     const height = f.rect.height;
     f.event(1, 900, 1300);
     assert.equal(f.rect.height, height);
+});
+
+test('shrinking a full-height terminal unmaximizes without obsolete flags', () => {
+    const f = fixture();
+    f.controller._fullHeight = true;
+    f.event(2, 536, 1000);
+    f.frame(760);
+    assert.equal(f.controller._fullHeight, false);
+    assert.equal(f.rect.height, 724);
+    f.event(3, 760, 1200);
+    assert.equal(f.grabs, f.dismissals);
 });
 test('fast motion is coalesced into one resize using the latest pointer position', () => {
     const f = fixture();
