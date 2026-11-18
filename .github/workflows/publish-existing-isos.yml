@@ -1,0 +1,54 @@
+name: Publish existing verified ISOs to R2
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Completed Build verified InfinityOS ISOs run ID
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: infinityos-reviewed-iso
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify source build and resolve its revision
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > "$RUNNER_TEMP/source-run.json"
+          jq -e --arg repo "$GITHUB_REPOSITORY" '.repository.full_name == $repo and .head_branch == "main" and .head_repository.full_name == $repo and .path == ".github/workflows/build-arm-iso.yml" and .event == "workflow_dispatch" and .status == "completed"' "$RUNNER_TEMP/source-run.json"
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name == "Build ISO (aarch64)" or .name == "Build ISO (x86_64)") | {name, conclusion}' | jq -se 'length == 2 and all(.conclusion == "success")'
+          revision=$(jq -r '.head_sha' "$RUNNER_TEMP/source-run.json")
+          [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+      - name: Free disposable runner space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+      - uses: actions/download-artifact@v7
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.source_run_id }}
+          pattern: InfinityOS-*-${{ steps.source.outputs.revision }}
+          path: ${{ runner.temp }}/iso-downloads
+          merge-multiple: true
+      - name: Publish verified pair with the current uploader
+        env:
+          SOURCE_REVISION: ${{ steps.source.outputs.revision }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          R2_PUBLIC_URL: ${{ vars.R2_PUBLIC_URL }}
+        run: python3 scripts/publish-infinity-isos-r2 "$RUNNER_TEMP/iso-downloads" "$SOURCE_REVISION"
