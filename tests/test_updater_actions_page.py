@@ -69,6 +69,7 @@ class UpdaterActionsTests(unittest.TestCase):
                             button.set_state_flags(state, True)
                             self.assertEqual(alpha(button, 20, 50), 0, 'shadow left of button')
                             self.assertEqual(alpha(button, 100, 20), 0, 'shadow above button')
+                            self.assertEqual(alpha(button, 100, 23), 0, 'external focus outline')
                             self.assertEqual(alpha(button, 24, 24), 0, 'square button corner')
                             self.assertGreater(alpha(button, 100, 50), 240, 'button stays opaque')
                             button.remove_css_class(name)

@@ -157,6 +157,7 @@ window.infinity-updater.shell-backdrop button:focus-visible {
   border-color: #bfa1e5;
 }
 window.infinity-updater.shell-backdrop.light-mode button:focus-visible {
+  outline: none;
   border-color: #604583;
 }
 window.infinity-updater.shell-backdrop button.primary { padding: 7px 16px; }
