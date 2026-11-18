@@ -312,24 +312,22 @@ export default class Smoke extends Extension {
         check(drawerBackdrop.backdrop.background.width === frame.width &&
             drawerBackdrop.backdrop.background.height === frame.height, 'updater blur does not fill the drawer');
         check(drawer.get_children().indexOf(drawerBackdrop.container) === 0, 'updater blur covers GTK contents');
-        const seat = global.stage.context.get_backend().get_default_seat();
-        const pointer = seat.create_virtual_device(Clutter.InputDeviceType.POINTER_DEVICE);
-        for (const button of readBackdrop().buttons) {
-            const [originX, originY] = drawer.get_transformed_position();
-            const targetX = originX + button.x + button.width / 2;
-            const targetY = originY + button.y + button.height / 2;
-            seat.warp_pointer(Math.round(targetX), Math.round(targetY));
-            await wait();
-            if (!readBackdrop().buttons.some(item => item.hover)) {
-                const [pointerX, pointerY] = global.get_pointer();
-                pointer.notify_relative_motion(GLib.get_monotonic_time(), targetX - pointerX, targetY - pointerY);
+        // Headless input can clamp virtual pointers to the top edge. Drive the
+        // real GTK hover/focus states instead; GTK still submits its production
+        // render nodes and Wayland surface damage to the native compositor.
+        const inputPath = GLib.getenv('INFINITY_SMOKE_BACKDROP_REPORT').replace(/\.json$/, '.input');
+        for (const mode of ['hover', 'focus']) {
+            for (let index = 0; index < readBackdrop().buttons.length; index++) {
+                GLib.file_set_contents(inputPath, JSON.stringify([index, mode]));
                 await wait();
+                check(readBackdrop().buttons[index][mode], `GTK did not apply ${mode} to action ${index}`);
+                check(redrawOwner.fullRedraw, 'control damage disabled complete-frame blur repaint');
             }
-            check(readBackdrop().buttons.some(item => item.hover),
-                `pointer missed GTK button: target=${targetX},${targetY} origin=${originX},${originY} pointer=${global.get_pointer()} report=${JSON.stringify(readBackdrop())}`);
-            check(redrawOwner.fullRedraw, 'hover disabled complete-frame blur repaint');
         }
-        seat.warp_pointer(10, 100);
+        GLib.file_set_contents(inputPath, JSON.stringify([-1, 'hover']));
+        await wait();
+        check(readBackdrop().buttons.every(button => !button.hover && !button.focus),
+            'GTK retained a hover/focus state after exit');
         blurController.enabled = false; updater._drawerBackdrop.syncAll(); await wait();
         check(!readBackdrop().transparent, 'GTK did not restore its fallback when blur stopped');
         check(!redrawOwner.fullRedraw, 'blur loss left full repaint enabled');

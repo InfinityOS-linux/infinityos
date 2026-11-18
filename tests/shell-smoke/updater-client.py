@@ -26,21 +26,38 @@ Updater.watch_state = lambda self: None
 Updater.on_refresh = lambda self, *args, **kwargs: None
 app = Updater()
 report = Path(os.environ['INFINITY_SMOKE_BACKDROP_REPORT'])
+command = report.with_suffix('.input')
+last_command = None
 theme = Gtk.CssProvider()
 theme.load_from_path(os.environ['INFINITY_SMOKE_GTK_THEME'])
 Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), theme,
                                           Gtk.STYLE_PROVIDER_PRIORITY_USER)
 
 def observe():
+    global last_command
     window = getattr(app, 'window', None)
     buttons = []
     if window:
-        for button in (app.refresh, app.history_button, app.apply):
+        controls = (app.refresh, app.history_button, app.apply)
+        if command.exists():
+            request = command.read_text()
+            if request != last_command:
+                last_command = request
+                index, mode = json.loads(request)
+                for number, button in enumerate(controls):
+                    button.unset_state_flags(Gtk.StateFlags.PRELIGHT | Gtk.StateFlags.FOCUSED |
+                                             Gtk.StateFlags.FOCUS_VISIBLE)
+                    if number == index:
+                        flags = (Gtk.StateFlags.PRELIGHT if mode == 'hover' else
+                                 Gtk.StateFlags.FOCUSED | Gtk.StateFlags.FOCUS_VISIBLE)
+                        button.set_state_flags(flags, False)
+        for button in controls:
             ok, rect = button.compute_bounds(window)
             if ok:
                 buttons.append({'x': rect.get_x(), 'y': rect.get_y(),
                                 'width': rect.get_width(), 'height': rect.get_height(),
-                                'hover': bool(button.get_state_flags() & Gtk.StateFlags.PRELIGHT)})
+                                'hover': bool(button.get_state_flags() & Gtk.StateFlags.PRELIGHT),
+                                'focus': bool(button.get_state_flags() & Gtk.StateFlags.FOCUS_VISIBLE)})
     data = {'transparent': bool(window and window.has_css_class('shell-backdrop')),
             'buttons': buttons}
     pending = report.with_suffix('.tmp')
