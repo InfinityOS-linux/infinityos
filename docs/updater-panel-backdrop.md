@@ -18,6 +18,10 @@ backdrop. The extension exports a `Ready` property on
 changes and Shell owner loss. A delayed setup or a failed first attempt can recover
 while the window stays open, without a blocking extension-state RPC.
 The header and footer add a subtle black overlay in both color schemes.
+With a ready backdrop, GTK window shadows, button ripple filters and the external
+restart glow are disabled. Buttons keep their opaque rounded fill and an inset
+keyboard focus outline; these controls must not paint rectangular shadow bounds
+over the transparent window. The opaque fallback retains its existing styling.
 Without the extension the app keeps its opaque fallback; disabling panel blur
 also restores an opaque backdrop. Closing/minimizing the drawer, disabling the
 extension, and rebuilding the panel release the extra effects and timers.
@@ -37,6 +41,10 @@ After updating the extension RPMs, sign out and back in on Wayland. Check the
 lower dock arcs at 100%, fractional and 200% scale, then open/close the drawer,
 switch themes and monitors, and change the panel's static/dynamic blur settings.
 Confirm that header/footer shading is subtle and GTK labels/buttons stay sharp.
+The GTK gate renders the window surface and every action button against the
+bundled light/dark Orchis theme in normal, hover, pressed, keyboard-focus,
+unfocused and disabled states. It checks that button corners and surrounding
+pixels stay transparent while button fills remain opaque.
 Check that a user-installed copy of an extension is not masking the RPM files.
 
 Rebuild `infinity-updater` and `infinityos-shell-extensions` from the same commit
