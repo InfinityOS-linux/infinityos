@@ -7,8 +7,9 @@ Both images use a common canvas and palm hotspot so the drag origin stays put.
 The waiting cursor replaces the inherited beachball for both `wait` and
 `progress` (including application startup, such as opening a folder). Only the
 four fingers drum in sequence. The palm, thumb, cuff and hotspot stay fixed;
-the lower hand pixels are identical in every frame. Each tap has six 35 ms
-samples, followed by a 650 ms resting pause. X11 and legacy toolkit aliases
+the lower hand pixels are identical in every frame. Tapping begins immediately. Each tap has six 20 ms
+samples; the four-finger sequence ends with an 80 ms pause (560 ms per loop).
+There is no initial idle delay, so short folder launches show finger motion. X11 and legacy toolkit aliases
 resolve to the same native animation.
 
 `waiting-hand.svg` is the neutral artwork reference. The fingertip control
