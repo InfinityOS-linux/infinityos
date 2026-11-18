@@ -441,6 +441,9 @@ def main():
                 self.render()
 
         def do_shutdown(self):
+            cancel = getattr(self, '_shell_proxy_cancel', None)
+            if cancel:
+                cancel.cancel()
             proxy = getattr(self, '_shell_proxy', None)
             if proxy:
                 for signal in self._shell_proxy_signals:
@@ -454,29 +457,34 @@ def main():
         def _setup_shell_backdrop(self):
             self._shell_proxy = None
             self._shell_proxy_signals = []
-            try:
-                self._shell_proxy = Gio.DBusProxy.new_for_bus_sync(
-                    Gio.BusType.SESSION, Gio.DBusProxyFlags.DO_NOT_AUTO_START, None,
-                    'org.gnome.Shell', '/org/gnome/Shell/Extensions',
-                    'org.gnome.Shell.Extensions', None)
+            self._shell_proxy_cancel = Gio.Cancellable()
+
+            def connected(_source, result):
+                try:
+                    proxy = Gio.DBusProxy.new_for_bus_finish(result)
+                except GLib.Error:
+                    return
+                self._shell_proxy = proxy
                 self._shell_proxy_signals.append(self._shell_proxy.connect(
-                    'g-signal', lambda _proxy, _sender, name, _params:
-                    self._sync_shell_backdrop() if name == 'ExtensionStateChanged' else None))
+                    'g-properties-changed', self._sync_shell_backdrop))
                 self._shell_proxy_signals.append(self._shell_proxy.connect(
                     'notify::g-name-owner', self._sync_shell_backdrop))
-            except GLib.Error:
-                pass
+                self._sync_shell_backdrop()
+
+            # The Shell confirms that this window has a working backdrop.
+            # Extension state alone does not mean the blur is ready to paint.
+            Gio.DBusProxy.new_for_bus(
+                Gio.BusType.SESSION, Gio.DBusProxyFlags.DO_NOT_AUTO_START, None,
+                'org.gnome.Shell', '/org/infinityos/UpdaterBackdrop',
+                'org.infinityos.UpdaterBackdrop', self._shell_proxy_cancel, connected)
             self._sync_shell_backdrop()
 
         def _sync_shell_backdrop(self, *_args):
             active = False
             try:
                 if self._shell_proxy and self._shell_proxy.get_name_owner():
-                    reply = self._shell_proxy.call_sync('GetExtensionInfo',
-                        GLib.Variant('(s)', ('infinity-updater@infinityos.org',)),
-                        Gio.DBusCallFlags.NONE, 300, None)
-                    state = reply.unpack()[0].get('state')
-                    active = (state.unpack() if hasattr(state, 'unpack') else state) == 1
+                    ready = self._shell_proxy.get_cached_property('Ready')
+                    active = ready is not None and ready.unpack() is True
             except GLib.Error:
                 pass
             if active:
@@ -876,4 +884,3 @@ def main():
             self.progress.set_visible(False)
 
     return Updater().run(sys.argv)
-

@@ -8,7 +8,9 @@ const source = readFileSync(new URL('../packages/infinity-updater/root/usr/share
 
 function fixture() {
     let next = 1, theme = 'prefer-dark';
-    const timers = new Map(), records = [];
+    const timers = new Map(), records = [], properties = [];
+    const bus = {export() {}, unexport() {this.unexported = true;},
+        emit_property_changed(name, value) {properties.push([name, value.value]);}};
     class Actor {
         constructor(props = {}) { Object.assign(this, {children: [], signals: new Map(), visible: true, opacity: 255}, props); }
         connect(name, callback) { const id = next++; this.signals.set(id, {name, callback}); return id; }
@@ -40,14 +42,16 @@ function fixture() {
         }};
     const global = {blur_my_shell: {_panel_blur: blur}};
     const Helper = vm.runInNewContext(`${source}\nPanelBackdrop`, {
-        Gio: {Settings: class {constructor() {return settings;}}},
+        Gio: {Settings: class {constructor() {return settings;}},
+            DBusExportedObject: {wrapJSObject: () => bus}, DBus: {session: {}}},
         GLib: {PRIORITY_DEFAULT: 0, SOURCE_CONTINUE: true,
+            Variant: class {constructor(_type, value) {this.value = value;}},
             timeout_add(_priority, _ms, callback) { const id = next++; timers.set(id, callback); return id; },
             Source: {remove: id => timers.delete(id)}},
         St: {Widget: Actor}, Main: {panel, extensionManager: manager,
             layoutManager: {primaryIndex: 0, monitors: [{x: 0, y: 0}, {x: 1280, y: 0}]}}, global, console,
     });
-    return {helper: new Helper(), actor, window, frame, buffer, panel, blur, global, timers, records,
+    return {helper: new Helper(), actor, window, frame, buffer, panel, blur, global, timers, records, properties, bus,
         Actor, theme(value) {theme = value;}};
 }
 
@@ -66,6 +70,32 @@ test('wallpaper follows monitor coordinates behind sharp GTK contents and exclud
     assert.equal(e.backdrop.background.x, -160);
     f.helper.destroy(); assert.equal(f.timers.size, 0);
     assert.equal(f.actor.children.length, 1);
+});
+
+test('GTK becomes transparent only after a backdrop exists, and returns opaque on teardown', () => {
+    const f = fixture(); f.blur.enabled = false;
+    f.helper.attach(f.window);
+    assert.equal(f.helper.Ready, false);
+    assert.deepEqual(f.properties, []);
+    f.blur.enabled = true; f.helper.syncAll();
+    assert.equal(f.helper.Ready, true);
+    assert.deepEqual(f.properties, [['Ready', true]]);
+    f.helper.syncAll(); assert.equal(f.properties.length, 1);
+    f.helper.detach(f.window);
+    assert.equal(f.helper.Ready, false);
+    assert.deepEqual(f.properties, [['Ready', true], ['Ready', false]]);
+    f.helper.destroy(); assert(f.bus.unexported);
+});
+
+test('a failed backdrop creation is retried without requiring a settings change', () => {
+    const f = fixture(), create = f.blur.createMatchingBackdrop;
+    f.blur.createMatchingBackdrop = () => null;
+    f.helper.attach(f.window);
+    assert.equal(f.helper.Ready, false);
+    f.blur.createMatchingBackdrop = create;
+    f.helper.syncAll();
+    assert.equal(f.helper.Ready, true);
+    f.helper.destroy();
 });
 
 test('dynamic blur fills the drawer and reconnects after preset changes and panel resets', () => {

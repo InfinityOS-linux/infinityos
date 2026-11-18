@@ -273,28 +273,22 @@ export default class Smoke extends Extension {
         updater._refresh();
         check(!updater._indicator.visible && !updater._badge.visible,
             'empty update list left the indicator visible');
-        const client = Gio.Subprocess.new(['python3', '-c', `
-import gi
-gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk
-app = Gtk.Application(application_id='org.infinityos.Updater')
-def activate(app):
-    from gi.repository import Gdk
-    css = Gtk.CssProvider()
-    css.load_from_data(b'window { background: transparent; }')
-    Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css, 800)
-    window = Gtk.ApplicationWindow(application=app, title='InfinityUpdater smoke')
-    window.set_decorated(False)
-    window.set_default_size(160, 100)
-    window.set_child(Gtk.Label(label='Updater'))
-    window.present()
-app.connect('activate', activate)
-app.run(None)
-`], Gio.SubprocessFlags.NONE);
+        blurController.enabled = false;
+        const client = Gio.Subprocess.new(['python3', this.dir.get_child('updater-client.py').get_path()],
+            Gio.SubprocessFlags.NONE);
         this._objects.push({disable: () => client.force_exit()});
         await wait(); await wait(); await wait();
         const drawer = global.get_window_actors().find(actor => updater._isUpdater(actor.meta_window));
         check(drawer, 'updater client did not map');
+        const readBackdrop = () => {
+            const [, bytes] = GLib.file_get_contents(GLib.getenv('INFINITY_SMOKE_BACKDROP_REPORT'));
+            return JSON.parse(new TextDecoder().decode(bytes)).transparent;
+        };
+        check(!readBackdrop(), 'GTK became transparent before its blur was ready');
+        blurController.enabled = true;
+        updater._drawerBackdrop.syncAll();
+        await wait();
+        check(readBackdrop(), 'real updater retained its opaque GTK background over the blur');
         const frame = drawer.meta_window.get_frame_rect();
         const area = Main.layoutManager.getWorkAreaForMonitor(drawer.meta_window.get_monitor());
         check(frame.width === Math.min(460, area.width) && frame.height === area.height, 'updater remained at initial size');
@@ -305,6 +299,14 @@ app.run(None)
         check(drawerBackdrop.backdrop.background.width === frame.width &&
             drawerBackdrop.backdrop.background.height === frame.height, 'updater blur does not fill the drawer');
         check(drawer.get_children().indexOf(drawerBackdrop.container) === 0, 'updater blur covers GTK contents');
+        blurController.enabled = false; updater._drawerBackdrop.syncAll(); await wait();
+        check(!readBackdrop(), 'GTK did not restore its fallback when blur stopped');
+        blurController.enabled = true; updater._drawerBackdrop.syncAll(); await wait();
+        check(readBackdrop(), 'GTK did not recover when blur returned');
+        updater._drawerBackdrop.detach(drawer.meta_window); await wait();
+        check(!readBackdrop(), 'GTK remained transparent after the backdrop was detached');
+        updater._drawerBackdrop.attach(drawer.meta_window); await wait();
+        check(readBackdrop(), 'GTK did not recover after reattaching the backdrop');
         this.disable();
         console.log('INFINITY_SMOKE_PASS');
     }
@@ -314,6 +316,3 @@ app.run(None)
         this._objects = [];
     }
 }
-
-
-

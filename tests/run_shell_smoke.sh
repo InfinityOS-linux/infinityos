@@ -36,6 +36,8 @@ if grep -n 'const animateUp' "$SMOKE_EXTENSIONS/nowplay@LalaloyXyz/ui.js"; then
     echo 'Obsolete recursive equalizer implementation'; exit 1
 fi
 export SMOKE_LOG="$sandbox/shell.log"
+export INFINITY_SMOKE_UPDATER="$repo/packages/infinity-updater/root/usr/share/infinityos/updater/updater.py"
+export INFINITY_SMOKE_BACKDROP_REPORT="$sandbox/updater-backdrop.json"
 dbus-run-session -- bash -euo pipefail -c '
     # Test vendored code, never replace it with extensions.gnome.org downloads.
     gsettings set org.gnome.shell allow-extension-installation false
@@ -56,5 +58,3 @@ dbus-run-session -- bash -euo pipefail -c '
     cat "$SMOKE_LOG"; exit 1
 '
 cat "$SMOKE_LOG"
-
-

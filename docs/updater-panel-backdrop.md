@@ -11,8 +11,13 @@ sigma/brightness settings as the top panel. Each surface owns its effects and
 follows its monitor's wallpaper coordinates. Panel tint layers are applied in
 paint order; the window contents retain full opacity and sharp text.
 
-The GTK content area is transparent only while the updater Shell extension is
-active. The header and footer add a subtle black overlay in both color schemes.
+The GTK content area is transparent only after the Shell has created a working
+backdrop. The extension exports a `Ready` property on
+`org.gnome.Shell`, path `/org/infinityos/UpdaterBackdrop`, interface
+`org.infinityos.UpdaterBackdrop`. GTK loads it asynchronously and follows property
+changes and Shell owner loss. A delayed setup or a failed first attempt can recover
+while the window stays open, without a blocking extension-state RPC.
+The header and footer add a subtle black overlay in both color schemes.
 Without the extension the app keeps its opaque fallback; disabling panel blur
 also restores an opaque backdrop. Closing/minimizing the drawer, disabling the
 extension, and rebuilding the panel release the extra effects and timers.
@@ -22,8 +27,11 @@ extension, and rebuilding the panel release the extra effects and timers.
 Run the dock-border, dock-outline, updater-indicator, updater-panel-backdrop,
 and panel-matching-backdrop Node tests and the updater backdrop Python tests.
 Run the Fedora GTK gate and GNOME 51 native Shell smoke test before release.
-The native test paints the dock contour and opens a transparent updater client
-over a real native blur produced by the panel factory.
+The native test paints the dock contour and opens the production updater window
+and stylesheet over the real native blur produced by the panel factory. It checks
+that GTK is opaque before blur is ready, transparent after setup, and switches back
+and recovers when the blur is disabled, detached and reattached. Only package IO
+is stubbed in this client.
 
 After updating the extension RPMs, sign out and back in on Wayland. Check the
 lower dock arcs at 100%, fractional and 200% scale, then open/close the drawer,
