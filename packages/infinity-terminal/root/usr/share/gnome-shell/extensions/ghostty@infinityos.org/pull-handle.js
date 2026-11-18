@@ -33,7 +33,10 @@ class InfinityTerminalPanelBackdropClip extends Clutter.Effect {
     vfunc_paint(_node, context, _flags) {
         const actor = this.get_actor();
         const framebuffer = context.get_framebuffer();
-        const view = context.get_stage_view();
+        // PaintContext.get_stage_view() is not exposed to GJS. Resolve the
+        // compositor view through the panel's public Actor API instead.
+        const views = Main.panel.peek_stage_views();
+        const view = views.find(candidate => candidate.get_framebuffer() === framebuffer) ?? views[0];
         const region = this.handle.backdropRegion(view, framebuffer);
         if (!region) {
             actor.continue_paint(context);

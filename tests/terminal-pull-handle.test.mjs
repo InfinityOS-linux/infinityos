@@ -53,6 +53,20 @@ test('late and rebuilt native panel backdrops reconnect without changing handle 
  f.handle.sync(); assert.equal(refreshed,3);
  assert.equal(repainted,4);
 });
+
+test('native clip paints through the GNOME 51 GJS API without PaintContext.get_stage_view', () => {
+ const f=fixture();
+ f.Main.panel.get_transformed_position=()=>[0,0];
+ const calls=[];
+ const framebuffer={push_region_clip(region){calls.push(region.rows);},pop_clip(){calls.push('pop');}};
+ const view={get_layout:()=>({x:0,y:0}),get_scale:()=>1,get_framebuffer:()=>framebuffer};
+ f.Main.panel.peek_stage_views=()=>[view];
+ const clip=f.handle.createBackdropClip();
+ clip.get_actor=()=>({continue_paint(){calls.push('paint');}});
+ clip.vfunc_paint(null,{get_framebuffer:()=>framebuffer},0);
+ assert(calls[0].some(row=>row.y>32), 'blur includes the handle');
+ assert.deepEqual(calls.slice(1),['paint','pop']);
+});
 test('symmetric curve stays screen-centered despite stale clock allocation',()=>{
     const f=fixture();assert.equal(f.handle.actor.x,660);assert.equal(f.handle.actor.y,30);f.handle.paint();
     const curves=f.drawing.filter(x=>x[0]==='curveTo');assert.equal(curves.length,4);
