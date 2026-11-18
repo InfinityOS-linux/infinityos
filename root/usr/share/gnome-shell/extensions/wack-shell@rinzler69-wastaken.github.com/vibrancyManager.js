@@ -634,6 +634,7 @@ export default class VibrancyManager {
             return;
 
         if (!imagePath) {
+            backdrop._infinityPanelStrip = null;
             if (this._panelBackdropStyle !== null) {
                 backdrop.set_style(null);
                 this._panelBackdropStyle = null;
@@ -644,6 +645,7 @@ export default class VibrancyManager {
 
         // The backdrop is a real child actor, not Main.panel's CSS background.
         // Give it the exact panel allocation and clip its paint to that actor.
+        backdrop._infinityPanelStrip = {path: imagePath, width: this._panelStripWidth};
         const imageUri = Gio.File.new_for_path(imagePath).get_uri();
         const style = [
             `background-image: url("${imageUri}") !important;`,

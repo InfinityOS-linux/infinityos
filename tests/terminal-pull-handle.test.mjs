@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/pull-handle.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace('export class', 'class');
 function fixture() {
     let fullscreen = false, toggle = 0, shown = 0, hidden = 0, grabs = 0, dismissed = 0;
-    const signal = {connect() { return 1; }, disconnect() {}};
+    const signal = {connect() { return 1; }, disconnect() {}, connectObject() {}, disconnectObject() {}};
     const drawing = [];
     const cr = new Proxy({}, {get: (_, key) => (...args) => drawing.push([key, ...args])});
     const actor = {translation_y: 0, remove_all_transitions() {}, ease(values) { this.translation_y = values.translation_y; values.onComplete?.(); }};
@@ -16,9 +16,17 @@ function fixture() {
     const Main = {panel: {...signal, statusArea: {dateMenu: {...signal, get_transformed_position: () => [662, 0], get_transformed_size: () => [100, 32]}},
         get_transformed_position: () => [0, -52], get_transformed_size: () => [1500, 32], get_theme_node: () => ({get_background_color: () => ({red: 11, green: 9, blue: 18, alpha: 255})})},
         layoutManager: {...signal, primaryMonitor: {index: 0, x:0, y: 0,width:1500}, addTopChrome() {}, removeChrome() {}}, overview: {...signal, visible: false}, sessionMode: {...signal, isLocked: false}};
-    const context = {Shell: {Screenshot: class {pick_color(x,y,callback){terminal.sampleCallback=callback;} pick_color_finish(){return [true,{red:20,green:25,blue:30}];}}}, Meta: {MaximizeFlags: {VERTICAL: 2}}, Gio: {Settings: class {constructor(){Object.assign(this, signal);} get_string(){return terminal.scheme || 'prefer-dark';}}}, GLib: {PRIORITY_DEFAULT: 0, timeout_add: () => 1, Source: {remove() {}}}, Main, Atk: {Role: {PUSH_BUTTON: 1}}, console,
-        St: {DrawingArea: class {constructor() {Object.assign(this, signal); this.visible = true;} contains(a) {return a === this;} set_pivot_point() {} ease(values) {Object.assign(this, values);} set_size(w,h) {this.width=w;this.height=h;} set_position(x,y) {this.x=x;this.y=y;} queue_repaint() {} get_context() {return cr;} get_surface_size() {return [180,18];} hide() {this.visible=false;} destroy() {}}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}, Settings: {get: () => ({enable_animations: true})}},
-        Clutter: {EventType: {BUTTON_PRESS: 1, BUTTON_RELEASE: 2, MOTION: 3, KEY_PRESS: 4}, ModifierType: {BUTTON1_MASK: 1}, KEY_Escape: 27, KEY_Return: 13, KEY_space: 32, EVENT_STOP: true, EVENT_PROPAGATE: false, AnimationMode: {EASE_OUT_CUBIC: 1}},
+    const context = {
+        GObject: {registerClass: klass => klass},
+        Mtk: {Region: {create() {return {rows: [], union_rectangle(rect) {this.rows.push(rect);}};}},
+            Rectangle: class {constructor(rect) {Object.assign(this, rect);}}},
+        Cairo: {ImageSurface: {createFromPNG: path => ({path, getWidth: () => 3000})}},
+        Meta: {MaximizeFlags: {VERTICAL: 2}}, Gio: {Settings: class {constructor(){Object.assign(this, signal);} get_string(){return terminal.scheme || 'prefer-dark';}}}, GLib: {PRIORITY_DEFAULT: 0, timeout_add: () => 1, Source: {remove() {}}}, Main, Atk: {Role: {PUSH_BUTTON: 1}}, console,
+        St: {DrawingArea: class {constructor() {Object.assign(this, signal); this.visible = true; this.mapped = true;}
+            get_transformed_position() {return [this.x + this.width * (1 - this.scale_x) / 2, this.y];}
+            get_transformed_size() {return [this.width * this.scale_x, this.height * this.scale_y];}
+            contains(a) {return a === this;} set_pivot_point() {} ease(values) {Object.assign(this, values);} set_size(w,h) {this.width=w;this.height=h;} set_position(x,y) {this.x=x;this.y=y;} queue_repaint() {} get_context() {return cr;} get_surface_size() {return [180,18];} hide() {this.visible=false;} destroy() {}}, ThemeContext: {get_for_stage: () => ({scale_factor: 1})}, Settings: {get: () => ({enable_animations: true})}},
+        Clutter: {Effect: class {}, EventType: {BUTTON_PRESS: 1, BUTTON_RELEASE: 2, MOTION: 3, KEY_PRESS: 4}, ModifierType: {BUTTON1_MASK: 1}, KEY_Escape: 27, KEY_Return: 13, KEY_space: 32, EVENT_STOP: true, EVENT_PROPAGATE: false, AnimationMode: {EASE_OUT_CUBIC: 1}},
         global: {get_current_time: () => 1, get_window_actors: () => terminal.windows || [], display: {...signal, get_monitor_in_fullscreen: () => fullscreen}, stage: {...signal, set_key_focus() {}, get_event_actor: () => handle.actor, grab() {grabs++;return {dismiss() {dismissed++;}};}}}, terminal};
     context.St.Widget = context.St.DrawingArea;
     const handle = vm.runInNewContext(`${source}\nnew TerminalPullHandle(terminal)`,context);
@@ -119,26 +127,42 @@ test('clock correction is stable and follows text-width and allocation changes',
  f.handle.destroy(); assert.equal(clock.translation_x,0);
 });
 
-test('handle paints sampled composited panel color rather than a fixed dark fallback', () => {
+test('native panel blur extends through the contour and follows compact mode', () => {
  const f=fixture();
- f.handle.panelColor=[30,25,42]; f.handle.paint();
- assert(f.drawing.some(call=>call[0]==='setSourceRGBA' && call[1]===30/255 && call[2]===25/255 && call[3]===42/255));
-});
-
-
-test('panel sampler accepts GI boolean/color results and ignores completion after destruction', () => {
- const f=fixture(); f.Main.panel.visible=true;
  f.Main.panel.get_transformed_position=()=>[0,0];
- f.handle.samplePanelColor();
- assert.equal(f.handle.sampling,true);
- const source={pick_color_finish:()=>[true,{red:20,green:25,blue:30}]};
- f.terminal.sampleCallback(source,{});
- assert.deepEqual(Array.from(f.handle.panelColor),[20,25,30]);
- f.handle.samplePanelColor(); f.handle.destroy();
- f.terminal.sampleCallback({pick_color_finish:()=>[true,{red:200,green:200,blue:200}]},{});
- assert.deepEqual(Array.from(f.handle.panelColor),[20,25,30]);
+ const framebuffer={};
+ const view={get_layout:()=>({x:0,y:0}), get_scale:()=>1, get_framebuffer:()=>framebuffer};
+ const region=()=>f.handle.backdropRegion(view, framebuffer).rows;
+ const rows=region();
+ assert.deepEqual({...rows[0]}, {x:0,y:0,width:1500,height:32});
+ assert.equal(rows[1].y,32);
+ assert.ok(rows[1].width>rows.at(-1).width);
+ assert.equal(rows.at(-1).x+rows.at(-1).width/2,750);
+ assert.equal(rows.at(-1).y,46);
+ f.window.minimized=false;
+ f.handle.sync();
+ assert.ok(region().length<rows.length);
+ assert.equal(f.handle.panelLine.width,705);
+ assert.equal(f.handle.panelLineRight.x,795);
+ f.fullscreen(true);
+ assert.equal(region().length,1);
 });
 
+test('static vibrancy uses the panel strip at the same stage coordinates and reapplies its tint', () => {
+ const f=fixture();
+ f.Main.panel.get_transformed_position=()=>[0,0];
+ const tint={name:'wackPanelProximityOverlay',visible:true,opacity:128,
+     get_theme_node:()=>({get_background_color:()=>({red:30,green:25,blue:42,alpha:128})})};
+ f.Main.panel.get_children=()=>[
+     {name:'wackPanelBackdrop',visible:true,opacity:255,_infinityPanelStrip:{path:'/panel.png',width:1500}},
+     tint,
+ ];
+ f.handle.paint();
+ assert(f.drawing.some(call=>call[0]==='translate' && call[1]===-660 && call[2]===-30));
+ assert(f.drawing.some(call=>call[0]==='rectangle' && call[2]===2));
+ assert(f.drawing.some(call=>call[0]==='setSourceSurface' && call[1].path==='/panel.png'));
+ assert(f.drawing.some(call=>call[0]==='setSourceRGBA' && call[1]===30/255 && call[4]===(128/255)**2));
+});
 
 test('odd-width clock lands on an integer origin and does not oscillate', () => {
  const f=fixture(), clock=f.Main.panel.statusArea.dateMenu;
