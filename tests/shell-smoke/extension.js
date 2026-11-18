@@ -17,6 +17,8 @@ import Updater from '../infinity-updater@infinityos.org/extension.js';
 import {opticalMetrics} from '../dash2dock-animated@infinityos.org/optical-icons.mjs';
 import {DockBackground} from '../dash2dock-animated@infinityos.org/dockItems.js';
 import {PanelBlur} from '../blur-my-shell@aunetx/components/panel.js';
+import BlurMyShell from '../blur-my-shell@aunetx/extension.js';
+import PanelIndicators from '../wack-shell@rinzler69-wastaken.github.com/panelIndicators.js';
 
 function check(ok, message) { if (!ok) throw new Error(message); }
 
@@ -131,7 +133,17 @@ export default class Smoke extends Extension {
         blurController.actors_list.push(blurActors);
         blurController.enabled = true;
         const previousBlur = global.blur_my_shell;
-        global.blur_my_shell = {_panel_blur: blurController};
+        const redrawOwner = {_panel_blur: blurController, _settings: {HACKS_LEVEL: 1},
+            _update_clipped_redraws: BlurMyShell.prototype._update_clipped_redraws,
+            _disable_clipped_redraws() {
+                this.fullRedraw = true;
+                BlurMyShell.prototype._disable_clipped_redraws.call(this);
+            },
+            _reenable_clipped_redraws() {
+                this.fullRedraw = false;
+                BlurMyShell.prototype._reenable_clipped_redraws.call(this);
+            }};
+        global.blur_my_shell = redrawOwner;
         this._objects.push({disable: () => {
             global.blur_my_shell = previousBlur;
             blurController.enabled = false;
@@ -282,13 +294,14 @@ export default class Smoke extends Extension {
         check(drawer, 'updater client did not map');
         const readBackdrop = () => {
             const [, bytes] = GLib.file_get_contents(GLib.getenv('INFINITY_SMOKE_BACKDROP_REPORT'));
-            return JSON.parse(new TextDecoder().decode(bytes)).transparent;
+            return JSON.parse(new TextDecoder().decode(bytes));
         };
-        check(!readBackdrop(), 'GTK became transparent before its blur was ready');
+        check(!readBackdrop().transparent, 'GTK became transparent before its blur was ready');
         blurController.enabled = true;
         updater._drawerBackdrop.syncAll();
         await wait();
-        check(readBackdrop(), 'real updater retained its opaque GTK background over the blur');
+        check(readBackdrop().transparent, 'real updater retained its opaque GTK background over the blur');
+        check(redrawOwner.fullRedraw, 'dynamic drawer blur permits clipped repaint artifacts');
         const frame = drawer.meta_window.get_frame_rect();
         const area = Main.layoutManager.getWorkAreaForMonitor(drawer.meta_window.get_monitor());
         check(frame.width === Math.min(460, area.width) && frame.height === area.height, 'updater remained at initial size');
@@ -299,14 +312,31 @@ export default class Smoke extends Extension {
         check(drawerBackdrop.backdrop.background.width === frame.width &&
             drawerBackdrop.backdrop.background.height === frame.height, 'updater blur does not fill the drawer');
         check(drawer.get_children().indexOf(drawerBackdrop.container) === 0, 'updater blur covers GTK contents');
+        const pointer = global.stage.context.get_backend().get_default_seat()
+            .create_virtual_device(Clutter.InputDeviceType.POINTER_DEVICE);
+        for (const button of readBackdrop().buttons) {
+            pointer.notify_absolute_motion(GLib.get_monotonic_time(),
+                frame.x + button.x + button.width / 2, frame.y + button.y + button.height / 2);
+            await wait();
+            check(readBackdrop().buttons.some(item => item.hover), 'pointer did not hover a production GTK button');
+            check(redrawOwner.fullRedraw, 'hover disabled complete-frame blur repaint');
+        }
+        pointer.notify_absolute_motion(GLib.get_monotonic_time(), 10, 100);
         blurController.enabled = false; updater._drawerBackdrop.syncAll(); await wait();
-        check(!readBackdrop(), 'GTK did not restore its fallback when blur stopped');
+        check(!readBackdrop().transparent, 'GTK did not restore its fallback when blur stopped');
+        check(!redrawOwner.fullRedraw, 'blur loss left full repaint enabled');
         blurController.enabled = true; updater._drawerBackdrop.syncAll(); await wait();
-        check(readBackdrop(), 'GTK did not recover when blur returned');
+        check(readBackdrop().transparent, 'GTK did not recover when blur returned');
         updater._drawerBackdrop.detach(drawer.meta_window); await wait();
-        check(!readBackdrop(), 'GTK remained transparent after the backdrop was detached');
+        check(!readBackdrop().transparent, 'GTK remained transparent after the backdrop was detached');
+        check(!redrawOwner.fullRedraw, 'detaching drawer left full repaint enabled');
         updater._drawerBackdrop.attach(drawer.meta_window); await wait();
-        check(readBackdrop(), 'GTK did not recover after reattaching the backdrop');
+        check(readBackdrop().transparent, 'GTK did not recover after reattaching the backdrop');
+        const panelIndicators = new PanelIndicators();
+        this._objects.push({disable: () => panelIndicators.destroy()});
+        const powerIcon = Main.panel.statusArea.quickSettings._powerProfiles._indicator;
+        powerIcon.show();
+        check(!powerIcon.visible, 'power-profile icon reappeared after profile sync');
         this.disable();
         console.log('INFINITY_SMOKE_PASS');
     }

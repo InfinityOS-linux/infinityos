@@ -38,6 +38,7 @@ fi
 export SMOKE_LOG="$sandbox/shell.log"
 export INFINITY_SMOKE_UPDATER="$repo/packages/infinity-updater/root/usr/share/infinityos/updater/updater.py"
 export INFINITY_SMOKE_BACKDROP_REPORT="$sandbox/updater-backdrop.json"
+export INFINITY_SMOKE_GTK_THEME="$repo/root/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/gtk.css"
 dbus-run-session -- bash -euo pipefail -c '
     # Test vendored code, never replace it with extensions.gnome.org downloads.
     gsettings set org.gnome.shell allow-extension-installation false

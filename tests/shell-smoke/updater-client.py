@@ -26,10 +26,26 @@ Updater.watch_state = lambda self: None
 Updater.on_refresh = lambda self, *args, **kwargs: None
 app = Updater()
 report = Path(os.environ['INFINITY_SMOKE_BACKDROP_REPORT'])
+theme = Gtk.CssProvider()
+theme.load_from_path(os.environ['INFINITY_SMOKE_GTK_THEME'])
+Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), theme,
+                                          Gtk.STYLE_PROVIDER_PRIORITY_USER)
 
 def observe():
     window = getattr(app, 'window', None)
-    report.write_text(json.dumps({'transparent': bool(window and window.has_css_class('shell-backdrop'))}))
+    buttons = []
+    if window:
+        for button in (app.refresh, app.history_button, app.apply):
+            ok, rect = button.compute_bounds(window)
+            if ok:
+                buttons.append({'x': rect.get_x(), 'y': rect.get_y(),
+                                'width': rect.get_width(), 'height': rect.get_height(),
+                                'hover': bool(button.get_state_flags() & Gtk.StateFlags.PRELIGHT)})
+    data = {'transparent': bool(window and window.has_css_class('shell-backdrop')),
+            'buttons': buttons}
+    pending = report.with_suffix('.tmp')
+    pending.write_text(json.dumps(data))
+    pending.replace(report)
     return GLib.SOURCE_CONTINUE
 
 GLib.timeout_add(100, observe)

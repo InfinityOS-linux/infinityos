@@ -5,6 +5,10 @@ import vm from 'node:vm';
 
 const source = readFileSync(new URL('../vendor/gnome-shell/fedora-45/usr/share/gnome-shell/extensions/blur-my-shell@aunetx/components/panel.js', import.meta.url), 'utf8')
     .replace(/^import .*;\n/gm, '').replace('export const PanelBlur =', 'const PanelBlur =');
+const extension = readFileSync(new URL('../vendor/gnome-shell/fedora-45/usr/share/gnome-shell/extensions/blur-my-shell@aunetx/extension.js', import.meta.url), 'utf8');
+const updateStart = extension.indexOf('    _update_clipped_redraws() {');
+const updateEnd = extension.indexOf('\n    }', updateStart) + 6;
+const updateRedraws = vm.runInNewContext(`({${extension.slice(updateStart, updateEnd)}})._update_clipped_redraws`);
 
 function fixture(staticBlur) {
     const resources = [];
@@ -27,14 +31,19 @@ function fixture(staticBlur) {
     }
     const manager = {}, effects = {}, settings = {DEBUG: false,
         panel: {STATIC_BLUR: staticBlur, PIPELINE: 'same-as-panel', SIGMA: 28, BRIGHTNESS: .64}};
+    const owner = {_pipelines_manager: manager}, redraws = [];
     const Controller = vm.runInNewContext(`${source}\nPanelBlur`, {
-        Pipeline, DummyPipeline, global: {blur_my_shell: {_pipelines_manager: manager}}, console,
+        Pipeline, DummyPipeline, global: {blur_my_shell: owner}, console,
     });
     const blur = new Controller({disconnect_all() {}}, settings, effects);
     blur.enabled = true;
     blur.disconnect_from_windows_and_overview = () => {};
     blur.update_light_text_classname = () => {};
-    return {blur, settings, resources, manager, effects};
+    Object.assign(owner, {_settings: settings, _panel_blur: blur,
+        _update_clipped_redraws: updateRedraws,
+        _disable_clipped_redraws() {redraws.push('full');},
+        _reenable_clipped_redraws() {redraws.push('clipped');}});
+    return {blur, settings, resources, manager, effects, owner, redraws};
 }
 
 test('static backdrop shares the panel preset, not effect instances, and releases all resources', () => {
@@ -65,3 +74,29 @@ test('dynamic backdrop follows the panel sigma and brightness with square drawer
     assert.equal(f.resources[0].pipeline.options.corner_radius_getter(), 0);
     backdrop.destroy(); assert.equal(f.blur._matchingBackdrops.size, 0);
 });
+
+test('live drawer blur prevents clipped-frame artifacts until the final drawer is closed', () => {
+    const f = fixture(false);
+    const first = f.blur.createMatchingBackdrop({}, 0);
+    assert.equal(f.blur.matchingBackdropsNeedFullRedraw, true);
+    assert.equal(f.redraws.at(-1), 'full');
+    const second = f.blur.createMatchingBackdrop({}, 1);
+    first.destroy();
+    assert.equal(f.redraws.at(-1), 'full');
+    second.destroy();
+    assert.equal(f.blur.matchingBackdropsNeedFullRedraw, false);
+    assert.equal(f.redraws.at(-1), 'clipped');
+});
+
+test('static blur does not require full frames and closing preserves the users artifact preference', () => {
+    const f = fixture(true);
+    const wallpaper = f.blur.createMatchingBackdrop({}, 0);
+    assert.equal(f.redraws.at(-1), 'clipped');
+    f.settings.HACKS_LEVEL = 2;
+    wallpaper.destroy();
+    assert.equal(f.redraws.at(-1), 'full');
+    f.settings.HACKS_LEVEL = 1;
+    f.owner._update_clipped_redraws();
+    assert.equal(f.redraws.at(-1), 'clipped');
+});
+

@@ -142,7 +142,9 @@ window.infinity-updater.shell-backdrop button {
   box-shadow: none;
   text-shadow: none;
   filter: none;
-  border: 0;
+  border: 2px solid transparent;
+  outline: none;
+  border-radius: 9px;
   transition: background-color 120ms ease-in-out;
   animation: none;
 }
@@ -151,12 +153,16 @@ window.infinity-updater.shell-backdrop.motion-enabled button.restart:not(:disabl
   box-shadow: none;
 }
 window.infinity-updater.shell-backdrop button:focus-visible {
-  outline: 2px solid #bfa1e5;
-  outline-offset: -2px;
+  outline: none;
+  border-color: #bfa1e5;
 }
 window.infinity-updater.shell-backdrop.light-mode button:focus-visible {
-  outline-color: #604583;
+  border-color: #604583;
 }
+window.infinity-updater.shell-backdrop button.primary { padding: 7px 16px; }
+window.infinity-updater.shell-backdrop button.secondary,
+window.infinity-updater.shell-backdrop button.restart { padding: 7px 14px; }
+window.infinity-updater.shell-backdrop .update-actions button { padding: 7px 10px; }
 window.infinity-updater.shell-backdrop button.secondary:hover {
   background-color: #40334f;
 }

@@ -41,6 +41,8 @@ class UpdaterActionsTests(unittest.TestCase):
             context = cairo.Context(surface)
             Gtk.render_background(widget.get_style_context(), context, 24, 24, 160, 56)
             Gtk.render_frame(widget.get_style_context(), context, 24, 24, 160, 56)
+            if widget.get_state_flags() & Gtk.StateFlags.FOCUS_VISIBLE:
+                Gtk.render_focus(widget.get_style_context(), context, 24, 24, 160, 56)
             surface.flush()
             pixel = bytes(surface.get_data()[y * surface.get_stride() + x * 4:
                                              y * surface.get_stride() + x * 4 + 4])
