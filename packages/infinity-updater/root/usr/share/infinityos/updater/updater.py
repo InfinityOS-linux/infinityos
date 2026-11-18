@@ -126,6 +126,7 @@ window.infinity-updater.shell-backdrop .infinity-results viewport {
    effects. Their offscreen bounds can appear as dark rectangles over the
    compositor backdrop when only a hovered control is repainted. */
 window.infinity-updater.shell-backdrop,
+window.infinity-updater.shell-backdrop.csd,
 window.infinity-updater.shell-backdrop > decoration,
 window.infinity-updater.shell-backdrop > .titlebar {
   box-shadow: none;
