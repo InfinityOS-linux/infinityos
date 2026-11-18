@@ -33,12 +33,14 @@ class CursorAssetsTests(unittest.TestCase):
         self.assertEqual(previous_end, len(data))
         self.assertEqual(set(groups), {16, 24, 32, 48, 64, 96, 128})
         for size, frames in groups.items():
-            self.assertEqual([delay for delay, _ in frames], [650] + [35] * 24)
+            self.assertEqual([delay for delay, _ in frames], [20] * 24 + [80])
             # Below the finger roots, every pixel stays identical for the whole loop.
             palm_start = round(size * .56) * size * 4
             self.assertEqual(len({pixels[palm_start:] for _, pixels in frames}), 1)
             self.assertGreaterEqual(len({pixels for _, pixels in frames}), 12)
-            self.assertEqual(frames[0][1], frames[-1][1])
+            self.assertNotEqual(frames[0][1], frames[-1][1], 'the loop must start with a tap, not the resting pose')
+            self.assertEqual(sum(delay for delay, _ in frames), 560)
+            self.assertGreaterEqual(len({pixels for _, pixels in frames[:4]}), 3, 'fingers must visibly change within 80 ms')
 
     def test_busy_names_resolve_to_the_wait_animation(self):
         for name in ('watch', 'progress', 'left_ptr_watch', 'default_wait', 'half-busy',
@@ -123,6 +125,6 @@ class CursorAssetsTests(unittest.TestCase):
                     image = loaded.contents.images[index].contents
                     self.assertEqual((image.width, image.height), (size, size))
                     self.assertEqual((image.xhot, image.yhot), (size // 2, round(size * .625)))
-                    self.assertEqual(image.delay, 650 if index == 0 else 35)
+                    self.assertEqual(image.delay, 80 if index == 24 else 20)
             finally:
                 lib.XcursorImagesDestroy(loaded)
