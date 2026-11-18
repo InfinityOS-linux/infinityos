@@ -358,6 +358,11 @@ export const PanelBlur = class PanelBlur {
         });
     }
 
+    refreshTerminalHandle() {
+        const primary = this.actors_list.find(actors => actors.widgets.panel === Main.panel && !actors.is_dtp_panel);
+        if (primary) this.queue_update_size(primary);
+    }
+
     update_size(actors) {
         let geometry_actor = actors.widgets.geometry_actor;
         let panel_box = actors.widgets.panel_box;
@@ -368,6 +373,21 @@ export const PanelBlur = class PanelBlur {
 
         if (!width || !height || !geometry_width || !geometry_height) {
             return;
+        }
+
+        const handle = geometry_actor === Main.panel && !actors.is_dtp_panel
+            ? Main.panel._infinityTerminalPullHandle : null;
+        const extension = handle?.backdropExtension ?? 0;
+        const group = actors.widgets.background_group;
+        if (!group) return;
+        if (extension && !actors.terminalClip) {
+            actors.terminalClip = handle.createBackdropClip();
+            group.add_effect(actors.terminalClip);
+        } else if (!extension && actors.terminalClip) {
+            group.remove_effect(actors.terminalClip);
+            actors.terminalClip = null;
+        } else if (extension && actors.terminalClip.handle !== handle) {
+            actors.terminalClip.handle = handle;
         }
 
         // if static blur, need to clip the background
@@ -412,7 +432,7 @@ export const PanelBlur = class PanelBlur {
             const clip_h = Math.ceil(geometry_height) +
                 inset + workspace_edge_inset;
 
-            background.set_clip(clip_x, clip_y, clip_w, clip_h);
+            background.set_clip(clip_x, clip_y, clip_w, clip_h + extension);
             background.x = g_x - x + inset;
             background.y = offset + g_y - y + inset;
         } else {
@@ -425,7 +445,7 @@ export const PanelBlur = class PanelBlur {
                 background.y = geometry_actor.y;
             }
             background.width = geometry_width;
-            background.height = geometry_height;
+            background.height = geometry_height + extension;
         }
 
         // update the monitor panel is on

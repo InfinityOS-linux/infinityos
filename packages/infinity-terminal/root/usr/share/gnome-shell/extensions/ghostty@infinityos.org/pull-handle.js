@@ -4,8 +4,48 @@ import St from 'gi://St';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
-import Shell from 'gi://Shell';
+import GObject from 'gi://GObject';
+import Mtk from 'gi://Mtk';
+import Cairo from 'cairo';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+
+const WIDTH = 180;
+const HEIGHT = 18;
+const SHOULDER = 2;
+const BOTTOM = 17;
+const PANEL_LAYERS = new Set(['wackPanelBackdrop', 'wackPanelBackdropOverlay', 'wackPanelProximityOverlay']);
+
+function handleInset(y) {
+    // Invert the vertical coordinate of the same cubic drawn in paint().
+    let low = 0, high = 1;
+    for (let i = 0; i < 12; i++) {
+        const t = (low + high) / 2;
+        if (t * t * (3 - 2 * t) < (y - SHOULDER) / (BOTTOM - SHOULDER)) low = t;
+        else high = t;
+    }
+    const t = (low + high) / 2;
+    const s = 1 - t;
+    return 96 * s * s * t + 144 * s * t * t + 78 * t * t * t;
+}
+
+const PanelBackdropClip = GObject.registerClass(
+class InfinityTerminalPanelBackdropClip extends Clutter.Effect {
+    vfunc_paint(_node, context, _flags) {
+        const actor = this.get_actor();
+        const framebuffer = context.get_framebuffer();
+        const view = context.get_stage_view();
+        const region = this.handle.backdropRegion(view, framebuffer);
+        if (!region) {
+            actor.continue_paint(context);
+            return;
+        }
+        // Clip the output of the panel's blur in the stage framebuffer. The
+        // blur still reads one rectangular input containing the full backdrop.
+        framebuffer.push_region_clip(region);
+        try { actor.continue_paint(context); }
+        finally { framebuffer.pop_clip(); }
+    }
+});
 
 // A separate chrome actor avoids enlarging the panel's reserved work area.
 export class TerminalPullHandle {
@@ -15,8 +55,10 @@ export class TerminalPullHandle {
         this.drag = null;
         this.windowSignals = new Map();
         this.closedWindows = new WeakSet();
-        this.panelLine = new St.Widget({reactive: false, style: 'background-color: rgba(184, 166, 217, 0.20);'});
-        Main.layoutManager.addTopChrome(this.panelLine, {affectsStruts: false, trackFullscreen: true});
+        this.panelLine = new St.Widget({reactive: false});
+        this.panelLineRight = new St.Widget({reactive: false});
+        for (const line of [this.panelLine, this.panelLineRight])
+            Main.layoutManager.addTopChrome(line, {affectsStruts: false, trackFullscreen: true});
         this.actor = new St.DrawingArea({reactive: true, can_focus: true, track_hover: true,
             accessible_name: 'Show, hide or drag InfinityTerminal',
             accessible_role: Atk.Role.PUSH_BUTTON});
@@ -27,6 +69,15 @@ export class TerminalPullHandle {
             this.signals.push([object, object.connect(signal, callback)]);
         };
         const sync = () => this.sync();
+        this.panelLayers = [];
+        Main.panel._infinityTerminalPullHandle = this;
+        connect(this.actor, 'notify::scale-x', () => {
+            this.syncPanelLine();
+            this.actor.queue_repaint();
+        });
+        connect(this.actor, 'notify::scale-y', () => this.actor.queue_repaint());
+        connect(Main.panel, 'child-added', sync);
+        connect(Main.panel, 'child-removed', sync);
         this.interfaceSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
         connect(this.interfaceSettings, 'changed::color-scheme', sync);
         connect(Main.panel, 'notify::allocation', sync);
@@ -48,11 +99,9 @@ export class TerminalPullHandle {
         if (label) connect(label, 'notify::allocation', sync);
         this.verifyTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
             this.sync();
-            this.samplePanelColor();
             return GLib.SOURCE_CONTINUE;
         });
         this.sync();
-        this.samplePanelColor();
     }
 
     centerClock(monitor) {
@@ -75,36 +124,105 @@ export class TerminalPullHandle {
         finally { this.centering = false; }
     }
 
-    samplePanelColor() {
-        if (this.destroyed || this.sampling || !this.actor.visible ||
-            Main.panel.menuManager?.activeMenu || !Main.panel.visible) return;
-        const monitor = Main.layoutManager.primaryMonitor;
-        if (!monitor) return;
+    createBackdropClip() {
+        const clip = new PanelBackdropClip();
+        clip.handle = this;
+        return clip;
+    }
+
+    backdropRegion(view, framebuffer) {
+        const region = Mtk.Region.create();
+        const [px, py] = Main.panel.get_transformed_position();
+        const [pw, ph] = Main.panel.get_transformed_size();
+        const layout = view?.get_layout();
+        const scale = view?.get_scale() ?? 1;
+        const x = value => Math.round((value - (layout?.x ?? 0)) * scale);
+        const y = value => Math.round((value - (layout?.y ?? 0)) * scale);
+        const panelBottom = y(py + ph);
+        const add = (left, top, right, bottom) => {
+            if (right > left && bottom > top)
+                region.union_rectangle(new Mtk.Rectangle({x: left, y: top, width: right - left, height: bottom - top}));
+        };
+        add(x(px), y(py), x(px + pw), panelBottom);
+        if (!this.backdropExtension || !this.actor.mapped || !view ||
+            framebuffer !== view.get_framebuffer()) return region;
+
+        const [hx, hy] = this.actor.get_transformed_position();
+        const [hw, hh] = this.actor.get_transformed_size();
+        if (hh <= 0) return region;
+        const top = (hy - layout.y) * scale;
+        const height = hh * scale;
+        // Use the displayed geometry, including the compaction animation.
+        for (let row = panelBottom; row < y(hy + hh * BOTTOM / HEIGHT); row++) {
+            const localY = (row + .5 - top) * HEIGHT / height;
+            const inset = localY <= SHOULDER ? 0 : handleInset(localY) * hw / WIDTH;
+            add(x(hx + inset), row, x(hx + hw - inset), row + 1);
+        }
+        return region;
+    }
+
+    syncBackdrop(extension) {
+        if (extension !== this.backdropExtension) {
+            this.backdropExtension = extension;
+            global.blur_my_shell?._panel_blur?.refreshTerminalHandle?.();
+        }
+        const layers = (Main.panel.get_children?.() ?? []).filter(layer => PANEL_LAYERS.has(layer.name));
+        if (layers.length === this.panelLayers.length &&
+            layers.every((layer, i) => layer === this.panelLayers[i])) return;
+        for (const layer of this.panelLayers)
+            layer.disconnectObject(this.actor);
+        this.panelLayers = layers;
+        const repaint = () => this.actor.queue_repaint();
+        for (const layer of layers)
+            layer.connectObject('style-changed', repaint, 'notify::opacity', repaint, 'notify::visible', repaint, this.actor);
+    }
+
+    paintBackdrop(cr, height) {
         const [panelX, panelY] = Main.panel.get_transformed_position();
-        const [panelWidth, panelHeight] = Main.panel.get_transformed_size();
-        const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        // Sample directly below the centered clock, above the handle overlap.
-        // A side sample can have a different composited color on translucent panels.
-        const x = Math.round(Math.max(panelX, Math.min(panelX + panelWidth - 1,
-            monitor.x + monitor.width / 2)));
-        const y = Math.round(panelY + panelHeight - 4 * scale);
-        if (x < 0 || y < 0) return;
-        this.sampling = true;
-        const shot = new Shell.Screenshot();
-        shot.pick_color(x, y, (source, result) => {
-            try {
-                const resultColor = source.pick_color_finish(result);
-                const color = Array.isArray(resultColor) ? resultColor.find(value => value && typeof value === 'object') : resultColor;
-                if (!this.destroyed && color) {
-                    this.panelColor = typeof color.get_red === 'function'
-                        ? [color.get_red(), color.get_green(), color.get_blue()].map(value => value * 255)
-                        : [color.red, color.green, color.blue];
-                    this.actor.queue_repaint();
-                }
-            } catch (error) {
-                // Retain the last valid sample if the compositor is unavailable.
-            } finally { this.sampling = false; }
-        });
+        const [, panelHeight] = Main.panel.get_transformed_size();
+        const [handleX, handleY] = this.actor.get_transformed_position();
+        const [handleWidth, handleHeight] = this.actor.get_transformed_size();
+        if (handleWidth <= 0 || handleHeight <= 0) return;
+        cr.save();
+        // The first two pixels overlap the panel for the grip. Leave the
+        // panel's own background visible there so its tint is applied once.
+        const seam = (panelY + panelHeight - handleY) * HEIGHT / handleHeight;
+        cr.rectangle(0, seam, WIDTH, height - seam);
+        cr.clip();
+        const paintTint = (actor, opacity = 1) => {
+            const color = actor.get_theme_node().get_background_color();
+            const rgba = typeof color.get_red === 'function'
+                ? [color.get_red(), color.get_green(), color.get_blue(), color.get_alpha()]
+                : [color.red, color.green, color.blue, color.alpha].map(channel => channel / 255);
+            cr.setSourceRGBA(...rgba.slice(0, 3), rgba[3] * opacity);
+            cr.paint();
+        };
+        paintTint(Main.panel);
+        // Iterate in paint order because WACK can reorder the proximity tint.
+        for (const layer of (Main.panel.get_children?.() ?? [])) {
+            if (!PANEL_LAYERS.has(layer.name) || !layer.visible || !layer.opacity) continue;
+            const strip = layer._infinityPanelStrip;
+            if (!strip) {
+                paintTint(layer, layer.opacity / 255);
+                continue;
+            }
+            if (strip.path !== this.stripPath) {
+                this.stripPath = strip.path;
+                try { this.stripImage = Cairo.ImageSurface.createFromPNG(strip.path); }
+                catch { this.stripImage = null; }
+            }
+            const image = this.stripImage;
+            if (!image) continue;
+            const imageScale = strip.width / image.getWidth();
+            cr.save();
+            cr.translate((panelX - handleX) * WIDTH / handleWidth,
+                (panelY - handleY) * HEIGHT / handleHeight);
+            cr.scale(imageScale * WIDTH / handleWidth, imageScale * HEIGHT / handleHeight);
+            cr.setSourceSurface(image, 0, 0);
+            cr.paintWithAlpha(layer.opacity / 255);
+            cr.restore();
+        }
+        cr.restore();
     }
 
     contains(actor) { return !!actor && (actor === this.actor || this.actor.contains(actor)); }
@@ -126,7 +244,13 @@ export class TerminalPullHandle {
 
     sync() {
         const monitor = Main.layoutManager.primaryMonitor;
-        if (!monitor) { this.actor.hide(); this.panelLine.hide(); return; }
+        if (!monitor) {
+            this.actor.hide();
+            this.panelLine.hide();
+            this.panelLineRight.hide();
+            this.syncBackdrop(0);
+            return;
+        }
         this.centerClock(monitor);
         const fullscreen = global.display.get_monitor_in_fullscreen(monitor.index);
         const normal = !Main.overview.visible && !Main.sessionMode.isLocked;
@@ -165,30 +289,43 @@ export class TerminalPullHandle {
                 duration: initial || !St.Settings.get().enable_animations ? 0 : 180,
                 mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
         }
-        this.panelLine.visible = !fullscreen && normal;
+        this.panelLine.visible = this.panelLineRight.visible = !fullscreen && normal;
         const scheme = this.interfaceSettings.get_string('color-scheme');
         this.light = scheme === 'prefer-light' || (scheme === 'default' &&
             !Main.panel.has_style_pseudo_class?.('dark'));
-        this.panelLine.style = `background-color: ${this.light
+        const lineStyle = `background-color: ${this.light
             ? 'rgba(70, 40, 100, 0.20)' : 'rgba(184, 166, 217, 0.20)'};`;
+        this.panelLine.style = this.panelLineRight.style = lineStyle;
         const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        this.panelLine.set_size(monitor.width, .75 * scale);
-        this.panelLine.set_position(monitor.x, monitor.y + panelHeight - .75 * scale);
-        this.actor.set_size(180 * scale, 18 * scale);
-        this.actor.set_position(Math.round(monitor.x + monitor.width / 2 - 90 * scale),
-            Math.round(monitor.y + panelHeight - 2 * scale));
+        this.actor.set_size(WIDTH * scale, HEIGHT * scale);
+        this.actor.set_position(Math.round(monitor.x + monitor.width / 2 - WIDTH * scale / 2),
+            Math.round(monitor.y + panelHeight - SHOULDER * scale));
+        this.syncPanelLine();
+        this.syncBackdrop(normal && !fullscreen ? HEIGHT * scale : 0);
         this.actor.queue_repaint();
+    }
+
+    syncPanelLine() {
+        const monitor = Main.layoutManager.primaryMonitor;
+        if (!monitor || !this.panelLine.visible) return;
+        const [, panelHeight] = Main.panel.get_transformed_size();
+        const themeScale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        const width = WIDTH * themeScale * this.actor.scale_x;
+        const left = monitor.x + (monitor.width - width) / 2;
+        const right = left + width;
+        const height = .75 * themeScale;
+        const y = monitor.y + panelHeight - height;
+        this.panelLine.set_size(left - monitor.x, height);
+        this.panelLine.set_position(monitor.x, y);
+        this.panelLineRight.set_size(monitor.x + monitor.width - right, height);
+        this.panelLineRight.set_position(right, y);
     }
 
     paint() {
         const cr = this.actor.get_context();
         const [width, height] = this.actor.get_surface_size();
         try {
-            cr.scale(width / 180, height / 18);
-            // The desktop panel may be translucent; the handle needs an opaque silhouette.
-            const panel = Main.panel.get_theme_node().get_background_color();
-            const fill = this.panelColor ?? [panel.red, panel.green, panel.blue];
-            cr.setSourceRGBA(...fill.map(c => c / 255), 1);
+            cr.scale(width / WIDTH, height / HEIGHT);
             // Mirrored control points, horizontal tangents at both shoulders.
             const outline = () => {
                 cr.moveTo(0, 2);
@@ -196,10 +333,12 @@ export class TerminalPullHandle {
                 cr.lineTo(102, 17);
                 cr.curveTo(132, 17, 148, 2, 180, 2);
             };
-            cr.moveTo(0, 0); cr.lineTo(0, 2);
-            cr.curveTo(32, 2, 48, 17, 78, 17);
-            cr.lineTo(102, 17); cr.curveTo(132, 17, 148, 2, 180, 2);
-            cr.lineTo(180, 0); cr.closePath(); cr.fill();
+            outline();
+            cr.closePath();
+            cr.save();
+            cr.clip();
+            this.paintBackdrop(cr, HEIGHT);
+            cr.restore();
             outline();
             const stroke = this.light ? [70, 40, 100] : [184, 166, 217];
             cr.setSourceRGBA(...stroke.map(c => c / 255), .20);
@@ -310,7 +449,12 @@ export class TerminalPullHandle {
     }
 
     destroy() {
-        this.destroyed = true;
+        delete Main.panel._infinityTerminalPullHandle;
+        global.blur_my_shell?._panel_blur?.refreshTerminalHandle?.();
+        for (const layer of this.panelLayers)
+            layer.disconnectObject(this.actor);
+        this.panelLayers = [];
+        this.stripImage = null;
         if (this.verifyTimer) { GLib.Source.remove(this.verifyTimer); this.verifyTimer = 0; }
         this.finish(true);
         for (const [object, id] of this.signals) object.disconnect(id);
@@ -319,8 +463,10 @@ export class TerminalPullHandle {
         for (const [window, ids] of this.windowSignals)
             for (const id of ids) window.disconnect(id);
         this.windowSignals.clear();
-        Main.layoutManager.removeChrome(this.panelLine);
-        this.panelLine.destroy();
+        for (const line of [this.panelLine, this.panelLineRight]) {
+            Main.layoutManager.removeChrome(line);
+            line.destroy();
+        }
         Main.layoutManager.removeChrome(this.actor);
         this.actor.destroy();
     }
