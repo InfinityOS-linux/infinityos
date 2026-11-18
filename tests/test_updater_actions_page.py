@@ -1,4 +1,5 @@
 import ast
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -14,6 +15,66 @@ except (ImportError, ValueError):
 
 @unittest.skipUnless(Gtk, 'GTK requires Fedora and Xvfb')
 class UpdaterActionsTests(unittest.TestCase):
+    def test_blurred_surface_and_button_states_do_not_paint_shadow_rectangles(self):
+        if not Gtk.init_check():
+            self.skipTest('GTK needs a display')
+        import cairo
+        gi.require_foreign('cairo')
+        from gi.repository import Gdk
+        repo = Path(__file__).resolve().parents[1]
+        source = repo / 'packages/infinity-updater/root/usr/share/infinityos/updater/updater.py'
+        tree = ast.parse(source.read_text())
+        style = next(ast.literal_eval(node.value) for node in tree.body
+                     if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'STYLE' for t in node.targets))
+        display = Gdk.Display.get_default()
+        provider = Gtk.CssProvider()
+        provider.load_from_data(style)
+        theme = Gtk.CssProvider()
+        window = Gtk.Window(decorated=False)
+        for name in ('infinity-updater', 'csd', 'shell-backdrop', 'motion-enabled'):
+            window.add_css_class(name)
+        button = Gtk.Button(label='Install updates')
+        window.set_child(button)
+
+        def alpha(widget, x, y):
+            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 208, 104)
+            context = cairo.Context(surface)
+            Gtk.render_background(widget.get_style_context(), context, 24, 24, 160, 56)
+            Gtk.render_frame(widget.get_style_context(), context, 24, 24, 160, 56)
+            surface.flush()
+            pixel = bytes(surface.get_data()[y * surface.get_stride() + x * 4:
+                                             y * surface.get_stride() + x * 4 + 4])
+            return int.from_bytes(pixel, sys.byteorder) >> 24
+
+        Gtk.StyleContext.add_provider_for_display(display, provider, Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)
+        Gtk.StyleContext.add_provider_for_display(display, theme, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+        try:
+            for light in (False, True):
+                theme.load_from_path(str(repo / 'root/usr/share/themes' /
+                                         f'Orchis-Purple-{"Light" if light else "Dark"}-Compact/gtk-4.0/gtk.css'))
+                if light:
+                    window.add_css_class('light-mode')
+                for state in (Gtk.StateFlags.NORMAL, Gtk.StateFlags.PRELIGHT,
+                              Gtk.StateFlags.ACTIVE | Gtk.StateFlags.PRELIGHT,
+                              Gtk.StateFlags.FOCUSED | Gtk.StateFlags.FOCUS_VISIBLE,
+                              Gtk.StateFlags.BACKDROP, Gtk.StateFlags.INSENSITIVE):
+                    window.set_state_flags(state, True)
+                    self.assertEqual(alpha(window, 100, 20), 0, (light, state, 'above title'))
+                    self.assertEqual(alpha(window, 100, 50), 0, (light, state, 'window surface'))
+                    for name in ('primary', 'secondary', 'restart'):
+                        with self.subTest(light=light, state=state, button=name):
+                            button.add_css_class(name)
+                            button.set_state_flags(state, True)
+                            self.assertEqual(alpha(button, 20, 50), 0, 'shadow left of button')
+                            self.assertEqual(alpha(button, 100, 20), 0, 'shadow above button')
+                            self.assertEqual(alpha(button, 24, 24), 0, 'square button corner')
+                            self.assertGreater(alpha(button, 100, 50), 240, 'button stays opaque')
+                            button.remove_css_class(name)
+        finally:
+            window.destroy()
+            Gtk.StyleContext.remove_provider_for_display(display, provider)
+            Gtk.StyleContext.remove_provider_for_display(display, theme)
+
     def test_actions_move_between_edges_and_center_when_install_visibility_changes(self):
         if not Gtk.init_check():
             self.skipTest('GTK needs a display')

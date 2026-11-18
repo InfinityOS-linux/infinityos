@@ -122,9 +122,51 @@ window.infinity-updater.shell-backdrop .infinity-results viewport {
   background: transparent;
   background-image: none;
 }
+/* A transparent drawer must not retain GTK's window shadow or Orchis button
+   effects. Their offscreen bounds can appear as dark rectangles over the
+   compositor backdrop when only a hovered control is repainted. */
+window.infinity-updater.shell-backdrop,
+window.infinity-updater.shell-backdrop.csd,
+window.infinity-updater.shell-backdrop > decoration,
+window.infinity-updater.shell-backdrop > .titlebar {
+  box-shadow: none;
+  border: 0;
+  outline: none;
+}
+window.infinity-updater.shell-backdrop > decoration,
+window.infinity-updater.shell-backdrop > .titlebar {
+  background: transparent;
+}
+window.infinity-updater.shell-backdrop button {
+  background-image: none;
+  box-shadow: none;
+  text-shadow: none;
+  filter: none;
+  border: 0;
+  transition: background-color 120ms ease-in-out;
+  animation: none;
+}
+window.infinity-updater.shell-backdrop.motion-enabled button.restart:not(:disabled) {
+  animation: none;
+  box-shadow: none;
+}
+window.infinity-updater.shell-backdrop button:focus-visible {
+  outline: 2px solid #bfa1e5;
+  outline-offset: -2px;
+}
+window.infinity-updater.shell-backdrop.light-mode button:focus-visible {
+  outline-color: #604583;
+}
+window.infinity-updater.shell-backdrop button.secondary:hover {
+  background-color: #40334f;
+}
+window.infinity-updater.shell-backdrop.light-mode button.secondary:hover {
+  background-color: #ded2ea;
+}
 window.infinity-updater.shell-backdrop .hero,
 window.infinity-updater.shell-backdrop .footer {
   background: rgba(0, 0, 0, 0.14);
+  box-shadow: none;
   border-color: rgba(184, 166, 217, 0.20);
 }
 window.infinity-updater.shell-backdrop .update-card {
@@ -300,10 +342,10 @@ def main():
 
             hero = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7)
             hero.add_css_class('hero')
-            title = Gtk.Label(label=tr('InfinityUpdater'), xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER)
+            title = Gtk.Label(label=tr('System update'), xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER)
             title.add_css_class('hero-title')
             hero.append(title)
-            subtitle = Gtk.Label(label=tr('System packages · Flatpaks · Device firmware'), xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER)
+            subtitle = Gtk.Label(label=tr('Packages • Flatpaks • Firmware'), xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER)
             subtitle.add_css_class('hero-subtitle')
             hero.append(subtitle)
             layout.append(hero)
