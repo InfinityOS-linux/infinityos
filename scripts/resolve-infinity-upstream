@@ -3,15 +3,21 @@
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import re
 import sys
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 from zipfile import ZipFile
 
 
 def fetch(url, limit=4 * 1024 * 1024):
     request = Request(url, headers={'User-Agent': 'InfinityOS-image-builder'})
+    token = os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN')
+    if token and urlsplit(url).scheme == 'https' and urlsplit(url).netloc == 'api.github.com':
+        # Use the build token only for API metadata, never for redirected assets.
+        request.add_unredirected_header('Authorization', f'Bearer {token}')
     with urlopen(request, timeout=60) as response:
         data = response.read(limit + 1)
     if len(data) > limit:
