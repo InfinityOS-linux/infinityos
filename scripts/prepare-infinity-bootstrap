@@ -21,10 +21,13 @@ ln -s usr/sbin "$root/sbin"
 ln -s usr/lib "$root/lib"
 ln -s usr/lib64 "$root/lib64"
 
+# RPM Fusion's Fedora 45 FFmpeg now needs liboapv.so.11. Until Fedora's
+# OpenAPV update reaches stable, allow only that library from updates-testing.
 dnf5 -y --use-host-config --disablerepo='*' --enablerepo=fedora --enablerepo=updates \
+	--enablerepo=updates-testing --setopt=updates-testing.includepkgs=openapv-libs \
 	--installroot "$root" --releasever=45 \
 	--setopt=group_package_types=default,mandatory,conditional \
-	install dnf5 filesystem generic-release grubby systemd-sysusers gawk distribution-gpg-keys @anaconda-tools
+	install dnf5 filesystem generic-release grubby systemd-sysusers gawk distribution-gpg-keys openapv-libs @anaconda-tools
 
 systemd-sysusers --root="$root"
 rpm --root "$root" -q filesystem generic-release systemd-sysusers distribution-gpg-keys >/dev/null
