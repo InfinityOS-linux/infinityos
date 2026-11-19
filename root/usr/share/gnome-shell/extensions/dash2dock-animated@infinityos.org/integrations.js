@@ -153,15 +153,12 @@ export const Integrations = class {
     if (bms && bms.stateObj && bms.metadata.version >= 70) {
       let obj = bms.stateObj;
       if (obj._dash_to_dock_blur) {
-        if (!obj._dash_to_dock_blur.update_size_orig) {
-          obj._dash_to_dock_blur.update_size_orig =
-            obj._dash_to_dock_blur.update_size;
-        }
-        if (hook && this.extension.blur_background) {
-          obj._dash_to_dock_blur.update_size = () => {};
-        } else if (obj._dash_to_dock_blur.update_size_orig) {
+        // The allocated proxy and rounded native background no longer need
+        // the old global geometry suppression. Undo it after a legacy reload.
+        if (obj._dash_to_dock_blur.update_size_orig) {
           obj._dash_to_dock_blur.update_size =
             obj._dash_to_dock_blur.update_size_orig;
+          delete obj._dash_to_dock_blur.update_size_orig;
         }
       }
     }
@@ -173,11 +170,18 @@ export const Integrations = class {
   }
 
   bms_update_size(animator) {
-    // Blur My Shell's rectangular surface can show outside the dock's rounded
-    // background in both color schemes. The dock paints its own pill instead.
+    // Keep the rounded, panel-matched background visible through animation.
+    // Legacy rectangular backgrounds and the transparent fallback stay hidden.
     const bms = animator.dock.get_children().find(child =>
       child.get_name() === 'bms-dash-backgroundgroup');
     animator._bms = bms;
-    if (bms) bms.visible = false;
+    if (bms) {
+      const matched = bms._infinityPanelBackdrop;
+      const unblur = global.blur_my_shell?._settings?.dash_to_dock?.UNBLUR_IN_OVERVIEW;
+      const dockSettings = animator.dock.extension;
+      const transparent = (Main.overview.visible || dockSettings?._inOverview) &&
+        dockSettings?.overview_transparent_background;
+      bms.visible = Boolean(matched && !matched.destroyed && !transparent && !(unblur && Main.overview.visible));
+    }
   }
 };

@@ -20,6 +20,10 @@ only repaints mapped docks when the tint changes; destroy removes its timer.
 The dock retains BMS's normal Clutter repaint handling instead of requesting the
 GTK drawer's complete-frame repaint mode for the lifetime of the desktop.
 Custom-background and panel-mode docks retain their existing styling.
+The animation and dock-transparency passes keep a valid panel-matched blur group visible. They no
+longer unconditionally hides BMS backgrounds or replaces BMS geometry updates
+with a no-op. Destroyed, fallback and legacy rectangular groups stay hidden;
+the user's unblur-in-overview and transparent-overview preferences remain respected.
 
 InfinityUpdater's Shell extension puts a separate backdrop below the GTK window
 surface and clips it to the window frame, excluding the shadow. Blur My Shell's
