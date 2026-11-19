@@ -1,5 +1,30 @@
 [
   {
+    "id": "2026-11-19-rpm-waiting-glove-finger-drumming",
+    "date": "2026-11-19",
+    "title": "RPM update: the waiting glove drums its fingers",
+    "summary": "The waiting cursor now uses the approved finger-drumming animation, with a stationary palm, thumb and cuff.",
+    "buildSha": "1db3c0080224326a2c3eae721d5801044a36205e",
+    "changes": [
+      {
+        "title": "Available as an RPM update",
+        "text": "Published for ARM64 and x64 in infinityos-shell-extensions 1.0.0-10000463.fc45. Log out of the desktop and log back in after installation to reload the cursor theme. Existing ISO downloads are unchanged."
+      },
+      {
+        "title": "Visible finger tapping",
+        "text": "The four fingers bend toward their knuckles in an overlapping sequence, following the approved animated preview. The palm, thumb, cuff and cursor hotspot remain fixed."
+      },
+      {
+        "title": "Waiting and application startup",
+        "text": "Wait, progress and the existing busy cursor aliases share 40 frames across an 800 ms loop. The first tap begins immediately, so short operations can show motion without waiting for an initial pause."
+      },
+      {
+        "title": "Native animation verified",
+        "text": "The packaged cursor includes sizes from 16 to 128 pixels. GNOME 51 tests confirm that wait and progress advance through animation frames while the pointer stays still, with stable size and hotspot."
+      }
+    ]
+  },
+  {
     "id": "2026-11-19-rpm-dock-live-blur-fix",
     "date": "2026-11-19",
     "title": "RPM update: live dock blur rendering fixed",
