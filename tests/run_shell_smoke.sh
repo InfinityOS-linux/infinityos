@@ -15,6 +15,7 @@ cleanup() {
 trap cleanup EXIT
 export XDG_DATA_HOME="$sandbox/data" XDG_CONFIG_HOME="$sandbox/config" XDG_CACHE_HOME="$sandbox/cache"
 export XDG_DATA_DIRS="$sandbox/system:/usr/local/share:/usr/share"
+export XCURSOR_PATH="$sandbox/system/icons:/usr/share/icons"
 export SMOKE_EXTENSIONS="$sandbox/system/gnome-shell/extensions"
 export XDG_RUNTIME_DIR="$sandbox/run" LIBGL_ALWAYS_SOFTWARE=1
 mkdir -p "$SMOKE_EXTENSIONS" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_RUNTIME_DIR"
@@ -51,6 +52,7 @@ dbus-run-session -- bash -euo pipefail -c '
     gsettings set org.gnome.shell allow-extension-installation false
     gsettings set org.gnome.shell disable-user-extensions false
     gsettings set org.gnome.desktop.interface cursor-theme InfinityOS-Modern-Ice
+    gsettings set org.gnome.desktop.interface cursor-size 32
     gsettings set org.gnome.shell enabled-extensions "[\"infinity-smoke@test\"]"
     gnome-shell --headless --virtual-monitor 1280x800 >"$SMOKE_LOG" 2>&1 &
     shell_pid=$!
