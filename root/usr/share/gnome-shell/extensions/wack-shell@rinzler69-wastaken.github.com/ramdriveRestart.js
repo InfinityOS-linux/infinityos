@@ -77,7 +77,7 @@ export default class RamdriveRestart {
         });
         this.closedId = dialog.connect('closed', () => this.reset());
         this.keyController = new Clutter.KeyController();
-        this.keyController.connect('key-press', () => {
+        this.keyId = this.keyController.connect('key-press', () => {
             const [, symbol] = this.keyController.get_key();
             if (!this.active || symbol !== Clutter.KEY_Escape)
                 return Clutter.EVENT_PROPAGATE;
@@ -99,13 +99,20 @@ export default class RamdriveRestart {
         this.dialog._stopAltCapture();
         this.dialog._altCapture.enabled = false;
         const layout = this.dialog.dialogLayout._dialog;
+        const wrapper = this.dialog.dialogLayout;
+        this.outerLayout = {};
+        for (const key of ['x_align', 'y_align', 'margin_top', 'margin_right', 'margin_left'])
+            this.outerLayout[key] = wrapper[key];
+        wrapper.x_align = Clutter.ActorAlign.END;
+        wrapper.y_align = Clutter.ActorAlign.START;
+        wrapper.margin_top = Main.panel.height + 16;
+        wrapper.margin_right = wrapper.margin_left = 16;
         this.layout = {};
         for (const key of ['x_align', 'y_align', 'margin_top', 'margin_right', 'margin_left', 'width'])
             this.layout[key] = layout[key];
         layout.x_align = Clutter.ActorAlign.END;
         layout.y_align = Clutter.ActorAlign.START;
-        layout.margin_top = Main.panel.height + 16;
-        layout.margin_right = layout.margin_left = 16;
+        layout.margin_top = layout.margin_right = layout.margin_left = 0;
         const monitor = Main.layoutManager.monitors[global.display.get_current_monitor()];
         layout.width = Math.min(440, monitor.width - 32);
         layout.add_style_class_name('infinity-ramdrive-restart');
@@ -162,6 +169,10 @@ export default class RamdriveRestart {
             this.dialog.dialogLayout._dialog.remove_style_class_name('infinity-ramdrive-restart');
             this.layout = null;
         }
+        if (this.outerLayout) {
+            Object.assign(this.dialog.dialogLayout, this.outerLayout);
+            this.outerLayout = null;
+        }
     }
 
     destroy() {
@@ -169,6 +180,7 @@ export default class RamdriveRestart {
         this.reset();
         this.manager.clear();
         this.dialog.disconnect(this.closedId);
+        this.keyController.disconnect(this.keyId);
         this.dialog.dialogLayout.remove_action(this.keyController);
     }
 }

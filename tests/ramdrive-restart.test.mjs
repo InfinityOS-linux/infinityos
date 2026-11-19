@@ -11,8 +11,7 @@ function fixture(type = 2, occupied = true, run = async () => {}) {
     let id = 0;
     const layout = {x_align: 1, y_align: 1, margin_top: 0, margin_left: 0, margin_right: 0, width: -1,
         add_style_class_name() {}, remove_style_class_name() {}, add_action() {}, remove_action() {}};
-    layout._dialog = layout;
-    const dialog = {_type: type, dialogLayout: layout, _altCapture: {}, _messageDialogContent: {},
+    const dialog = {_type: type, dialogLayout: {...layout, _dialog: layout}, _altCapture: {}, _messageDialogContent: {},
         _updateButtons() {actions.push('normal buttons');}, _sync() {},
         _startTimer() {actions.push('timer');}, _stopTimer() {actions.push('stopped');},
         _stopAltCapture() {}, clearButtons() {},
@@ -33,7 +32,7 @@ function fixture(type = 2, occupied = true, run = async () => {}) {
     const Class = vm.runInNewContext(`${source}\nRamdriveRestart`, {
         InjectionManager, GLib: {get_language_names: () => ['en_US']},
         Clutter: {ActorAlign: {END: 2, START: 0}, KEY_Escape: 27, EVENT_PROPAGATE: 0, EVENT_STOP: 1,
-            KeyController: class {connect() {} }},
+            KeyController: class {connect() {return 1;} disconnect() {} }},
         Main: {panel: {height: 32}, layoutManager: {monitors: [{width: 1280}]}},
         global: {display: {get_current_monitor: () => 0}},
     });
