@@ -52,8 +52,10 @@ function setup() {
             for (const child of [...this.children]) child.destroy();
             this.parent?.remove_child(this); this.destroyed = true;
         }
-        hide() { this.visible = false; }
+        hide() { this.visible = false; this.emit('notify::visible'); }
+        show() { this.visible = true; this.emit('notify::visible'); }
     }
+    class BoxLayout extends Actor {}
     class Icon extends Actor {}
     class Menu extends Actor {
         constructor() { super(); this.actor = new Actor(); this.actions = []; }
@@ -102,9 +104,9 @@ function setup() {
             get_language_names: () => ['pl_PL.UTF-8', 'pl'], mkdir_with_parents() {},
             idle_add: (_priority, callback) => { pending.set(++id, callback); return id; },
             source_remove: key => pending.delete(key)},
-        St: {BoxLayout: Actor, Widget: Actor, Button: Actor, Icon, Bin: Actor, Side: {TOP: 0}},
+        St: {BoxLayout, Widget: Actor, Button: Actor, Icon, Bin: Actor, Side: {TOP: 0}},
         Clutter: {Orientation: {VERTICAL: 1}, ActorAlign: {CENTER: 0}, GridLayout: class {
-            attach(actor) { this.owner.add_child(actor); }
+            attach(actor, column, row) { actor.gridPosition = [column, row]; this.owner.add_child(actor); }
         }, EventType: {BUTTON_PRESS: 1, BUTTON_RELEASE: 2, KEY_PRESS: 3},
         ModifierType: {SHIFT_MASK: 1}, EVENT_STOP: 1, EVENT_PROPAGATE: 0},
         PopupMenu: {PopupSeparatorMenuItem: Actor, PopupMenu: Menu, PopupMenuManager: Manager,
@@ -127,7 +129,7 @@ function setup() {
         for (const [key, callback] of [...pending]) { pending.delete(key); callback(); }
     };
     return {context, panel, Main, grid, system, volume, microphone, brightness, wifi, add, flush,
-        Actor, Icon,
+        Actor, Icon, BoxLayout,
         create: () => new context.UserTray(), saved: () => JSON.parse(saved),
         failWrite: () => { failWrite = true; }};
 }
@@ -270,3 +272,37 @@ test('locale variants and all bundled labels cover every action', () => {
     }
 });
 
+
+test('nested clipboard content is centered and original app alignment is restored', () => {
+    const s = setup();
+    const app = s.add('clipboard');
+    const original = {x_align: 3, y_align: 4, x_expand: true, y_expand: true};
+    const group = new s.BoxLayout({...original});
+    group.add_child(new s.Icon({icon_size: 18}));
+    app.container.add_child(group);
+    const tray = s.create();
+    assert.equal(group.x_align, 0);
+    assert.equal(group.y_align, 0);
+    assert.equal(group.x_expand, false);
+    assert.equal(group.y_expand, false);
+    tray._setLocation(tray._entries.get(app), 'panel');
+    for (const [property, value] of Object.entries(original)) assert.equal(group[property], value);
+    tray._setLocation(tray._entries.get(app), 'menu');
+    assert.equal(group.x_align, 0);
+    tray.destroy();
+    for (const [property, value] of Object.entries(original)) assert.equal(group[property], value);
+});
+
+test('an app hiding its own indicator cannot leave an empty tray slot', () => {
+    const s = setup();
+    const first = s.add('warp'), middle = s.add('clipboard'), last = s.add('layouts');
+    const tray = s.create();
+    middle.container.hide(); s.flush();
+    assert.equal(tray._entries.get(middle).wrapper.visible, false);
+    assert.deepEqual(tray._entries.get(first).wrapper.gridPosition, [0, 0]);
+    assert.deepEqual(tray._entries.get(last).wrapper.gridPosition, [1, 0]);
+    middle.container.show(); s.flush();
+    assert.equal(tray._entries.get(middle).wrapper.visible, true);
+    assert.deepEqual(tray._entries.get(last).wrapper.gridPosition, [2, 0]);
+    tray.destroy();
+});

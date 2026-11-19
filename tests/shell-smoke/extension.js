@@ -8,6 +8,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import UserTray from '../wack-shell@rinzler69-wastaken.github.com/userTray.js';
 import AppDashboard from '../wack-shell@rinzler69-wastaken.github.com/appDashboard.js';
+import TerminalController from '../ghostty@infinityos.org/extension.js';
+import Shell from 'gi://Shell';
 import {TerminalPullHandle} from '../ghostty@infinityos.org/pull-handle.js';
 import {HardwareMonitor} from '../ghostty@infinityos.org/hardware-monitor.js';
 import {widgetChoices} from '../ghostty@infinityos.org/monitor-widgets.js';
@@ -50,6 +52,21 @@ export default class Smoke extends Extension {
         let iconLoaded = false;
         opticalMetrics(iconTheme, null, 'folder', () => { iconLoaded = true; });
         const terminal = metadata('ghostty@infinityos.org');
+        const terminalController = new TerminalController(terminal);
+        const appInfo = Gio.DesktopAppInfo.new_from_filename(GLib.getenv('INFINITY_SMOKE_TERMINAL_DESKTOP'));
+        check(appInfo, 'terminal desktop entry is unavailable');
+        const terminalApp = new Shell.App({app_info: appInfo});
+        let appRequests = 0;
+        terminalController._launchFromApp = () => { appRequests++; };
+        const originalAppActivate = Shell.App.prototype.activate;
+        terminalController._installAppActivation();
+        terminalApp.activate();
+        terminalApp.activate_full(-1, global.get_current_time());
+        terminalApp.open_new_window(-1);
+        check(appRequests === 3, 'native Shell app activation bypassed the terminal controller');
+        terminalController._removeAppActivation();
+        check(Shell.App.prototype.activate === originalAppActivate, 'terminal app activation hook was not restored');
+
         const source = Gio.SettingsSchemaSource.new_from_directory(`${terminal.path}/schemas`, Gio.SettingsSchemaSource.get_default(), false);
         const settings = new Gio.Settings({settings_schema: source.lookup('org.infinityos.GhosTTY', true)});
         settings.set_strv('monitor-metrics', ['memory:used', ...widgetChoices.map(choice => choice.id)]);
@@ -238,7 +255,13 @@ export default class Smoke extends Extension {
         Main.panel.addToStatusArea('infinity-tray-smoke', trayApp);
         const extraTrayApps = [1, 2].map(index => {
             const app = new PanelMenu.Button(0, `Tray spacing ${index}`);
-            app.add_child(new St.Icon({icon_name: 'view-grid-symbolic', style_class: 'system-status-icon'}));
+            const glyph = new St.Icon({icon_name: 'view-grid-symbolic', style_class: 'system-status-icon'});
+            app._trayGlyph = glyph;
+            if (index === 1) {
+                const nested = new St.BoxLayout({style_class: 'panel-status-menu-box'});
+                nested.add_child(glyph);
+                app.add_child(nested);
+            } else app.add_child(glyph);
             Main.panel.addToStatusArea(`infinity-tray-spacing-${index}`, app);
             return app;
         });
@@ -275,6 +298,19 @@ export default class Smoke extends Extension {
             `tray spacing is unequal: ${centers}`);
         check(centers[1] - centers[0] >= cellWidth,
             'tray cells overlap');
+        const glyphs = [trayIcon, ...extraTrayApps.map(app => app._trayGlyph)];
+        const glyphCenters = glyphs.map(glyph => glyph.get_transformed_position()[0] + glyph.get_transformed_size()[0] / 2);
+        for (let index = 0; index < glyphs.length; index++)
+            check(Math.abs(glyphCenters[index] - centers[index]) <= 1,
+                `tray glyph is off center inside its cell: ${index}: ${glyphCenters[index]} / ${centers[index]}`);
+        check(Math.abs((glyphCenters[1] - glyphCenters[0]) - (glyphCenters[2] - glyphCenters[1])) <= 1,
+            'nested clipboard content causes unequal visible glyph spacing');
+        extraTrayApps[0].hide(); await wait();
+        check(!tray._entries.get(extraTrayApps[0]).wrapper.visible, 'hidden tray app left an empty cell');
+        const compactGap = cells[2].get_transformed_position()[0] - cells[0].get_transformed_position()[0];
+        check(Math.abs(compactGap - (centers[1] - centers[0])) <= 1, 'hidden tray app leaves a gap');
+        extraTrayApps[0].show(); await wait();
+
         const [groupX] = tray._icons.get_transformed_position();
         const [groupWidth] = tray._icons.get_transformed_size();
         const [sectionX] = tray._section.get_transformed_position();

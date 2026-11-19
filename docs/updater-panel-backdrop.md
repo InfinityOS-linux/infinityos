@@ -88,3 +88,8 @@ and cannot enable an install action by themselves. Downloaded offline versions
 remain in the restart-required flow. The Fedora gate builds a disposable local
 RPM repository to verify a dependency hold and its automatic release, while
 checking that the installed RPM database remains unchanged.
+
+User tray spacing is based on centered content groups, including GPaste's nested
+status box, rather than equal outer cells alone. Native icon and group alignment
+is restored when an app is pinned back to the panel or the tray is disabled.
+Indicators that hide themselves do not leave a reserved empty tray cell.

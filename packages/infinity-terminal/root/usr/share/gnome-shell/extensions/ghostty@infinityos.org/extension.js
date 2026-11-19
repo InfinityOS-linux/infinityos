@@ -7,7 +7,7 @@ import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import {Extension, InjectionManager} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as Workspace from 'resource:///org/gnome/shell/ui/workspace.js';
@@ -164,9 +164,52 @@ export default class InfinityTerminal extends Extension {
         const existing = this._findWindow();
         if (existing)
             this._track(existing, true);
+        this._installAppActivation();
+    }
+
+    _installAppActivation() {
+        this._appLaunchId = 0;
+        this._appActivation = new InjectionManager();
+        const terminal = this;
+        for (const method of ['activate', 'activate_full', 'open_new_window']) {
+            if (typeof Shell.App.prototype[method] !== 'function') continue;
+            this._appActivation.overrideMethod(Shell.App.prototype, method, original =>
+                function (...args) {
+                    if (this.get_id() === `${APP_ID}.desktop`) {
+                        terminal._launchFromApp();
+                        return;
+                    }
+                    return original.apply(this, args);
+                });
+        }
+    }
+
+    _launchFromApp() {
+        if (this._appLaunchId) return;
+        // Shell.App normally restores its existing window directly. Wait for
+        // overview dismissal and use our drawer path so widgets and animation
+        // are restored together, including for the already running service.
+        if (Main.overview.visible) {
+            this._appLaunchId = Main.overview.connect('hidden', () => {
+                Main.overview.disconnect(this._appLaunchId);
+                this._appLaunchId = 0;
+                this._showTerminal();
+            });
+            Main.overview.hide();
+        } else {
+            this._showTerminal();
+        }
+    }
+
+    _removeAppActivation() {
+        this._appActivation?.clear();
+        this._appActivation = null;
+        if (this._appLaunchId) Main.overview.disconnect(this._appLaunchId);
+        this._appLaunchId = 0;
     }
 
     disable() {
+        this._removeAppActivation();
         this._pullHandle?.destroy();
         this._pullHandle = null;
         if (Workspace.Workspace.prototype._isOverviewWindow === this._filteredOverviewWindow)
@@ -485,6 +528,10 @@ export default class InfinityTerminal extends Extension {
         const window = this._findWindow();
         if (!window || window.minimized)
             this._toggle({bounce});
+        else {
+            this._syncResizeHandle();
+            window.activate(global.get_current_time());
+        }
     }
 
     _findWindow() {

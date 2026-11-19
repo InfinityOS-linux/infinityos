@@ -17,13 +17,14 @@ function startup(username, initial = 0, fail = false) {
     let starts = 0, errors = 0;
     const context = vm.createContext({
         Extension: class {getSettings() { return settings; }},
+        InjectionManager: class {overrideMethod() {} clear() {}},
         HardwareMonitor: class {},
         TerminalPullHandle: class {},
         Atk: {Role: {}}, St: {Icon: Widget, Button: Widget, Widget}, PanelMenu: {Button: Widget},
         Clutter: {ClickGesture: Widget}, Meta: {KeyBindingFlags: {}},
         GLib: {get_user_name: () => username},
         Gio: {icon_new_for_string: path => ({path}), Settings: class {}, Subprocess: {new() { starts++; return {wait_check_async(_cancel, done) {done({wait_check_finish() {if (fail) throw new Error("service failed");}}, {});}}; }}, SubprocessFlags: {}},
-        Shell: {AppSystem, ActionMode: {}}, Workspace: {Workspace},
+        Shell: {App: class {}, AppSystem, ActionMode: {}}, Workspace: {Workspace},
         Main: {notifyError() {errors++;}, layoutManager: {addChrome() {}, addTopChrome() {}}, overview: new Widget(), panel: {addToStatusArea() {}}, wm: {addKeybinding() {}}},
         global: {stage: new Widget(), display: new Widget(), get_window_actors: () => []},
     });
