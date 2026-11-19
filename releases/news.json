@@ -1,5 +1,30 @@
 [
   {
+    "id": "2026-11-19-rpm-dock-live-blur-fix",
+    "date": "2026-11-19",
+    "title": "RPM update: live dock blur rendering fixed",
+    "summary": "Live background blur now renders correctly beneath the animated dock, while keeping its panel-matched tint and transparent fallback.",
+    "buildSha": "e933509d714429d308d56f5b619021d27be71ce2",
+    "changes": [
+      {
+        "title": "Available as an RPM update",
+        "text": "Published for ARM64 and x64 in infinityos-shell-extensions 1.0.0-10000456.fc45. Log out of the desktop and log back in after installing it to load the updated extension. Existing ISO downloads are unchanged."
+      },
+      {
+        "title": "Wallpaper edges blur beneath the dock",
+        "text": "Fixes a case where the dock showed a tint but the wallpaper remained sharp despite an active blur effect. The dock no longer forces its entire surface into a separate rendering cache. Icon rendering and the rounded outline are preserved."
+      },
+      {
+        "title": "Blur stays visible during animation",
+        "text": "The dock's animation and transparency updates keep the matching backdrop visible and allow it to follow the dock's size. Overview transparency preferences are preserved."
+      },
+      {
+        "title": "Transparent fallback",
+        "text": "The dock continues to use the panel and InfinityUpdater blur settings and tint layers. If that backdrop is unavailable, the dock remains transparent. The rendering fix was confirmed in a running VM and checked with native GNOME 51 tests."
+      }
+    ]
+  },
+  {
     "id": "2026-11-19-rpm-dock-panel-backdrop",
     "date": "2026-11-19",
     "title": "RPM update: dock background follows the panel",
