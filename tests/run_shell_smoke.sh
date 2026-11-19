@@ -36,7 +36,13 @@ if grep -n 'const animateUp' "$SMOKE_EXTENSIONS/nowplay@LalaloyXyz/ui.js"; then
     echo 'Obsolete recursive equalizer implementation'; exit 1
 fi
 export SMOKE_LOG="$sandbox/shell.log"
-export INFINITY_SMOKE_TERMINAL_DESKTOP="$repo/packages/infinity-terminal/root/usr/share/applications/com.infinityos.GhosTTY.desktop"
+# The persistent terminal binary is not installed in this disposable Shell.
+# Keep its desktop ID while using an available inert executable for AppInfo.
+mkdir -p "$sandbox/system/applications"
+sed 's|^Exec=.*|Exec=/usr/bin/true|' \
+    "$repo/packages/infinity-terminal/root/usr/share/applications/com.infinityos.GhosTTY.desktop" \
+    > "$sandbox/system/applications/com.infinityos.GhosTTY.desktop"
+export INFINITY_SMOKE_TERMINAL_DESKTOP="$sandbox/system/applications/com.infinityos.GhosTTY.desktop"
 export INFINITY_SMOKE_UPDATER="$repo/packages/infinity-updater/root/usr/share/infinityos/updater/updater.py"
 export INFINITY_SMOKE_BACKDROP_REPORT="$sandbox/updater-backdrop.json"
 export INFINITY_SMOKE_GTK_THEME="$repo/root/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/gtk.css"
