@@ -77,6 +77,11 @@ export default class Smoke extends Extension {
         this._objects.push({disable: () => monitor.destroy()});
         monitor.sync({x: 0, y: 150, width: 1280}, true);
         const wait = () => new Promise(resolve => GLib.timeout_add(GLib.PRIORITY_DEFAULT, 750, () => { resolve(); return GLib.SOURCE_REMOVE; }));
+        Main.overview.hide();
+        Main.welcomeDialog?.close();
+        await wait();
+        const modalActors = () => Main.modalActorFocusStack.map(({actor}) => actor.toString()).join(', ');
+        check(Main.modalCount === 0, `startup retained modal input: ${modalActors()}`);
         const endDialog = Main.endSessionDialog;
         const savedEndMethods = {confirm: endDialog._confirm, state: endDialog._getUpdateState, sessions: endDialog._loadSessions};
         let restartSignals = 0, occupiedRamdrive = true, failSave = true;
@@ -107,11 +112,15 @@ export default class Smoke extends Extension {
             check(restartSignals === 1, 'successful save did not resume GNOME confirmation');
         } finally {
             restartPrompt.destroy();
+            // The confirmation stub does not perform GNOME's normal dialog
+            // fade-out. Always release its input grab before later client tests.
+            endDialog.close();
             endDialog._confirm = savedEndMethods.confirm;
             endDialog._getUpdateState = savedEndMethods.state;
             endDialog._loadSessions = savedEndMethods.sessions;
         }
         await wait();
+        check(Main.modalCount === 0, `RAMDrive fixture retained modal input: ${modalActors()}`);
         const dockOutline = new DockBackground({width: 420, height: 72});
         dockOutline._dock = {extension: {adaptive_background: true, panel_mode: false,
             computed_border_radius: 40, border_thickness: 1, _getPreferredColorScheme: () => 'dark'}};
@@ -563,6 +572,11 @@ export default class Smoke extends Extension {
         const pointer = seat.create_virtual_device(Clutter.InputDeviceType.POINTER_DEVICE);
         const tracker = global.backend.get_cursor_tracker();
         const previousCursor = global.stage.get_cursor_type();
+        for (const type of [Clutter.CursorType.WAIT, Clutter.CursorType.PROGRESS]) {
+            const svgCursor = new St.Cursor({backend: global.backend,
+                theme_name: 'InfinityOS-Modern-Ice', size: 32, cursor_type: type});
+            check(svgCursor.init(null), 'GNOME 51 SVG cursor provider rejected the theme');
+        }
         // Native headless sessions have no physical pointer focus. Explicitly
         // keep the Shell cursor selected while exercising its native animation.
         seat.inhibit_unfocus();
@@ -600,6 +614,71 @@ export default class Smoke extends Extension {
             Main.layoutManager.removeChrome(cursorSurface);
             cursorSurface.destroy();
             pointer.run_dispose();
+        }
+        // Test the normal client path after releasing the modal Shell test.
+        // Do not force the stage cursor or grab input. Headless Mutter hides
+        // pointers without physical hardware; retain focus for the virtual seat
+        // so GTK receives real Wayland pointer-enter and cursor-shape requests.
+        seat.inhibit_unfocus();
+        const cursorReport = GLib.getenv('INFINITY_SMOKE_CURSOR_REPORT');
+        const cursorMode = cursorReport.replace(/\.json$/, '.mode');
+        const cursorClient = Gio.Subprocess.new(['python3', this.dir.get_child('cursor-client.py').get_path()],
+            Gio.SubprocessFlags.NONE);
+        const clientPointer = seat.create_virtual_device(Clutter.InputDeviceType.POINTER_DEVICE);
+        try {
+            await wait(); await wait();
+            const clientWindow = global.get_window_actors().find(actor =>
+                actor.meta_window.get_title() === 'Infinity cursor playback')?.meta_window;
+            check(clientWindow, 'GTK cursor test window did not map');
+            // Closing the updater fixture can reveal GNOME's overview. Use
+            // normal application activation, which also dismisses that overview.
+            Main.activateWindow(clientWindow);
+            await wait();
+            check(Main.modalCount === 0, `a Shell modal leaked into the GTK cursor test: ${modalActors()}`);
+            check(clientWindow.get_client_type() === Meta.WindowClientType.WAYLAND,
+                'cursor fixture is not a native Wayland client');
+            const rect = clientWindow.get_frame_rect();
+            const x = rect.x + rect.width / 2, y = rect.y + rect.height / 2;
+            const readCursorReport = () => {
+                const [, bytes] = GLib.file_get_contents(cursorReport);
+                return JSON.parse(new TextDecoder().decode(bytes));
+            };
+            for (const name of ['wait', 'progress']) {
+                GLib.file_set_contents(cursorMode, name);
+                await wait();
+                // Headless virtual pointers can clamp their first motion to y=0.
+                clientPointer.notify_absolute_motion(GLib.get_monotonic_time(), x, y);
+                seat.warp_pointer(x, y);
+                global.stage.queue_redraw();
+                await wait();
+                clientPointer.notify_absolute_motion(GLib.get_monotonic_time(), x, y);
+                seat.warp_pointer(x, y);
+                global.stage.queue_redraw();
+                await wait();
+                const state = readCursorReport();
+                console.log(`INFINITY_GTK_CURSOR_FOCUS ${JSON.stringify({state, target: [x, y],
+                    pointer: global.get_pointer().slice(0, 2),
+                    focus: global.display.focus_window?.get_title()})}`);
+                check(state.pointer_here && state.mode === name, 'pointer did not enter the real GTK cursor surface');
+                let changes = 0;
+                const geometry = new Set();
+                const changed = tracker.connect('cursor-changed', () => {
+                    changes++;
+                    const sprite = tracker.get_sprite();
+                    if (sprite) geometry.add(JSON.stringify([
+                        sprite.get_width(), sprite.get_height(), ...tracker.get_hot()]));
+                });
+                try { await wait(); }
+                finally { tracker.disconnect(changed); }
+                console.log(`INFINITY_GTK_WAIT_CURSOR ${JSON.stringify({name, changes, geometry: [...geometry]})}`);
+                check(changes >= 15, `normal GTK ${name} cursor does not animate without a Shell grab`);
+                check(geometry.size <= 1 && (!geometry.size || geometry.has('[32,32,16,20]')),
+                    `GTK ${name} cursor uses the wrong theme or changes geometry`);
+            }
+        } finally {
+            cursorClient.force_exit();
+            clientPointer.run_dispose();
+            seat.uninhibit_unfocus();
         }
         console.log('INFINITY_SMOKE_PASS');
     }

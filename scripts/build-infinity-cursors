@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Compile the approved glove artwork into multi-size native Xcursor files."""
+"""Compile the approved gloves for Xcursor and GNOME 51 scalable cursors."""
 import argparse
+import json
 import math
 from pathlib import Path
 import shutil
@@ -96,6 +97,8 @@ def main():
     parser.add_argument('--source', type=Path, default=root / 'assets/cursors')
     parser.add_argument('--output', type=Path,
                         default=root / 'root/usr/share/icons/InfinityOS-Modern-Ice/cursors')
+    parser.add_argument('--scalable-output', type=Path,
+                        help='GNOME 51 SVG cursor directory (defaults beside --output)')
     args = parser.parse_args()
     magick = shutil.which('magick')
     if not magick:
@@ -110,6 +113,20 @@ def main():
             frames.append((size, result.stdout, 0))
         (args.output / name).write_bytes(encode(frames))
     poses = list(waiting_poses())
+    scalable = args.scalable_output or args.output.parent / 'cursors_scalable'
+    scalable_wait = scalable / 'wait'
+    scalable_wait.mkdir(parents=True, exist_ok=True)
+    metadata = []
+    for index, (pressure, delay) in enumerate(poses):
+        filename = f'frame-{index:02d}.svg'
+        (scalable_wait / filename).write_bytes(waiting_svg(pressure))
+        metadata.append({'filename': filename, 'delay': delay,
+                         'nominal_size': 256, 'hotspot_x': 128, 'hotspot_y': 160})
+    (scalable_wait / 'metadata.json').write_text(json.dumps(metadata, indent=2) + '\n')
+    progress = scalable / 'progress'
+    if progress.is_symlink() or progress.is_file():
+        progress.unlink()
+    progress.symlink_to('wait', target_is_directory=True)
     frames = []
     for size in SIZES:
         fixed_palm = None

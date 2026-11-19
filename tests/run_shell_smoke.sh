@@ -21,6 +21,9 @@ export XDG_RUNTIME_DIR="$sandbox/run" LIBGL_ALWAYS_SOFTWARE=1
 mkdir -p "$SMOKE_EXTENSIONS" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_RUNTIME_DIR"
 mkdir -p "$sandbox/system/icons"
 cp -a "$repo/root/usr/share/icons/InfinityOS-Modern-Ice" "$sandbox/system/icons/"
+# Force the GNOME 51 provider: this disposable copy cannot fall back to our
+# legacy wait bitmap. Source tests separately load every Xcursor size/frame.
+rm "$sandbox/system/icons/InfinityOS-Modern-Ice/cursors/wait"
 chmod 700 "$XDG_RUNTIME_DIR"
 for uuid in nowplay@LalaloyXyz raccoonlauncher@shimafallah.github.io dash2dock-animated@infinityos.org wack-shell@rinzler69-wastaken.github.com; do
     cp -a "$repo/root/usr/share/gnome-shell/extensions/$uuid" "$SMOKE_EXTENSIONS/"
@@ -46,6 +49,7 @@ sed 's|^Exec=.*|Exec=/usr/bin/true|' \
 export INFINITY_SMOKE_TERMINAL_DESKTOP="$sandbox/system/applications/com.infinityos.GhosTTY.desktop"
 export INFINITY_SMOKE_UPDATER="$repo/packages/infinity-updater/root/usr/share/infinityos/updater/updater.py"
 export INFINITY_SMOKE_BACKDROP_REPORT="$sandbox/updater-backdrop.json"
+export INFINITY_SMOKE_CURSOR_REPORT="$sandbox/cursor-client.json"
 export INFINITY_SMOKE_GTK_THEME="$repo/root/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/gtk.css"
 dbus-run-session -- bash -euo pipefail -c '
     # Test vendored code, never replace it with extensions.gnome.org downloads.

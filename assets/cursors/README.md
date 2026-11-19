@@ -22,6 +22,12 @@ renders 40 transparent frames per size. The packaged cursor needs no renderer,
 timer extension or image-processing dependency at runtime. The existing shell
 extensions RPM includes the entire theme, so normal updates install it too.
 
+GNOME 51 also loads `cursors_scalable/wait/metadata.json` and its 40 SVG frames.
+`progress` points to the same scalable animation. Every frame declares a 20 ms
+delay, nominal size 256 and hotspot (128,160), giving the same geometry at the
+selected cursor size. These SVG assets cover GNOME's newer cursor provider and
+the Wayland cursor-shape protocol; the Xcursor files remain for legacy clients.
+
 Run `python3 scripts/build-infinity-cursors` with ImageMagick installed to rebuild
 the native cursor files. Each includes 16, 24, 32, 48, 64, 96 and 128 pixel sizes
 and premultiplied ARGB pixels. Runtime use does not require ImageMagick.
