@@ -4,6 +4,7 @@ import locale
 
 
 POLISH = {
+    'Authorizing': 'Autoryzacja',
     'Waiting for compatibility ({count})': 'Oczekują na zgodność ({count})',
     'These packages will be offered automatically when compatible dependencies are available.':
         'Pakiety pojawią się w dostępnych aktualizacjach, gdy będą dostępne zgodne zależności.',

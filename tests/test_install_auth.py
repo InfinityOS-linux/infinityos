@@ -29,6 +29,31 @@ class Input(io.StringIO):
 
 
 class InstallAuthTests(unittest.TestCase):
+    def test_authorization_diagnostics_do_not_corrupt_helper_messages(self):
+        with tempfile.TemporaryDirectory() as directory:
+            executable = Path(directory) / 'pkexec'
+            executable.write_text('#!/usr/bin/env python3\n'
+                                  'import json, sys\n'
+                                  'print("Authorization agent diagnostic", file=sys.stderr, flush=True)\n'
+                                  'print(json.dumps({"ready": True}), flush=True)\n'
+                                  'for line in sys.stdin:\n'
+                                  '    print(json.dumps({"returncode": 0}), flush=True)\n')
+            executable.chmod(0o755)
+            with patch.dict(os.environ, {'PATH': directory + os.pathsep + os.environ['PATH']}):
+                with backend.privileged_transaction():
+                    result = backend.run_privileged(['dnf', '-y', 'install', 'gamescope'])
+            self.assertEqual(result.returncode, 0)
+
+    def test_authorization_failure_preserves_its_diagnostic(self):
+        process = SimpleNamespace(stdin=Input(), stdout=io.StringIO(''),
+                                  stderr=io.StringIO('No authentication agent available\n'),
+                                  wait=lambda timeout: 127)
+        with patch.object(backend.subprocess, 'Popen', return_value=process):
+            with backend.privileged_transaction():
+                result = backend.run_privileged(['dnf', '-y', 'install', 'gamescope'])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('No authentication agent available', result.stderr)
+
     def test_one_authorization_process_handles_multiple_commands(self):
         process = SimpleNamespace(
             stdin=Input(),

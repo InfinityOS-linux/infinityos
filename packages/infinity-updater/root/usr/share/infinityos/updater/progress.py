@@ -17,6 +17,8 @@ class UpdateProgress:
         line = ANSI_ESCAPE.sub('', output).strip()
         if not line:
             return
+        if self.phase == 'Authorizing':
+            self.phase = 'Preparing'
         lower = line.lower()
         if lower.startswith('infinity os root snapshot #') and lower.endswith(' created.'):
             self.phase = line[len('Infinity OS '):-1].capitalize()
@@ -44,6 +46,8 @@ def run_update_command(label, args, report, privileged=None):
     progress = UpdateProgress(label, report)
     progress.report(label, progress.phase, None, None)
     if privileged is not None and args[0] == 'pkexec':
+        progress.phase = 'Authorizing'
+        progress.report(label, progress.phase, None, None)
         result = privileged(args[1:], progress.feed)
         if result is not None:
             return subprocess.CompletedProcess(args, result.returncode, result.stdout, result.stderr)

@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import threading
 import urllib.parse
 import urllib.request
 import zipfile
@@ -366,6 +367,20 @@ class PrivilegedSession:
     def __init__(self):
         self.process = None
         self.failure = None
+        self.diagnostics = ''
+        self._stderr_thread = None
+
+    def _drain_stderr(self):
+        try:
+            while chunk := self.process.stderr.readline(4096):
+                self.diagnostics = (self.diagnostics + chunk)[-8000:]
+        except (OSError, ValueError):
+            pass
+
+    def _authorization_error(self):
+        if self._stderr_thread:
+            self._stderr_thread.join(timeout=.5)
+        return self.diagnostics.strip() or 'Authorization was cancelled or failed.'
 
     def run(self, command, report=None):
         if self.failure:
@@ -374,11 +389,16 @@ class PrivilegedSession:
             try:
                 self.process = subprocess.Popen(
                     ['pkexec', '/usr/libexec/infinityos-install-session'],
-                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     text=True, encoding='utf-8', errors='replace', bufsize=1)
+                # polkit/PAM diagnostics are text, not the helper's JSON protocol.
+                # Drain separately so warnings cannot abort an authorized request.
+                if getattr(self.process, 'stderr', None) is not None:
+                    self._stderr_thread = threading.Thread(target=self._drain_stderr, daemon=True)
+                    self._stderr_thread.start()
                 ready = self.process.stdout.readline()
                 if not ready:
-                    raise RuntimeError('Authorization was cancelled or failed.')
+                    raise RuntimeError(self._authorization_error())
                 if json.loads(ready) != {'ready': True}:
                     raise RuntimeError('Could not authorize the installation.')
             except (OSError, ValueError, RuntimeError) as error:
@@ -401,7 +421,7 @@ class PrivilegedSession:
                     return subprocess.CompletedProcess(command, response['returncode'], output.strip(), '')
                 elif 'error' in response:
                     return subprocess.CompletedProcess(command, 1, output.strip(), response['error'])
-            raise RuntimeError('Authorized installer stopped unexpectedly.')
+            raise RuntimeError(self.diagnostics.strip() or 'Authorized installer stopped unexpectedly.')
         except (OSError, ValueError, RuntimeError) as error:
             self.failure = str(error)
             return subprocess.CompletedProcess(command, 1, '', self.failure)
@@ -417,6 +437,11 @@ class PrivilegedSession:
             except subprocess.TimeoutExpired:
                 self.process.kill()
                 self.process.wait()
+            if self._stderr_thread:
+                self._stderr_thread.join(timeout=1)
+            if getattr(self.process, 'stderr', None) is not None:
+                self.process.stderr.close()
+            self.process.stdout.close()
 
 
 @contextmanager

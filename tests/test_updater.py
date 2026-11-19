@@ -470,6 +470,14 @@ class UpdaterTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         privileged.assert_called_once()
         self.assertEqual(privileged.call_args.args[0], ['/usr/libexec/infinityos-upgrade-system'])
+        self.assertIn(('System packages', 'Authorizing', None, None), events)
+
+    def test_authorization_phase_changes_when_installer_output_arrives(self):
+        events = []
+        parser = progress.UpdateProgress('System packages', lambda *event: events.append(event))
+        parser.phase = 'Authorizing'
+        parser.feed('Refreshing repository metadata')
+        self.assertEqual(events, [('System packages', 'Preparing', None, None)])
 
     def test_setup_updates_run_in_process_to_share_authorization(self):
         with patch.object(updater, 'install_github_update') as install:

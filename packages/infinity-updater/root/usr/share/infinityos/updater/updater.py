@@ -894,9 +894,15 @@ def main():
                               if any(item.get('deferred') for item in state['updates'])
                               else tr('Updates installed.'))
                     GLib.idle_add(self.finish_refresh, state, notice, None, prepared)
+            def guarded_work():
+                try:
+                    work()
+                except Exception as error:
+                    # Unexpected helper/IPC failures must be visible in GTK,
+                    # not leave an indefinitely busy button and a dead thread.
+                    GLib.idle_add(self.finish_error, str(error), offline_status().get('pending', False))
 
-
-            threading.Thread(target=work, daemon=True).start()
+            threading.Thread(target=guarded_work, daemon=True).start()
 
         def on_release(self, _button):
             release = self.state.get('release')
