@@ -52,6 +52,10 @@ const MAX_SCROLL_RESOLUTION = 10;
 // BMS discovers a child named "dash". It needs an allocated actor and the
 // actual visible background, not an invisible, zero-size placeholder.
 export function createDockBlurProxy(dock) {
+  // Keep live BACKGROUND blur in the stage's paint path. Caching the whole
+  // dock in a parent offscreen surface can leave its backdrop looking sharp.
+  // Icon renderers can keep their own offscreen surfaces.
+  dock.offscreen_redirect = 0;
   const proxy = new St.Widget({name: 'dash', reactive: false,
     style: 'background: transparent; padding: 0; border: 0;'});
   proxy._background = dock._background;
@@ -85,7 +89,6 @@ export let Dock = GObject.registerClass(
         clip_to_allocation: true,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
-        offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS,
       });
 
       this.extension = params.extension;

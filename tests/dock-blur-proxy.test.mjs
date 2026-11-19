@@ -14,7 +14,7 @@ test('blur discovery proxy is allocated with the dock and points at its visible 
         St: {Widget}, Clutter: {BindCoordinate: {SIZE: 7}, BindConstraint: class {constructor(props) {Object.assign(this, props);}}},
     });
     const background = {width: 420, height: 72};
-    const dock = {_background: background, add_child(child) { this.child = child; }};
+    const dock = {_background: background, offscreen_redirect: 2, add_child(child) { this.child = child; }};
     const proxy = create(dock);
     assert.equal(proxy, dock.child);
     assert.equal(proxy.name, 'dash');
@@ -23,4 +23,5 @@ test('blur discovery proxy is allocated with the dock and points at its visible 
     assert.equal(proxy._background, background);
     assert.equal(proxy.constraint.source, dock);
     assert.equal(proxy.constraint.coordinate, 7);
+    assert.equal(dock.offscreen_redirect, 0, 'blur parent must sample the stage instead of an isolated surface');
 });

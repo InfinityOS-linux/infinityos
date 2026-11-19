@@ -21,7 +21,7 @@ The dock retains BMS's normal Clutter repaint handling instead of requesting the
 GTK drawer's complete-frame repaint mode for the lifetime of the desktop.
 Custom-background and panel-mode docks retain their existing styling.
 The animation and dock-transparency passes keep a valid panel-matched blur group visible. They no
-longer unconditionally hides BMS backgrounds or replaces BMS geometry updates
+longer unconditionally hide BMS backgrounds or replace BMS geometry updates
 with a no-op. Destroyed, fallback and legacy rectangular groups stay hidden;
 the user's unblur-in-overview and transparent-overview preferences remain respected.
 
@@ -90,11 +90,20 @@ before publishing an image. Preserve the existing package build-revision markers
 The updater's normal check action uses `view-refresh-symbolic`, with a localized
 tooltip and accessible name. The restart action retains its text label.
 
+The dock parent does not force offscreen redirection: its separately rendered
+surface could leave the desktop looking sharp despite the matching background
+being mapped with the correct effect and geometry. Disabling parent redirection
+resolved this on the affected VM. Individual icon renderers retain their offscreen
+surfaces. The native smoke test samples a black/white edge through the GPU blur
+in a clipped, monitor-wide dock container, then disables the effect as a negative
+control and checks that the edge becomes sharp again. Full-stage screenshots
+repaint the scene and did not reproduce the VM's parent-redirection symptom.
+
 The dock's BMS discovery proxy is mapped and bound to the dock's size, and points
 at the actual visible pill. Native blur follows pill allocation changes and sits
-below the tint and icons. Default dock brightness is 0.9, with the blur corner
-radius taken from the dock itself. The native Shell smoke test verifies discovery,
-GPU-effect creation, geometry, resizing and hiding.
+below the tint and icons. The adaptive dock follows panel brightness (0.64 by
+default), with the blur corner radius taken from the dock itself. The native
+Shell smoke test verifies discovery, GPU pixels, geometry, resizing and hiding.
 
 RPM candidates explicitly skipped by DNF's dependency solver are grouped under
 "Waiting for compatibility". This is a read-only resolve with the installer's
