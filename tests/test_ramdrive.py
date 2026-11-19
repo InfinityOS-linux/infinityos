@@ -15,6 +15,78 @@ SPEC.loader.exec_module(ramdrive)
 
 
 class RAMDriveTests(unittest.TestCase):
+    def save_fixture(self, directory):
+        home = Path(directory)
+        desktop = home / 'Desktop'
+        desktop.mkdir()
+        folder = home / '.protected' / str(os.getuid())
+        folder.mkdir(parents=True)
+        return desktop, folder
+
+    def run_save(self, desktop, folder):
+        with patch.object(ramdrive, 'STORE_ROOT', folder.parent), \
+             patch.object(ramdrive, 'desktop_shortcut', return_value=desktop / 'RAMDrive'), \
+             patch.object(ramdrive.os, 'sync', create=True):
+            ramdrive.save()
+
+    def test_save_moves_hidden_files_directories_and_links_without_overwriting(self):
+        with tempfile.TemporaryDirectory() as directory:
+            desktop, folder = self.save_fixture(directory)
+            saved = desktop / 'Saved Files'
+            saved.mkdir()
+            (saved / 'photo.jpg').write_text('previous photo')
+            (saved / 'broken').symlink_to(desktop / 'missing')
+            (folder / 'photo.jpg').write_text('new photo')
+            (folder / '.hidden').write_text('hidden')
+            (folder / 'nested').mkdir()
+            (folder / 'nested/file.txt').write_text('nested')
+            outside = desktop / 'outside'
+            outside.write_text('leave outside alone')
+            (folder / 'link').symlink_to(outside)
+            (folder / 'broken').symlink_to(desktop / 'also-missing')
+            self.run_save(desktop, folder)
+            self.assertEqual(list(folder.iterdir()), [])
+            self.assertEqual((saved / 'photo.jpg').read_text(), 'previous photo')
+            self.assertEqual((saved / 'photo (1).jpg').read_text(), 'new photo')
+            self.assertEqual((saved / '.hidden').read_text(), 'hidden')
+            self.assertEqual((saved / 'nested/file.txt').read_text(), 'nested')
+            self.assertTrue((saved / 'link').is_symlink())
+            self.assertTrue((saved / 'broken (1)').is_symlink())
+            self.assertEqual(outside.read_text(), 'leave outside alone')
+
+    def test_failed_save_keeps_every_file_in_source_or_destination(self):
+        with tempfile.TemporaryDirectory() as directory:
+            desktop, folder = self.save_fixture(directory)
+            for name in ('one', 'two'):
+                (folder / name).write_text(name)
+            move = ramdrive.shutil.move
+            count = 0
+            def fail_second(source, target):
+                nonlocal count
+                count += 1
+                if count == 2:
+                    raise OSError('disk full')
+                return move(source, target)
+            with patch.object(ramdrive.shutil, 'move', side_effect=fail_second):
+                with self.assertRaisesRegex(OSError, 'disk full'):
+                    self.run_save(desktop, folder)
+            for name in ('one', 'two'):
+                locations = [path for path in (folder / name, desktop / 'Saved Files' / name) if path.exists()]
+                self.assertEqual(len(locations), 1)
+                self.assertEqual(locations[0].read_text(), name)
+
+    def test_save_rejects_a_link_or_destination_inside_ramdrive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            desktop, folder = self.save_fixture(directory)
+            (folder / 'keep').write_text('keep')
+            (desktop / 'Saved Files').symlink_to(folder, target_is_directory=True)
+            with self.assertRaises(ValueError):
+                self.run_save(desktop, folder)
+            (desktop / 'Saved Files').unlink()
+            with self.assertRaises(ValueError):
+                self.run_save(folder, folder)
+            self.assertEqual((folder / 'keep').read_text(), 'keep')
+
     def test_shutdown_guard_runs_only_while_system_is_stopping(self):
         script = SOURCE.with_name("infinityos-ramdrive-shutdown")
         with tempfile.TemporaryDirectory() as directory:
