@@ -368,41 +368,48 @@ export const PanelBlur = class PanelBlur {
     // instance between the panel and a window or lower the window's opacity.
     get matchingBackdropsNeedFullRedraw() {
         return [...(this._matchingBackdrops ?? [])].some(backdrop =>
-            !backdrop.destroyed && !backdrop.staticBlur);
+            !backdrop.destroyed && !backdrop.staticBlur && backdrop.fullRedraw);
     }
 
-    createMatchingBackdrop(container, monitorIndex) {
+    createMatchingBackdrop(container, monitorIndex, options = {}) {
         if (!this.enabled) return null;
         const managers = [];
         const staticBlur = this.settings.panel.STATIC_BLUR;
-        let pipeline, background;
+        let pipeline, background, corner;
         try {
             if (staticBlur) {
                 pipeline = new Pipeline(this.effects_manager,
                     global.blur_my_shell._pipelines_manager, this.settings.panel.PIPELINE);
                 background = pipeline.create_background_with_effects(
                     monitorIndex, managers, container, 'infinity-panel-matched-backdrop', false);
+                if (options.corner_radius_getter) {
+                    corner = this.effects_manager.new_corner_effect({radius: options.corner_radius_getter()});
+                    background.add_effect(corner);
+                }
             } else {
                 pipeline = new DummyPipeline(this.effects_manager, this.settings.panel,
-                    null, {corner_radius_getter: () => 0});
+                    null, {corner_radius_getter: options.corner_radius_getter ?? (() => 0)});
                 const [widget, manager] = pipeline.create_background_with_effect(
                     container, 'infinity-panel-matched-backdrop');
                 background = widget;
                 managers.push(manager);
             }
         } catch (error) {
+            if (corner) this.effects_manager.remove(corner);
             pipeline?.destroy();
             managers.forEach(manager => manager.destroy());
             background?.destroy();
             throw error;
         }
         this._matchingBackdrops ??= new Set();
-        const backdrop = {background, staticBlur, offsetY: background.y,
+        const backdrop = {background, staticBlur, offsetY: background.y, effect: pipeline.effect,
+            fullRedraw: options.full_redraw ?? true,
             destroyed: false, destroy: () => {
                 if (backdrop.destroyed) return;
                 backdrop.destroyed = true;
                 this._matchingBackdrops.delete(backdrop);
                 global.blur_my_shell?._update_clipped_redraws?.();
+                if (corner) this.effects_manager.remove(corner);
                 pipeline.destroy();
                 managers.forEach(manager => manager.destroy());
                 background.destroy();

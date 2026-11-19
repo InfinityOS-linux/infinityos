@@ -1,4 +1,6 @@
 import Meta from 'gi://Meta';
+import GLib from 'gi://GLib';
+import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
@@ -35,6 +37,7 @@ class DashInfos {
         this.paint_signals = paint_signals;
         this.settings = dash_blur.settings;
         this.old_style = this.dash._background?.style;
+        this.sync_panel_backdrop();
 
         this.updateId = 0;
         this._first_boot = true;
@@ -47,6 +50,21 @@ class DashInfos {
         this.current_monitor_index = monitor ? monitor.index : null;
 
         this.dash_destroy_id = dash.connect('destroy', () => this.remove_dash_blur());
+        if (typeof dash_container.extension?.adaptive_background === 'boolean') {
+            this._panelSource = global.blur_my_shell?._panel_blur;
+            this._panelKey = this.panel_key();
+            this._panelTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+                const source = global.blur_my_shell?._panel_blur;
+                const key = this.panel_key();
+                if (source !== this._panelSource || key !== this._panelKey ||
+                    this.background_group?._infinityPanelBackdrop?.destroyed) {
+                    this._panelSource = source;
+                    this._panelKey = key;
+                    this.change_blur_type();
+                }
+                return GLib.SOURCE_CONTINUE;
+            });
+        }
         this.dash_blur_connections_ids = [];
         this.dash_blur_connections_ids.push(
             this.dash_blur.connect('remove-dashes', () => this.remove_dash_blur()),
@@ -69,6 +87,19 @@ class DashInfos {
         });
     }
 
+    panel_key() {
+        const extension = this.dash_container.extension;
+        const source = global.blur_my_shell?._panel_blur;
+        return [extension?.adaptive_background, extension?.panel_mode,
+            extension?.computed_border_radius, source?.enabled,
+            source?.settings.panel.STATIC_BLUR, source?.settings.panel.PIPELINE].join(':');
+    }
+
+    sync_panel_backdrop() {
+        this.dash_background._infinityPanelBackdrop = this.background_group?._infinityPanelBackdrop ?? null;
+        this.dash_background.queue_repaint?.();
+    }
+
     clear_pending_idles() {
         if (this.updateId) {
             global.compositor.get_laters().remove(this.updateId);
@@ -78,6 +109,10 @@ class DashInfos {
 
     // IMPORTANT: do never call this in a mutable `this.dash_blur.forEach`
     remove_dash_blur() {
+        if (this._panelTimer) {
+            GLib.Source.remove(this._panelTimer);
+            this._panelTimer = 0;
+        }
         // remove the style and destroy the effects
         this.remove_style();
         this.destroy_dash();
@@ -126,6 +161,8 @@ class DashInfos {
     }
 
     destroy_dash() {
+        this.dash_background._infinityPanelBackdrop = null;
+        this.dash_background.queue_repaint?.();
         this.clear_pending_idles();
 
         if (this.paint_signals)
@@ -175,6 +212,7 @@ class DashInfos {
         this.background_group = background_group;
         this.bg_manager = bg_manager;
         this.paint_signals = paint_signals;
+        this.sync_panel_backdrop();
 
         this.dash.get_parent().insert_child_at_index(this.background_group, 0);
 
@@ -187,6 +225,10 @@ class DashInfos {
     }
 
     update_pipeline() {
+        if (this.background_group?._infinityPanelBackdrop) {
+            this.change_blur_type();
+            return;
+        }
         if (this.bg_manager?._bms_pipeline) {
             this.bg_manager._bms_pipeline.change_pipeline_to(
                 this.settings.dash_to_dock.PIPELINE
@@ -195,12 +237,17 @@ class DashInfos {
     }
 
     update_size() {
+        if (this.background_group?._infinityPanelBackdrop?.destroyed) {
+            this.change_blur_type();
+            return;
+        }
         if (!this.dash_blur._has_valid_allocation(this.dash_container) ||
             !this.dash_blur._has_valid_allocation(this.dash) ||
             !this.dash_blur._has_valid_allocation(this.dash_background))
             return;
 
-        if (this.dash_blur.is_static) {
+        const matched = this.background_group?._infinityPanelBackdrop;
+        if (matched?.staticBlur ?? this.dash_blur.is_static) {
             let monitor = Main.layoutManager.findMonitorForActor(this.dash_container);
             if (!monitor) return;
 
@@ -221,7 +268,7 @@ class DashInfos {
             const clip_h = Math.ceil(this.dash_background.height) + inset * 2;
 
             this.background.x = dash_box.background_x + inset;
-            this.background.y = dash_box.background_y + inset;
+            this.background.y = dash_box.background_y + inset + (matched?.offsetY ?? 0);
 
             this.background.set_clip(clip_x, clip_y, clip_w, clip_h);
         } else {
@@ -496,6 +543,36 @@ export const DashBlur = class DashBlur extends Signals.EventEmitter {
         const background_group = new Meta.BackgroundGroup({
             name: 'bms-dash-backgroundgroup', width: 0, height: 0
         });
+
+        const extension = dash_container?.extension;
+        const panel = global.blur_my_shell?._panel_blur;
+        if (extension?.adaptive_background && !extension.panel_mode) {
+            try {
+                if (!panel?.enabled || !panel.createMatchingBackdrop)
+                    throw new Error('panel blur is disabled');
+                const matched = panel.createMatchingBackdrop(background_group, monitor.index, {
+                    corner_radius_getter: () => extension.computed_border_radius ?? this.settings.dash_to_dock.CORNER_RADIUS,
+                    // Dock actors repaint through Clutter; GTK drawers separately
+                    // request complete frames for their window damage rectangles.
+                    full_redraw: false,
+                });
+                if (matched) {
+                    background_group._infinityPanelBackdrop = matched;
+                    const manager = {destroy: () => matched.destroy()};
+                    const paint = new PaintSignals(this.connections);
+                    if (!matched.staticBlur && matched.effect && this.settings.HACKS_LEVEL === 1)
+                        paint.connect(matched.background, matched.effect);
+                    return [matched.background, background_group, manager, paint];
+                }
+            } catch (error) {
+                if (panel?.enabled) this._warn(`panel-matched dock blur unavailable: ${error}`);
+            }
+            // The requested fallback is genuinely transparent, without an
+            // independent dock blur or an opaque replacement surface.
+            const transparent = new St.Widget({name: 'infinity-dock-transparent-fallback'});
+            background_group.add_child(transparent);
+            return [transparent, background_group, null, null];
+        }
 
         let background, bg_manager, paint_signals;
         let static_blur = this.settings.dash_to_dock.STATIC_BLUR;

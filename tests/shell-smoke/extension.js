@@ -180,6 +180,7 @@ export default class Smoke extends Extension {
             new_native_dynamic_gaussian_blur_effect: params => new NativeBlur.BlurEffect({
                 mode: NativeBlur.BlurMode.BACKGROUND,
                 radius: params.unscaled_radius, brightness: params.brightness,
+                corner_radius: params.unscaled_corner_radius ?? 0,
             }),
             remove: effect => effect.get_actor()?.remove_effect(effect),
         };
@@ -210,10 +211,12 @@ export default class Smoke extends Extension {
         check(blurBackground.height > Main.panel.height, 'panel blur stops above pull handle');
         // Use the production discovery proxy and native BMS dock pipeline.
         const dockHolder = new St.Widget({width: 420, height: 72, x: 80, y: 650});
-        dockHolder._background = new St.Widget({x: 8, y: 6, width: 400, height: 60,
+        dockHolder._background = new DockBackground({x: 8, y: 6, width: 400, height: 60,
             style: 'background: rgba(18,18,23,.26); border-radius: 28px;'});
         dockHolder.add_child(dockHolder._background);
-        dockHolder.extension = {computed_border_radius: 28};
+        dockHolder.extension = {computed_border_radius: 28, adaptive_background: false, panel_mode: false,
+            border_thickness: 1, _getPreferredColorScheme: () => 'dark'};
+        dockHolder._background._dock = dockHolder;
         dockHolder._slider = {get_child: () => dockHolder};
         const proxy = createDockBlurProxy(dockHolder);
         Main.layoutManager.addTopChrome(dockHolder);
@@ -247,6 +250,30 @@ export default class Smoke extends Extension {
         dockHolder.hide();
         check(!dockInfo.background.is_mapped(), 'hidden dock left its blur visible');
         dockHolder.show();
+
+        const dockTint = new St.Widget({name: 'wackPanelBackdropOverlay',
+            style: 'background-color: rgba(80,60,110,.2);', reactive: false});
+        Main.panel.add_child(dockTint);
+        this._objects.push({disable: () => dockTint.destroy()});
+        dockHolder.extension.adaptive_background = true;
+        dockHolder._background.set_style('background: transparent;');
+        await wait(); await wait();
+        check(dockInfo.background_group._infinityPanelBackdrop, 'adaptive dock does not use the updater panel factory');
+        check(Math.abs(dockInfo.background.get_effects()[0].brightness - .64) < .001,
+            'dock still uses its lighter independent blur brightness');
+        check(dockInfo.background.get_effects()[0].corner_radius === 28, 'shared dock blur lost rounded corners');
+        check(dockHolder._background._surfaceLayers?.some(color => color[3] > 0),
+            'native dock draws only its outline without a tint surface');
+        check(!redrawOwner.fullRedraw, 'dock forces full-frame GTK redraws for its entire lifetime');
+        blurController.enabled = false;
+        dockInfo.background_group._infinityPanelBackdrop.destroy();
+        dockInfo.update_size();
+        await wait(); await wait();
+        check(dockHolder._background._surfaceLayers?.every(color => color[3] === 0),
+            'dock fallback is opaque when its matching blur is unavailable');
+        check(dockInfo.background.get_effects().length === 0, 'dock fallback keeps an independent blur');
+        blurController.enabled = true; await wait(); await wait();
+        check(dockInfo.background_group._infinityPanelBackdrop, 'dock did not recover its matching blur');
 
         check(blurActors.terminalClip, 'native panel blur has no handle contour');
         terminalWindow.minimized = false; pull.sync();
