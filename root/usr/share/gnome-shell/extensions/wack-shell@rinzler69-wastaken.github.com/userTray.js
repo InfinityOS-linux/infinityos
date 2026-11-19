@@ -119,7 +119,7 @@ export default class UserTray {
             const parent = actor.get_parent();
             const key = String(indicator._indicator?.id ?? role);
             const entry = {indicator, actor, parent, key,
-                style: actor.get_style(), menu: null, icons: new Map(), iconNodes: new Map(),
+                style: actor.get_style(), menu: null, icons: new Map(), iconNodes: new Map(), alignments: new Map(),
                 wrapper: new St.Bin({y_align: Clutter.ActorAlign.CENTER,
                     x_align: Clutter.ActorAlign.CENTER, clip_to_allocation: true})};
             this._entries.set(indicator, entry);
@@ -157,6 +157,7 @@ export default class UserTray {
         for (const entry of this._entries.values()) {
             const location = this._preferences[entry.key] ?? 'menu';
             const pinned = location === 'panel';
+            const appVisible = entry.actor.visible !== false && entry.indicator.visible !== false;
             entry.wrapper.set_style(pinned ? null : 'width: 32px; height: 32px; min-width: 0; min-height: 0; padding: 0; margin: 0;');
             const parent = pinned ? entry.parent : this._icons;
             if (entry.wrapper.get_parent() !== parent) {
@@ -171,10 +172,10 @@ export default class UserTray {
                         Math.floor(position / 6), 1, 1);
                     entry.position = position;
                 }
-                if (location !== 'hidden')
+                if (location !== 'hidden' && appVisible)
                     position++;
             }
-            entry.wrapper.visible = unlocked && location !== 'hidden';
+            entry.wrapper.visible = unlocked && location !== 'hidden' && appVisible;
             entry.actor.set_style(pinned ? entry.style : 'width: 32px; height: 32px; min-width: 0; min-height: 0; padding: 0;');
             if (pinned)
                 this._restoreIcons(entry);
@@ -221,8 +222,20 @@ export default class UserTray {
                 const destroyed = actor.connect('destroy', () => {
                     entry.iconNodes.delete(actor);
                     entry.icons.delete(actor);
+                    entry.alignments.delete(actor);
                 });
-                entry.iconNodes.set(actor, [added, destroyed]);
+                const visibility = actor.connect('notify::visible', () => this._queueSync());
+                entry.iconNodes.set(actor, [added, destroyed, visibility]);
+            }
+            // GPaste wraps its glyph in a BoxLayout. A filled 32px box leaves
+            // its 18px child at the leading edge while bare icons are centered.
+            // Center the whole content group, retaining badges and native menus.
+            if (actor instanceof St.BoxLayout) {
+                if (!entry.alignments.has(actor))
+                    entry.alignments.set(actor, {x_align: actor.x_align, y_align: actor.y_align,
+                        x_expand: actor.x_expand, y_expand: actor.y_expand});
+                actor.x_align = actor.y_align = Clutter.ActorAlign.CENTER;
+                actor.x_expand = actor.y_expand = false;
             }
             if (actor instanceof St.Icon) {
                 if (!entry.icons.has(actor))
@@ -240,6 +253,9 @@ export default class UserTray {
         for (const [actor, ids] of entry.iconNodes)
             ids.forEach(id => actor.disconnect(id));
         entry.iconNodes.clear();
+        for (const [actor, original] of entry.alignments)
+            Object.assign(actor, original);
+        entry.alignments.clear();
         for (const [icon, original] of entry.icons) {
             icon.icon_size = original.size;
             icon.set_style(original.style);

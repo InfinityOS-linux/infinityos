@@ -41,7 +41,7 @@ function fixture(enableAnimations = true, inset = 0) {
         Extension: class {},
         GLib: {idle_add: schedule, timeout_add: (p, _delay, callback) => schedule(p, callback),
             Source: {remove(id) { callbacks.delete(id); }}, SOURCE_REMOVE: false},
-        Main: {layoutManager: {primaryMonitor: {}}, wm: {skipNextEffect() { actor.skipEffect = true; }}},
+        Main: {overview: {visible: false}, layoutManager: {primaryMonitor: {}}, wm: {skipNextEffect() { actor.skipEffect = true; }}},
         Clutter: {AnimationMode: {EASE_OUT_CUBIC: 1, EASE_IN_CUBIC: 2, EASE_OUT_ELASTIC: 3}},
         global: {get_current_time: () => 0, stage: {set_key_focus(value) {focus.owner = value;}}},
     });
@@ -244,3 +244,20 @@ for (const inset of [72, 144, 176]) {
         assert.equal(f.controller._sliding, false);
     });
 }
+
+test('app-list restore shows widgets and uses the same animated reveal as the shortcut', () => {
+    const f = fixture();
+    const hardware = [];
+    f.window.minimized = true;
+    f.controller._window = f.window;
+    f.controller._findWindow = () => f.window;
+    f.controller._hardware = {sync(_rect, visible, actor) { hardware.push({visible, actor}); }};
+    f.controller._resizeHandle = {set_position() {}, set_size() {}};
+    f.controller._launchFromApp();
+    f.flush();
+    assert.equal(f.window.minimized, false);
+    assert.equal(f.animations.length, 1);
+    assert.equal(f.animations[0].start, -616);
+    assert.equal(f.animations[0].translation_y, 24);
+    assert(hardware.some(call => call.visible && call.actor === f.actor));
+});

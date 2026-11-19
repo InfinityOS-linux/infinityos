@@ -39,3 +39,10 @@ Timer durations are selectable in the tile menu. Pomodoro alternates 25-minute f
 Network shows aggregate receive/transmit bytes per second across non-loopback interfaces from /proc/net/dev (virtual interfaces can count forwarded traffic too). Battery reads UPower's DisplayDevice and uses its time-to-empty/time-to-full estimate, showing an unavailable state rather than guessing on desktops. World clock has a quick time-zone menu and a validated custom IANA zone field in preferences. Clock units and dates use GLib local conventions.
 
 Network baselines reset when the terminal is hidden, so reopening never averages traffic across the hidden interval. Hardware sampling stops after initial discovery if only widgets are selected. Weather-only strips refresh their display at most once per minute; data requests remain limited to ten minutes.
+
+Application-grid and search activation of the running terminal is routed through
+the extension's drawer controller, rather than letting Shell.App restore its
+persistent window directly. The overview closes before the animated reveal;
+widgets, placement and keyboard focus follow the same path as the shortcut.
+Unrelated app activation and manual-pull motion keep their existing behavior.
+The activation hooks and any pending overview callback are removed on teardown.
