@@ -1,5 +1,26 @@
 [
   {
+    "id": "2026-11-19-rpm-native-waiting-cursor",
+    "date": "2026-11-19",
+    "title": "RPM update: native GNOME waiting-cursor playback",
+    "summary": "The finger-drumming glove now includes GNOME 51 scalable animation assets for native waiting and application-startup cursors.",
+    "buildSha": "62dc831832e78d4ca361000df51a1564fd3ccba1",
+    "changes": [
+      {
+        "title": "Available as an RPM update",
+        "text": "Published for ARM64 and x64 in infinityos-shell-extensions 1.0.0-10000476.fc45. Log out of the desktop and log back in after installation to reload the cursor theme. Existing ISO downloads are unchanged."
+      },
+      {
+        "title": "Native GNOME 51 animation",
+        "text": "The theme now supplies wait and progress through GNOME 51's scalable SVG cursor format, alongside the legacy Xcursor files. Both use the approved 40-frame, 800 ms finger-drumming sequence with a stationary palm, thumb, cuff and hotspot."
+      },
+      {
+        "title": "Verified in a normal Wayland application",
+        "text": "Native GNOME 51 tests confirm that both waiting shapes advance while the pointer stays still over a real GTK Wayland window, without a modal Shell input grab or a forced stage cursor. The test records 37 frame changes in 750 ms with stable size and hotspot."
+      }
+    ]
+  },
+  {
     "id": "2026-11-19-rpm-waiting-glove-finger-drumming",
     "date": "2026-11-19",
     "title": "RPM update: the waiting glove drums its fingers",
