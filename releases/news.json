@@ -1,5 +1,30 @@
 [
   {
+    "id": "2026-11-19-rpm-dock-panel-backdrop",
+    "date": "2026-11-19",
+    "title": "RPM update: dock background follows the panel",
+    "summary": "The adaptive dock shares the panel and InfinityUpdater backdrop settings, with matching tint layers and a transparent fallback.",
+    "buildSha": "49b2be73470a7e585af0413f566622614f204da2",
+    "changes": [
+      {
+        "title": "Available as an RPM update",
+        "text": "Published in the Infinity OS 2.0 RPM repository for ARM64 and x64 as package release 10000446.fc45. This is not a new ISO. The latest verified ISO build, 1121f5365d587876e9c220afdbcf1702054598b9, does not include these changes."
+      },
+      {
+        "title": "Shared backdrop settings",
+        "text": "The adaptive dock uses the same backdrop provider as the panel and InfinityUpdater. It follows the panel's live blur and brightness settings or static preset, with rounded clipping. Wallpaper sampling still follows each surface's screen position."
+      },
+      {
+        "title": "Matching tint layers",
+        "text": "The dock paints the panel background and visible tint layers in the same order and opacity as InfinityUpdater. These replace the adaptive dock's separate neutral tint while retaining its existing outline."
+      },
+      {
+        "title": "Fallback and recovery",
+        "text": "If the matching backdrop is unavailable, the adaptive dock remains transparent. It rebuilds the backdrop when its mode, corner radius or panel provider changes. Custom backgrounds and panel mode keep their existing styling."
+      }
+    ]
+  },
+  {
     "id": "2026-11-19-rpm-ramdrive-restart",
     "date": "2026-11-19",
     "title": "RPM update: save RAMDrive files before restarting",
