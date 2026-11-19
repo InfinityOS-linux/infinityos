@@ -1,5 +1,6 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import GdkPixbuf from 'gi://GdkPixbuf';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import Meta from 'gi://Meta';
@@ -211,7 +212,8 @@ export default class Smoke extends Extension {
         await wait();
         check(blurBackground.height > Main.panel.height, 'panel blur stops above pull handle');
         // Use the production discovery proxy and native BMS dock pipeline.
-        const dockHolder = new St.Widget({width: 420, height: 72, x: 80, y: 650});
+        const dockHolder = new St.Widget({width: 420, height: 72, x: 80, y: 650,
+            offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS});
         dockHolder._background = new DockBackground({x: 8, y: 6, width: 400, height: 60,
             style: 'background: rgba(18,18,23,.26); border-radius: 28px;'});
         dockHolder.add_child(dockHolder._background);
@@ -276,6 +278,51 @@ export default class Smoke extends Extension {
         check(dockHolder._background._surfaceLayers?.some(color => color[3] > 0),
             'native dock draws only its outline without a tint surface');
         check(!redrawOwner.fullRedraw, 'dock forces full-frame GTK redraws for its entire lifetime');
+
+        // Test actual pixels, not just the presence of a mapped GPU effect.
+        // Use a sharp black/white edge behind the dock and hide only its tint.
+        // A parent-level offscreen surface makes this edge stay sharp even
+        // though the blur actor and effect both report themselves as active.
+        const edgeX = 270, sampleY = 680;
+        const pattern = new St.Widget({x: 0, y: 600, width: 600, height: 160,
+            style: 'background-color: black;'});
+        pattern.add_child(new St.Widget({x: edgeX, y: 0, width: 330, height: 160,
+            style: 'background-color: white;'}));
+        dockHolder.get_parent().insert_child_below(pattern, dockHolder);
+        this._objects.push({disable: () => pattern.destroy()});
+        const screenshot = new Shell.Screenshot();
+        const edgeContrast = async () => {
+            // Capture the full stage so the blur kernel can sample surrounding
+            // pixels. A one-pixel pick_color capture clips those neighbours.
+            const stream = Gio.MemoryOutputStream.new_resizable();
+            await screenshot.screenshot(false, stream);
+            stream.close(null);
+            const loader = GdkPixbuf.PixbufLoader.new();
+            loader.write(stream.steal_as_bytes().get_data()); loader.close();
+            const image = loader.get_pixbuf();
+            const pixels = image.get_pixels();
+            const at = x => pixels[sampleY * image.rowstride + x * image.n_channels];
+            const left = at(edgeX - 6), right = at(edgeX + 6);
+            return {left, right, contrast: right - left};
+        };
+        dockHolder._background.opacity = 0;
+        dockInfo.background.get_effects()[0].queue_repaint();
+        await wait();
+        const stagePixels = await edgeContrast();
+        dockHolder.offscreen_redirect = Clutter.OffscreenRedirect.ALWAYS;
+        dockInfo.background.get_effects()[0].queue_repaint();
+        await wait();
+        const isolatedPixels = await edgeContrast();
+        console.log(`INFINITY_DOCK_BLUR_PIXELS ${JSON.stringify({stagePixels, isolatedPixels})}`);
+        check(stagePixels.left > 10 && stagePixels.right < 220 &&
+            stagePixels.contrast + 60 < isolatedPixels.contrast,
+        'dock GPU effect does not soften the stage edge, or offscreen negative control is ineffective');
+        dockHolder.offscreen_redirect = 0;
+        dockHolder._background.opacity = 255;
+        pattern.destroy();
+        this._objects.pop();
+        dockInfo.background.get_effects()[0].queue_repaint();
+        await wait();
         blurController.enabled = false;
         dockInfo.background_group._infinityPanelBackdrop.destroy();
         dockInfo.update_size();

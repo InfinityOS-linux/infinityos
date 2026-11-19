@@ -90,6 +90,13 @@ before publishing an image. Preserve the existing package build-revision markers
 The updater's normal check action uses `view-refresh-symbolic`, with a localized
 tooltip and accessible name. The restart action retains its text label.
 
+The dock parent is not redirected into its own offscreen framebuffer: a dynamic
+BACKGROUND blur needs the stage behind it, while a transparent parent framebuffer
+contains no wallpaper to sample. Individual icon renderers retain their offscreen
+surfaces. The native smoke test samples a black/white edge through the GPU blur,
+then restores parent redirection as a negative control and checks that the edge
+becomes sharp again. A mapped actor and attached effect alone are insufficient.
+
 The dock's BMS discovery proxy is mapped and bound to the dock's size, and points
 at the actual visible pill. Native blur follows pill allocation changes and sits
 below the tint and icons. Default dock brightness is 0.9, with the blur corner
