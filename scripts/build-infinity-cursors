@@ -17,19 +17,25 @@ WAIT_ALIASES = ('watch', 'progress', 'left_ptr_watch', 'default_wait',
 
 
 def waiting_svg(pressures):
-    """Only fingertip control points move; palm, thumb and cuff are fixed."""
-    i, m, r, l = (round(value * distance, 3) for value, distance in
-                  zip(pressures, (36, 52, 38, 30)))
+    """Foreshorten each finger toward its knuckle; keep the hand still."""
+    i, m, r, l = pressures
+
+    def folded_y(value, base, amount, bend):
+        return round(base + (value - base) * (1 - amount * bend), 3)
+
+    yi = lambda value: folded_y(value, 114, .60, i)
+    ym = lambda value: folded_y(value, 112, .67, m)
+    yr = lambda value: folded_y(value, 119, .63, r)
     outline = f"""M 83,134
       C 87,139 89,133 86,121
-      L 67,{72+i} C 63,{58+i} 69,{48+i} 80,{48+i}
-      C 91,{46+i} 98,{55+i} 101,{69+i} L 110,114
-      L 104,{51+m} C 103,{38+m} 110,{29+m} 121,{29+m}
-      C 133,{29+m} 140,{38+m} 139,{51+m} L 136,112
-      L 143,{69+r} C 145,{55+r} 152,{48+r} 163,{49+r}
-      C 176,{49+r} 182,{59+r} 178,{74+r} L 165,119
-      L 177,{99+l} C 181,{86+l} 188,{82+l} 198,{87+l}
-      C 208,{92+l} 210,{101+l} 206,{114+l}
+      L 67,{yi(72)} C 63,{yi(58)} 69,{yi(48)} 80,{yi(48)}
+      C 91,{yi(46)} 98,{yi(55)} 101,{yi(69)} L 110,114
+      L 104,{ym(51)} C 103,{ym(38)} 110,{ym(29)} 121,{ym(29)}
+      C 133,{ym(29)} 140,{ym(38)} 139,{ym(51)} L 136,112
+      L 143,{yr(69)} C 145,{yr(55)} 152,{yr(48)} 163,{yr(49)}
+      C 176,{yr(49)} 182,{yr(59)} 178,{yr(74)} L 165,119
+      L 177,{99+22*l:.3f} C 181,{86+22*l:.3f} 188,{82+22*l:.3f} 198,{87+20*l:.3f}
+      C 208,{92+17*l:.3f} 210,{101+10*l:.3f} 206,114
       L 190,169 C 183,195 165,209 140,211
       L 116,211 C 97,210 84,202 71,188
       L 33,141 C 24,130 29,116 41,113
@@ -47,14 +53,18 @@ def waiting_svg(pressures):
 
 def waiting_poses():
     # Start tapping immediately: short folder launches must not show an idle hand.
-    # Six 20 ms samples per tap keep the motion smooth and visibly active.
-    for finger in range(4):
-        for step in range(1, 7):
-            pressure = [0.] * 4
-            pressure[finger] = math.sin(math.pi * step / 6) ** 2
-            yield tuple(pressure), 20
-    yield (0., 0., 0., 0.), 80
+    # Match the approved preview: overlapping taps, then a short resting pause.
+    def pressure(t):
+        if t < 0 or t >= 260:
+            return 0.
+        if t < 80:
+            return math.sin(math.pi * t / 160) ** 2
+        if t <= 120:
+            return 1.
+        return math.cos(math.pi * (t - 120) / 280) ** 2
 
+    for t in range(20, 801, 20):
+        yield tuple(pressure(t - start) for start in (0, 120, 240, 360)), 20
 
 
 def encode(frames):

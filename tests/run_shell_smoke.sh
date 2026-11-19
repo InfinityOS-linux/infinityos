@@ -51,6 +51,7 @@ dbus-run-session -- bash -euo pipefail -c '
     gsettings set org.gnome.shell allow-extension-installation false
     gsettings set org.gnome.shell disable-user-extensions false
     gsettings set org.gnome.desktop.interface cursor-theme InfinityOS-Modern-Ice
+    gsettings set org.gnome.desktop.interface cursor-size 32
     gsettings set org.gnome.shell enabled-extensions "[\"infinity-smoke@test\"]"
     gnome-shell --headless --virtual-monitor 1280x800 >"$SMOKE_LOG" 2>&1 &
     shell_pid=$!

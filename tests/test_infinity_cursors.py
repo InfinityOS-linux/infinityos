@@ -13,7 +13,7 @@ class CursorAssetsTests(unittest.TestCase):
     def test_wait_animation_keeps_palm_hotspot_and_transparency_fixed(self):
         data = (THEME / 'cursors/wait').read_bytes()
         magic, header, version, count = struct.unpack_from('<4s3I', data)
-        self.assertEqual((magic, header, version, count), (b'Xcur', 16, 0x10000, 175))
+        self.assertEqual((magic, header, version, count), (b'Xcur', 16, 0x10000, 280))
         groups = {}
         previous_end = header + count * 12
         for index in range(count):
@@ -33,14 +33,30 @@ class CursorAssetsTests(unittest.TestCase):
         self.assertEqual(previous_end, len(data))
         self.assertEqual(set(groups), {16, 24, 32, 48, 64, 96, 128})
         for size, frames in groups.items():
-            self.assertEqual([delay for delay, _ in frames], [20] * 24 + [80])
+            self.assertEqual([delay for delay, _ in frames], [20] * 40)
             # Below the finger roots, every pixel stays identical for the whole loop.
             palm_start = round(size * .56) * size * 4
             self.assertEqual(len({pixels[palm_start:] for _, pixels in frames}), 1)
             self.assertGreaterEqual(len({pixels for _, pixels in frames}), 12)
             self.assertNotEqual(frames[0][1], frames[-1][1], 'the loop must start with a tap, not the resting pose')
-            self.assertEqual(sum(delay for delay, _ in frames), 560)
+            self.assertEqual(sum(delay for delay, _ in frames), 800)
             self.assertGreaterEqual(len({pixels for _, pixels in frames[:4]}), 3, 'fingers must visibly change within 80 ms')
+            if size >= 32:
+                def fingertip(pixels, x):
+                    column = round(x * size / 256)
+                    return next(row for row in range(round(size * .56))
+                                if pixels[(row * size + column) * 4 + 3] >= 128)
+                # Each finger visibly shortens in the native asset, not just
+                # the enlarged preview. The small finger moves by at least 2px
+                # at 32px, and the longer fingers move farther.
+                for x, peak, minimum in ((80, 4, 4), (121, 10, 5),
+                                          (163, 16, 4), (198, 22, 2)):
+                    movement = fingertip(frames[peak][1], x) - fingertip(frames[-1][1], x)
+                    self.assertGreaterEqual(movement, minimum * size // 32)
+                thumb = lambda pixels: b''.join(
+                    pixels[row * size * 4:(row * size + round(size * .2)) * 4]
+                    for row in range(round(size * .43), round(size * .56)))
+                self.assertEqual(len({thumb(pixels) for _, pixels in frames}), 1)
 
     def test_busy_names_resolve_to_the_wait_animation(self):
         for name in ('watch', 'progress', 'left_ptr_watch', 'default_wait', 'half-busy',
@@ -120,11 +136,11 @@ class CursorAssetsTests(unittest.TestCase):
             loaded = lib.XcursorFilenameLoadImages(bytes(THEME / 'cursors/wait'), size)
             self.assertTrue(loaded)
             try:
-                self.assertEqual(loaded.contents.nimage, 25)
+                self.assertEqual(loaded.contents.nimage, 40)
                 for index in range(loaded.contents.nimage):
                     image = loaded.contents.images[index].contents
                     self.assertEqual((image.width, image.height), (size, size))
                     self.assertEqual((image.xhot, image.yhot), (size // 2, round(size * .625)))
-                    self.assertEqual(image.delay, 80 if index == 24 else 20)
+                    self.assertEqual(image.delay, 20)
             finally:
                 lib.XcursorImagesDestroy(loaded)
