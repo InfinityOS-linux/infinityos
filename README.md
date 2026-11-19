@@ -6,15 +6,13 @@
 
 This repository is the source for the Infinity OS KIWI images, desktop configuration, InfinitySetup, InfinityTerminal, InfinityUpdater, RPM packages, and build pipeline.
 
-**InfinityOS_01 downloads remain available.** The first release includes `x86_64` and `aarch64` ISO images. Visit [infinityos.eu](https://infinityos.eu/) or get the images from the [download folder](https://mega.nz/folder/vx50XZrT#wjqKyqmFacFjPK8I4vNcxw).
-
-**Infinity OS 2.0** uses Fedora 45 and GNOME 51. See [the migration checklist](docs/fedora-45-migration.md) for verification status and remaining hardware checks.
+**Infinity OS 2.0** uses Fedora 45 and GNOME 51, with live ISO images for `x86_64` and `aarch64`. Visit the [download page](https://infinityos.eu/download) for published images, checksums, and installation instructions, and [News](https://infinityos.eu/news) for release changes.
 
 **Infinity OS is an independent Fedora Remix. It is not provided, supported, or endorsed by the Fedora Project or Red Hat.** Official Fedora Linux is available at [fedoraproject.org](https://fedoraproject.org/).
 
 ## Start here
 
-- [Download InfinityOS_01](https://infinityos.eu/).
+- [Download Infinity OS 2.0](https://infinityos.eu/download).
 - [Join the InfinityOS Discord community](https://discord.gg/QA8N3XKsH8) for help, ideas, and release discussion.
 - [Build an image](#build-an-image) from a committed source revision.
 - [Package and RPM repository guide](packages/README.md) for application builds and signing.
@@ -26,9 +24,9 @@ This repository is the source for the Infinity OS KIWI images, desktop configura
 | Area | Configuration |
 | --- | --- |
 | Base | Fedora 45 packages, DNF, Fedora Updates, RPM Fusion Free and Nonfree |
-| Desktop | GNOME with Orchis Purple Dark Compact by default and an optional Light mode, Kora icons, Bibata cursor, Infinity OS artwork, IBM Plex Sans, and a dark lock screen |
-| Storage | Writable Btrfs root, rEFInd, Snapper timeline and cleanup |
-| Applications | Firefox, GNOME Software, Flatpak with Flathub, mpv, InfinitySetup, and InfinityTerminal |
+| Desktop | GNOME 51 with Orchis Purple Dark Compact by default and an optional Light mode, Kora icons, a Bibata-based cursor theme with Infinity OS hand cursors, Infinity OS artwork, IBM Plex Sans, and a dark lock screen |
+| Storage | Writable Btrfs root, rEFInd, and offline Snapper recovery points covering the system and `/var` |
+| Applications | Firefox, GNOME Software, Flatpak with Flathub, mpv, Proview, InfinitySetup, InfinityConfig, InfinityUpdater, and InfinityTerminal |
 | Development | Zsh with Oh My Zsh and a compact purple Powerlevel10k prompt, Iosevka Term in InfinityTerminal |
 | Gaming | GameMode, MangoHud, Gamescope, gamepad support; Steam and Lutris available through InfinitySetup |
 | Hardware | Fedora Intel and AMD graphics support; NVIDIA driver branch selected from the GPU's PCI ID during `x86_64` live installation |
@@ -39,15 +37,15 @@ Infinity OS uses compressed zram swap sized to half of RAM, capped at 16 GiB, wi
 
 GameMode, MangoHud, Gamescope, TLP, and the existing bounded `vm.max_map_count` setting remain in place. No OSTree or immutable root is used.
 
-**InfinitySetup** opens on first login. It groups optional software under AI, System, Gaming, Creative, Office, and Programming. You choose applications and press **Apply** before installation starts. The choices include Steam, Epic Games Launcher Preview, Heroic, Lutris, Prism Launcher, creative tools, EuroOffice, OpenRazer, VS Code, Docker CE, Codex, Claude, and three local coding models. Epic's native Linux AppImage is downloaded from Epic when selected. The Battle.net row opens its interactive installer in Lutris. Selecting a local model installs Ollama and OpenCode, downloads the model, and configures the terminal agent. A progress strip appears while apps install. Its source and RPM specification live in [`packages/infinity-setup`](packages/infinity-setup).
+**InfinitySetup** opens on first login. It groups optional software under AI, System, Gaming, Creative, Office, and Programming. You choose applications and press **Apply** before installation starts. The choices include Steam, Epic Games Launcher Preview, Heroic, Lutris, Prism Launcher, creative tools, EuroOffice, OpenRazer, VS Code, Docker CE, Codex, Claude, and three local coding models. On x86_64, Epic's native Linux launcher is downloaded from Epic's Debian package and extracted into the user's application directory. The Battle.net row opens its interactive installer in Lutris. Selecting a local model installs Ollama and OpenCode, downloads the model, and configures the terminal agent. A progress strip appears while apps install. Its source and RPM specification live in [`packages/infinity-setup`](packages/infinity-setup).
 On ARM64, the Steam choice installs Valve's native public beta client; game compatibility depends on the machine's graphics stack and any needed FEX or Proton setup.
-Steam TV Mode reserves tty1 exclusively, including on systems using KMSCon, and drops inherited PAM capabilities before starting its session bus and compositor so Flatpak sandboxes can start. Seat access uses systemd-logind. On x86_64, InfinitySetup installs matching 64-bit and 32-bit Flatpak NVIDIA libraries only when Flatpak reports an active NVIDIA driver; AMD and Intel systems retain their normal Mesa libraries. The first Steam launch may take longer while the client downloads and installs its updates.
+Steam TV Mode reserves tty1 exclusively, including on systems using KMSCon, and drops inherited PAM capabilities before starting its session bus and compositor. Seat access uses systemd-logind. On x86_64, Steam uses RPM Fusion's native RPM with 64-bit and 32-bit graphics libraries; see [Steam packaging](#steam-packaging). The first Steam launch may take longer while the client downloads and installs its updates.
 
-**Infinity Config** opens from the application grid when needed. Its Desktop and Dock tabs resize the system cursor and animated dock from 20% to 200%, with the shipped sizes at 100%; Tweaks is reserved for future controls. It uses the same visual language as InfinitySetup and is packaged in [`packages/infinity-config`](packages/infinity-config).
+**InfinityConfig** opens from the application grid when needed. Its Desktop and Dock tabs resize the system cursor and animated dock from 20% to 200%, with the shipped sizes at 100%. Tweaks opens system tools and diagnostics; the AI, Gaming, and Backups pages manage their respective settings. It uses the same visual language as InfinitySetup and is packaged in [`packages/infinity-config`](packages/infinity-config).
 
 InfinitySetup opens automatically once after installation; after you close it, you can reopen it from the application grid. The interface follows the session language (Polish and English are bundled). RAMDrive warns through GNOME's shutdown confirmation when it contains files; canceling keeps the session and files, while continuing the shutdown clears the folder. A crash or hard reset leaves its contents intact.
 
-**InfinityTerminal** uses a patched Ghostty renderer and defaults to Iosevka Term. Press **Super+T** or use its GNOME panel icon to show and hide it. The first shell tab stays pinned; Codex and Claude gain pinned tabs when their CLI tools are installed. A selected local model adds a leftmost Infinity AI tab; its context menu opens a separate edit-enabled agent tab. The terminal source and package live in [`packages/infinity-terminal`](packages/infinity-terminal), with the renderer patch in [`ghostty`](ghostty).
+**InfinityTerminal** uses a patched Ghostty renderer and defaults to Iosevka Term. Press **Super+T**, click the handle below the clock, or drag the handle to reveal it. It also opens from the application grid. The configurable strip above the terminal offers hardware readings and widgets such as weather, timers, network traffic, and world clocks. The first shell tab stays pinned; Codex and Claude gain pinned tabs when their CLI tools are installed. A selected local model adds a leftmost Infinity AI tab; its context menu opens a separate edit-enabled agent tab. The terminal source and package live in [`packages/infinity-terminal`](packages/infinity-terminal), with the renderer patch in [`ghostty`](ghostty).
 
 At the Zsh prompt, **Shift+Arrow** selects command text, **Ctrl+Shift+Left/Right** selects whole words, and typing, pasting, or Backspace replaces the selection. **Alt+C** copies it to the system clipboard; **Alt+Up/Down** searches command history by the prefix already typed. Ghostty also provides **Ctrl+Shift+F** for scrollback search, **Ctrl+Shift+P** for its command palette, and **Ctrl+Shift+Page Up/Down** to jump between prompts. In terminal output, select text with the pointer first, then Shift+Arrow extends that selection.
 
@@ -65,13 +63,15 @@ Infinity Config's Tweaks tab opens Extensions, system settings and Updates. It c
 
 ## Packages and updates
 
-Before an RPM upgrade, InfinityUpdater creates a numbered Snapper snapshot of the Btrfs root. If backups are not ready or snapshot creation fails, the RPM upgrade stops and explains why. The update window shows the snapshot number and points to the rEFInd Backups (Btrfs) entry. `/home`, `/var` and device firmware are outside that root snapshot.
+InfinityUpdater downloads system RPM updates during the desktop session and installs the prepared transaction after restart, before ordinary services start. Immediately before installation, it requires a complete Snapper recovery point covering the system and `/var`. If backup creation fails, installation does not start. The rEFInd **Backups** entry creates and restores these recovery points; InfinityConfig lists and deletes them. `/home`, the EFI system partition, and device firmware are outside the backup. See [Recovery](docs/recovery.md) for the supported layout and restore process.
+
+Packages explicitly skipped by DNF because of dependency compatibility appear in a separate **Waiting for compatibility** group. They are excluded from the available-update count until they become installable. Failed repository downloads receive one metadata refresh and retry; failures remain visible and preserve the existing pending update. See [Updater recovery](docs/updater-recovery.md) for manual recovery commands.
 
 Fedora and Fedora Updates provide the base system. RPM Fusion provides multimedia codecs and nonfree hardware packages. The desktop includes GNOME Software for applications, mpv as the default video player, Proview as the default PDF and image viewer, and InfinityUpdater for periodic RPM and Flatpak update checks. GNOME Software's own update checks are disabled to avoid duplicate notifications. It also includes FFmpeg, GNOME Files archive integration, UnRAR, 7-Zip, TLP, and purple folder icons. IBM Plex Sans is the default from the installer and login screen through the desktop. Microsoft Core Fonts are downloaded and checksum-verified on the installed machine after network access is available; their font files are not distributed in the image. Infinity OS builds `infinity-setup` and `infinity-terminal` as signed RPMs and publishes them through its own DNF repository. See [`packages/README.md`](packages/README.md) for the build, signing, and release flow. Docker CE uses Docker's official Fedora repository when selected in InfinitySetup.
 
 Firefox enables Encrypted Media Extensions through an unlocked system policy and obtains supported Widevine modules from Mozilla/Google on compatible platforms. Firefox remains the default browser. Chrome is available as an optional InfinitySetup selection and is not installed automatically. Infinity OS does not redistribute CDM binaries. PlayReady and FairPlay are not provided as general-purpose Linux desktop browser modules. Streaming services can impose their own browser, resolution, or hardware requirements.
 
-The image build requires the Infinity OS RPM repository to be published and reachable. GitHub Actions publishes it after a successful build on `main`. Applications installed directly from third-party GitHub releases do not receive updates from the Infinity OS repository.
+The image build requires the Infinity OS RPM repository to be published and reachable. GitHub Actions publishes it after a successful build on `main`. Third-party GitHub applications are not republished in the Infinity OS RPM repository. InfinityUpdater separately checks supported GitHub RPM and AppImage applications installed through InfinitySetup, alongside RPM, Flatpak, and firmware updates.
 
 ## Build an image
 
@@ -124,7 +124,7 @@ then installs rEFInd, writes the Btrfs recovery entry, and fixes permissions
 on the Btrfs root subvolume so desktop services can start. The resulting RAW disk has a 2 GB EFI partition and Btrfs `root`,
 `home`, and `var` subvolumes. Building `x86_64` requires an x86_64 Fedora host or CI runner.
 
-The rEFInd **Backups (Btrfs)** entry opens a text console for listing, creating, deleting, and restoring Snapper snapshots of `/`. Snapshots are stored in the separate `infinityos-snapshots` Btrfs subvolume, so they remain available after a restore. The first boot sets this up and switches normal boot entries to the Btrfs default root; subsequent kernel entry changes refresh Backups automatically. A restore creates a safety snapshot of the current root, selects a writable copy of the chosen snapshot as the next default root, and reboots. `/home` and `/var` are separate subvolumes and are not rolled back. The previous root stays on disk under `infinityos-roots` for manual recovery.
+The rEFInd **Backups (Btrfs)** entry opens a text console for listing, creating, deleting, and restoring complete system recovery points. Snapshots are stored in the separate `infinityos-snapshots` Btrfs subvolume, so they remain available after a restore. The first boot sets this up and switches normal boot entries to the Btrfs default root; subsequent kernel entry changes refresh Backups automatically. A restore first saves the current system and `/var`, prepares writable copies of the selected recovery point, and switches the default root and its matching `/var`. `/home` is preserved. Older root-only or incomplete backups cannot be selected. Previous roots and service data remain on disk for recovery.
 
 Published x86_64 and aarch64 live ISOs boot through rEFInd. The ISO finalizer enlarges the EFI partition and places the live kernel and initramfs there, avoiding firmware-dependent ISO9660 loading. The menu offers the live session, media check, and basic graphics mode. KIWI uses GRUB while composing the ISO, but the published EFI image contains rEFInd. Anaconda creates kernel metadata with `bootloader --location=none`; the required post script installs rEFInd before reporting success. The installed system boots through rEFInd with Infinity OS and Backups (Btrfs) entries. Unused GRUB EFI, shim, and systemd-boot packages are removed from installed systems. Fedora still requires `grub2-common` and `grub2-tools` for Anaconda and `grubby`, so those packages remain in the live root and installed system. The target root must be Btrfs. The shipped rEFInd binary is unsigned, so disable Secure Boot before installation. Legacy BIOS boot is not supported. An installer failure leaves its log at `/var/log/infinityos-boot-install.log` on the target system.
 
@@ -133,8 +133,8 @@ Published x86_64 and aarch64 live ISOs boot through rEFInd. The ISO finalizer en
 - [`InfinityOS.kiwi`](InfinityOS.kiwi), [`repositories/`](repositories), and [`teams/`](teams) define image profiles and package sources.
 - [`root/`](root) contains files placed in the image, including GNOME defaults, themes, extensions, and artwork.
 - [`config.sh`](config.sh) applies image configuration and enables system services.
-- [`packages/`](packages) contains the InfinitySetup and InfinityTerminal RPMs.
-- [`tests/`](tests) contains focused checks for application selection and RAMDrive cleanup.
+- [`packages/`](packages) contains the Infinity OS application, repository, wallpaper, RAMDrive, and desktop extension RPMs.
+- [`tests/`](tests) contains source, application, native GNOME, GTK, package compatibility, ISO, and Btrfs recovery checks.
 
 ## Sources and licensing
 
