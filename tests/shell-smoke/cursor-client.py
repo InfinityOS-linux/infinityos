@@ -22,13 +22,17 @@ def activate(application):
     motion = Gtk.EventControllerMotion()
     motion.connect('enter', lambda *_: state.update(hover=True))
     motion.connect('leave', lambda *_: state.update(hover=False))
-    label.add_controller(motion)
+    window.add_controller(motion)
 
     def observe():
         mode = command.read_text().strip() if command.exists() else 'wait'
         if mode != state['mode']:
             window.set_cursor_from_name(mode)
             state['mode'] = mode
+        pointer = window.get_display().get_default_seat().get_pointer()
+        surface, x, y = pointer.get_surface_at_position() if pointer else (None, 0, 0)
+        state['pointer_here'] = surface is not None and surface == window.get_surface()
+        state['point'] = [x, y]
         pending = report.with_suffix('.tmp')
         pending.write_text(json.dumps(state))
         pending.replace(report)

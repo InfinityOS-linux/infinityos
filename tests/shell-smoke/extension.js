@@ -630,11 +630,18 @@ export default class Smoke extends Extension {
                 await wait();
                 // Headless virtual pointers can clamp their first motion to y=0.
                 clientPointer.notify_absolute_motion(GLib.get_monotonic_time(), x, y);
+                seat.warp_pointer(x, y);
+                global.stage.queue_redraw();
                 await wait();
                 clientPointer.notify_absolute_motion(GLib.get_monotonic_time(), x, y);
+                seat.warp_pointer(x, y);
+                global.stage.queue_redraw();
                 await wait();
                 const state = readCursorReport();
-                check(state.hover && state.mode === name, 'pointer did not enter the real GTK cursor surface');
+                console.log(`INFINITY_GTK_CURSOR_FOCUS ${JSON.stringify({state, target: [x, y],
+                    pointer: global.get_pointer().slice(0, 2),
+                    focus: global.display.focus_window?.get_title()})}`);
+                check(state.pointer_here && state.mode === name, 'pointer did not enter the real GTK cursor surface');
                 let changes = 0;
                 const geometry = new Set();
                 const changed = tracker.connect('cursor-changed', () => {
