@@ -1,5 +1,30 @@
 [
   {
+    "id": "2026-11-19-rpm-ramdrive-restart",
+    "date": "2026-11-19",
+    "title": "RPM update: save RAMDrive files before restarting",
+    "summary": "Available through InfinityUpdater on ARM64 and x64: choose whether to save or remove RAMDrive files before a desktop restart.",
+    "buildSha": "f6ae8ae476b501e31efe71b9309a5cbc437a8ca0",
+    "changes": [
+      {
+        "title": "Available as an RPM update",
+        "text": "Published in the Infinity OS 2.0 RPM repository for ARM64 and x64. This change is not included in the latest verified ISO build, 1121f5365d587876e9c220afdbcf1702054598b9."
+      },
+      {
+        "title": "Choose before restarting",
+        "text": "When RAMDrive contains files, the desktop restart dialog appears in the upper-right corner with Remove & Restart and Save files. The countdown pauses while a choice is pending. Press Escape to cancel before an operation starts."
+      },
+      {
+        "title": "Save files to the Desktop",
+        "text": "Save files moves RAMDrive contents to Saved Files on your configured Desktop, then continues the restart. Hidden files and nested folders are included. Existing saved files are kept, with numeric suffixes added to conflicting names."
+      },
+      {
+        "title": "Restart only after success",
+        "text": "Remove & Restart clears RAMDrive before continuing. A failed operation or remaining files stops the restart and displays an error. Files already moved during a partial save remain in Saved Files; the rest stay in RAMDrive. GNOME's update and session checks are preserved."
+      }
+    ]
+  },
+  {
     "id": "2026-11-19-rpm-desktop-and-update-recovery",
     "date": "2026-11-19",
     "title": "RPM updates: desktop polish and update recovery",
