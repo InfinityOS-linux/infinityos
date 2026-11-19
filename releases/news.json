@@ -1,5 +1,50 @@
 [
   {
+    "id": "2026-11-19-rpm-desktop-and-update-recovery",
+    "date": "2026-11-19",
+    "title": "RPM updates: desktop polish and update recovery",
+    "summary": "Available through InfinityUpdater on ARM64 and x64: a tapping glove cursor, updater and dock fixes, clearer dependency handling, and more reliable authorization and downloads.",
+    "buildSha": "997cc81158f78f64819da7811ec907279038d3b5",
+    "changes": [
+      {
+        "title": "Available as RPM updates",
+        "text": "These changes are published in the Infinity OS 2.0 RPM repository for ARM64 and x64. They are not a new ISO release. The latest verified ISO build remains 1121f5365d587876e9c220afdbcf1702054598b9 and does not include the changes below."
+      },
+      {
+        "title": "Tapping glove cursor",
+        "text": "The busy cursor now shows a stationary glove tapping its fingers instead of a spinning beachball. Tapping starts immediately, with a fixed palm and pointer position across supported cursor sizes."
+      },
+      {
+        "title": "Updater appearance and motion",
+        "text": "Removed dark rectangular shadows and hover artifacts over the blurred background. The header now matches the backdrop, with a System update title and a compact refresh button. The window slides into place without an opening bounce and respects reduced-motion settings."
+      },
+      {
+        "title": "Dock blur",
+        "text": "Restored blur behind the visible dock, with its size and rounded corners following the dock background."
+      },
+      {
+        "title": "Packages waiting for compatibility",
+        "text": "RPM updates blocked by incompatible dependencies appear in a separate expandable group. They are excluded from the ready-to-install count and installation actions, then offered automatically when compatible dependencies become available."
+      },
+      {
+        "title": "Tray and top bar",
+        "text": "Centered tray icons inside their cells and removed empty space left by hidden indicators. The top bar hides the power-profile icon and connected Ethernet icon, while keeping Wi-Fi and disconnected-network status visible."
+      },
+      {
+        "title": "Open InfinityTerminal from applications",
+        "text": "Opening InfinityTerminal from the application list now uses its pull-down drawer. It waits for the overview to close and focuses the existing terminal when it is already visible."
+      },
+      {
+        "title": "Update authorization",
+        "text": "The updater stays visible while the administrator password dialog is open and shows an Authorizing phase. Authorization failures and unexpected helper errors are reported instead of leaving the interface busy indefinitely."
+      },
+      {
+        "title": "Download recovery",
+        "text": "If an offline repository download fails, the updater refreshes repository metadata and retries once. Downloaded packages and the existing offline transaction are preserved. Local RPM installs and the restart step are not retried."
+      }
+    ]
+  },
+  {
     "id": "2026-11-18-dock-and-updater-backdrop",
     "date": "2026-11-18",
     "title": "Terminal handle, dock and updater",
@@ -20,7 +65,7 @@
       },
       {
         "title": "InfinityUpdater background",
-        "text": "The window uses the top bar's blur with slightly darker header and button areas. Fixed the solid background remaining after a delayed blur setup; transparency now follows the backdrop's readiness and recovers when it is rebuilt. Text and controls stay sharp."
+        "text": "The ISO window uses the top bar's blur with slightly darker header and button areas. A later RPM update fixed the solid background remaining after a delayed blur setup; that fix is not included in this ISO. With the update installed, transparency follows the backdrop's readiness and recovers when it is rebuilt. Text and controls stay sharp."
       },
       {
         "title": "Tray layout",
