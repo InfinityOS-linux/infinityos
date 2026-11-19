@@ -17,7 +17,7 @@ import NowPlay from '../nowplay@LalaloyXyz/extension.js';
 import Raccoon from '../raccoonlauncher@shimafallah.github.io/extension.js';
 import Updater from '../infinity-updater@infinityos.org/extension.js';
 import {opticalMetrics} from '../dash2dock-animated@infinityos.org/optical-icons.mjs';
-import {createDockBlurProxy} from '../dash2dock-animated@infinityos.org/dock.js';
+import {createDockBlurProxy, Dock} from '../dash2dock-animated@infinityos.org/dock.js';
 import {Integrations} from '../dash2dock-animated@infinityos.org/integrations.js';
 import {DashBlur} from '../blur-my-shell@aunetx/components/dash_to_dock.js';
 import {Connections} from '../blur-my-shell@aunetx/conveniences/connections.js';
@@ -262,8 +262,11 @@ export default class Smoke extends Extension {
         check(dockInfo.background_group._infinityPanelBackdrop, 'adaptive dock does not use the updater panel factory');
         const dockIntegration = new Integrations();
         const dockAnimator = {dock: dockHolder};
+        dockHolder.animator = dockAnimator;
+        dockHolder.extension.integrations = dockIntegration;
         dockInfo.background_group.hide();
         dockIntegration.bms_update_size(dockAnimator);
+        Dock.prototype._updateTransparenies.call(dockHolder);
         await wait();
         check(dockInfo.background_group.visible && dockInfo.background.is_mapped(),
             'dock animator hides the working panel-matched blur');
@@ -281,6 +284,7 @@ export default class Smoke extends Extension {
             'dock fallback is opaque when its matching blur is unavailable');
         check(dockInfo.background.get_effects().length === 0, 'dock fallback keeps an independent blur');
         dockIntegration.bms_update_size(dockAnimator);
+        Dock.prototype._updateTransparenies.call(dockHolder);
         check(!dockInfo.background_group.visible, 'animation reveals an independent fallback blur');
         blurController.enabled = true; await wait(); await wait();
         check(dockInfo.background_group._infinityPanelBackdrop, 'dock did not recover its matching blur');

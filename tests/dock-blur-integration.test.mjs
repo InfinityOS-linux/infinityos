@@ -18,6 +18,7 @@ function fixture() {
     const background = {visible: false, get_name: () => 'bms-dash-backgroundgroup', _infinityPanelBackdrop: {destroyed: false}};
     const animator = {dock: {get_children: () => [background]}};
     integration.extension = {docks: [{animator}], blur_background: true};
+    animator.dock.extension = integration.extension;
     return {integration, background, animator, overview, settings, bridge};
 }
 
@@ -43,6 +44,29 @@ test('animation preserves the user preference to hide blur in overview', () => {
     f.overview.visible = false;
     f.integration.bms_update_size(f.animator);
     assert.equal(f.background.visible, true);
+    f.overview.visible = false;
+    f.integration.extension._inOverview = true;
+    f.integration.extension.overview_transparent_background = true;
+    f.integration.bms_update_size(f.animator);
+    assert.equal(f.background.visible, false);
+});
+
+test('dock transparency updates use the same visibility rule rather than hiding the group again', () => {
+    const f = fixture();
+    const dockSource = readFileSync(new URL('../root/usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/dock.js', import.meta.url), 'utf8');
+    const start = dockSource.indexOf('    _updateTransparenies() {');
+    const end = dockSource.indexOf('\n    }', start) + 6;
+    const update = vm.runInNewContext(`({${dockSource.slice(start, end)}})._updateTransparenies`, {Main: {overview: f.overview}});
+    f.integration.extension.integrations = f.integration;
+    Object.assign(f.animator.dock, {animator: f.animator, _background: {}});
+    update.call(f.animator.dock);
+    assert.equal(f.background.visible, true);
+    assert.equal(f.animator.dock._background.opacity, 255);
+    f.overview.visible = true;
+    f.integration.extension.overview_transparent_background = true;
+    update.call(f.animator.dock);
+    assert.equal(f.background.visible, false);
+    assert.equal(f.animator.dock._background.opacity, 0);
 });
 
 test('integration restores an old geometry override and never disables BMS geometry updates', () => {

@@ -178,7 +178,10 @@ export const Integrations = class {
     if (bms) {
       const matched = bms._infinityPanelBackdrop;
       const unblur = global.blur_my_shell?._settings?.dash_to_dock?.UNBLUR_IN_OVERVIEW;
-      bms.visible = Boolean(matched && !matched.destroyed && !(unblur && Main.overview.visible));
+      const dockSettings = animator.dock.extension;
+      const transparent = (Main.overview.visible || dockSettings?._inOverview) &&
+        dockSettings?.overview_transparent_background;
+      bms.visible = Boolean(matched && !matched.destroyed && !transparent && !(unblur && Main.overview.visible));
     }
   }
 };
