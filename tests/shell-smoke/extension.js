@@ -619,7 +619,6 @@ export default class Smoke extends Extension {
         // Do not force the stage cursor or grab input. Headless Mutter hides
         // pointers without physical hardware; retain focus for the virtual seat
         // so GTK receives real Wayland pointer-enter and cursor-shape requests.
-        check(Main.modalCount === 0, `a Shell modal leaked into the GTK cursor test: ${modalActors()}`);
         seat.inhibit_unfocus();
         const cursorReport = GLib.getenv('INFINITY_SMOKE_CURSOR_REPORT');
         const cursorMode = cursorReport.replace(/\.json$/, '.mode');
@@ -631,7 +630,13 @@ export default class Smoke extends Extension {
             const clientWindow = global.get_window_actors().find(actor =>
                 actor.meta_window.get_title() === 'Infinity cursor playback')?.meta_window;
             check(clientWindow, 'GTK cursor test window did not map');
-            clientWindow.activate(global.get_current_time());
+            // Closing the updater fixture can reveal GNOME's overview. Use
+            // normal application activation, which also dismisses that overview.
+            Main.activateWindow(clientWindow);
+            await wait();
+            check(Main.modalCount === 0, `a Shell modal leaked into the GTK cursor test: ${modalActors()}`);
+            check(clientWindow.get_client_type() === Meta.WindowClientType.WAYLAND,
+                'cursor fixture is not a native Wayland client');
             const rect = clientWindow.get_frame_rect();
             const x = rect.x + rect.width / 2, y = rect.y + rect.height / 2;
             const readCursorReport = () => {
