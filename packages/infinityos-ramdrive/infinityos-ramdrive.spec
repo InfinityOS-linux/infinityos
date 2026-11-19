@@ -8,6 +8,7 @@ Source0:        infinityos-ramdrive-%{version}.tar.gz
 BuildArch:      noarch
 Requires:       python3-gobject
 Requires:       xdg-user-dirs
+Requires:       infinityos-shell-extensions >= 1.0.0-%{release}
 
 %description
 Creates protected RAMDrive storage with a removable desktop shortcut, warns

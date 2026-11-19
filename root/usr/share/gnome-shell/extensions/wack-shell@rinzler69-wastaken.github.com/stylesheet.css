@@ -141,3 +141,9 @@
 .workspace-thumbnails.infinity-dashboard-previews {
     spacing: 10px;
 }
+
+.infinity-ramdrive-restart {
+    border-radius: 20px;
+    border: 1px solid rgba(193, 161, 236, 0.3);
+    background-color: #211a2f;
+}

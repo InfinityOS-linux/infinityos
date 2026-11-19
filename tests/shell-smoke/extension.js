@@ -24,6 +24,7 @@ import {DockBackground} from '../dash2dock-animated@infinityos.org/dockItems.js'
 import {PanelBlur} from '../blur-my-shell@aunetx/components/panel.js';
 import BlurMyShell from '../blur-my-shell@aunetx/extension.js';
 import PanelIndicators from '../wack-shell@rinzler69-wastaken.github.com/panelIndicators.js';
+import RamdriveRestart from '../wack-shell@rinzler69-wastaken.github.com/ramdriveRestart.js';
 
 function check(ok, message) { if (!ok) throw new Error(message); }
 
@@ -74,6 +75,41 @@ export default class Smoke extends Extension {
         this._objects.push({disable: () => monitor.destroy()});
         monitor.sync({x: 0, y: 150, width: 1280}, true);
         const wait = () => new Promise(resolve => GLib.timeout_add(GLib.PRIORITY_DEFAULT, 750, () => { resolve(); return GLib.SOURCE_REMOVE; }));
+        const endDialog = Main.endSessionDialog;
+        const savedEndMethods = {confirm: endDialog._confirm, state: endDialog._getUpdateState, sessions: endDialog._loadSessions};
+        let restartSignals = 0, occupiedRamdrive = true, failSave = true;
+        endDialog._confirm = async signal => { check(signal === 'ConfirmedReboot', 'wrong restart signal'); restartSignals++; };
+        endDialog._getUpdateState = async () => 'none';
+        endDialog._loadSessions = async () => {};
+        const restartPrompt = new RamdriveRestart(endDialog, () => occupiedRamdrive, async action => {
+            check(action === 'save', 'wrong RAMDrive action');
+            if (failSave) throw new Error('fixture save failure');
+            occupiedRamdrive = false;
+        });
+        try {
+            await endDialog.OpenAsync([2, 0, 60, []], {
+                return_value() {}, return_error_literal(_domain, _code, message) {throw new Error(message);},
+            });
+            await wait();
+            check(restartPrompt.buttons.length === 2, 'RAMDrive restart choices missing');
+            check(restartPrompt.buttons[0].label === 'Remove & Restart' && restartPrompt.buttons[1].label === 'Save files', 'RAMDrive button labels differ');
+            check(!endDialog._timerId, 'RAMDrive restart countdown is active');
+            const [promptX, promptY] = endDialog.dialogLayout._dialog.get_transformed_position();
+            check(promptX > 640 && promptY < 200, `RAMDrive prompt is not at upper right: ${promptX},${promptY}`);
+            await endDialog._confirm('ConfirmedReboot');
+            check(restartSignals === 0, 'automatic confirmation bypassed RAMDrive choices');
+            await restartPrompt.prepare('save');
+            check(restartSignals === 0 && !restartPrompt.busy, 'failed save restarted or locked the dialog');
+            failSave = false;
+            await restartPrompt.prepare('save');
+            check(restartSignals === 1, 'successful save did not resume GNOME confirmation');
+        } finally {
+            restartPrompt.destroy();
+            endDialog._confirm = savedEndMethods.confirm;
+            endDialog._getUpdateState = savedEndMethods.state;
+            endDialog._loadSessions = savedEndMethods.sessions;
+        }
+        await wait();
         const dockOutline = new DockBackground({width: 420, height: 72});
         dockOutline._dock = {extension: {adaptive_background: true, panel_mode: false,
             computed_border_radius: 40, border_thickness: 1, _getPreferredColorScheme: () => 'dark'}};

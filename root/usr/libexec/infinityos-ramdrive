@@ -82,10 +82,38 @@ def clear():
             item.unlink()
 
 
+def save():
+    folder = ramdrive()
+    if folder.is_symlink() or not folder.is_dir() or folder.stat().st_uid != os.getuid():
+        raise ValueError('Protected RAMDrive storage is unavailable')
+    desktop = desktop_shortcut().parent.resolve(strict=True)
+    destination = desktop / 'Saved Files'
+    if folder.resolve() in (destination, *destination.parents):
+        raise ValueError('Saved Files must be outside RAMDrive')
+    if destination.is_symlink():
+        raise ValueError('Saved Files must be a folder, not a symbolic link')
+    destination.mkdir(mode=0o700, exist_ok=True)
+    if not destination.is_dir() or destination.stat().st_uid != os.getuid():
+        raise ValueError('Saved Files is not an owned folder')
+    for item in folder.iterdir():
+        target = destination / item.name
+        suffix = 1
+        while target.exists() or target.is_symlink():
+            target = destination / f'{item.stem} ({suffix}){item.suffix}'
+            suffix += 1
+        shutil.move(str(item), str(target))
+    if next(folder.iterdir(), None) is not None:
+        raise RuntimeError('RAMDrive changed while saving. Check the files and try again.')
+    os.sync()
+    print(destination)
+
+
 if __name__ == "__main__":
-    if sys.argv[1:] == ["setup"]:
-        setup()
-    elif sys.argv[1:] == ["clear"]:
-        clear()
-    else:
-        raise SystemExit("Usage: infinityos-ramdrive setup|clear")
+    actions = {'setup': setup, 'clear': clear, 'save': save}
+    if len(sys.argv) != 2 or sys.argv[1] not in actions:
+        raise SystemExit('Usage: infinityos-ramdrive setup|clear|save')
+    try:
+        actions[sys.argv[1]]()
+    except (OSError, ValueError, RuntimeError, shutil.Error) as error:
+        print(str(error), file=sys.stderr)
+        raise SystemExit(1)

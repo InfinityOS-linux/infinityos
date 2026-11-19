@@ -49,11 +49,11 @@ class ShutdownGuard:
         if occupied and self.cookie is None:
             language = (locale.getlocale()[0] or "").split("_")[0]
             reason = (
-                "RAMDrive zawiera pliki. Wyłączyć lub uruchomić ponownie i usunąć je? "
-                "Anuluj, aby zachować pliki."
+                "RAMDrive zawiera pliki. Przed restartem zapisz je lub usuń. "
+                "Anuluj, aby wrócić do pulpitu."
                 if language == "pl" else
-                "RAMDrive contains files. Shut down or restart and delete them? "
-                "Cancel to keep the files."
+                "RAMDrive contains files. Save or remove them before restarting. "
+                "Cancel to return to the desktop."
             )
             result = self.proxy.call_sync(
                 "Inhibit", GLib.Variant("(susu)", ("infinityos-ramdrive", 0, reason, 1)),

@@ -21,6 +21,7 @@ import InstallerDim from './installerDim.js';
 import AppDashboard from './appDashboard.js';
 import UserTray from './userTray.js';
 import PanelIndicators from './panelIndicators.js';
+import RamdriveRestart from './ramdriveRestart.js';
 import { createWarpButton } from './warpButton.js';
 import { APP_GRID_WORKSPACE_RATIO, APP_GRID_WORKSPACE_FADE_RANGE, APP_GRID_WORKSPACE_FADE_SNAP } from './constants.js';
 
@@ -109,6 +110,7 @@ this._settings.connectObject(
         this._qsPowerManager = new QuickSettingsPowerManager(this);
         this._userTray = new UserTray();
         this._panelIndicators = new PanelIndicators();
+        this._ramdriveRestart = new RamdriveRestart();
         this._qsPowerManager.sync();
 
         this._windowSnapshotCachingEnabled = true;
@@ -198,6 +200,8 @@ this._settings.connectObject(
     }
 
     disable() {
+        this._ramdriveRestart?.destroy();
+        this._ramdriveRestart = null;
         this._panelIndicators?.destroy();
         this._panelIndicators = null;
         this._userTray?.destroy();
