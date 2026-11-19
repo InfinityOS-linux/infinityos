@@ -77,6 +77,11 @@ export default class Smoke extends Extension {
         this._objects.push({disable: () => monitor.destroy()});
         monitor.sync({x: 0, y: 150, width: 1280}, true);
         const wait = () => new Promise(resolve => GLib.timeout_add(GLib.PRIORITY_DEFAULT, 750, () => { resolve(); return GLib.SOURCE_REMOVE; }));
+        Main.overview.hide();
+        Main.welcomeDialog?.close();
+        await wait();
+        const modalActors = () => Main.modalActorFocusStack.map(({actor}) => actor.toString()).join(', ');
+        check(Main.modalCount === 0, `startup retained modal input: ${modalActors()}`);
         const endDialog = Main.endSessionDialog;
         const savedEndMethods = {confirm: endDialog._confirm, state: endDialog._getUpdateState, sessions: endDialog._loadSessions};
         let restartSignals = 0, occupiedRamdrive = true, failSave = true;
@@ -115,7 +120,7 @@ export default class Smoke extends Extension {
             endDialog._loadSessions = savedEndMethods.sessions;
         }
         await wait();
-        check(Main.modalCount === 0, `RAMDrive fixture retained ${Main.modalCount} modal grabs`);
+        check(Main.modalCount === 0, `RAMDrive fixture retained modal input: ${modalActors()}`);
         const dockOutline = new DockBackground({width: 420, height: 72});
         dockOutline._dock = {extension: {adaptive_background: true, panel_mode: false,
             computed_border_radius: 40, border_thickness: 1, _getPreferredColorScheme: () => 'dark'}};
@@ -614,7 +619,7 @@ export default class Smoke extends Extension {
         // Do not force the stage cursor or grab input. Headless Mutter hides
         // pointers without physical hardware; retain focus for the virtual seat
         // so GTK receives real Wayland pointer-enter and cursor-shape requests.
-        check(Main.modalCount === 0, 'a Shell modal leaked into the GTK cursor test');
+        check(Main.modalCount === 0, `a Shell modal leaked into the GTK cursor test: ${modalActors()}`);
         seat.inhibit_unfocus();
         const cursorReport = GLib.getenv('INFINITY_SMOKE_CURSOR_REPORT');
         const cursorMode = cursorReport.replace(/\.json$/, '.mode');
