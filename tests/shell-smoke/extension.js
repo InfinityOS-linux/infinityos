@@ -107,11 +107,15 @@ export default class Smoke extends Extension {
             check(restartSignals === 1, 'successful save did not resume GNOME confirmation');
         } finally {
             restartPrompt.destroy();
+            // The confirmation stub does not perform GNOME's normal dialog
+            // fade-out. Always release its input grab before later client tests.
+            endDialog.close();
             endDialog._confirm = savedEndMethods.confirm;
             endDialog._getUpdateState = savedEndMethods.state;
             endDialog._loadSessions = savedEndMethods.sessions;
         }
         await wait();
+        check(Main.modalCount === 0, `RAMDrive fixture retained ${Main.modalCount} modal grabs`);
         const dockOutline = new DockBackground({width: 420, height: 72});
         dockOutline._dock = {extension: {adaptive_background: true, panel_mode: false,
             computed_border_radius: 40, border_thickness: 1, _getPreferredColorScheme: () => 'dark'}};
