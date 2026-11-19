@@ -20,12 +20,12 @@ test('dock copies the same panel tint layers and effective alpha in paint order'
     ]);
 });
 
-test('modern Cogl colors and opaque light/dark fallbacks match the updater', () => {
+test('modern Cogl colors are supported and the dock fallback stays transparent in both themes', () => {
     const panel = {...actor('panel', {get_red: () => .1, get_green: () => .2, get_blue: () => .3, get_alpha: () => .4}),
         get_children: () => []};
     assert.deepEqual(dockSurfaceLayers(panel, false, true), [[.1, .2, .3, .4]]);
-    assert.deepEqual(dockSurfaceLayers(panel, false, false), [[24 / 255, 22 / 255, 36 / 255, 1]]);
-    assert.deepEqual(dockSurfaceLayers(panel, true, false), [[250 / 255, 247 / 255, 1, 1]]);
+    assert.deepEqual(dockSurfaceLayers(panel, false, false), [[0, 0, 0, 0]]);
+    assert.deepEqual(dockSurfaceLayers(panel, true, false), [[0, 0, 0, 0]]);
 });
 
 for (const scale of [1, 1.25, 2]) {

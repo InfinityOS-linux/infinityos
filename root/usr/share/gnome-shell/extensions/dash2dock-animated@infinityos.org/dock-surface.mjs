@@ -8,7 +8,7 @@ function rgba(actor) {
 }
 
 export function dockSurfaceLayers(panel, light, blurReady) {
-    if (!blurReady) return [light ? [250 / 255, 247 / 255, 1, 1] : [24 / 255, 22 / 255, 36 / 255, 1]];
+    if (!blurReady) return [[0, 0, 0, 0]];
     const layers = [rgba(panel)];
     for (const actor of panel.get_children()) {
         if (!PANEL_LAYERS.has(actor.name) || !actor.visible) continue;

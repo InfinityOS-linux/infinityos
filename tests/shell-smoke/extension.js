@@ -266,8 +266,9 @@ export default class Smoke extends Extension {
             'native dock draws only its outline without a tint surface');
         check(!redrawOwner.fullRedraw, 'dock forces full-frame GTK redraws for its entire lifetime');
         blurController.enabled = false; await wait(); await wait();
-        check(dockHolder._background._surfaceLayers?.[0][3] === 1,
-            'dock is transparent when its matching blur is unavailable');
+        check(dockHolder._background._surfaceLayers?.every(color => color[3] === 0),
+            'dock fallback is opaque when its matching blur is unavailable');
+        check(dockInfo.background.get_effects().length === 0, 'dock fallback keeps an independent blur');
         blurController.enabled = true; await wait(); await wait();
         check(dockInfo.background_group._infinityPanelBackdrop, 'dock did not recover its matching blur');
 

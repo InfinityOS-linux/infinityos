@@ -1,5 +1,6 @@
 import Meta from 'gi://Meta';
 import GLib from 'gi://GLib';
+import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 
@@ -541,8 +542,10 @@ export const DashBlur = class DashBlur extends Signals.EventEmitter {
 
         const extension = dash_container?.extension;
         const panel = global.blur_my_shell?._panel_blur;
-        if (extension?.adaptive_background && !extension.panel_mode && panel?.enabled && panel.createMatchingBackdrop) {
+        if (extension?.adaptive_background && !extension.panel_mode) {
             try {
+                if (!panel?.enabled || !panel.createMatchingBackdrop)
+                    throw new Error('panel blur is disabled');
                 const matched = panel.createMatchingBackdrop(background_group, monitor.index, {
                     corner_radius_getter: () => extension.computed_border_radius,
                     // Dock actors repaint through Clutter; GTK drawers separately
@@ -558,8 +561,13 @@ export const DashBlur = class DashBlur extends Signals.EventEmitter {
                     return [matched.background, background_group, manager, paint];
                 }
             } catch (error) {
-                this._warn(`panel-matched dock blur unavailable: ${error}`);
+                if (panel?.enabled) this._warn(`panel-matched dock blur unavailable: ${error}`);
             }
+            // The requested fallback is genuinely transparent, without an
+            // independent dock blur or an opaque replacement surface.
+            const transparent = new St.Widget({name: 'infinity-dock-transparent-fallback'});
+            background_group.add_child(transparent);
+            return [transparent, background_group, null, null];
         }
 
         let background, bg_manager, paint_signals;

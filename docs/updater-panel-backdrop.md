@@ -15,7 +15,7 @@ appearance. Wallpaper sampling still follows each surface's own screen position.
 BMS watches the dock's mode, radius and panel pipeline and rebuilds its matching
 backdrop after settings or provider changes. Static backgrounds retain their
 wallpaper coordinates and rounded clip. If no matching backdrop is ready, the
-dock uses the updater's opaque light/dark fallback. Tint polling is bounded and
+dock remains transparent with its rounded outline in both themes. Tint polling is bounded and
 only repaints mapped docks when the tint changes; destroy removes its timer.
 The dock retains BMS's normal Clutter repaint handling instead of requesting the
 GTK drawer's complete-frame repaint mode for the lifetime of the desktop.
