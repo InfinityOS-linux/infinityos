@@ -52,8 +52,8 @@ const MAX_SCROLL_RESOLUTION = 10;
 // BMS discovers a child named "dash". It needs an allocated actor and the
 // actual visible background, not an invisible, zero-size placeholder.
 export function createDockBlurProxy(dock) {
-  // BACKGROUND blur must read the stage behind the dock. Redirecting the
-  // whole parent into a transparent framebuffer leaves it nothing to sample.
+  // Keep live BACKGROUND blur in the stage's paint path. Caching the whole
+  // dock in a parent offscreen surface can leave its backdrop looking sharp.
   // Icon renderers can keep their own offscreen surfaces.
   dock.offscreen_redirect = 0;
   const proxy = new St.Widget({name: 'dash', reactive: false,

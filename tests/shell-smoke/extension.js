@@ -212,9 +212,10 @@ export default class Smoke extends Extension {
         await wait();
         check(blurBackground.height > Main.panel.height, 'panel blur stops above pull handle');
         // Use the production discovery proxy and native BMS dock pipeline.
-        const dockHolder = new St.Widget({width: 420, height: 72, x: 80, y: 650,
+        const dockHolder = new St.Widget({width: 1280, height: 131, x: 0, y: 660,
+            clip_to_allocation: true,
             offscreen_redirect: Clutter.OffscreenRedirect.ALWAYS});
-        dockHolder._background = new DockBackground({x: 8, y: 6, width: 400, height: 60,
+        dockHolder._background = new DockBackground({x: 440, y: 57, width: 400, height: 60,
             style: 'background: rgba(18,18,23,.26); border-radius: 28px;'});
         dockHolder.add_child(dockHolder._background);
         dockHolder.extension = {computed_border_radius: 28, adaptive_background: false, panel_mode: false,
@@ -222,6 +223,8 @@ export default class Smoke extends Extension {
         dockHolder._background._dock = dockHolder;
         dockHolder._slider = {get_child: () => dockHolder};
         const proxy = createDockBlurProxy(dockHolder);
+        check(dockHolder.offscreen_redirect === 0,
+            'dock parent still redirects its background blur into an isolated surface');
         Main.layoutManager.addTopChrome(dockHolder);
         redrawOwner._effects_manager = blurController.effects_manager;
         const dockConnections = new Connections();
@@ -281,12 +284,13 @@ export default class Smoke extends Extension {
 
         // Test actual pixels, not just the presence of a mapped GPU effect.
         // Use a sharp black/white edge behind the dock and hide only its tint.
-        // A parent-level offscreen surface makes this edge stay sharp even
-        // though the blur actor and effect both report themselves as active.
-        const edgeX = 270, sampleY = 680;
-        const pattern = new St.Widget({x: 0, y: 600, width: 600, height: 160,
+        // Force a full-stage capture and compare against disabling the effect.
+        // Screenshots repaint the scene; parent-cache behavior was separately
+        // reproduced and resolved on the user's VM by disabling redirection.
+        const edgeX = 620, sampleY = 745;
+        const pattern = new St.Widget({x: 0, y: 600, width: 1280, height: 200,
             style: 'background-color: black;'});
-        pattern.add_child(new St.Widget({x: edgeX, y: 0, width: 330, height: 160,
+        pattern.add_child(new St.Widget({x: edgeX, y: 0, width: 660, height: 200,
             style: 'background-color: white;'}));
         dockHolder.get_parent().insert_child_below(pattern, dockHolder);
         this._objects.push({disable: () => pattern.destroy()});
@@ -309,15 +313,15 @@ export default class Smoke extends Extension {
         dockInfo.background.get_effects()[0].queue_repaint();
         await wait();
         const stagePixels = await edgeContrast();
-        dockHolder.offscreen_redirect = Clutter.OffscreenRedirect.ALWAYS;
+        dockInfo.background.get_effects()[0].enabled = false;
         dockInfo.background.get_effects()[0].queue_repaint();
         await wait();
-        const isolatedPixels = await edgeContrast();
-        console.log(`INFINITY_DOCK_BLUR_PIXELS ${JSON.stringify({stagePixels, isolatedPixels})}`);
+        const disabledPixels = await edgeContrast();
+        console.log(`INFINITY_DOCK_BLUR_PIXELS ${JSON.stringify({stagePixels, disabledPixels})}`);
         check(stagePixels.left > 10 && stagePixels.right < 220 &&
-            stagePixels.contrast + 60 < isolatedPixels.contrast,
-        'dock GPU effect does not soften the stage edge, or offscreen negative control is ineffective');
-        dockHolder.offscreen_redirect = 0;
+            stagePixels.contrast + 60 < disabledPixels.contrast,
+        'dock GPU effect does not soften the stage edge, or disabled-effect control is ineffective');
+        dockInfo.background.get_effects()[0].enabled = true;
         dockHolder._background.opacity = 255;
         pattern.destroy();
         this._objects.pop();
