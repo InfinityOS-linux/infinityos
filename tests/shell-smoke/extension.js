@@ -18,6 +18,7 @@ import Raccoon from '../raccoonlauncher@shimafallah.github.io/extension.js';
 import Updater from '../infinity-updater@infinityos.org/extension.js';
 import {opticalMetrics} from '../dash2dock-animated@infinityos.org/optical-icons.mjs';
 import {createDockBlurProxy} from '../dash2dock-animated@infinityos.org/dock.js';
+import {Integrations} from '../dash2dock-animated@infinityos.org/integrations.js';
 import {DashBlur} from '../blur-my-shell@aunetx/components/dash_to_dock.js';
 import {Connections} from '../blur-my-shell@aunetx/conveniences/connections.js';
 import {DockBackground} from '../dash2dock-animated@infinityos.org/dockItems.js';
@@ -259,6 +260,13 @@ export default class Smoke extends Extension {
         dockHolder._background.set_style('background: transparent;');
         await wait(); await wait();
         check(dockInfo.background_group._infinityPanelBackdrop, 'adaptive dock does not use the updater panel factory');
+        const dockIntegration = new Integrations();
+        const dockAnimator = {dock: dockHolder};
+        dockInfo.background_group.hide();
+        dockIntegration.bms_update_size(dockAnimator);
+        await wait();
+        check(dockInfo.background_group.visible && dockInfo.background.is_mapped(),
+            'dock animator hides the working panel-matched blur');
         check(Math.abs(dockInfo.background.get_effects()[0].brightness - .64) < .001,
             'dock still uses its lighter independent blur brightness');
         check(dockInfo.background.get_effects()[0].corner_radius === 28, 'shared dock blur lost rounded corners');
@@ -272,8 +280,12 @@ export default class Smoke extends Extension {
         check(dockHolder._background._surfaceLayers?.every(color => color[3] === 0),
             'dock fallback is opaque when its matching blur is unavailable');
         check(dockInfo.background.get_effects().length === 0, 'dock fallback keeps an independent blur');
+        dockIntegration.bms_update_size(dockAnimator);
+        check(!dockInfo.background_group.visible, 'animation reveals an independent fallback blur');
         blurController.enabled = true; await wait(); await wait();
         check(dockInfo.background_group._infinityPanelBackdrop, 'dock did not recover its matching blur');
+        dockIntegration.bms_update_size(dockAnimator);
+        check(dockInfo.background_group.visible, 'animation hides the recovered blur');
 
         check(blurActors.terminalClip, 'native panel blur has no handle contour');
         terminalWindow.minimized = false; pull.sync();
