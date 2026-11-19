@@ -1,15 +1,35 @@
 import configparser
 import ctypes
 import ctypes.util
+import json
 from pathlib import Path
+import runpy
 import struct
 import unittest
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 THEME = ROOT / 'root/usr/share/icons/InfinityOS-Modern-Ice'
 
 
 class CursorAssetsTests(unittest.TestCase):
+    def test_gnome_scalable_wait_and_progress_have_the_approved_animation(self):
+        scalable = THEME / 'cursors_scalable'
+        self.assertEqual((scalable / 'progress').readlink().as_posix(), 'wait')
+        metadata = json.loads((scalable / 'wait/metadata.json').read_text())
+        builder = runpy.run_path(str(ROOT / 'scripts/build-infinity-cursors'))
+        poses = list(builder['waiting_poses']())
+        self.assertEqual(len(metadata), 40)
+        self.assertEqual(sum(frame['delay'] for frame in metadata), 800)
+        for frame, (pressure, delay) in zip(metadata, poses):
+            self.assertEqual((frame['nominal_size'], frame['hotspot_x'], frame['hotspot_y']),
+                             (256, 128, 160))
+            self.assertEqual(frame['delay'], delay)
+            filename = scalable / 'wait' / frame['filename']
+            self.assertEqual(filename.read_bytes(), builder['waiting_svg'](pressure))
+            svg = ET.fromstring(filename.read_bytes())
+            self.assertEqual((svg.get('width'), svg.get('height')), ('256', '256'))
+
     def test_wait_animation_keeps_palm_hotspot_and_transparency_fixed(self):
         data = (THEME / 'cursors/wait').read_bytes()
         magic, header, version, count = struct.unpack_from('<4s3I', data)

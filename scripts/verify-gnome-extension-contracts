@@ -136,3 +136,11 @@ cursor_theme = cursor_root / "usr/share/icons/InfinityOS-Modern-Ice"
 for name in ("grab", "grabbing", "wait", "watch", "progress", "left_ptr_watch"):
     if not (cursor_theme / "cursors" / name).is_file() or (cursor_theme / "cursors" / name).read_bytes()[:4] != b"Xcur":
         raise SystemExit(f"Infinity OS glove cursor missing or invalid: {name}")
+for name in ("wait", "progress"):
+    directory = cursor_theme / "cursors_scalable" / name
+    metadata = json.loads((directory / "metadata.json").read_text())
+    if len(metadata) < 2 or any(frame.get("delay", 0) <= 0 or
+                                frame.get("nominal_size", 0) <= 0 or
+                                not (directory / frame["filename"]).is_file()
+                                for frame in metadata):
+        raise SystemExit(f"GNOME 51 scalable glove animation missing or invalid: {name}")
