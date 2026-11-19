@@ -237,6 +237,10 @@ class DashInfos {
     }
 
     update_size() {
+        if (this.background_group?._infinityPanelBackdrop?.destroyed) {
+            this.change_blur_type();
+            return;
+        }
         if (!this.dash_blur._has_valid_allocation(this.dash_container) ||
             !this.dash_blur._has_valid_allocation(this.dash) ||
             !this.dash_blur._has_valid_allocation(this.dash_background))
@@ -547,7 +551,7 @@ export const DashBlur = class DashBlur extends Signals.EventEmitter {
                 if (!panel?.enabled || !panel.createMatchingBackdrop)
                     throw new Error('panel blur is disabled');
                 const matched = panel.createMatchingBackdrop(background_group, monitor.index, {
-                    corner_radius_getter: () => extension.computed_border_radius,
+                    corner_radius_getter: () => extension.computed_border_radius ?? this.settings.dash_to_dock.CORNER_RADIUS,
                     // Dock actors repaint through Clutter; GTK drawers separately
                     // request complete frames for their window damage rectangles.
                     full_redraw: false,
@@ -556,7 +560,7 @@ export const DashBlur = class DashBlur extends Signals.EventEmitter {
                     background_group._infinityPanelBackdrop = matched;
                     const manager = {destroy: () => matched.destroy()};
                     const paint = new PaintSignals(this.connections);
-                    if (!matched.staticBlur && this.settings.HACKS_LEVEL === 1)
+                    if (!matched.staticBlur && matched.effect && this.settings.HACKS_LEVEL === 1)
                         paint.connect(matched.background, matched.effect);
                     return [matched.background, background_group, manager, paint];
                 }
