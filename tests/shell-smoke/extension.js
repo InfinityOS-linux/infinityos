@@ -607,7 +607,11 @@ export default class Smoke extends Extension {
             pointer.run_dispose();
         }
         // Test the normal client path after releasing the modal Shell test.
-        // In particular, do not force the stage cursor or inhibit pointer focus.
+        // Do not force the stage cursor or grab input. Headless Mutter hides
+        // pointers without physical hardware; retain focus for the virtual seat
+        // so GTK receives real Wayland pointer-enter and cursor-shape requests.
+        check(Main.modalCount === 0, 'a Shell modal leaked into the GTK cursor test');
+        seat.inhibit_unfocus();
         const cursorReport = GLib.getenv('INFINITY_SMOKE_CURSOR_REPORT');
         const cursorMode = cursorReport.replace(/\.json$/, '.mode');
         const cursorClient = Gio.Subprocess.new(['python3', this.dir.get_child('cursor-client.py').get_path()],
@@ -660,6 +664,7 @@ export default class Smoke extends Extension {
         } finally {
             cursorClient.force_exit();
             clientPointer.run_dispose();
+            seat.uninhibit_unfocus();
         }
         console.log('INFINITY_SMOKE_PASS');
     }
