@@ -24,6 +24,27 @@ def compare(a, b):
 
 
 class PendingUpdatesTests(unittest.TestCase):
+    def test_failed_offline_download_refreshes_metadata_and_retries_once(self):
+        command = ['dnf', '-y', '--refresh', 'upgrade', '--offline']
+        failure = subprocess.CalledProcessError(1, command)
+        with patch.object(pending.subprocess, 'run', side_effect=[failure, None, 'success']) as run:
+            self.assertEqual(pending.stage_command(command), 'success')
+        self.assertEqual([call.args[0] for call in run.call_args_list],
+                         [command, ['dnf', 'clean', 'metadata'], command])
+
+    def test_retry_is_bounded_and_local_package_install_is_not_retried(self):
+        command = ['dnf', '-y', 'do', '--offline', '--action=upgrade', 'example-2-1.x86_64']
+        failure = subprocess.CalledProcessError(1, command)
+        with patch.object(pending.subprocess, 'run', side_effect=[failure, None, failure]) as run:
+            with self.assertRaises(subprocess.CalledProcessError):
+                pending.stage_command(command)
+            self.assertEqual(run.call_count, 3)
+        command = ['dnf', '-y', 'install', '--offline', '/tmp/example.rpm']
+        with patch.object(pending.subprocess, 'run', side_effect=failure) as run:
+            with self.assertRaises(subprocess.CalledProcessError):
+                pending.stage_command(command)
+            run.assert_called_once()
+
     def test_newer_versions_replace_pending_while_exact_versions_have_restart_marker(self):
         queued = [package(), package('other'), package('withdrawn')]
         rows = updater.update_rows([package(version='2-1'), package('other'),

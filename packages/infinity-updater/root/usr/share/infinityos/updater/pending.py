@@ -60,6 +60,23 @@ def refresh_specs(pending, available, compare, replacing=None):
     return specs
 
 
+def stage_command(command, allow_retry=True):
+    """One metadata-only retry for a failed offline repository download.
+
+    Pages can publish newer RPMs while a client still has old metadata. Keep
+    downloaded packages and the existing offline transaction intact; do not
+    retry local installs or the reboot/arming step.
+    """
+    try:
+        return subprocess.run(command, check=True)
+    except subprocess.CalledProcessError:
+        if not allow_retry or '--offline' not in command or not any(action in command for action in ('upgrade', 'do')):
+            raise
+        print('Refreshing repository metadata and retrying package downloads once...', flush=True)
+        subprocess.run(['dnf', 'clean', 'metadata'], check=True)
+        return subprocess.run(command, check=True)
+
+
 def stage(local_rpm=None):
     if Path('/etc/infinityos-release-pending.json').exists():
         raise RuntimeError('A release upgrade is pending. Complete or recover it first.')
@@ -116,7 +133,7 @@ def stage(local_rpm=None):
         if existing:
             TRIGGER.unlink()
         try:
-            subprocess.run(command, check=True)
+            stage_command(command, allow_retry=not local_rpm)
             # DNF can succeed without staging anything when candidates are skipped.
             if not existing:
                 transaction_path = OFFLINE / 'transaction.json'

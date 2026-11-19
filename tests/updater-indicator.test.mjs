@@ -130,6 +130,7 @@ for (const [label, x, y, sourceActor, minimized, hide] of [
         const extension = vm.runInNewContext(`${source}\nnew InfinityUpdater()`, {
             Extension: class {},
             Clutter: {EventType: {BUTTON_PRESS: 1, TOUCH_BEGIN: 2}, EVENT_PROPAGATE: 0},
+            Main: {modalCount: 0},
             global: {stage: {get_event_actor: () => sourceActor}, get_window_actors: () => [{meta_window: window}]},
         });
         extension._isUpdater = w => w === window;
@@ -194,6 +195,7 @@ for (const [label, target, hidden] of [
         const extension = vm.runInNewContext(`${source}\nnew InfinityUpdater()`, {
             Extension: class {},
             global: {display: {focus_window: focus}, get_window_actors: () => [{meta_window: window}]},
+            Main: {modalCount: 0},
         });
         extension._isUpdater = candidate => candidate === window;
         extension._hideDrawer = () => {dismissed = true;};
@@ -202,6 +204,16 @@ for (const [label, target, hidden] of [
     });
 }
 
+
+test('authorization modal keeps the updater drawer open during clicks and focus changes', () => {
+    const extension = vm.runInNewContext(`${source}\nnew InfinityUpdater()`, {
+        Extension: class {}, Main: {modalCount: 1},
+        Clutter: {EVENT_PROPAGATE: 0},
+    });
+    extension._hideDrawer = () => assert.fail('modal interaction must not dismiss the drawer');
+    assert.equal(extension._onCapturedEvent({}), 0);
+    extension._onFocusChanged();
+});
 
 test('hidden drawer closes after five seconds, not during its slide animation', () => {
     const {extension, window, calls, timers, signals} = drawer({x: 0, y: 32, width: 1280, height: 688});

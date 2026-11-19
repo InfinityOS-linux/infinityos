@@ -153,6 +153,9 @@ export default class InfinityUpdater extends Extension {
     }
 
     _onCapturedEvent(event) {
+        // Authentication belongs to Shell, outside the drawer. Interacting
+        // with its modal dialog must not minimize the update progress window.
+        if (Main.modalCount > 0) return Clutter.EVENT_PROPAGATE;
         if (event.type() !== Clutter.EventType.BUTTON_PRESS &&
             event.type() !== Clutter.EventType.TOUCH_BEGIN)
             return Clutter.EVENT_PROPAGATE;
@@ -173,6 +176,7 @@ export default class InfinityUpdater extends Extension {
     }
 
     _onFocusChanged() {
+        if (Main.modalCount > 0) return;
         const focused = global.display.focus_window;
         // Wayland client clicks can bypass stage events; shell clicks use the handler above.
         if (!focused)

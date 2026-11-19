@@ -22,7 +22,7 @@ class CancelledInstallTests(unittest.TestCase):
             'update_rows': lambda updates, offline: updates,
             'offline_status': lambda: {},
             'install_commands': lambda updates: [(f'Command {i}', ['pkexec', 'test']) for i in range(len(codes))],
-            'apply_command': Mock(side_effect=[SimpleNamespace(returncode=code, stdout='',
+            'apply_command': Mock(side_effect=[code if isinstance(code, Exception) else SimpleNamespace(returncode=code, stdout='',
                                 stderr='Authorization was cancelled or failed.' if code else '') for code in codes]),
             'privileged_transaction': nullcontext, 'record_operation': Mock(),
             'check_updates': check, 'save_state': save, 'pending_rpm_names': lambda *args: [],
@@ -50,6 +50,13 @@ class CancelledInstallTests(unittest.TestCase):
         check.assert_not_called()
         save.assert_not_called()
         app.finish_error.assert_called_once()
+
+    def test_unexpected_helper_exception_finishes_with_a_visible_error(self):
+        app, check, save = self.exercise([RuntimeError('helper pipe closed')])
+        check.assert_not_called()
+        save.assert_not_called()
+        app.finish_error.assert_called_once_with('helper pipe closed', False)
+        app.finish_refresh.assert_not_called()
 
     def test_success_and_partial_success_still_refresh_real_remaining_updates(self):
         for codes in ([0], [1, 0]):
