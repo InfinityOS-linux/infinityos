@@ -4,6 +4,23 @@ The adaptive dock uses one Cairo contour for the sides and both lower corners.
 The heavier upper highlight is clipped to the top edge. Custom border settings
 and panel-mode edge selection continue to use the configured CSS borders.
 
+The adaptive Dash2Dock Animated pill uses the same BMS panel backdrop factory as
+InfinityUpdater. It follows the panel's live sigma/brightness or static preset,
+with a separate rounded effect for the dock. Its Cairo surface paints the panel
+background and visible WACK tint layers in the same order and with the same
+effective alpha as the updater, before painting the existing outline. The dock's
+old independent light blur and neutral CSS tint no longer determine its adaptive
+appearance. Wallpaper sampling still follows each surface's own screen position.
+
+BMS watches the dock's mode, radius and panel pipeline and rebuilds its matching
+backdrop after settings or provider changes. Static backgrounds retain their
+wallpaper coordinates and rounded clip. If no matching backdrop is ready, the
+dock uses the updater's opaque light/dark fallback. Tint polling is bounded and
+only repaints mapped docks when the tint changes; destroy removes its timer.
+The dock retains BMS's normal Clutter repaint handling instead of requesting the
+GTK drawer's complete-frame repaint mode for the lifetime of the desktop.
+Custom-background and panel-mode docks retain their existing styling.
+
 InfinityUpdater's Shell extension puts a separate backdrop below the GTK window
 surface and clips it to the window frame, excluding the shadow. Blur My Shell's
 panel controller creates the backdrop from the same static preset or live

@@ -10,6 +10,7 @@ import { Dash } from 'resource:///org/gnome/shell/ui/dash.js';
 
 import Shell from 'gi://Shell';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
@@ -21,6 +22,7 @@ import {
 
 import { DockPosition } from './dock.js';
 import { paintDockOutline } from './dock-outline.mjs';
+import { dockSurfaceLayers, paintDockSurface } from './dock-surface.mjs';
 
 class DockItemMenu extends PopupMenu.PopupMenu {
   constructor(sourceActor, side = St.Side.TOP, params = {}) {
@@ -353,12 +355,32 @@ export const DockBackground = GObject.registerClass(
           const ext = this._dock?.extension;
           if (!ext?.adaptive_background || ext.panel_mode) return;
           const [width, height] = this.get_surface_size();
+          const light = ext._getPreferredColorScheme() === 'light';
+          const layers = dockSurfaceLayers(Main.panel, light,
+            Boolean(this._infinityPanelBackdrop && !this._infinityPanelBackdrop.destroyed));
+          this._surfaceLayers = layers;
+          paintDockSurface(cr, width, height, ext.computed_border_radius, layers,
+            St.ThemeContext.get_for_stage(global.stage).scale_factor);
           paintDockOutline(cr, width, height, ext.computed_border_radius,
             ext.border_thickness, ext._getPreferredColorScheme() === 'light',
             St.ThemeContext.get_for_stage(global.stage).scale_factor);
         } finally { cr.$dispose(); }
       });
       this.connect('style-changed', () => this.queue_repaint());
+      this._surfaceTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+        const ext = this._dock?.extension;
+        if (ext?.adaptive_background && !ext.panel_mode && this.is_mapped()) {
+          const key = JSON.stringify(dockSurfaceLayers(Main.panel,
+            ext._getPreferredColorScheme() === 'light',
+            Boolean(this._infinityPanelBackdrop && !this._infinityPanelBackdrop.destroyed)));
+          if (key !== this._surfaceKey) { this._surfaceKey = key; this.queue_repaint(); }
+        }
+        return GLib.SOURCE_CONTINUE;
+      });
+      this.connect('destroy', () => {
+        if (this._surfaceTimer) GLib.Source.remove(this._surfaceTimer);
+        this._surfaceTimer = 0;
+      });
     }
 
     update(params) {

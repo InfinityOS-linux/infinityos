@@ -1096,9 +1096,9 @@ export default class Dash2DockLiteExt extends Extension {
       // Keep the tint neutral so gray and warm wallpapers do not turn purple.
       let surface = this.background_color;
       if (this.adaptive_background) {
-        surface = this._getPreferredColorScheme() === 'dark'
-          ? [0.07, 0.07, 0.09, 0.26]
-          : [1, 1, 1, 0.32];
+        surface = this.panel_mode
+          ? (this._getPreferredColorScheme() === 'dark' ? [0.07, 0.07, 0.09, 0.26] : [1, 1, 1, 0.32])
+          : [0, 0, 0, 0]; // The Cairo pill copies the updater's panel tint layers.
       }
       let rgba = this._style.rgba(surface);
       ss.push(`background: rgba(${rgba});`);

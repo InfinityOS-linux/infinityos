@@ -15,7 +15,7 @@ function fixture(staticBlur) {
     class Pipeline {
         constructor(effects, manager, preset) { this.effects = effects; this.manager = manager; this.preset = preset; }
         create_background_with_effects(index, managers, container, name, absolute) {
-            const widget = {y: .01, destroyed: 0, destroy() {this.destroyed++;}};
+            const widget = {y: .01, destroyed: 0, effects: [], add_effect(effect) {this.effects.push(effect);}, destroy() {this.destroyed++;}};
             const manager = {destroyed: 0, destroy() {this.destroyed++;}};
             resources.push({pipeline: this, widget, manager, index, container, name, absolute});
             managers.push(manager); return widget;
@@ -29,7 +29,9 @@ function fixture(staticBlur) {
             return [this.create_background_with_effects(null, managers, container, name), managers[0]];
         }
     }
-    const manager = {}, effects = {}, settings = {DEBUG: false,
+    const manager = {}, effects = {corners: [], removed: [], new_corner_effect(params) {
+        const effect = {...params}; this.corners.push(effect); return effect;
+    }, remove(effect) {this.removed.push(effect);}}, settings = {DEBUG: false,
         panel: {STATIC_BLUR: staticBlur, PIPELINE: 'same-as-panel', SIGMA: 28, BRIGHTNESS: .64}};
     const owner = {_pipelines_manager: manager}, redraws = [];
     const Controller = vm.runInNewContext(`${source}\nPanelBlur`, {
@@ -98,5 +100,27 @@ test('static blur does not require full frames and closing preserves the users a
     f.settings.HACKS_LEVEL = 1;
     f.owner._update_clipped_redraws();
     assert.equal(f.redraws.at(-1), 'clipped');
+});
+
+test('dock follows panel blur parameters with its own corners without forcing full-frame GTK redraws', () => {
+    const f = fixture(false);
+    const dock = f.blur.createMatchingBackdrop({}, 0, {corner_radius_getter: () => 40, full_redraw: false});
+    assert.equal(f.resources[0].pipeline.settings, f.settings.panel);
+    assert.equal(f.resources[0].pipeline.options.corner_radius_getter(), 40);
+    assert.equal(f.blur.matchingBackdropsNeedFullRedraw, false);
+    const drawer = f.blur.createMatchingBackdrop({}, 0);
+    assert.equal(f.blur.matchingBackdropsNeedFullRedraw, true);
+    drawer.destroy();
+    assert.equal(f.blur.matchingBackdropsNeedFullRedraw, false);
+    dock.destroy();
+});
+
+test('static dock blur adds a rounded clip and releases it with the shared pipeline', () => {
+    const f = fixture(true);
+    const dock = f.blur.createMatchingBackdrop({}, 1, {corner_radius_getter: () => 28, full_redraw: false});
+    assert.equal(f.effects.corners[0].radius, 28);
+    assert.equal(f.resources[0].widget.effects[0], f.effects.corners[0]);
+    dock.destroy(); dock.destroy();
+    assert.deepEqual(f.effects.removed, f.effects.corners);
 });
 
