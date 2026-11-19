@@ -171,31 +171,41 @@ export default class Smoke extends Extension {
         const seat = global.stage.get_context().get_backend().get_default_seat();
         const pointer = seat.create_virtual_device(Clutter.InputDeviceType.POINTER_DEVICE);
         const tracker = global.backend.get_cursor_tracker();
+        const previousCursor = global.stage.get_cursor_type();
+        // Native headless sessions have no physical pointer focus. Explicitly
+        // keep the Shell cursor selected while exercising its native animation.
+        seat.inhibit_unfocus();
         const cursorGrab = Main.pushModal(cursorSurface, {actionMode: Shell.ActionMode.ALL});
         try {
             for (const [name, type] of [['wait', Clutter.CursorType.WAIT], ['progress', Clutter.CursorType.PROGRESS]]) {
                 cursorSurface.set_cursor_type(type);
+                global.stage.set_cursor_type(type);
                 pointer.notify_absolute_motion(GLib.get_monotonic_time(), 580, 350);
                 await new Promise(resolve => GLib.timeout_add(GLib.PRIORITY_DEFAULT, 60, () => {
                     resolve(); return GLib.SOURCE_REMOVE;
                 }));
                 let changes = 0;
+                let missingSprite = 0;
                 const geometry = new Set();
                 const cursorChanged = tracker.connect('cursor-changed', () => {
                     const sprite = tracker.get_sprite();
-                    if (!sprite) return;
+                    if (!sprite) { missingSprite++; return; }
                     changes++;
                     geometry.add(JSON.stringify([sprite.get_width(), sprite.get_height(), ...tracker.get_hot()]));
                 });
                 try { await wait(); }
                 finally { tracker.disconnect(cursorChanged); }
-                console.log(`INFINITY_WAIT_CURSOR ${JSON.stringify({name, changes, geometry: [...geometry]})}`);
+                console.log(`INFINITY_WAIT_CURSOR ${JSON.stringify({name, changes, missingSprite,
+                    hovered: cursorSurface.has_pointer, pointer: global.get_pointer().slice(0, 2),
+                    geometry: [...geometry]})}`);
                 check(changes >= 15, `${name} cursor frames do not advance with a stationary pointer`);
                 check(geometry.size === 1 && geometry.has('[32,32,16,20]'),
                     `${name} cursor changes size/hotspot or uses the wrong theme`);
             }
         } finally {
+            global.stage.set_cursor_type(previousCursor);
             Main.popModal(cursorGrab);
+            seat.uninhibit_unfocus();
             Main.layoutManager.removeChrome(cursorSurface);
             cursorSurface.destroy();
             pointer.run_dispose();
