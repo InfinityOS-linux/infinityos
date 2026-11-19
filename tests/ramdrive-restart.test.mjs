@@ -10,6 +10,9 @@ function fixture(type = 2, occupied = true, run = async () => {}) {
     const signals = new Map(), confirmations = [], actions = [];
     let id = 0;
     const layout = {x_align: 1, y_align: 1, margin_top: 0, margin_left: 0, margin_right: 0, width: -1,
+        translation_x: 0, translation_y: 0,
+        get_transformed_position() {return [420 + this.translation_x, 295 + this.translation_y];},
+        get_transformed_size: () => [440, 210], connect: () => 99, disconnect() {},
         add_style_class_name() {}, remove_style_class_name() {}, add_action() {}, remove_action() {}};
     const dialog = {_type: type, dialogLayout: {...layout, _dialog: layout}, _altCapture: {}, _messageDialogContent: {},
         _updateButtons() {actions.push('normal buttons');}, _sync() {},
@@ -33,7 +36,7 @@ function fixture(type = 2, occupied = true, run = async () => {}) {
         InjectionManager, GLib: {get_language_names: () => ['en_US']},
         Clutter: {ActorAlign: {END: 2, START: 0}, KEY_Escape: 27, EVENT_PROPAGATE: 0, EVENT_STOP: 1,
             KeyController: class {connect() {return 1;} disconnect() {} }},
-        Main: {panel: {height: 32}, layoutManager: {monitors: [{width: 1280}]}},
+        Main: {panel: {height: 32}, layoutManager: {monitors: [{x: 0, y: 0, width: 1280}]}},
         global: {display: {get_current_monitor: () => 0}},
     });
     const controller = new Class(dialog, () => occupied, run);
@@ -49,6 +52,7 @@ test('restart has two choices at upper right and no countdown or automatic confi
     assert.equal(f.dialog.dialogLayout.y_align, 0);
     assert.equal(f.dialog.dialogLayout.margin_top, 48);
     assert.equal(f.dialog._messageDialogContent.title, 'There are files in your RAMDrive.');
+    assert.deepEqual(f.dialog.dialogLayout._dialog.get_transformed_position(), [824, 48]);
     assert.equal(f.dialog.focus.label, 'Save files');
     assert.equal(f.actions.includes('timer'), false);
     await f.dialog._confirm('ConfirmedReboot');

@@ -76,6 +76,7 @@ export default class RamdriveRestart {
             return original.call(this, signal);
         });
         this.closedId = dialog.connect('closed', () => this.reset());
+        this.openedId = dialog.connect('opened', () => this.position());
         this.keyController = new Clutter.KeyController();
         this.keyId = this.keyController.connect('key-press', () => {
             const [, symbol] = this.keyController.get_key();
@@ -108,7 +109,7 @@ export default class RamdriveRestart {
         wrapper.margin_top = Main.panel.height + 16;
         wrapper.margin_right = wrapper.margin_left = 16;
         this.layout = {};
-        for (const key of ['x_align', 'y_align', 'margin_top', 'margin_right', 'margin_left', 'width'])
+        for (const key of ['x_align', 'y_align', 'margin_top', 'margin_right', 'margin_left', 'width', 'translation_x', 'translation_y'])
             this.layout[key] = layout[key];
         layout.x_align = Clutter.ActorAlign.END;
         layout.y_align = Clutter.ActorAlign.START;
@@ -116,6 +117,7 @@ export default class RamdriveRestart {
         const monitor = Main.layoutManager.monitors[global.display.get_current_monitor()];
         layout.width = Math.min(440, monitor.width - 32);
         layout.add_style_class_name('infinity-ramdrive-restart');
+        this.positionId = layout.connect('notify::allocation', () => this.position());
         this.dialog.clearButtons();
         this.buttons = [
             this.dialog.addButton({label: this.text('Remove & Restart', 'Usuń i uruchom ponownie'),
@@ -132,6 +134,20 @@ export default class RamdriveRestart {
         this.dialog._messageDialogContent.description = this.status || this.text(
             'Save files moves them to Desktop/Saved Files, then restarts. Press Esc to cancel.',
             'Zapisz pliki przeniesie je do folderu Saved Files na pulpicie, a następnie uruchomi komputer ponownie. Esc anuluje.');
+        this.position();
+    }
+
+    position() {
+        if (!this.active) return;
+        const layout = this.dialog.dialogLayout._dialog;
+        const [width] = layout.get_transformed_size();
+        if (width <= 0) return;
+        const [x, y] = layout.get_transformed_position();
+        const monitor = Main.layoutManager.monitors[global.display.get_current_monitor()];
+        // GNOME's nested modal bins may center their natural allocation even
+        // with end alignment. Position the final actor in stage coordinates.
+        layout.translation_x += monitor.x + monitor.width - width - 16 - x;
+        layout.translation_y += monitor.y + Main.panel.height + 16 - y;
     }
 
     async prepare(action) {
@@ -165,6 +181,7 @@ export default class RamdriveRestart {
         this.active = this.busy = false;
         this.buttons = [];
         if (this.layout) {
+            this.dialog.dialogLayout._dialog.disconnect(this.positionId);
             Object.assign(this.dialog.dialogLayout._dialog, this.layout);
             this.dialog.dialogLayout._dialog.remove_style_class_name('infinity-ramdrive-restart');
             this.layout = null;
@@ -180,6 +197,7 @@ export default class RamdriveRestart {
         this.reset();
         this.manager.clear();
         this.dialog.disconnect(this.closedId);
+        this.dialog.disconnect(this.openedId);
         this.keyController.disconnect(this.keyId);
         this.dialog.dialogLayout.remove_action(this.keyController);
     }
