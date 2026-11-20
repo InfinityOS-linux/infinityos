@@ -22,6 +22,9 @@ device=$(findmnt -n -o SOURCE /)
 device=${device%%\[*}
 uuid=$(blkid -s UUID -o value "$device")
 [[ $uuid =~ ^[A-Fa-f0-9-]{36}$ ]] || { echo 'Missing Btrfs UUID' >&2; exit 1; }
+install -d /var/lib/infinityos
+# An interrupted reinitialization must not leave an old success marker behind.
+rm -f /var/lib/infinityos/backups-ready
 top=$(mktemp -d)
 cleanup() { mountpoint -q "$top" && umount "$top"; rmdir "$top"; }
 trap cleanup EXIT
@@ -43,7 +46,6 @@ root_id=$(btrfs inspect-internal rootid /)
 btrfs subvolume set-default "$root_id" "$top"
 printf '%s\n' "${filtered[*]}" > /etc/kernel/cmdline
 
-install -d /var/lib/infinityos
 /usr/libexec/infinityos-backups-entry
 # The recovery menu must be refreshed successfully before reporting readiness.
 touch /var/lib/infinityos/backups-ready

@@ -25,6 +25,9 @@ restorecon is available. Full backup setup checks the kernel command line, EFI
 mount and completed rEFInd installation before migrating snapshot storage or
 changing fstab. Its ready marker is written only after refreshing the recovery
 menu succeeds. Interrupted setup can be retried using the same snapshot volume.
+Starting reinitialization invalidates any previous success marker until the
+recovery entry is refreshed. Restoring an older root copies the current Snapper
+initializer, unit and preset along with the backup tools.
 The unit conditions permit retries when a marker exists but its required
 configuration or snapshot mount is missing.
 

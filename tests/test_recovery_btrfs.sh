@@ -113,6 +113,14 @@ cmp "$target/boot/efi/EFI/refind/refind.conf" "$target/boot/efi/EFI/BOOT/refind.
 # A repeat must keep the same snapshot storage and configuration intact.
 chroot "$target" /usr/libexec/infinityos-backups-setup
 chroot "$target" /usr/libexec/infinityos-snapper-setup
+# An unsuccessful repeat must also invalidate an existing readiness marker.
+mv "$target/usr/libexec/infinityos-backups-entry" "$target/usr/libexec/infinityos-backups-entry.real"
+printf '#!/bin/sh\nexit 1\n' > "$target/usr/libexec/infinityos-backups-entry"
+chmod +x "$target/usr/libexec/infinityos-backups-entry"
+if chroot "$target" /usr/libexec/infinityos-backups-setup; then exit 1; fi
+[[ ! -e $target/var/lib/infinityos/backups-ready ]]
+mv "$target/usr/libexec/infinityos-backups-entry.real" "$target/usr/libexec/infinityos-backups-entry"
+chroot "$target" /usr/libexec/infinityos-backups-setup
 echo 'PASS: fresh backup initialization, preset enablement, failed EFI refresh gate and retry.'
 # Build two real RPM versions with system and service data to roll back together.
 mkdir -p "$base/rpmbuild"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
