@@ -1,5 +1,30 @@
 [
   {
+    "id": "2026-11-20-rpm-desktop-monitor-layouts",
+    "date": "2026-11-20",
+    "title": "RPM update: desktop icon layouts for each monitor setup",
+    "summary": "Desktop icons remember separate positions for laptop-only and external-monitor layouts, including changes made while undocked.",
+    "buildSha": "cc9197be5cc05ac26a3008d178f492605201ac1e",
+    "changes": [
+      {
+        "title": "Available as an RPM update",
+        "text": "Published for ARM64 and x64 in infinityos-shell-extensions 1.0.0-10000479.fc45. Log out of the desktop and log back in after installation to load the updated extension. Existing ISO downloads are unchanged."
+      },
+      {
+        "title": "Separate desktop layouts",
+        "text": "Icon positions are saved for up to 16 monitor configurations, based on screen arrangement, resolution and scale. Moving icons on the laptop no longer replaces their saved positions for an external-monitor setup. Saved layouts survive logging out and back in."
+      },
+      {
+        "title": "Restore positions after reconnecting",
+        "text": "Icons from a disconnected screen move onto available desktop space. Reconnecting the original configuration restores its saved positions where space permits. Temporary rearrangement does not overwrite preferred positions, and changing monitor order or the primary screen does not reset the layout."
+      },
+      {
+        "title": "Placement fixes",
+        "text": "Corrected the vertical distance used to choose a fallback screen. Changing only the primary monitor now updates the destination for new desktop files without rebuilding the existing icon layout."
+      }
+    ]
+  },
+  {
     "id": "2026-11-19-rpm-native-waiting-cursor",
     "date": "2026-11-19",
     "title": "RPM update: native GNOME waiting-cursor playback",
