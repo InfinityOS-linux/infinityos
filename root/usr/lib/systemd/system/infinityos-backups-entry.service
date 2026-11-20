@@ -2,6 +2,8 @@
 Description=Keep rEFInd kernel and Backups entries current
 After=local-fs.target infinityos-backups-setup.service
 RequiresMountsFor=/boot/efi
+ConditionKernelCommandLine=!rd.live.image
+ConditionPathExists=!/run/initramfs/live
 
 [Service]
 Type=oneshot

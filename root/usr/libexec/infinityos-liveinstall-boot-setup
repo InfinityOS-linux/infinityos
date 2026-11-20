@@ -2,15 +2,21 @@
 set -euo pipefail
 
 # The target is complete after both rEFInd boot choices exist.
-[[ -d /sys/firmware/efi ]] || { echo 'UEFI boot is required' >&2; exit 1; }
 [[ $(findmnt -n -o FSTYPE /) == btrfs ]] || { echo 'Infinity OS requires a Btrfs root' >&2; exit 1; }
+command -v snapper >/dev/null
+# Register first-boot initialization before any EFI writes, NVRAM changes or
+# optional loader cleanup can fail. A failed boot conversion still fails the
+# installer; these units must not be silently left disabled in its payload.
+systemctl enable infinityos-snapper-setup.service infinityos-backups-setup.service \
+    infinityos-backups-entry.service infinityos-backups-entry.path \
+    snapper-cleanup.timer
+[[ -d /sys/firmware/efi ]] || { echo 'UEFI boot is required' >&2; exit 1; }
 [[ $(findmnt -n -M /boot/efi -o FSTYPE) == vfat ]] || { echo 'EFI system partition required' >&2; exit 1; }
 secure_boot=/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c
 if [[ -f $secure_boot && $(od -An -tu1 -j 4 -N 1 "$secure_boot" | tr -d ' ') == 1 ]]; then
     echo 'Disable Secure Boot before installing unsigned Infinity OS rEFInd media' >&2
     exit 1
 fi
-command -v snapper >/dev/null
 command -v efibootmgr >/dev/null
 
 source_entry=
@@ -62,12 +68,16 @@ cmp "$esp/EFI/refind/refind.conf" "$esp/EFI/BOOT/refind.conf"
 
 # Fedora enables bootctl maintenance during installation. It must not
 # recreate EFI/loader or change the boot path after switching to rEFInd.
-systemctl disable systemd-boot-update.service systemd-boot-clear-sysfail.service \
-    systemd-boot-random-seed.service systemd-bootctl.socket \
-    grub-boot-indeterminate.service
-systemctl mask --force systemd-boot-update.service systemd-boot-clear-sysfail.service \
-    systemd-boot-random-seed.service systemd-bootctl.socket \
-    grub-boot-indeterminate.service
+obsolete_units=(systemd-boot-update.service systemd-boot-clear-sysfail.service
+    systemd-boot-random-seed.service systemd-bootctl.socket grub-boot-indeterminate.service)
+for unit in "${obsolete_units[@]}"; do
+    # Unit availability varies by Fedora package version. Missing optional
+    # units are already disabled; a real disable/mask error must still fail.
+    if [[ -e /usr/lib/systemd/system/$unit || -e /etc/systemd/system/$unit ]]; then
+        systemctl disable "$unit"
+    fi
+done
+systemctl mask --force "${obsolete_units[@]}"
 
 # Drop firmware entries whose EFI binaries were removed by the conversion.
 while IFS= read -r entry; do
@@ -79,12 +89,6 @@ done < <(efibootmgr -v | grep -Ei 'EFI[\\/]infinityos[\\/](shim|grub)|EFI[\\/]sy
 # Only remove firmware-visible GRUB and systemd-boot paths after rEFInd is
 # complete. The fallback EFI/BOOT path above survives lost NVRAM entries.
 rm -rf "$esp/EFI/infinityos" "$esp/EFI/systemd" "$esp/loader" /boot/grub2
-
-systemctl enable infinityos-snapper-setup.service infinityos-backups-setup.service \
-    infinityos-backups-entry.service infinityos-backups-entry.path \
-    snapper-cleanup.timer
-# The copied live sysconfig file otherwise blocks snapperd under SELinux.
-restorecon /etc/sysconfig/snapper
 
 # The live PRETTY_NAME is the installer title. Restore the actual release in
 # the copied target so GNOME and update metadata identify the installed OS.

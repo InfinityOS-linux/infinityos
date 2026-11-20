@@ -1,5 +1,7 @@
 [Unit]
 Description=Refresh rEFInd when EFI kernels change
+ConditionKernelCommandLine=!rd.live.image
+ConditionPathExists=!/run/initramfs/live
 
 [Path]
 PathChanged=/boot/efi/os

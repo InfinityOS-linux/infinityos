@@ -41,7 +41,7 @@ jobs:
         run: |
           sudo modprobe btrfs
           docker run --rm --privileged -v "$PWD:/work:ro" -w /work fedora:45 sh -ec '
-            dnf -qy install python3 btrfs-progs snapper rpm-build dnf5 util-linux rsync dosfstools findutils
+            dnf -qy install python3 btrfs-progs snapper rpm-build dnf5 systemd systemd-udev util-linux rsync dosfstools findutils
             bash tests/test_recovery_btrfs.sh
           '
 

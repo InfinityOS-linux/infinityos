@@ -197,6 +197,16 @@ class UpdaterTests(unittest.TestCase):
                 upgrade_release.main(['upgrader', '1.1', '44'])
             run.assert_not_called()
 
+    def test_release_helper_rejects_incomplete_backup_initialization_before_dnf(self):
+        with patch.object(upgrade_release.os, 'geteuid', return_value=0), patch.object(
+                upgrade_release, 'installed_version', return_value=('1.0', 44)), patch.object(
+                upgrade_release, 'load_manifest', return_value={'version': '1.1', 'fedora_release': 44}), patch.object(
+                upgrade_release.Path, 'is_file', lambda path: str(path) == '/etc/snapper/configs/root'), patch.object(
+                upgrade_release, 'run', return_value=SimpleNamespace(stdout='btrfs\n')) as run:
+            with self.assertRaisesRegex(ValueError, 'backup initialization is incomplete'):
+                upgrade_release.main(['upgrader', '1.1', '44'])
+            self.assertEqual([call.args[0][0] for call in run.call_args_list], ['findmnt'])
+
     def test_release_helper_downloads_before_install_and_marks_success_last(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

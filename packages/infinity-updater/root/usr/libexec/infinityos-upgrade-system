@@ -10,9 +10,28 @@ if [[ $(findmnt -n -o FSTYPE /) != btrfs ]]; then
     echo 'RPM upgrade stopped: the root filesystem is not Btrfs.' >&2
     exit 1
 fi
-if [[ ! -f /etc/snapper/configs/root ]] || ! mountpoint -q /.snapshots; then
-    echo 'RPM upgrade stopped: Btrfs backups are not ready. Reboot once and retry.' >&2
+backup_not_ready() {
+    local unit=$1 reason=$2 state
+    echo "RPM upgrade stopped: $reason" >&2
+    state=$(systemctl is-enabled "$unit" 2>/dev/null || true)
+    if systemctl is-failed --quiet "$unit"; then
+        echo "Backup initialization failed in $unit. Inspect its system journal before retrying." >&2
+    elif [[ $state == disabled || $state == masked* || $state == not-found || -z $state ]]; then
+        echo "Backup initialization service $unit is not enabled ($state). Restarting alone will not fix this." >&2
+    else
+        echo "Backup initialization service $unit has not completed. Inspect its system journal and /var/log/infinityos-boot-install.log." >&2
+    fi
+    echo "Diagnostics: sudo journalctl -b -u $unit --no-pager" >&2
     exit 1
+}
+if [[ ! -f /etc/snapper/configs/root ]]; then
+    backup_not_ready infinityos-snapper-setup.service 'Snapper root configuration is missing.'
+fi
+if [[ ! -f /var/lib/infinityos/backups-ready ]]; then
+    backup_not_ready infinityos-backups-setup.service 'Btrfs backup initialization is incomplete.'
+fi
+if ! mountpoint -q /.snapshots; then
+    backup_not_ready infinityos-backups-setup.service 'Snapshot storage /.snapshots is not mounted.'
 fi
 
 if [[ -e /etc/infinityos-release-pending.json ]]; then
