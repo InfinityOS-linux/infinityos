@@ -22,7 +22,8 @@ For a known configuration, its saved coordinates take precedence. In a new
 configuration, normal DING placement brings off-screen icons onto available
 grids, then saves the actual placed positions for that configuration. Moving an
 icon changes only the active configuration. Re-enumeration and a fresh DING
-process read the profiles from metadata. Unchanged redraws do not rewrite them.
+process read the profiles from metadata. Redraws and temporary grid reflow do
+not replace known preferred positions; explicit moves update the active profile.
 Automatic arrangement and stacking continue to follow their existing settings.
 Restoration requires sufficient free icon cells on the connected monitors.
 
@@ -39,7 +40,13 @@ file-coordinate setters and grid placement with GTK/GIO boundaries replaced
 by test doubles. It covers undocking, edits while undocked, reconnecting after
 reloading persisted metadata, negative monitor origins, changed scale, reordered
 monitor enumeration, unchanged redraws, corrupt metadata, bounded history,
-vertical fallback distance and changing only the primary monitor.
+vertical fallback distance, occupied-cell fallback, temporary grid reflow and
+changing only the primary monitor.
+
+The Fedora GTK CI job also runs `tests/ding-monitor-layouts.gjs` in a private
+D-Bus session. It imports the real FileItem module in GJS, writes through Gio
+to GVfs metadata, reloads the positions for docked and undocked layouts, and
+checks that desktop file contents remain unchanged.
 
 Hardware acceptance sequence after updating and logging in again:
 

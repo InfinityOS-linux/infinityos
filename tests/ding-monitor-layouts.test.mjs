@@ -9,7 +9,8 @@ const Enums = {StoredCoordinates: {PRESERVE: 0, OVERWRITE: 1, ASSIGN: 2}};
 const context = {
     MonitorLayouts, Enums,
     Prefs: {desktopSettings: {get_boolean: () => false}, getStartCorner: () => [false, false]},
-    DesktopIconsUtil: {clamp: (value, low, high) => Math.min(high, Math.max(low, value))},
+    DesktopIconsUtil: {clamp: (value, low, high) => Math.min(high, Math.max(low, value)),
+        distanceBetweenPoints: (x1, y1, x2, y2) => (x1 - x2) ** 2 + (y1 - y2) ** 2},
     imports: {gettext: {domain: () => ({gettext: text => text})}, signals: {addSignalMethods() {}}},
     Gio: {DesktopAppInfo: {new_from_filename: () => null},
         FileQueryInfoFlags: {NONE: 0},
@@ -48,7 +49,7 @@ function makeGrid(manager, area) {
     return grid;
 }
 
-function makeFile(manager, metadata) {
+function makeFile(manager, metadata, uri = 'file:///Desktop/example') {
     const item = Object.create(File);
     Object.assign(item, {
         _desktopManager: manager, _savedCoordinates: metadata.legacy?.split(',').map(Number) ?? null,
@@ -66,19 +67,23 @@ function makeFile(manager, metadata) {
             this._grid = grid;
         },
     });
-    Object.defineProperty(item, 'uri', {value: 'file:///Desktop/example'});
+    Object.defineProperty(item, 'uri', {value: uri});
     return item;
 }
 
 function place(areas, metadata) {
+    return placeMany(areas, [metadata])[0];
+}
+
+function placeMany(areas, records) {
     const manager = Object.create(Manager);
     manager._iconLayoutKey = MonitorLayouts.layoutKey(areas);
     manager._primaryScreen = areas[0];
     manager._desktops = areas.map(area => makeGrid(manager, area));
-    const item = makeFile(manager, metadata);
-    manager._fileList = [item];
+    const items = records.map((metadata, index) => makeFile(manager, metadata, `file:///Desktop/${index}`));
+    manager._fileList = items;
     manager._placeAllFilesOnGrids();
-    return item;
+    return items;
 }
 
 test('undocking keeps icons visible; reconnecting restores the external layout after edits and restart', () => {
@@ -100,6 +105,28 @@ test('unchanged desktop redraw does not rewrite position metadata', () => {
     const writes = metadata.writes;
     place([laptop, external], metadata);
     assert.equal(metadata.writes, writes);
+});
+
+test('temporary grid reflow preserves a known preferred position; explicit user moves replace it', () => {
+    const metadata = {legacy: '1102,202'};
+    const item = place([laptop, external], metadata);
+    const writes = metadata.writes;
+    item.actual = [1102, 302]; // For example, a temporary work-area or occupied-cell change.
+    item.rememberMonitorPosition();
+    assert.equal(metadata.writes, writes);
+    assert.deepEqual(place([laptop, external], metadata).actual, [1102, 202]);
+    item.savedCoordinates = [1102, 302];
+    assert.deepEqual(place([laptop, external], metadata).actual, [1102, 302]);
+});
+
+test('undocked fallback avoids existing icons and restores both monitor positions', () => {
+    const records = [{legacy: '702,2'}, {legacy: '802,2'}];
+    const original = placeMany([laptop, external], records).map(item => item.actual);
+    const single = placeMany([laptop], records).map(item => item.actual);
+    assert.deepEqual(single[0], [702, 2]);
+    assert.notDeepEqual(single[0], single[1]);
+    assert.ok(single.every(([x, y]) => x >= 0 && x < 800 && y >= 0 && y < 600));
+    assert.deepEqual(placeMany([laptop, external], records).map(item => item.actual), original);
 });
 
 test('new icons and corrupt profile metadata use normal placement and establish a profile', () => {

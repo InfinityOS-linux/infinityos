@@ -982,10 +982,10 @@ export var FileItem = class extends desktopIconItem.desktopIconItem {
     rememberMonitorPosition() {
         if (!this._grid || !this._desktopManager._iconLayoutKey)
             return;
-        const position = this.getCoordinates().slice(0, 2);
-        const saved = this._monitorPositions[this._desktopManager._iconLayoutKey];
-        if (!saved || saved[0] !== position[0] || saved[1] !== position[1])
-            this.savedCoordinates = position;
+        // Only seed a new configuration. Temporary grid reflow must not replace
+        // a known preferred position; explicit moves use the setter directly.
+        if (!this._monitorPositions[this._desktopManager._iconLayoutKey])
+            this.savedCoordinates = this.getCoordinates().slice(0, 2);
     }
 
     set savedCoordinates(pos) {
