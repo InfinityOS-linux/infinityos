@@ -41,6 +41,7 @@ import * as FileItemMenu from './fileItemMenu.js';
 import * as AutoAr from './autoAr.js';
 import * as SignalManager from './signalManager.js';
 import * as DesktopMenu from './desktopMenu.js';
+import * as MonitorLayouts from './monitorLayouts.js';
 
 const Gettext = imports.gettext.domain('ding');
 
@@ -99,6 +100,7 @@ export var DesktopManager = class {
         this._codePath = codePath;
         this._asDesktop = asDesktop;
         this._desktopList = desktopList;
+        this._iconLayoutKey = MonitorLayouts.layoutKey(desktopList);
         this._desktops = [];
         this._desktopFilesChanged = false;
         this._readingDesktopFiles = false;
@@ -313,6 +315,7 @@ export var DesktopManager = class {
     updateGridWindows(newdesktoplist) {
         if ((newdesktoplist.length > 0) && ('primaryMonitor' in newdesktoplist[0])) {
             this._primaryIndex = newdesktoplist[0].primaryMonitor;
+            this._primaryScreen = newdesktoplist[this._primaryIndex] ?? null;
             console.log(`Primary screen is ${this._primaryIndex}`);
         }
         if (newdesktoplist.length === this._desktopList.length) {
@@ -341,6 +344,7 @@ export var DesktopManager = class {
                 return;
         }
         this._desktopList = newdesktoplist;
+        this._iconLayoutKey = MonitorLayouts.layoutKey(newdesktoplist);
         if (this._primaryIndex < this._desktopList.length)
             this._primaryScreen = this._desktopList[this._primaryIndex];
         else
@@ -413,6 +417,7 @@ export var DesktopManager = class {
             }
             const info = new Gio.FileInfo();
             info.set_attribute_string('metadata::nautilus-icon-position', '');
+            info.set_attribute_string(MonitorLayouts.ATTRIBUTE, '');
             if (dropCoordinates !== null)
                 info.set_attribute_string('metadata::nautilus-drop-position', `${dropCoordinates[0]},${dropCoordinates[1]}`);
 
@@ -1409,6 +1414,10 @@ export var DesktopManager = class {
             this.doSorts();
         else
             this._addFilesToDesktop(this._fileList, Enums.StoredCoordinates.PRESERVE);
+        // Persist actual grid positions after fallback placement. The previous
+        // multi-monitor layout remains available even if icons move on a laptop.
+        for (const item of this._fileList)
+            item.rememberMonitorPosition?.();
     }
 
     _addFilesToDesktop(fileList, storeMode) {
