@@ -16,6 +16,10 @@ Requires:       cage
 Requires:       dbus-daemon
 Requires:       dbus-tools
 Requires:       kernel-modules-core
+Requires:       efibootmgr
+Requires:       snapper
+Requires:       dracut
+Requires:       dconf
 
 %description
 InfinitySetup offers first-login application choices for Infinity OS.
@@ -105,6 +109,8 @@ fi
 /usr/libexec/infinityos-refind-config
 /usr/libexec/infinityos-refind-short-labels
 /usr/libexec/infinityos-refind-install
+/usr/libexec/infinityos-liveinstall-boot-setup
+/usr/libexec/infinityos-remove-obsolete-efi-loaders
 /usr/lib/systemd/system-generators/infinityos-tv-mode-generator
 /usr/lib/systemd/system/infinityos-tv@.service
 /usr/lib/systemd/system/infinityos-tv@.target

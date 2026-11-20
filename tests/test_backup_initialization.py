@@ -153,6 +153,33 @@ cp "$1/EFI/refind/refind.conf" "$1/EFI/BOOT/refind.conf"''')
         self.assertFalse(self.log.exists())
         self.assertFalse((self.target / 'var/lib/infinityos/snapper-ready').exists())
 
+    def test_snapper_repairs_context_before_config_creation_and_stops_on_relabel_failure(self):
+        self.write('etc/sysconfig/snapper', 'SNAPPER_CONFIGS=""\n')
+        self.command('restorecon', '''
+echo restorecon >> "$TEST_COMMAND_LOG"
+[[ $TEST_SCENARIO != relabel-error ]]''')
+        self.command('snapper', '''
+printf 'snapper %s\\n' "$*" >> "$TEST_COMMAND_LOG"
+[[ $* != *get-config* ]]''')
+        result = self.exercise('root/usr/libexec/infinityos-snapper-setup', 'relabel-error')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.log.read_text(), 'restorecon\n')
+        self.assertFalse((self.target / 'var/lib/infinityos/snapper-ready').exists())
+        self.log.unlink()
+        result = self.exercise('root/usr/libexec/infinityos-snapper-setup')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        log = self.log.read_text()
+        self.assertLess(log.index('restorecon'), log.index('snapper -c root create-config'))
+        self.assertTrue((self.target / 'var/lib/infinityos/snapper-ready').exists())
+
+    def test_setup_rpm_delivers_retry_helpers_without_running_boot_conversion(self):
+        spec = (ROOT / 'packages/infinity-setup/infinity-setup.spec').read_text()
+        staging = (ROOT / 'packages/build-rpm.sh').read_text()
+        for helper in ('infinityos-liveinstall-boot-setup', 'infinityos-remove-obsolete-efi-loaders'):
+            self.assertIn('/usr/libexec/' + helper, spec.split('%files', 1)[1])
+            self.assertIn('/usr/libexec/' + helper, staging)
+            self.assertNotIn(helper, spec.split('%files', 1)[0])
+
     def test_updater_distinguishes_missing_config_disabled_failed_incomplete_and_unmounted(self):
         source = 'packages/infinity-updater/root/usr/libexec/infinityos-upgrade-system'
         for scenario, expected in [('disabled', 'not enabled (disabled)'),
