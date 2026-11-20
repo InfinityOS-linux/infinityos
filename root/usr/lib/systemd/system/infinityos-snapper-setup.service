@@ -1,10 +1,14 @@
 [Unit]
 Description=Initialize Infinity OS Btrfs snapshots
 After=local-fs.target
-ConditionPathExists=!/var/lib/infinityos/snapper-ready
+ConditionKernelCommandLine=!rd.live.image
+ConditionPathExists=!/run/initramfs/live
+ConditionPathExists=|!/var/lib/infinityos/snapper-ready
+ConditionPathExists=|!/etc/snapper/configs/root
 
 [Service]
 Type=oneshot
+ExecCondition=/usr/bin/findmnt --noheadings --types btrfs --mountpoint /
 ExecStart=/usr/libexec/infinityos-snapper-setup
 
 [Install]

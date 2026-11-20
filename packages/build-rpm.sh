@@ -35,6 +35,10 @@ elif [[ "$package" == infinity-updater ]]; then
   install -d "$work/source/$package-$version/usr/libexec" "$work/source/$package-$version/usr/lib/systemd/system"
   install -m 0755 "$repo"/root/usr/libexec/infinityos-backups-* "$work/source/$package-$version/usr/libexec/"
   install -m 0644 "$repo"/root/usr/lib/systemd/system/infinityos-backups* "$work/source/$package-$version/usr/lib/systemd/system/"
+  install -m 0755 "$repo/root/usr/libexec/infinityos-snapper-setup" "$work/source/$package-$version/usr/libexec/"
+  install -m 0644 "$repo/root/usr/lib/systemd/system/infinityos-snapper-setup.service" "$work/source/$package-$version/usr/lib/systemd/system/"
+  install -Dm 0644 "$repo/root/usr/lib/systemd/system-preset/00-infinityos-backups.preset" \
+    "$work/source/$package-$version/usr/lib/systemd/system-preset/00-infinityos-backups.preset"
   install -d "$work/source/$package-$version/usr/share/licenses/infinity-updater"
   install -m 0644 "$repo/COPYING" \
     "$work/source/$package-$version/usr/share/licenses/infinity-updater/COPYING"

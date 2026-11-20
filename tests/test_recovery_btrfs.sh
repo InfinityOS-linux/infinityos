@@ -27,11 +27,6 @@ mount --rbind /dev "$target/dev"
 mount --make-rslave "$target/dev"
 mount -t proc proc "$target/proc"
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-chroot "$target" snapper --no-dbus -c root create-config /
-btrfs subvolume delete "$target/.snapshots"
-btrfs subvolume create "$top/infinityos-snapshots"
-mkdir "$target/.snapshots"
-mount --bind "$top/infinityos-snapshots" "$target/.snapshots"
 cat > "$target/usr/local/bin/snapper" <<WRAPPER
 #!/bin/sh
 exec $(command -v snapper) --no-dbus "\$@"
@@ -62,18 +57,63 @@ exec "$@"
 WRAPPER
 chmod +x "$target/usr/local/bin/"{snapper,systemctl,systemd-inhibit}
 cp "$repo"/root/usr/libexec/infinityos-backups-* "$target/usr/libexec/"
+cp "$repo/root/usr/libexec/infinityos-snapper-setup" "$target/usr/libexec/"
 cp "$repo/root/usr/libexec/infinityos-refind-config" "$target/usr/libexec/"
 cp "$repo"/root/usr/lib/systemd/system/infinityos-backups* "$target/usr/lib/systemd/system/"
+cp "$repo/root/usr/lib/systemd/system/infinityos-snapper-setup.service" "$target/usr/lib/systemd/system/"
+mkdir -p "$target/usr/lib/systemd/system-preset"
+cp "$repo/root/usr/lib/systemd/system-preset/00-infinityos-backups.preset" "$target/usr/lib/systemd/system-preset/"
+# Exercise real filesystem-based preset handling, not the no-daemon wrapper.
+/usr/bin/systemctl --root="$target" preset infinityos-snapper-setup.service infinityos-backups-setup.service
+for unit in infinityos-snapper-setup.service infinityos-backups-setup.service; do
+    /usr/bin/systemctl --root="$target" is-enabled "$unit"
+done
+chroot "$target" /usr/bin/systemd-analyze verify infinityos-snapper-setup.service infinityos-backups-setup.service
 mkdir -p "$target/usr/lib/kernel/install.d"
 cp "$repo/root/usr/lib/kernel/install.d/96-infinityos-esp.install" "$target/usr/lib/kernel/install.d/"
 cp "$repo"/packages/infinity-updater/root/usr/libexec/infinityos-* "$target/usr/libexec/"
 mkdir -p "$target/usr/share/infinityos"
 cp -a "$repo/packages/infinity-updater/root/usr/share/infinityos/updater" "$target/usr/share/infinityos/"
 mkdir -p "$target/usr/lib/modules/$(uname -r)" "$target/etc/kernel" "$target/var/lib/infinityos"
-touch "$target/var/lib/infinityos/backups-ready"
 uuid=$(findmnt -n -o UUID -T "$top")
-printf 'root=UUID=%s\n' "$uuid" > "$target/etc/kernel/cmdline"
+printf 'root=UUID=%s rootflags=subvol=root rw\n' "$uuid" > "$target/etc/kernel/cmdline"
 printf 'UUID=%s / btrfs defaults 0 0\nUUID=%s /var btrfs subvol=var 0 0\nUUID=%s /home btrfs subvol=home 0 0\n' "$uuid" "$uuid" "$uuid" > "$target/etc/fstab"
+# Start from an uninitialized installed target. Use a real disposable ESP and
+# the production setup scripts, rather than manufacturing ready markers.
+mkdir -p "$target/boot/efi" "$target/etc/infinityos"
+truncate -s 64M "$base/efi.img"
+mkfs.vfat "$base/efi.img" >/dev/null
+mount -o loop "$base/efi.img" "$target/boot/efi"
+mkdir -p "$target/boot/efi/EFI/refind" "$target/boot/efi/os"
+printf 'menuentry "Backups" {}\n' > "$target/boot/efi/EFI/refind/refind.conf"
+printf kernel > "$target/boot/efi/os/vmlinuz-fixture"
+printf initrd > "$target/boot/efi/os/initramfs-fixture.img"
+touch "$target/etc/infinityos/refind-installed"
+chroot "$target" /usr/libexec/infinityos-snapper-setup
+[[ -f $target/etc/snapper/configs/root && -f $target/var/lib/infinityos/snapper-ready ]]
+mv "$target/usr/libexec/infinityos-backups-entry" "$target/usr/libexec/infinityos-backups-entry.real"
+printf '#!/bin/sh\necho "simulated EFI refresh failure" >&2\nexit 1\n' > "$target/usr/libexec/infinityos-backups-entry"
+chmod +x "$target/usr/libexec/infinityos-backups-entry"
+if chroot "$target" /usr/libexec/infinityos-backups-setup; then
+    echo 'A failed recovery menu refresh was reported as ready'; exit 1
+fi
+[[ ! -e $target/var/lib/infinityos/backups-ready ]]
+if chroot "$target" /usr/libexec/infinityos-upgrade-system > "$base/not-ready.log" 2>&1; then
+    echo 'An incomplete backup setup allowed an RPM upgrade'; exit 1
+fi
+grep -Fq 'Btrfs backup initialization is incomplete' "$base/not-ready.log"
+mv "$target/usr/libexec/infinityos-backups-entry.real" "$target/usr/libexec/infinityos-backups-entry"
+chroot "$target" /usr/libexec/infinityos-backups-setup
+[[ -f $target/var/lib/infinityos/backups-ready ]]
+mountpoint -q "$target/.snapshots"
+chroot "$target" snapper -c root list >/dev/null
+grep -Fq 'menuentry "Backups"' "$target/boot/efi/EFI/refind/refind.conf"
+cmp "$target/boot/efi/EFI/refind/refind.conf" "$target/boot/efi/EFI/BOOT/refind.conf"
+! grep -Fq 'rootflags=subvol=root' "$target/etc/kernel/cmdline"
+# A repeat must keep the same snapshot storage and configuration intact.
+chroot "$target" /usr/libexec/infinityos-backups-setup
+chroot "$target" /usr/libexec/infinityos-snapper-setup
+echo 'PASS: fresh backup initialization, preset enablement, failed EFI refresh gate and retry.'
 # Build two real RPM versions with system and service data to roll back together.
 mkdir -p "$base/rpmbuild"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 for version in 1 2; do

@@ -13,6 +13,8 @@ Requires:       flatpak
 Requires:       fwupd
 Requires:       polkit
 Requires:       snapper
+Requires:       btrfs-progs
+Requires:       util-linux-core
 Requires:       gnupg2
 Requires:       infinityos-repos >= 1.0.0
 Requires:       infinityos-shell-extensions >= 1.0.0
@@ -35,6 +37,13 @@ cp -a usr %{buildroot}/
 python3 -m py_compile %{buildroot}/usr/libexec/infinityos-upgrade-release %{buildroot}/usr/libexec/infinityos-offline-update %{buildroot}/usr/libexec/infinityos-backups-manage
 
 %post
+systemctl daemon-reload >/dev/null 2>&1 || :
+# Apply vendor policy only on first package installation. Upgrades must retain
+# deliberate administrator choices; the installed preset covers fresh boots.
+if [ "$1" -eq 1 ]; then
+    systemctl preset infinityos-snapper-setup.service infinityos-backups-setup.service \
+        infinityos-backups-entry.service infinityos-backups-entry.path >/dev/null 2>&1 || :
+fi
 # Complete backups are made offline; hourly root-only snapshots cannot restore /var.
 systemctl disable --now snapper-timeline.timer >/dev/null 2>&1 || :
 systemctl enable dnf5-offline-transaction.service >/dev/null 2>&1 || :
@@ -57,6 +66,9 @@ fi
 /usr/libexec/infinityos-upgrade-system
 /usr/libexec/infinityos-offline-update
 /usr/libexec/infinityos-backups-*
+/usr/libexec/infinityos-snapper-setup
+/usr/lib/systemd/system/infinityos-snapper-setup.service
+/usr/lib/systemd/system-preset/00-infinityos-backups.preset
 /usr/lib/systemd/system/infinityos-backups*
 /usr/lib/systemd/system/dnf5-offline-transaction.service.d/
 /usr/libexec/infinityos-upgrade-release

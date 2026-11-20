@@ -63,6 +63,8 @@ def prepare(argv):
         raise ValueError('Release upgrade requires a Btrfs root filesystem')
     if not Path('/etc/snapper/configs/root').is_file():
         raise ValueError('Btrfs backup configuration is missing')
+    if not Path('/var/lib/infinityos/backups-ready').is_file():
+        raise ValueError('Btrfs backup initialization is incomplete; inspect infinityos-backups-setup.service')
     run(['mountpoint', '-q', '/.snapshots'])
 
     # Ordinary updates must finish before the target repository is enabled.

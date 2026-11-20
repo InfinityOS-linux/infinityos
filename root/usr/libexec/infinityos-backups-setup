@@ -1,11 +1,27 @@
 #!/bin/bash
 set -euo pipefail
 
-[[ $(findmnt -n -o FSTYPE /) == btrfs ]] || exit 0
+[[ $(findmnt -n -o FSTYPE /) == btrfs ]] || { echo 'Backup initialization requires a Btrfs root.' >&2; exit 1; }
 [[ -e /etc/snapper/configs/root ]] || { echo 'Snapper root configuration is missing' >&2; exit 1; }
+[[ -s /etc/kernel/cmdline ]] || { echo 'Missing kernel command line' >&2; exit 1; }
+[[ $(findmnt -n -M /boot/efi -o FSTYPE) == vfat ]] || { echo 'Backup initialization requires the EFI partition at /boot/efi.' >&2; exit 1; }
+[[ -f /etc/infinityos/refind-installed && -s /boot/efi/EFI/refind/refind.conf ]] || {
+    echo 'Infinity OS boot installation is incomplete. Inspect /var/log/infinityos-boot-install.log before initializing backups.' >&2; exit 1;
+}
+cmdline=$(</etc/kernel/cmdline)
+[[ -n $cmdline && $cmdline != *'"'* && $cmdline != *$'\n'* ]] || {
+    echo 'Invalid kernel command line; backup setup did not change storage.' >&2; exit 1;
+}
+read -r -a args <<< "$cmdline"
+filtered=()
+for arg in "${args[@]}"; do
+	[[ $arg == rootflags=subvol=root ]] || filtered+=("$arg")
+done
+[[ ${#filtered[@]} -gt 0 ]] || { echo 'Missing kernel command line' >&2; exit 1; }
 device=$(findmnt -n -o SOURCE /)
 device=${device%%\[*}
 uuid=$(blkid -s UUID -o value "$device")
+[[ $uuid =~ ^[A-Fa-f0-9-]{36}$ ]] || { echo 'Missing Btrfs UUID' >&2; exit 1; }
 top=$(mktemp -d)
 cleanup() { mountpoint -q "$top" && umount "$top"; rmdir "$top"; }
 trap cleanup EXIT
@@ -25,16 +41,9 @@ snapper -c root list >/dev/null
 # can then follow it without renaming a mounted root subvolume.
 root_id=$(btrfs inspect-internal rootid /)
 btrfs subvolume set-default "$root_id" "$top"
-[[ -s /etc/kernel/cmdline ]] || { echo 'Missing kernel command line' >&2; exit 1; }
-cmdline=$(</etc/kernel/cmdline)
-read -r -a args <<< "$cmdline"
-filtered=()
-for arg in "${args[@]}"; do
-	[[ $arg == rootflags=subvol=root ]] || filtered+=("$arg")
-done
-[[ ${#filtered[@]} -gt 0 ]] || { echo 'Missing kernel command line' >&2; exit 1; }
 printf '%s\n' "${filtered[*]}" > /etc/kernel/cmdline
 
 install -d /var/lib/infinityos
-touch /var/lib/infinityos/backups-ready
 /usr/libexec/infinityos-backups-entry
+# The recovery menu must be refreshed successfully before reporting readiness.
+touch /var/lib/infinityos/backups-ready

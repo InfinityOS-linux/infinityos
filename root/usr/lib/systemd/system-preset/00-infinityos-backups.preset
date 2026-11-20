@@ -1,0 +1,6 @@
+# Installed systems need these after both disk-image and Live ISO installs.
+# The units themselves exclude Live media and non-Btrfs roots.
+enable infinityos-snapper-setup.service
+enable infinityos-backups-setup.service
+enable infinityos-backups-entry.service
+enable infinityos-backups-entry.path

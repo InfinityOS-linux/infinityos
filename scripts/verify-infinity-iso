@@ -145,6 +145,8 @@ for required in \
     usr/libexec/infinityos-audit-install \
     usr/libexec/infinityos-audit-desktop \
     usr/libexec/infinityos-liveinstall-boot-setup \
+    usr/libexec/infinityos-snapper-setup \
+    usr/libexec/infinityos-backups-setup \
     usr/libexec/infinityos-refind-install \
     usr/libexec/infinityos-refind-config \
     usr/libexec/infinityos-remove-obsolete-efi-loaders \
@@ -152,6 +154,9 @@ for required in \
     usr/libexec/infinityos-liveinst \
     etc/skel/.config/autostart/infinityos-live-power.desktop \
     usr/lib/systemd/system/infinityos-liveinstall-boot-setup.service \
+    usr/lib/systemd/system/infinityos-snapper-setup.service \
+    usr/lib/systemd/system/infinityos-backups-setup.service \
+    usr/lib/systemd/system-preset/00-infinityos-backups.preset \
     usr/lib/kernel/install.d/96-infinityos-esp.install \
     usr/share/anaconda/interactive-defaults.ks; do
     [[ -f "$rootpoint/$required" ]] || {

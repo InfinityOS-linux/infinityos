@@ -1,6 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
+[[ $(findmnt -n -o FSTYPE /) == btrfs ]] || {
+    echo 'Snapper initialization requires an installed Btrfs root.' >&2; exit 1;
+}
+# A copied Live payload may retain the build-time SELinux context.
+if command -v restorecon >/dev/null && [[ -e /etc/sysconfig/snapper ]]; then
+    restorecon /etc/sysconfig/snapper
+fi
+
 if ! snapper -c root get-config >/dev/null 2>&1; then
 	snapper -c root create-config -f btrfs /
 fi
