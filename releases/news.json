@@ -1,5 +1,38 @@
 [
   {
+    "id": "2026-11-20-rpm-backup-initialization",
+    "date": "2026-11-20",
+    "title": "RPM update: backup initialization and diagnostics",
+    "summary": "InfinityUpdater includes the Snapper initialization tools, more reliable backup readiness checks and clearer guidance when backup setup is incomplete.",
+    "buildSha": "d935fbdc10fa82bdb8c74940d86664820fe81a2d",
+    "changes": [
+      {
+        "title": "Available as an RPM update",
+        "text": "Published for ARM64 and x64 in infinity-updater 1.1.1-10000481.fc45. Existing ISO downloads are unchanged. The related installer changes are not included in the current ISO."
+      },
+      {
+        "title": "Initialization tools included",
+        "text": "The updater package now includes the Snapper initializer, its service and shared backup-service presets. First installation applies the presets without starting storage migration during the RPM transaction. Package upgrades preserve administrator choices about enabled services. Initialization skips live sessions and requires a Btrfs root."
+      },
+      {
+        "title": "Reliable backup readiness",
+        "text": "Backup setup checks the EFI partition, completed rEFInd installation and kernel command line before changing snapshot storage. It reports readiness only after refreshing the recovery menu successfully. Interrupted setup can be retried, including when an old marker exists but the required configuration or snapshot mount is missing."
+      },
+      {
+        "title": "Clearer update errors",
+        "text": "The updater distinguishes missing Snapper configuration, incomplete backup setup and unmounted snapshot storage. It identifies disabled, masked or failed initialization services and points to the relevant logs instead of suggesting that a restart always fixes the problem. Release upgrades also require completed backup initialization."
+      },
+      {
+        "title": "Existing affected installations",
+        "text": "The backup prerequisite remains enforced. Systems where initialization was missed may need administrator repair before this RPM can be installed through InfinityUpdater. The update does not silently repair an incomplete bootloader installation or re-enable deliberately disabled services."
+      },
+      {
+        "title": "Recovery tools stay current",
+        "text": "Restoring an older root now carries forward the current Snapper initializer, service and presets alongside the backup tools. Initialization also repairs the copied Snapper configuration's SELinux context when restorecon is available."
+      }
+    ]
+  },
+  {
     "id": "2026-11-20-rpm-desktop-monitor-layouts",
     "date": "2026-11-20",
     "title": "RPM update: desktop icon layouts for each monitor setup",
