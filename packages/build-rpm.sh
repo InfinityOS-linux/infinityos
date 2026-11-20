@@ -212,6 +212,8 @@ elif [[ "$package" == infinity-setup ]]; then
     "$repo/root/usr/libexec/infinityos-refind-short-labels" \
     "$repo/root/usr/libexec/infinityos-refind-config" \
     "$repo/root/usr/libexec/infinityos-refind-install" \
+    "$repo/root/usr/libexec/infinityos-liveinstall-boot-setup" \
+    "$repo/root/usr/libexec/infinityos-remove-obsolete-efi-loaders" \
     "$work/source/$package-$version/usr/libexec/"
   install -m 0755 "$repo/root/usr/lib/systemd/system-generators/infinityos-tv-mode-generator" \
     "$work/source/$package-$version/usr/lib/systemd/system-generators/"

@@ -45,18 +45,35 @@ if [[ ${2:-} == --activate ]]; then
 	disk=$(lsblk -nr -o PKNAME "$esp_device" | head -n 1)
 	part=$(lsblk -nr -o PARTN "$esp_device" | head -n 1)
 	[[ -n $disk && $part =~ ^[0-9]+$ ]] || exit 1
-	boot_entry=$(efibootmgr | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\* Infinity OS rEFInd.*/\1/p' | head -n 1)
+	firmware_state=$(efibootmgr)
+	boot_entry=$(printf '%s\n' "$firmware_state" | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\* Infinity OS rEFInd.*/\1/p' | head -n 1)
 	if [[ -z $boot_entry ]]; then
 		efibootmgr -c -d "/dev/$disk" -p "$part" -L 'Infinity OS rEFInd' -l "\\EFI\\refind\\refind_$arch.efi"
-		boot_entry=$(efibootmgr | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\* Infinity OS rEFInd.*/\1/p' | head -n 1)
+		firmware_state=$(efibootmgr)
+		boot_entry=$(printf '%s\n' "$firmware_state" | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\* Infinity OS rEFInd.*/\1/p' | head -n 1)
 	fi
 	[[ -n $boot_entry ]]
-	order=$(efibootmgr | sed -n 's/^BootOrder: //p')
-	[[ -n $order ]]
-	new_order=$boot_entry
-	IFS=, read -r -a existing_entries <<< "$order"
-	for existing in "${existing_entries[@]}"; do
-		[[ $existing == "$boot_entry" ]] || new_order+=",$existing"
-	done
+	order=$(printf '%s\n' "$firmware_state" | sed -n 's/^BootOrder:[[:space:]]*//p')
+	available_entries=$(printf '%s\n' "$firmware_state" | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)[*[:space:]].*/\1/p' | tr '[:lower:]' '[:upper:]')
+	new_order=$(printf '%s' "$boot_entry" | tr '[:lower:]' '[:upper:]')
+	if [[ -n $order ]]; then
+		IFS=, read -r -a existing_entries <<< "$order"
+		for existing in "${existing_entries[@]}"; do
+			[[ $existing =~ ^[0-9A-Fa-f]{4}$ ]] || {
+				echo "Invalid firmware BootOrder entry: $existing" >&2; exit 1;
+			}
+			existing=$(printf '%s' "$existing" | tr '[:lower:]' '[:upper:]')
+			case ,$new_order, in *,$existing,*) continue ;; esac
+			# Some firmware retains IDs after deleting their Boot#### variable.
+			# efibootmgr rejects the entire order if any such reference survives.
+			# Keep every defined entry in order, including other operating systems
+			# and inactive devices; do not delete their firmware variables.
+			if printf '%s\n' "$available_entries" | grep -Fxq "$existing"; then
+				new_order+=",$existing"
+			else
+				echo "Ignoring stale BootOrder reference $existing (Boot$existing does not exist)." >&2
+			fi
+		done
+	fi
 	efibootmgr -o "$new_order"
 fi
