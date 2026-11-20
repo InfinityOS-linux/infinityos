@@ -25,6 +25,7 @@ import GioUnix from 'gi://GioUnix';
 import GLib from 'gi://GLib';
 import * as DesktopIconsUtil from './desktopIconsUtil.js';
 import * as desktopIconItem from './desktopIconItem.js';
+import * as MonitorLayouts from './monitorLayouts.js';
 import * as ShowErrorPopup from './showErrorPopup.js';
 
 import * as Prefs from './preferences.js';
@@ -50,6 +51,7 @@ export var FileItem = class extends desktopIconItem.desktopIconItem {
         this._realizeId = 0;
 
         this._savedCoordinates = this._readCoordinatesFromAttribute(fileInfo, 'metadata::nautilus-icon-position');
+        this._monitorPositions = MonitorLayouts.readLayouts(fileInfo.get_attribute_as_string(MonitorLayouts.ATTRIBUTE));
         this._dropCoordinates = this._readCoordinatesFromAttribute(fileInfo, 'metadata::nautilus-drop-position');
 
         this._createIconActor(Gtk.AccessibleRole.LABEL);
@@ -973,7 +975,17 @@ export var FileItem = class extends desktopIconItem.desktopIconItem {
     }
 
     get savedCoordinates() {
-        return this._savedCoordinates;
+        return MonitorLayouts.positionForLayout(this._monitorPositions,
+            this._desktopManager._iconLayoutKey, this._savedCoordinates);
+    }
+
+    rememberMonitorPosition() {
+        if (!this._grid || !this._desktopManager._iconLayoutKey)
+            return;
+        // Only seed a new configuration. Temporary grid reflow must not replace
+        // a known preferred position; explicit moves use the setter directly.
+        if (!this._monitorPositions[this._desktopManager._iconLayoutKey])
+            this.savedCoordinates = this.getCoordinates().slice(0, 2);
     }
 
     set savedCoordinates(pos) {
@@ -986,6 +998,9 @@ export var FileItem = class extends desktopIconItem.desktopIconItem {
                 this._savedCoordinates = null;
                 info.set_attribute_string('metadata::nautilus-icon-position', '');
             }
+            this._monitorPositions = MonitorLayouts.rememberPosition(this._monitorPositions,
+                this._desktopManager._iconLayoutKey, pos);
+            info.set_attribute_string(MonitorLayouts.ATTRIBUTE, JSON.stringify(this._monitorPositions));
             this.file.set_attributes_from_info(info, Gio.FileQueryInfoFlags.NONE, null);
         } catch (e) {
             print(`Failed to store the desktop coordinates for ${this.uri}: ${e}`);

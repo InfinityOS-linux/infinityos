@@ -358,7 +358,7 @@ export var DesktopGrid = class extends SignalManager.SignalManager {
         if (this._coordinatesBelongToThisGrid(x, y))
             return 0;
 
-        return Math.pow(x - (this._x + this._windowWidth * this._zoom / 2), 2) + Math.pow(x - (this._y + this._windowHeight * this._zoom / 2), 2);
+        return Math.pow(x - (this._x + this._windowWidth * this._zoom / 2), 2) + Math.pow(y - (this._y + this._windowHeight * this._zoom / 2), 2);
     }
 
     coordinatesGlobalToLocal(X, Y) {
