@@ -1,5 +1,30 @@
 [
   {
+    "id": "2026-11-20-rpm-firmware-boot-order",
+    "date": "2026-11-20",
+    "title": "RPM update: firmware boot order and repair tools",
+    "summary": "rEFInd activation handles stale firmware boot references, and InfinitySetup includes the tools needed to retry an interrupted boot setup.",
+    "buildSha": "ec5b0a3e7974d7442f7019c8b058fa83a6eff1f6",
+    "changes": [
+      {
+        "title": "Available as an RPM update",
+        "text": "Published for ARM64 and x64 in infinity-setup 1.0.2-10000483.fc45. Existing ISO downloads are unchanged and do not include this fix."
+      },
+      {
+        "title": "Stale firmware entries",
+        "text": "rEFInd activation now omits boot-order references whose firmware entries no longer exist, preventing them from blocking activation. It removes duplicate references while preserving the relative order of other defined entries, including inactive devices and other operating systems. Other firmware boot variables are not deleted."
+      },
+      {
+        "title": "Consistent activation checks",
+        "text": "The helper reads boot entries and their order from the same firmware snapshot and refreshes it after creating an Infinity OS entry. It can initialize a missing boot order. Invalid identifiers and actual firmware read, creation or write errors still stop activation."
+      },
+      {
+        "title": "Repair tools for existing installations",
+        "text": "InfinitySetup now ships the current boot-conversion and obsolete-loader cleanup helpers with their required dependencies. Administrators can use them to retry an interrupted setup. Installing the RPM does not start boot conversion automatically, and systems blocked by incomplete backup initialization may still need administrator repair before normal updates can proceed."
+      }
+    ]
+  },
+  {
     "id": "2026-11-20-rpm-backup-initialization",
     "date": "2026-11-20",
     "title": "RPM update: backup initialization and diagnostics",
