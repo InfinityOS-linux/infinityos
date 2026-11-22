@@ -114,6 +114,7 @@ POLISH = {
     "Video": "Wideo", "Design": "Projektowanie", "More tools": "Więcej narzędzi",
     "Development tools": "Narzędzia programistyczne", "Assistants": "Asystenci",
     "Local models": "Modele lokalne", "Active local model": "Aktywny model lokalny",
+    "Local AI apps": "Lokalne aplikacje AI",
     "Office suite": "Pakiet biurowy", "Documents": "Dokumenty",
     "Browse the web and sync bookmarks with Google.":
         "Przeglądaj internet i synchronizuj zakładki z Google.",
@@ -198,6 +199,8 @@ POLISH = {
         "Uruchom lokalnego asystenta AI do kodu. Potrzebuje 11 GB miejsca na dysku.",
     "Run a local AI coding assistant. Needs 30 GB of disk space.":
         "Uruchom lokalnego asystenta AI do kodu. Potrzebuje 30 GB miejsca na dysku.",
+    "Install and run open-source AI apps on your computer.":
+        "Instaluj i uruchamiaj aplikacje AI o otwartym kodzie na swoim komputerze.",
     "Create documents, spreadsheets and presentations.": "Twórz dokumenty, arkusze i prezentacje.",
     "The open-source PDF workbench.": "Otwarte narzędzie do pracy z plikami PDF.",
     "The familiar word processor, native and offline.":
