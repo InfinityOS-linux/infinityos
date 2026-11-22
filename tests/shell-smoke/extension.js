@@ -26,6 +26,7 @@ import {DockBackground} from '../dash2dock-animated@infinityos.org/dockItems.js'
 import {PanelBlur} from '../blur-my-shell@aunetx/components/panel.js';
 import BlurMyShell from '../blur-my-shell@aunetx/extension.js';
 import PanelIndicators from '../wack-shell@rinzler69-wastaken.github.com/panelIndicators.js';
+import {WackWorkspaceButton} from '../wack-shell@rinzler69-wastaken.github.com/panelComponents.js';
 import RamdriveRestart from '../wack-shell@rinzler69-wastaken.github.com/ramdriveRestart.js';
 
 function check(ok, message) { if (!ok) throw new Error(message); }
@@ -82,6 +83,34 @@ export default class Smoke extends Extension {
         await wait();
         const modalActors = () => Main.modalActorFocusStack.map(({actor}) => actor.toString()).join(', ');
         check(Main.modalCount === 0, `startup retained modal input: ${modalActors()}`);
+        const wack = metadata('wack-shell@rinzler69-wastaken.github.com');
+        const wackSource = Gio.SettingsSchemaSource.new_from_directory(
+            `${wack.path}/schemas`, Gio.SettingsSchemaSource.get_default(), false);
+        wack._settings = new Gio.Settings({
+            settings_schema: wackSource.lookup('org.gnome.shell.extensions.wack-shell', true),
+        });
+        wack._settings.set_int('workspace-widget-type', 2);
+        const logo = new WackWorkspaceButton(wack);
+        const logoClick = {type: () => Clutter.EventType.BUTTON_RELEASE};
+        const overview = Main.overview;
+        try {
+            logo.vfunc_event(logoClick);
+            await wait();
+            check(overview.visible && overview.dash.showAppsButton.checked, 'Infinity logo did not open the app grid');
+            logo.vfunc_event(logoClick);
+            await wait();
+            check(!overview.visible, 'Infinity logo did not close the app grid');
+            overview.show();
+            await wait();
+            check(overview.visible && !overview.dash.showAppsButton.checked, 'workspace preview did not open');
+            logo.vfunc_event(logoClick);
+            await wait();
+            check(overview.visible && overview.dash.showAppsButton.checked, 'Infinity logo did not switch to the app grid');
+        } finally {
+            logo.destroy();
+            overview.hide();
+            await wait();
+        }
         const endDialog = Main.endSessionDialog;
         const savedEndMethods = {confirm: endDialog._confirm, state: endDialog._getUpdateState, sessions: endDialog._loadSessions};
         let restartSignals = 0, occupiedRamdrive = true, failSave = true;

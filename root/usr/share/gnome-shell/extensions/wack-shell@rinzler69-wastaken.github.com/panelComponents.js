@@ -1199,6 +1199,7 @@ export const WackWorkspaceButton = GObject.registerClass(
 
         _updateWidget() {
             const type = this._settings.get_int('workspace-widget-type');
+            this.accessible_name = type === 2 ? _('Show Applications') : _('Activities');
 
             if (type === 0) { // Workspace Indicators (dots)
                 this._label.hide();
@@ -1216,7 +1217,7 @@ export const WackWorkspaceButton = GObject.registerClass(
                     this._workspaceIndicators.destroy();
                     this._workspaceIndicators = null;
                 }
-                if (type === 2) { // Infinity logo, with the workspace button's overview action
+                if (type === 2) { // Infinity logo
                     this._label.hide();
                     if (!this._infinityIcon) {
                         this._infinityIcon = new St.Icon({ style_class: 'menu-button' });
@@ -1267,8 +1268,17 @@ export const WackWorkspaceButton = GObject.registerClass(
         vfunc_event(event) {
             if (event.type() === Clutter.EventType.TOUCH_END ||
                 event.type() === Clutter.EventType.BUTTON_RELEASE) {
-                if (Main.overview.shouldToggleByCornerOrButton()) {
-                    Main.overview.toggle();
+                const overview = Main.overview;
+                if (overview.shouldToggleByCornerOrButton()) {
+                    if (this._settings.get_int('workspace-widget-type') !== 2) {
+                        overview.toggle();
+                    } else if (!overview.visible) {
+                        overview.showApps();
+                    } else if (overview.dash.showAppsButton.checked) {
+                        overview.hide();
+                    } else {
+                        overview.dash.showAppsButton.checked = true;
+                    }
                     return Clutter.EVENT_STOP;
                 }
             }

@@ -133,6 +133,7 @@ switch-applications=@as []
 switch-applications-backward=@as []
 switch-windows=['<Alt>Tab']
 switch-windows-backward=['<Shift><Alt>Tab']
+show-desktop=['<Super>d']
 
 [org/gnome/desktop/background]
 picture-uri='file:///usr/share/backgrounds/infinityos/light-02-horyzont.svg'
@@ -171,6 +172,9 @@ show-history=''
 sync-clipboard-to-primary=''
 sync-primary-to-clipboard=''
 upload=''
+
+[org/gnome/settings-daemon/plugins/media-keys]
+home=['<Super>e']
 
 [org/gnome/settings-daemon/plugins/housekeeping]
 donation-reminder-enabled=false
