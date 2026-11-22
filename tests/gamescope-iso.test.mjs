@@ -17,10 +17,10 @@ test('x64 image requests the exact patched Gamescope built by the RPM workflow',
 });
 test('ISO verification accepts the patched RPM and rejects upstream, missing and duplicate packages', () => {
   for (const [release, status, ok] of [
-    ['3.16.29-2.infinityos.fc45.x86_64', 0, true],
-    ['3.16.29-3.fc45.x86_64', 0, false],
+    ['3.16.31-2.infinityos.fc45.x86_64', 0, true],
+    ['3.16.31-1.fc45.x86_64', 0, false],
     ['package gamescope is not installed', 1, false],
-    ['3.16.29-2.infinityos.fc45.x86_64\n3.16.29-3.fc45.i686', 0, false],
+    ['3.16.31-2.infinityos.fc45.x86_64\n3.16.31-1.fc45.i686', 0, false],
   ]) {
     const result = spawnSync('bash', ['-c', `set -eu\nrootpoint=/unused\nrpm() { printf '%s\\n' "$TEST_RELEASE"; return "$TEST_STATUS"; }\n${check}`], {
       env: { ...process.env, TEST_RELEASE: release, TEST_STATUS: String(status) }, encoding: 'utf8',

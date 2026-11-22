@@ -164,6 +164,12 @@ for required in \
         exit 1
     }
 done
+for unit in infinityos-liveinstall-boot-setup.service infinityos-snapper-setup.service infinityos-backups-setup.service; do
+    [[ -L "$rootpoint/etc/systemd/system/multi-user.target.wants/$unit" ]] || {
+        echo "First-boot setup unit is not enabled in the ISO: $unit" >&2
+        exit 1
+    }
+done
 [[ -x "$rootpoint/usr/libexec/infinityos-live-power" ]] || {
     echo 'Live power settings script is not executable' >&2
     exit 1
@@ -245,8 +251,8 @@ if [[ $(uname -m) == x86_64 ]]; then
         echo 'Gamescope package is missing or its RPM metadata cannot be read' >&2
         exit 1
     }
-    [[ "$gamescope_release" == '3.16.29-2.infinityos.fc45.x86_64' ]] || {
-        echo "Infinity OS Gamescope NVIDIA fix is missing from ISO: found $gamescope_release; expected 3.16.29-2.infinityos.fc45.x86_64" >&2
+    [[ "$gamescope_release" == '3.16.31-2.infinityos.fc45.x86_64' ]] || {
+        echo "Infinity OS Gamescope NVIDIA fix is missing from ISO: found $gamescope_release; expected 3.16.31-2.infinityos.fc45.x86_64" >&2
         exit 1
     }
 fi

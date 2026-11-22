@@ -277,8 +277,8 @@ export class TerminalPullHandle {
             return;
         }
         this.centerClock(monitor);
-        const fullscreen = global.display.get_monitor_in_fullscreen(monitor.index);
-        const normal = !Main.overview.visible && !Main.sessionMode.isLocked;
+        const visible = !global.display.get_monitor_in_fullscreen(monitor.index) &&
+            !Main.overview.visible && !Main.sessionMode.isLocked;
         const window = this.terminal._findWindow();
         const open = !!window && !window.minimized && !this.terminal._firstFrame;
         const [, panelHeight] = Main.panel.get_transformed_size();
@@ -297,15 +297,8 @@ export class TerminalPullHandle {
             return frame.x <= center + 90 && frame.x + frame.width >= center - 90 &&
                 frame.y <= monitor.y + panelHeight + 1 && frame.y + frame.height > monitor.y;
         });
-        this.terminal._indicator.visible = fullscreen && normal;
-        const clock = Main.panel.statusArea.dateMenu;
-        const [clockX] = clock.get_transformed_position();
-        const [clockWidth] = clock.get_transformed_size();
-        const [, iconWidth] = this.terminal._indicator.get_preferred_width(panelHeight);
-        this.terminal._indicator.set_size(iconWidth, panelHeight);
-        this.terminal._indicator.set_position(Math.round(clockX + clockWidth), monitor.y);
-        this.actor.visible = normal;
-        const compact = fullscreen || open || crowded;
+        this.actor.visible = visible;
+        const compact = open || crowded;
         if (compact !== this.compact) {
             const initial = this.compact === undefined;
             this.compact = compact;
@@ -314,7 +307,7 @@ export class TerminalPullHandle {
                 duration: initial || !St.Settings.get().enable_animations ? 0 : 180,
                 mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
         }
-        this.panelLine.visible = this.panelLineRight.visible = !fullscreen && normal;
+        this.panelLine.visible = this.panelLineRight.visible = visible;
         const scheme = this.interfaceSettings.get_string('color-scheme');
         this.light = scheme === 'prefer-light' || (scheme === 'default' &&
             !Main.panel.has_style_pseudo_class?.('dark'));
@@ -326,7 +319,7 @@ export class TerminalPullHandle {
         this.actor.set_position(Math.round(monitor.x + monitor.width / 2 - WIDTH * scale / 2),
             Math.round(monitor.y + panelHeight - SHOULDER * scale));
         this.syncPanelLine();
-        this.syncBackdrop(normal && !fullscreen ? HEIGHT * scale : 0);
+        this.syncBackdrop(visible ? HEIGHT * scale : 0);
         this.actor.queue_repaint();
     }
 

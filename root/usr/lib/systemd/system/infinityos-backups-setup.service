@@ -1,6 +1,7 @@
 [Unit]
 Description=Prepare persistent Infinity OS Btrfs backups
 Requires=infinityos-snapper-setup.service
+Wants=infinityos-liveinstall-boot-setup.service
 After=infinityos-snapper-setup.service infinityos-liveinstall-boot-setup.service local-fs.target
 RequiresMountsFor=/boot/efi
 ConditionKernelCommandLine=!rd.live.image

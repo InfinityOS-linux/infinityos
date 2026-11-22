@@ -58,9 +58,11 @@ WRAPPER
 chmod +x "$target/usr/local/bin/"{snapper,systemctl,systemd-inhibit}
 cp "$repo"/root/usr/libexec/infinityos-backups-* "$target/usr/libexec/"
 cp "$repo/root/usr/libexec/infinityos-snapper-setup" "$target/usr/libexec/"
+cp "$repo/root/usr/libexec/infinityos-liveinstall-boot-setup" "$target/usr/libexec/"
 cp "$repo/root/usr/libexec/infinityos-refind-config" "$target/usr/libexec/"
 cp "$repo"/root/usr/lib/systemd/system/infinityos-backups* "$target/usr/lib/systemd/system/"
 cp "$repo/root/usr/lib/systemd/system/infinityos-snapper-setup.service" "$target/usr/lib/systemd/system/"
+cp "$repo/root/usr/lib/systemd/system/infinityos-liveinstall-boot-setup.service" "$target/usr/lib/systemd/system/"
 mkdir -p "$target/usr/lib/systemd/system-preset"
 cp "$repo/root/usr/lib/systemd/system-preset/00-infinityos-backups.preset" "$target/usr/lib/systemd/system-preset/"
 # Exercise real filesystem-based preset handling, not the no-daemon wrapper.
@@ -68,7 +70,8 @@ cp "$repo/root/usr/lib/systemd/system-preset/00-infinityos-backups.preset" "$tar
 for unit in infinityos-snapper-setup.service infinityos-backups-setup.service; do
     /usr/bin/systemctl --root="$target" is-enabled "$unit"
 done
-chroot "$target" /usr/bin/systemd-analyze verify infinityos-snapper-setup.service infinityos-backups-setup.service
+chroot "$target" /usr/bin/systemd-analyze verify infinityos-snapper-setup.service infinityos-backups-setup.service \
+    infinityos-liveinstall-boot-setup.service
 mkdir -p "$target/usr/lib/kernel/install.d"
 cp "$repo/root/usr/lib/kernel/install.d/96-infinityos-esp.install" "$target/usr/lib/kernel/install.d/"
 cp "$repo"/packages/infinity-updater/root/usr/libexec/infinityos-* "$target/usr/libexec/"

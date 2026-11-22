@@ -10,6 +10,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 
 SOURCE = Path(__file__).resolve().parents[1] / 'packages/infinity-updater/root/usr/share/infinityos/updater'
@@ -41,6 +42,7 @@ class UpdaterTests(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
+        self.home = Path(directory.name)
         lock = patch.object(upgrade_release, "LOCK", Path(directory.name) / "update.lock")
         lock.start()
         self.addCleanup(lock.stop)
@@ -295,7 +297,7 @@ class UpdaterTests(unittest.TestCase):
         with patch.object(github_update, '_installed', return_value={'photocraft': ('0.17.0', '1')}), \
              patch.object(github_update, 'latest_rpm_asset', return_value=({'tag_name': 'v0.18.0'}, {})), \
              patch.object(github_update, '_newer', return_value=True):
-            updates, errors = github_update.check_github_updates()
+            updates, errors = github_update.check_github_updates(self.home)
         self.assertEqual(errors, [])
         self.assertEqual(updates, [{'kind': 'InfinityApps RPM', 'name': 'PhotoCraft',
                                     'version': 'v0.18.0', 'source': app.source}])
@@ -310,7 +312,7 @@ class UpdaterTests(unittest.TestCase):
              patch.object(github_update, 'latest_rpm_asset',
                           return_value=({'tag_name': 'v0.2.0'}, {})), \
              patch.object(github_update, '_newer', return_value=True):
-            updates, errors = github_update.check_github_updates()
+            updates, errors = github_update.check_github_updates(self.home)
         self.assertEqual(errors, [])
         self.assertEqual({item['name'] for item in updates},
                          {'Craft Anything', 'MaterialCraft', 'SolidCraft', 'TextureCraft'})
@@ -324,6 +326,37 @@ class UpdaterTests(unittest.TestCase):
                 github_update._newer('release-latest', ('0.17.0', '1'))
         rpm.labelCompare.assert_called_once_with(('0', '0.18.0', '0'),
                                                   ('0', '0.17.0', '1'))
+
+    def test_github_rate_limit_stops_requests_across_refreshes_until_reset(self):
+        limited = HTTPError('https://api.github.com/', 403, 'rate limit exceeded', {
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': '10360',
+        }, None)
+        with patch.object(github_update, '_installed', return_value={
+            'photocraft': ('0.17.0', '1'), 'lightcraft': ('0.17.0', '1'),
+        }), patch.object(github_update, 'latest_rpm_asset', side_effect=[
+            limited, ({'tag_name': 'v0.18.0'}, {}), ({'tag_name': 'v0.18.0'}, {}),
+        ]) as fetch, patch.object(github_update.time, 'time', return_value=10000) as now, \
+                patch.object(github_update, '_newer', return_value=True):
+            self.assertEqual(github_update.check_github_updates(self.home), ([], []))
+            now.return_value = 10100
+            self.assertEqual(github_update.check_github_updates(self.home), ([], []))
+            fetch.assert_called_once()
+            now.return_value = 10361
+            updates, errors = github_update.check_github_updates(self.home)
+            self.assertEqual({row['name'] for row in updates}, {'PhotoCraft', 'LightCraft'})
+            self.assertEqual(errors, [])
+            self.assertEqual(github_update.check_github_updates(self.home), (updates, []))
+            self.assertEqual(fetch.call_count, 3)
+
+    def test_github_access_errors_without_rate_limit_remain_visible(self):
+        forbidden = HTTPError('https://api.github.com/', 403, 'forbidden', {}, None)
+        with patch.object(github_update, '_installed', return_value={'photocraft': ('0.17.0', '1')}), \
+                patch.object(github_update, 'latest_rpm_asset', side_effect=forbidden) as fetch:
+            _, errors = github_update.check_github_updates(self.home)
+            self.assertEqual(len(errors), 1)
+            self.assertIn('PhotoCraft', errors[0])
+            fetch.assert_called_once()
 
     def test_setup_rpm_update_rejects_wrong_downloaded_package(self):
         def download(_app, _arch, directory):

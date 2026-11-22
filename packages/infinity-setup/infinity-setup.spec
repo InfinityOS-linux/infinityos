@@ -112,6 +112,7 @@ fi
 /usr/libexec/infinityos-refind-install
 /usr/libexec/infinityos-liveinstall-boot-setup
 /usr/libexec/infinityos-remove-obsolete-efi-loaders
+/usr/lib/systemd/system/infinityos-liveinstall-boot-setup.service
 /usr/lib/systemd/system-generators/infinityos-tv-mode-generator
 /usr/lib/systemd/system/infinityos-tv@.service
 /usr/lib/systemd/system/infinityos-tv@.target

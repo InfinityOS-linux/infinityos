@@ -2,8 +2,9 @@
 Description=Retry Infinity OS repository trust setup after boot
 
 [Timer]
-OnBootSec=5min
-OnUnitInactiveSec=30min
+OnBootSec=30s
+OnUnitInactiveSec=2min
+AccuracySec=10s
 Unit=infinityos-repo-trust.service
 
 [Install]
