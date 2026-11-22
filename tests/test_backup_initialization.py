@@ -18,7 +18,7 @@ class BackupInitializationTests(unittest.TestCase):
         self.bin.mkdir()
         self.log = self.base / 'commands.log'
         self.env = dict(os.environ, PATH=str(self.bin) + ':' + os.environ['PATH'],
-                        TEST_COMMAND_LOG=str(self.log), TEST_SCENARIO='normal')
+                        TEST_COMMAND_LOG=str(self.log), TEST_SCENARIO='normal', TEST_ROOT=str(self.target))
         self.command('findmnt', '''
 if [[ "$*" == *efi* ]]; then
     [[ $TEST_SCENARIO == missing-efi ]] && exit 1
@@ -31,6 +31,9 @@ if [[ $1 == is-enabled ]]; then
     case $TEST_SCENARIO in disabled|masked) echo "$TEST_SCENARIO"; exit 1;; *) echo enabled;; esac
 elif [[ $1 == is-failed ]]; then
     [[ $TEST_SCENARIO == failed ]]
+elif [[ $1 == start && $TEST_SCENARIO == retry-initializes ]]; then
+    mkdir -p "$TEST_ROOT/etc/snapper/configs" "$TEST_ROOT/var/lib/infinityos"
+    touch "$TEST_ROOT/etc/snapper/configs/root" "$TEST_ROOT/var/lib/infinityos/backups-ready"
 elif [[ $1 == disable && $TEST_SCENARIO == disable-error ]]; then exit 1
 elif [[ $1 == mask && $TEST_SCENARIO == mask-error ]]; then exit 1
 fi''')
@@ -221,12 +224,27 @@ printf 'snapper %s\\n' "$*" >> "$TEST_COMMAND_LOG"
         self.assertIn('/usr/libexec/infinityos-snapper-setup', package)
         self.assertIn('/usr/lib/systemd/system-preset/00-infinityos-backups.preset', package)
 
+    def test_update_waits_for_enabled_initialization_before_staging_rpms(self):
+        source = 'packages/infinity-updater/root/usr/libexec/infinityos-upgrade-system'
+        result = self.exercise(source, 'retry-initializes', root_helper=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        log = self.log.read_text()
+        self.assertLess(log.index('start infinityos-backups-setup.service'), log.index('update-started'))
+
+        self.log.unlink()
+        (self.target / 'var/lib/infinityos/backups-ready').unlink()
+        blocked = self.exercise(source, 'disabled', root_helper=True)
+        self.assertNotEqual(blocked.returncode, 0)
+        self.assertNotIn('systemctl start', self.log.read_text())
+
     def test_backup_setup_waits_for_any_queued_boot_conversion(self):
         units = ROOT / 'root/usr/lib/systemd/system'
         backup = (units / 'infinityos-backups-setup.service').read_text()
         boot = (units / 'infinityos-liveinstall-boot-setup.service').read_text()
         after = next(line.removeprefix('After=').split() for line in backup.splitlines() if line.startswith('After='))
         self.assertIn('infinityos-liveinstall-boot-setup.service', after)
+        self.assertIn('Wants=infinityos-liveinstall-boot-setup.service', backup)
+        self.assertIn('ConditionKernelCommandLine=!rd.live.image', boot)
         self.assertIn('WantedBy=multi-user.target', backup)
         self.assertIn('WantedBy=multi-user.target', boot)
         self.assertIn('Type=oneshot', boot)

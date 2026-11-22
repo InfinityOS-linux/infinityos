@@ -135,6 +135,10 @@ EOF
 	install -D -m 0644 /usr/share/infinityos/performance/60-infinityos-ioschedulers.rules /etc/udev/rules.d/60-infinityos-ioschedulers.rules
 	systemctl disable infinityos-corefonts.service infinityos-repo-trust.service
 	systemctl enable systemd-resolved.service tlp.service tlp-pd.service switcheroo-control.service infinityos-ramdrive.service infinityos-ramdrive-prepare.path infinityos-ramdrive-prepare.service infinityos-corefonts.timer infinityos-repo-trust.timer
+	# The Live payload is copied into the installed system. Enable the backup
+	# units explicitly so that they enter the first boot's systemd transaction.
+	systemctl enable infinityos-snapper-setup.service infinityos-backups-setup.service \
+		infinityos-backups-entry.service infinityos-backups-entry.path
 	printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
 	dconf update
 	# GPaste's Shell indicator activates its daemon over D-Bus after login.
@@ -202,12 +206,8 @@ EOF
 	if [[ "$kiwi_profiles" == *"Infinity-GNOME-Disk"* ]]; then
 		# The build host's storage controller differs from the target VM or PC.
 		printf 'hostonly="no"\n' > /etc/dracut.conf.d/99-infinityos-generic.conf
-		systemctl enable infinityos-snapper-setup.service infinityos-backups-setup.service infinityos-backups-entry.service infinityos-backups-entry.path snapper-cleanup.timer
+		systemctl enable snapper-cleanup.timer
 		cat >> /usr/lib/systemd/system-preset/00-infinityos.preset << 'EOF'
-enable infinityos-snapper-setup.service
-enable infinityos-backups-setup.service
-enable infinityos-backups-entry.service
-enable infinityos-backups-entry.path
 disable snapper-timeline.timer
 enable snapper-cleanup.timer
 EOF
@@ -805,6 +805,11 @@ fi
 #======================================
 # Finalization steps
 #--------------------------------------
+if [[ "$kiwi_profiles" == *"Infinity-GNOME-Live"* || "$kiwi_profiles" == *"Infinity-GNOME-Disk"* ]]; then
+	# Do not carry build-time repository indexes into installed systems.
+	dnf -q clean metadata
+fi
+
 # Inhibit the ldconfig cache generation unit, see rhbz2348669
 touch -r "/usr" "/etc/.updated" "/var/.updated"
 

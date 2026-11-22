@@ -223,6 +223,7 @@ elif [[ "$package" == infinity-setup ]]; then
     "$work/source/$package-$version/usr/lib/systemd/system-generators/"
   install -m 0644 "$repo/root/usr/lib/systemd/system/infinityos-tv@.service" \
     "$repo/root/usr/lib/systemd/system/infinityos-tv@.target" \
+    "$repo/root/usr/lib/systemd/system/infinityos-liveinstall-boot-setup.service" \
     "$work/source/$package-$version/usr/lib/systemd/system/"
   install -m 0644 "$repo/root/usr/share/infinityos/refind-theme/icons/"os_infinityos*.png \
     "$work/source/$package-$version/usr/share/infinityos/refind-theme/icons/"

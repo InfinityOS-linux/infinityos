@@ -10,8 +10,15 @@ docker run --rm --platform linux/amd64 \
   -v "$repo/packages/gamescope:/source:ro" \
   -v "$work/RPMS:/output" \
   fedora:45 bash -euo pipefail -c '
-    dnf -y install curl dnf5-plugins rpm-build
+    dnf -y install curl dnf5-plugins fedora-gpg-keys rpm-build
+    rpmkeys --import /usr/share/pki/rpm-gpg/RPM-GPG-KEY-fedora-45-primary
     mkdir -p /build/rpmbuild/SOURCES
+    version=$(sed -n "s/^Version:[[:blank:]]*//p" /source/gamescope.spec)
+    dnf -qy download --srpm --destdir=/build "gamescope-$version"
+    srpm=(/build/gamescope-"$version"-*.src.rpm)
+    [[ ${#srpm[@]} -eq 1 ]]
+    rpmkeys --checksig "${srpm[0]}" | grep -q "digests signatures OK"
+    rpm -i --define "_topdir /build/rpmbuild" "${srpm[0]}"
     cp /source/*.patch /source/stb.pc /build/rpmbuild/SOURCES/
     while read -r checksum filename; do
       curl -fL --retry 3 \
@@ -21,9 +28,9 @@ docker run --rm --platform linux/amd64 \
     done < <(sed -n "s/^SHA512 (\([^)]*\)) = \([0-9a-f]*\)$/\2 \1/p" /source/sources)
     dnf -y builddep /source/gamescope.spec
     rpmbuild -bb --define "_topdir /build/rpmbuild" /source/gamescope.spec
-    rpmfile=(/build/rpmbuild/RPMS/x86_64/gamescope-3.16.29-*.x86_64.rpm)
+    rpmfile=(/build/rpmbuild/RPMS/x86_64/gamescope-"$version"-*.x86_64.rpm)
     [[ ${#rpmfile[@]} -eq 1 ]]
-    [[ $(rpm -qp --qf "%{NAME} %{VERSION}-%{RELEASE} %{ARCH}" "${rpmfile[0]}") == "gamescope 3.16.29-2.infinityos.fc45 x86_64" ]]
+    [[ $(rpm -qp --qf "%{NAME} %{VERSION}-%{RELEASE} %{ARCH}" "${rpmfile[0]}") == "gamescope $version-2.infinityos.fc45 x86_64" ]]
     rpm_files=$(rpm -qpl "${rpmfile[0]}")
     grep -qx /usr/bin/gamescope <<< "$rpm_files"
     cp -a "${rpmfile[0]}" /output/

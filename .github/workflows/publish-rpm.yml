@@ -187,11 +187,35 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  verify-desktop-rpms:
+    name: Verify Gamescope and Nautilus upgrade together
+    runs-on: ubuntu-24.04
+    needs: [build-gamescope, build-nautilus]
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: rpm-gamescope-x86_64
+          path: desktop-rpms
+      - uses: actions/download-artifact@v7
+        with:
+          name: rpm-nautilus-x86_64
+          path: desktop-rpms
+      - name: Upgrade all three packages in a disposable Fedora system
+        run: |
+          docker run --rm -v "$PWD/desktop-rpms:/desktop-rpms:ro" fedora:45 bash -euo pipefail -c '
+            dnf -qy --setopt=install_weak_deps=False install gamescope nautilus
+            dnf -qy --setopt=install_weak_deps=False upgrade /desktop-rpms/gamescope-*.x86_64.rpm \
+              /desktop-rpms/nautilus-51.*.x86_64.rpm /desktop-rpms/nautilus-extensions-*.x86_64.rpm
+            for package in gamescope nautilus nautilus-extensions; do
+              [[ $(rpm -q --qf "%{RELEASE}" "$package") == *.infinityos.* ]]
+            done
+          '
+
   publish:
     name: Sign RPMs and prepare Pages
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    needs: [verify-fedora, verify-shell, build-noarch, build-terminal, build-gamescope, build-nautilus]
+    needs: [verify-fedora, verify-shell, build-noarch, build-terminal, build-gamescope, build-nautilus, verify-desktop-rpms]
     permissions:
       contents: write
       actions: read

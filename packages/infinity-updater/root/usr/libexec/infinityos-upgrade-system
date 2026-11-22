@@ -10,6 +10,22 @@ if [[ $(findmnt -n -o FSTYPE /) != btrfs ]]; then
     echo 'RPM upgrade stopped: the root filesystem is not Btrfs.' >&2
     exit 1
 fi
+if [[ -e /etc/infinityos-release-pending.json ]]; then
+    echo 'A release upgrade is pending. Retry that release or restore its recovery snapshot first.' >&2
+    exit 1
+fi
+
+# An update can be requested before first-boot initialization finishes, or
+# after a transient failure. Join or retry the enabled setup before checking
+# readiness again. systemd pulls in any pending boot repair and Snapper.
+if [[ ! -f /etc/snapper/configs/root || ! -f /var/lib/infinityos/backups-ready ]] ||
+    ! mountpoint -q /.snapshots; then
+    if systemctl is-enabled --quiet infinityos-backups-setup.service &&
+        systemctl is-enabled --quiet infinityos-snapper-setup.service; then
+        echo 'Finishing Btrfs backup initialization before preparing updates...'
+        systemctl start infinityos-backups-setup.service || :
+    fi
+fi
 backup_not_ready() {
     local unit=$1 reason=$2 state
     echo "RPM upgrade stopped: $reason" >&2
@@ -34,14 +50,9 @@ if ! mountpoint -q /.snapshots; then
     backup_not_ready infinityos-backups-setup.service 'Snapshot storage /.snapshots is not mounted.'
 fi
 
-if [[ -e /etc/infinityos-release-pending.json ]]; then
-    echo 'A release upgrade is pending. Retry that release or restore its recovery snapshot first.' >&2
-    exit 1
-fi
-args=()
 if [[ $# -eq 2 ]]; then
-    args+=("$2")
+    shift
 fi
 exec systemd-inhibit --what=shutdown:sleep --mode=block --who=InfinityUpdater \
     --why='Preparing system updates' \
-    python3 /usr/share/infinityos/updater/pending.py "${args[@]}"
+    python3 /usr/share/infinityos/updater/pending.py "$@"

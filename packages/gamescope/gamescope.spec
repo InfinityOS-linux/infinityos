@@ -5,7 +5,7 @@
 %global vkroots_shortcommit %(c=%{vkroots_commit}; echo ${c:0:7})
 
 Name:           gamescope
-Version:        3.16.29
+Version:        3.16.31
 Release:        2.infinityos%{?dist}
 Summary:        Micro-compositor for video games on Wayland
 # Automatically converted from old format: BSD - review is highly recommended.
@@ -108,7 +108,7 @@ tar -xzf %{SOURCE2} --strip-components=1 -C src/reshade
 tar -xzf %{SOURCE3} --strip-components=1 -C subprojects/vkroots
 
 %autopatch -p1
-patch -R -p1 < %{SOURCE4}
+patch --fuzz=0 -R -p1 < %{SOURCE4}
 
 %build
 export PKG_CONFIG_PATH=pkgconfig

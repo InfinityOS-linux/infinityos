@@ -1,6 +1,8 @@
 [Unit]
 Description=Finish Infinity OS rEFInd setup after installation
 After=local-fs.target
+ConditionKernelCommandLine=!rd.live.image
+ConditionPathExists=!/run/initramfs/live
 ConditionPathIsMountPoint=/boot/efi
 ConditionPathExists=/etc/infinityos/liveinstall-boot-pending
 ConditionPathExists=!/etc/infinityos/liveinstall-refind
