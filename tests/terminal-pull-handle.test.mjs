@@ -21,7 +21,7 @@ function fixture() {
         Mtk: {Region: {create() {return {rows: [], union_rectangle(rect) {this.rows.push(rect);}};}},
             Rectangle: class {constructor(rect) {Object.assign(this, rect);}}},
         Cairo: {ImageSurface: {createFromPNG: path => ({path, getWidth: () => 3000})}},
-        Meta: {MaximizeFlags: {VERTICAL: 2}}, Gio: {Settings: class {constructor(){Object.assign(this, signal);} get_string(){return terminal.scheme || 'prefer-dark';}}}, GLib: {PRIORITY_DEFAULT: 0, timeout_add: () => 1, Source: {remove() {}}}, Main, Atk: {Role: {PUSH_BUTTON: 1}}, console,
+        Gio: {Settings: class {constructor(){Object.assign(this, signal);} get_string(){return terminal.scheme || 'prefer-dark';}}}, GLib: {PRIORITY_DEFAULT: 0, timeout_add: () => 1, Source: {remove() {}}}, Main, Atk: {Role: {PUSH_BUTTON: 1}}, console,
         St: {DrawingArea: class {constructor() {Object.assign(this, signal); this.visible = true; this.mapped = true;}
             get_transformed_position() {return [this.x + this.width * (1 - this.scale_x) / 2, this.y];}
             get_transformed_size() {return [this.width * this.scale_x, this.height * this.scale_y];}
@@ -147,19 +147,19 @@ test('a window touching the panel compacts the handle and moving it away restore
 
 
 test('title-bar maximization compacts with a panel gap and restores on unmaximize',()=>{
- const f=fixture(); let maximized=0;
+ const f=fixture();
  const callbacks=new Map();
  const candidate={minimized:false,showing_on_its_workspace:()=>true,get_monitor:()=>0,
-  can_close:()=>true,get_maximized:()=>maximized,
+  can_close:()=>true,maximized_vertically:false,
   get_frame_rect:()=>({x:0,y:48,width:1500,height:800}),
   connect(signal,callback){callbacks.set(signal,callback);return signal;},disconnect(){}};
  f.terminal.windows=[{meta_window:candidate}];
  f.handle.sync(); assert.equal(f.handle.actor.scale_y,1);
- maximized=3; callbacks.get('notify::maximized-vertically')();
+ candidate.maximized_vertically=true; callbacks.get('notify::maximized-vertically')();
  assert.equal(f.handle.actor.scale_y,.5);
  candidate.minimized=true; callbacks.get('notify::minimized')();
  assert.equal(f.handle.actor.scale_y,1);
- candidate.minimized=false; maximized=0;
+ candidate.minimized=false; candidate.maximized_vertically=false;
  callbacks.get('notify::maximized-vertically')();
  assert.equal(f.handle.actor.scale_y,1);
 });
@@ -232,4 +232,3 @@ test('odd-width clock lands on an integer origin and does not oscillate', () => 
   assert.equal(clock.translation_x,translation);
  }
 });
-

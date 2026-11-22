@@ -100,6 +100,22 @@ class AutomountTests(unittest.TestCase):
         self.glib.idle_add.call_args.args[0]()
         chosen.mount.assert_called_once()
 
+    def test_present_volume_becomes_mountable_after_discovery(self):
+        chosen = Volume(None, mountable=False)
+        self.volumes = [chosen]
+        self.service.scan()
+        chosen.mount.assert_not_called()
+        chosen.uuid, chosen.mountable = "chosen", True
+        changed = dict(call.args for call in self.monitor.connect.call_args_list)["volume-changed"]
+        changed(self.monitor, chosen)
+        self.glib.idle_add.call_args.args[0]()
+        chosen.mount.assert_called_once()
+        chosen.finish()
+        chosen.mounted = False
+        changed(self.monitor, chosen)
+        self.glib.idle_add.call_args.args[0]()
+        chosen.mount.assert_called_once()
+
     def test_duplicate_uuids_are_skipped(self):
         self.volumes = [Volume("chosen"), Volume("chosen", device="/dev/sdc1")]
         with self.assertLogs(level="WARNING"):
