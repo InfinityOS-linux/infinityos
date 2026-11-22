@@ -20,7 +20,7 @@
       },
       {
         "title": "Fullscreen applications",
-        "text": "The InfinityTerminal pull handle and floating three-dot button hide in fullscreen and return when fullscreen ends. Maximized windows keep the compact handle."
+        "text": "The InfinityTerminal pull handle hides over fullscreen apps and returns when fullscreen ends. The floating three-dot button is removed. Maximized windows keep the compact handle."
       },
       {
         "title": "GitHub release checks",
