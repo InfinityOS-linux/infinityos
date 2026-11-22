@@ -28,3 +28,6 @@ Google Antigravity catalog icon: the full-color Google G, using the
 Nexus Launcher (Gamepass): original upstream icon from
 https://github.com/domsvoboda/xodus-nexus/blob/main/assets/icon.png
 (downloaded 2026-11-08; Git blob 5c6711d8789f9b5dd8f4931af2bb45e09ed4c64c).
+
+Pinokio: original upstream [application icon](https://github.com/pinokiocomputer/pinokio/blob/v8.4.0/assets/icon_small.png)
+from release v8.4.0 (Git blob 590c6306925cf69abc2cfaaed128f38e80ea5ac6).

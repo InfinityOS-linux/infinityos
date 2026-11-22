@@ -145,6 +145,7 @@ APPS = (
     App("AI", "Qwen3.5 9B Q5 · 16 GB RAM", "local-model", "infinity-qwen-9b", "Run a local AI coding assistant. Needs 10 GB of disk space.", group="Local models", icon="infinity-ai"),
     App("AI", "Gemma 4 12B Q4 · 32 GB RAM", "local-model", "infinity-gemma-12b", "Run a local AI coding assistant. Needs 11 GB of disk space.", group="Local models", icon="infinity-ai"),
     App("AI", "Qwen3.5 35B A3B Q5 · 64 GB RAM", "local-model", "infinity-qwen-35b", "Run a local AI coding assistant. Needs 30 GB of disk space.", group="Local models", icon="infinity-ai"),
+    App("AI", "Pinokio", "github-rpm", "pinokiocomputer/pinokio", "Install and run open-source AI apps on your computer.", website="https://desktop.pinokio.co/download.html", group="Local AI apps", icon="pinokio", package="Pinokio"),
     App("Office", "EuroOffice", "github-rpm", "Euro-Office/DesktopEditors", "Create documents, spreadsheets and presentations.", website="https://github.com/Euro-Office/DesktopEditors", group="Office suite", icon="applications-office-symbolic", package="euro-office-euro-office"),
     App("Office", "LibreOffice", "flatpak", "org.libreoffice.LibreOffice", "Create documents, spreadsheets and presentations.", group="Office suite", icon="applications-office-symbolic"),
     App("Office", "PDFCraft", "github-rpm", "storytold/pdfcraft", "The open-source PDF workbench.", website="https://github.com/storytold/pdfcraft", group="Documents", icon="ai.storyteller.pdfcraft"),
