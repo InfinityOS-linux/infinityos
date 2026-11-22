@@ -9,6 +9,7 @@ URL:            https://github.com/InfinityOS-linux/infinityos
 Source0:        infinity-terminal-%{version}.tar.gz
 ExclusiveArch:  aarch64 x86_64
 Requires:       python3
+Requires:       zsh
 Requires:       gnome-shell >= 51
 Requires:       gnome-shell < 52
 

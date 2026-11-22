@@ -201,7 +201,35 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +            priv.tab_view.closePageFinish(page, @intFromBool(false));
 +            return @intFromBool(true);
 +        }
-@@ -1605 +1699,14 @@
+@@ -1575,6 +1669,25 @@
+     ) callconv(.c) void {
+         const priv = self.private();
+         const page = priv.tab_view.getPage(tab.as(gtk.Widget));
++        if (self.isInfinity() and page.getPinned() != 0) {
++            // An empty pinned tab cannot be closed, so give it a new shell.
++            const title: ?[:0]const u8 = if (page == priv.local_ai_page)
++                "Infinity AI"
++            else if (page == priv.codex_page)
++                "Codex CLI"
++            else if (page == priv.claude_page)
++                "Claude CLI"
++            else if (page == priv.antigravity_page)
++                "Antigravity CLI"
++            else
++                null;
++            tab.getSplitTree().newSplit(.right, null, .{
++                .command = .{ .direct = &.{ "/usr/bin/zsh", "-i" } },
++                .title = title,
++            }) catch |err| log.err("unable to restore pinned terminal: {}", .{err});
++            return;
++        }
++
+         // TODO: connect close page handler to tab to check for confirmation
+         priv.tab_view.closePage(page);
+     }
+@@ -1603,4 +1716,17 @@
+         self: *Self,
+     ) callconv(.c) void {
 -        self.private().context_menu_page = page;
 +        const priv = self.private();
 +        priv.context_menu_page = page;
@@ -217,7 +245,8 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +            action_map.lookupAction("close-context-tab") orelse return) orelse return;
 +        close_action.setEnabled(@intFromBool(page != null and page.?.getPinned() == 0 and
 +            page.?.getChild().hasCssClass("infinity-ai-tab") == 0));
-@@ -1859,0 +1967,43 @@
+     }
+@@ -1859,0 +1986,43 @@
 +    }
 +
 +    fn actionCloseContextTab(
