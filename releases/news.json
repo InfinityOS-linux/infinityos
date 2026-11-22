@@ -1,5 +1,47 @@
 [
   {
+    "id": "2026-11-22-rpm-persistent-tray-icons",
+    "date": "2026-11-22",
+    "title": "RPM update: tray icons stay on the top bar",
+    "summary": "Tray icons moved to the top bar keep their placement after an application restart or system reboot, including Discord.",
+    "buildSha": "2f98538389ca06a493712e3bd38bca1a9ae3b5b3",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "The signed RPM update is available for ARM64 and x64. The existing TV Mode installer images do not include this later fix; installed systems can receive it through InfinityUpdater."
+      },
+      {
+        "title": "Persistent app placement",
+        "text": "Tray preferences use a stable application identity instead of a changing process or D-Bus connection. Electron applications with shared tray IDs are distinguished by their application identity."
+      },
+      {
+        "title": "Restore saved choices",
+        "text": "Saved placement is restored when an application publishes its tray identity late. Earlier legacy tray preferences are recognized after process IDs change, and moving an icon back to the menu remains persistent."
+      }
+    ]
+  },
+  {
+    "id": "2026-11-22-rpm-pinned-terminal-recovery",
+    "date": "2026-11-22",
+    "title": "RPM update: pinned terminal tabs recover after shell exit",
+    "summary": "InfinityTerminal opens a fresh shell when the last terminal in a pinned tab exits, keeping the tab usable.",
+    "buildSha": "a9352c190c7bf7675c0589fb6e481501bd671292",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This fix was published as a signed RPM update for ARM64 and x64 and is included in subsequent repository updates. The existing TV Mode installer images do not contain it."
+      },
+      {
+        "title": "Recover empty pinned tabs",
+        "text": "When a pinned tab becomes empty, InfinityTerminal creates a new interactive Zsh shell. Infinity AI, Codex CLI, Claude CLI and Antigravity CLI tab titles are preserved."
+      },
+      {
+        "title": "Shell dependency",
+        "text": "The InfinityTerminal package explicitly requires Zsh so the replacement shell is available."
+      }
+    ]
+  },
+  {
     "id": "2026-11-22-vendor-policy-and-protected-automount",
     "date": "2026-11-22",
     "title": "TV Mode input, Automount and DNF updates",
