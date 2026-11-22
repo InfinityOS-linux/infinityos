@@ -26,6 +26,7 @@ import {DockBackground} from '../dash2dock-animated@infinityos.org/dockItems.js'
 import {PanelBlur} from '../blur-my-shell@aunetx/components/panel.js';
 import BlurMyShell from '../blur-my-shell@aunetx/extension.js';
 import PanelIndicators from '../wack-shell@rinzler69-wastaken.github.com/panelIndicators.js';
+import {WackWorkspaceButton} from '../wack-shell@rinzler69-wastaken.github.com/panelComponents.js';
 import RamdriveRestart from '../wack-shell@rinzler69-wastaken.github.com/ramdriveRestart.js';
 
 function check(ok, message) { if (!ok) throw new Error(message); }
@@ -82,6 +83,27 @@ export default class Smoke extends Extension {
         await wait();
         const modalActors = () => Main.modalActorFocusStack.map(({actor}) => actor.toString()).join(', ');
         check(Main.modalCount === 0, `startup retained modal input: ${modalActors()}`);
+        const logo = {_settings: {get_int: () => 2}};
+        const clickLogo = () => WackWorkspaceButton.prototype.vfunc_event.call(
+            logo, {type: () => Clutter.EventType.BUTTON_RELEASE});
+        const overview = Main.overview;
+        try {
+            clickLogo();
+            await wait();
+            check(overview.visible && overview.dash.showAppsButton.checked, 'Infinity logo did not open the app grid');
+            clickLogo();
+            await wait();
+            check(!overview.visible, 'Infinity logo did not close the app grid');
+            overview.show();
+            await wait();
+            check(overview.visible && !overview.dash.showAppsButton.checked, 'workspace preview did not open');
+            clickLogo();
+            await wait();
+            check(overview.visible && overview.dash.showAppsButton.checked, 'Infinity logo did not switch to the app grid');
+        } finally {
+            overview.hide();
+            await wait();
+        }
         const endDialog = Main.endSessionDialog;
         const savedEndMethods = {confirm: endDialog._confirm, state: endDialog._getUpdateState, sessions: endDialog._loadSessions};
         let restartSignals = 0, occupiedRamdrive = true, failSave = true;
