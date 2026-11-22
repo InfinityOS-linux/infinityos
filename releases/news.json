@@ -1,5 +1,34 @@
 [
   {
+    "id": "2026-11-22-first-boot-updates-fullscreen",
+    "date": "2026-11-22",
+    "title": "First-boot updates and fullscreen fixes",
+    "summary": "InfinityOS prepares backups and package metadata on first boot. InfinityTerminal hides its pull handle and floating three-dot button while an application is fullscreen.",
+    "buildSha": "a62bbfc9d7fa2827c1d06232c60835d60c786dab",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "The signed RPM update is available for x64 and ARM64. New installer images for both architectures are building."
+      },
+      {
+        "title": "First-boot recovery and updates",
+        "text": "Backup setup waits for pending EFI repair, and InfinityUpdater can retry backup initialization before preparing an offline upgrade. New installations refresh their own package metadata."
+      },
+      {
+        "title": "Gamescope and Nautilus on x64",
+        "text": "Gamescope 3.16.31 retains the Steam Big Picture fix for NVIDIA. The release checks verify that Gamescope, Nautilus and Nautilus Extensions upgrade together on Fedora 45."
+      },
+      {
+        "title": "Fullscreen applications",
+        "text": "The InfinityTerminal pull handle and floating three-dot button hide in fullscreen and return when fullscreen ends. Maximized windows keep the compact handle."
+      },
+      {
+        "title": "GitHub release checks",
+        "text": "InfinityUpdater caches third-party release lookups and waits before retrying after a GitHub rate limit. System package checks continue independently."
+      }
+    ]
+  },
+  {
     "id": "2026-11-22-pinokio-desktop-automount",
     "date": "2026-11-22",
     "title": "Pinokio, desktop shortcuts and drive Automount",
