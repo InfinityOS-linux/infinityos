@@ -10,8 +10,8 @@ docker run --rm \
   -v "$repo/packages/nautilus:/source:ro" \
   -v "$output:/output" \
   fedora:45 bash -euo pipefail -c '
-    dnf -qy install dnf5-plugins rpm-build patch
-    rpmkeys --import /etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-45-primary
+    dnf -qy install dnf5-plugins fedora-gpg-keys rpm-build patch
+    rpmkeys --import /usr/share/pki/rpm-gpg/RPM-GPG-KEY-fedora-45-primary
     mkdir -p /build/rpmbuild/SOURCES
     dnf -qy download --srpm --destdir=/build nautilus
     shopt -s nullglob
