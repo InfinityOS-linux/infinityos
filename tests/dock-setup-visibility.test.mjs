@@ -17,7 +17,7 @@ const launcherOpen = new Function('Shell', 'LAUNCHER_APP_IDS', 'global', `return
 });
 const checkHide = new Function(`return ({${checkMethod}})._checkHide`)();
 
-test('InfinitySetup is detected in a Live session and hides the dock until close', () => {
+test('InfinityApps is detected in a Live session and hides the dock until close', () => {
   assert.equal(launcherOpen(), true);
   let redraws = 0;
   const dock = {visible: true, _beginAnimation: () => { redraws++; }};

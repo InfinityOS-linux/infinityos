@@ -3,7 +3,7 @@
     "id": "2026-11-22-rpm-antigravity-and-app-blur",
     "date": "2026-11-22",
     "title": "RPM update: Google Antigravity, shared blur and model management",
-    "summary": "InfinitySetup adds Google Antigravity, InfinityTerminal gets a pinned Antigravity CLI tab, and InfinityConfig shows downloaded AI models.",
+    "summary": "InfinityApps adds Google Antigravity, InfinityTerminal gets a pinned Antigravity CLI tab, and InfinityConfig shows downloaded AI models.",
     "buildSha": "63809ab0522503adc97b4d967abec3008afbe73f",
     "changes": [
       {
@@ -12,15 +12,15 @@
       },
       {
         "title": "Google Antigravity and InfinityTerminal",
-        "text": "InfinitySetup can install the Google Antigravity desktop app and the official agy command-line tool on both architectures. Once agy is installed, InfinityTerminal adds a pinned Antigravity CLI tab, including when reopening the terminal drawer."
+        "text": "InfinityApps can install the Google Antigravity desktop app and the official agy command-line tool on both architectures. Once agy is installed, InfinityTerminal adds a pinned Antigravity CLI tab, including when reopening the terminal drawer."
       },
       {
-        "title": "Matching blur in Setup and Config",
-        "text": "InfinitySetup and InfinityConfig share the GNOME Shell backdrop used by InfinityUpdater. Both use a solid background when the blur is unavailable."
+        "title": "Matching blur in InfinityApps and InfinityConfig",
+        "text": "InfinityApps and InfinityConfig share the GNOME Shell backdrop used by InfinityUpdater. Both use a solid background when the blur is unavailable."
       },
       {
         "title": "Downloaded models in InfinityConfig",
-        "text": "InfinityConfig lists downloaded AI models even when no model is active. InfinitySetup shows the models available to download."
+        "text": "InfinityConfig lists downloaded AI models even when no model is active. InfinityApps shows the models available to download."
       }
     ]
   },
@@ -61,12 +61,12 @@
     "id": "2026-11-20-rpm-firmware-boot-order",
     "date": "2026-11-20",
     "title": "RPM update: firmware boot order and repair tools",
-    "summary": "rEFInd activation handles stale firmware boot references, and InfinitySetup includes the tools needed to retry an interrupted boot setup.",
+    "summary": "rEFInd activation handles stale firmware boot references, and InfinityApps includes the tools needed to retry an interrupted boot setup.",
     "buildSha": "ec5b0a3e7974d7442f7019c8b058fa83a6eff1f6",
     "changes": [
       {
         "title": "Available as an RPM update",
-        "text": "Published for ARM64 and x64 in infinity-setup 1.0.2-10000483.fc45. Existing ISO downloads are unchanged and do not include this fix."
+        "text": "Published for ARM64 and x64 in the app chooser RPM 1.0.2-10000483.fc45. Existing ISO downloads are unchanged and do not include this fix."
       },
       {
         "title": "Stale firmware entries",
@@ -78,7 +78,7 @@
       },
       {
         "title": "Repair tools for existing installations",
-        "text": "InfinitySetup now ships the current boot-conversion and obsolete-loader cleanup helpers with their required dependencies. Administrators can use them to retry an interrupted setup. Installing the RPM does not start boot conversion automatically, and systems blocked by incomplete backup initialization may still need administrator repair before normal updates can proceed."
+        "text": "InfinityApps now ships the current boot-conversion and obsolete-loader cleanup helpers with their required dependencies. Administrators can use them to retry an interrupted setup. Installing the RPM does not start boot conversion automatically, and systems blocked by incomplete backup initialization may still need administrator repair before normal updates can proceed."
       }
     ]
   },
@@ -450,7 +450,7 @@
         "text": "Both use the working Steam runtime launcher. TV-session startup and exit were corrected. Steam stays closed after setup so its first update can finish from the desktop."
       },
       {
-        "title": "InfinitySetup and InfinityConfig",
+        "title": "InfinityApps and InfinityConfig",
         "text": "Setup opens on the System tab and searches across categories. Config's unused search bar was removed. Both apps have their own icons, and grouped setup changes need one administrator authorization."
       },
       {

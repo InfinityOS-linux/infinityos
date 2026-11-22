@@ -1,6 +1,6 @@
 # Infinity OS RPM packages
 
-`infinity-config`, `infinity-setup`, `infinity-updater`, `infinityos-repos`, `infinityos-wallpapers`, `infinityos-ramdrive`, and `infinityos-shell-extensions` are `noarch` RPMs. `infinity-terminal` includes the patched Ghostty binary and is built separately for `aarch64` and `x86_64`. InfinitySetup replaces the previous application RPM through RPM Obsoletes/Provides. Hidden desktop aliases keep existing user favorites working, while the first-run marker stays in place so an update does not repeat onboarding. The visible application and command are **InfinitySetup** and `infinity-setup`.
+`infinity-config`, `infinity-setup`, `infinity-updater`, `infinityos-repos`, `infinityos-wallpapers`, `infinityos-ramdrive`, and `infinityos-shell-extensions` are `noarch` RPMs. `infinity-terminal` includes the patched Ghostty binary and is built separately for `aarch64` and `x86_64`. InfinityApps replaces the previous application RPM through RPM Obsoletes/Provides. Hidden desktop aliases keep existing user favorites working, while the first-run marker stays in place so an update does not repeat onboarding. The visible application and command are **InfinityApps** and `infinity-setup`.
 
 Each RPM contains the source commit in `/usr/share/infinityos/build-revisions/`.
 Commit changes before packaging and publish all eight RPMs from the same commit.
@@ -45,4 +45,4 @@ sudo dnf install infinityos-repos infinity-config infinity-setup infinity-termin
 sudo dnf upgrade
 ```
 
-InfinitySetup downloads the latest GitHub release RPMs for Storytold apps and OpenGamepadUI when selected. These third-party RPMs are installed directly, so their future upgrades do not come from the Infinity OS repository. Docker CE is installed from Docker's official Fedora repository, which stays disabled until Docker is selected.
+InfinityApps downloads the latest GitHub release RPMs for Storytold apps and OpenGamepadUI when selected. These third-party RPMs are installed directly, so their future upgrades do not come from the Infinity OS repository. Docker CE is installed from Docker's official Fedora repository, which stays disabled until Docker is selected.

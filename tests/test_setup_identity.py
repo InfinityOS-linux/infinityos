@@ -14,9 +14,9 @@ class SetupIdentityTests(unittest.TestCase):
         desktop = (PACKAGE / "root/usr/share/infinityos/launcher.desktop").read_text()
         autostart = (PACKAGE / "root/usr/share/infinityos/launcher-autostart.desktop").read_text()
         self.assertIn('application_id="org.infinityos.Setup"', app)
-        self.assertIn('title="InfinitySetup"', app)
+        self.assertIn('title="InfinityApps"', app)
         self.assertIn('scroller.set_overlay_scrolling(False)', app)
-        self.assertIn("Name=InfinitySetup\n", desktop)
+        self.assertIn("Name=InfinityApps\n", desktop)
         self.assertIn("Exec=infinity-setup\n", desktop)
         self.assertIn("Icon=/usr/share/icons/hicolor/512x512/apps/infinity-setup.png\n", desktop)
         self.assertIn("Exec=infinity-setup --first-run\n", autostart)
@@ -39,7 +39,7 @@ class SetupIdentityTests(unittest.TestCase):
             with self.subTest(old_id=old_id):
                 self.assertIn(f"/usr/share/applications/{old_id}", spec)
                 self.assertIn(f"/usr/share/applications/{old_id}", builder)
-        self.assertIn("Name=InfinitySetup\n", alias)
+        self.assertIn("Name=InfinityApps\n", alias)
         self.assertIn("Exec=infinity-setup\n", alias)
         self.assertIn("NoDisplay=true\n", alias)
 

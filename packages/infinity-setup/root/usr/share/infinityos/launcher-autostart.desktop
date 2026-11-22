@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=InfinitySetup first run
+Name=InfinityApps first run
 Exec=infinity-setup --first-run
 Icon=applications-system
 Terminal=false

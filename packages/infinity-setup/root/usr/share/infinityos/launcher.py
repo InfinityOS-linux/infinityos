@@ -4,6 +4,7 @@
 import getpass
 import sys
 import threading
+from functools import lru_cache
 from pathlib import Path
 
 import gi
@@ -36,6 +37,12 @@ SECTIONS = (
     ("Programming", "applications-development-symbolic", "Build your workspace"),
     ("AI", "utilities-terminal-symbolic", "Assistants and command-line tools"),
 )
+TV_MODES = {
+    "esde": ("EmulationStation (ES-DE)", "input-gaming-symbolic",
+             "Browse your own ROMs in /emulation/roms; place BIOS files in /emulation/bios."),
+    "steam": ("Steam Big Picture", "applications-games-symbolic",
+              "Start Steam fullscreen without the GNOME desktop."),
+}
 
 CSS = b"""
 window.infinity-window { background: transparent; }
@@ -101,6 +108,37 @@ window.infinity-window.light-mode progressbar.infinity-install-progress trough {
 window.infinity-window.light-mode progressbar.infinity-install-progress progress { background: #604583; }
 window.infinity-window.light-mode button.infinity-link,
 window.infinity-window.light-mode button.infinity-link label { color: #58347d; }
+window.infinity-review { background: #17121f; color: #f3eef8; border: 1px solid #514260; border-radius: 20px; }
+window.infinity-review label { color: #f3eef8; }
+window.infinity-review .review-header-icon { color: #dec7ff; background: #38294c; border-radius: 12px; padding: 10px; }
+window.infinity-review label.review-title { font-size: 23px; font-weight: 700; }
+window.infinity-review .review-group { background: #211b2b; border: 1px solid #392d49; border-radius: 12px; }
+window.infinity-review .review-group-icon,
+window.infinity-review label.review-group-title { color: #dcc7f7; font-weight: 700; }
+window.infinity-review label.review-count { color: #dcc7f7; background: #38294c; border-radius: 9px; min-width: 26px; padding: 2px 4px; font-weight: 700; }
+window.infinity-review .review-removal .review-group-icon,
+window.infinity-review .review-removal label.review-group-title { color: #ffb9be; }
+window.infinity-review .review-row { border-top: 1px solid #392d49; padding: 8px 12px; }
+window.infinity-review .review-note { color: #d4c5e3; background: #2a2136; border-radius: 10px; padding: 10px 12px; }
+window.infinity-review .dialog-action-area { border-top: 1px solid #392d49; padding: 12px 18px; }
+window.infinity-review button.review-confirm { min-width: 100px; border-radius: 10px; background: #745aa4; color: white; }
+window.infinity-review button.review-confirm:hover { background: #8569b8; }
+window.infinity-review button.review-confirm label { color: white; }
+window.infinity-review.light-mode { background: #ffffff; color: #291f36; border-color: #d5c6e6; }
+window.infinity-review.light-mode label { color: #291f36; }
+window.infinity-review.light-mode .review-header-icon,
+window.infinity-review.light-mode label.review-count { color: #603d84; background: #ece1f6; }
+window.infinity-review.light-mode .review-group { background: #f8f5fb; border-color: #e0d6ea; }
+window.infinity-review.light-mode .review-group-icon,
+window.infinity-review.light-mode label.review-group-title { color: #603d84; }
+window.infinity-review.light-mode .review-removal .review-group-icon,
+window.infinity-review.light-mode .review-removal label.review-group-title { color: #8e3549; }
+window.infinity-review.light-mode .review-row,
+window.infinity-review.light-mode .dialog-action-area { border-color: #e0d6ea; }
+window.infinity-review.light-mode .review-note { color: #51445f; background: #f0eaf7; }
+window.infinity-review.light-mode button.review-confirm { background: #604583; }
+window.infinity-review.light-mode button.review-confirm:hover { background: #4d356e; }
+window.infinity-review.light-mode button.review-confirm label { color: white; }
 """
 
 
@@ -112,6 +150,7 @@ def label(text, style=None):
     return widget
 
 
+@lru_cache(maxsize=128)
 def catalog_icon(path):
     """Crop transparent margins and let GTK scale the icon for the display."""
     pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(path), 128, 128, True)
@@ -142,7 +181,7 @@ def app_icon_cell(icon):
     return cell
 
 
-class InfinitySetup(Gtk.Application):
+class InfinityApps(Gtk.Application):
     def __init__(self):
         super().__init__(application_id="org.infinityos.Setup")
         self.window = None
@@ -158,6 +197,8 @@ class InfinitySetup(Gtk.Application):
         self.busy = False
         self.opening_installers = 0
         self.closing = False
+        self.close_when_idle = False
+        self.close_timeout = 0
         self.progress_source = 0
         self.animation_tick = 0
 
@@ -166,7 +207,7 @@ class InfinitySetup(Gtk.Application):
             self.window.present()
             return
 
-        self.window = Gtk.ApplicationWindow(application=self, title="InfinitySetup")
+        self.window = Gtk.ApplicationWindow(application=self, title="InfinityApps")
         self.window.set_decorated(False)
         self.window.add_css_class("infinity-window")
         if PanelBackdrop:
@@ -196,6 +237,7 @@ class InfinitySetup(Gtk.Application):
         overlay.add_overlay(backdrop)
         self.window.set_child(overlay)
         self.card = backdrop
+        self._build_toolbar()
 
         self.stack = Gtk.Stack()
         self.stack.set_vexpand(True)
@@ -240,23 +282,28 @@ class InfinitySetup(Gtk.Application):
         self._build_catalog()
         return False
 
-    def _build_catalog(self):
-        backdrop = self.card
-        navigation = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
-        navigation.add_css_class("infinity-nav")
-        navigation.set_hexpand(True)
+    def _build_toolbar(self):
+        self.navigation = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
+        self.navigation.add_css_class("infinity-nav")
+        self.navigation.set_hexpand(True)
+        self.navigation.set_opacity(0)
         toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         toolbar.set_margin_start(20)
         toolbar.set_margin_end(20)
         toolbar.set_margin_top(20)
         toolbar.set_margin_bottom(20)
-        toolbar.append(navigation)
+        toolbar.append(self.navigation)
         close = Gtk.Button(icon_name="window-close-symbolic")
         close.add_css_class("infinity-close")
         close.set_valign(Gtk.Align.CENTER)
         close.set_tooltip_text(tr("Close"))
         close.connect("clicked", lambda _button: self.window.close())
         toolbar.append(close)
+        self.card.append(toolbar)
+
+    def _build_catalog(self):
+        backdrop = self.card
+        self.navigation.set_opacity(1)
         first = None
         for section, icon, description in SECTIONS:
             tab = Gtk.ToggleButton()
@@ -274,13 +321,12 @@ class InfinitySetup(Gtk.Application):
             tab_content.append(Gtk.Label(label=tr(section)))
             tab.set_child(tab_content)
             tab.connect("toggled", self._select_tab, section.lower())
-            navigation.append(tab)
+            self.navigation.append(tab)
             self.tabs[section.lower()] = tab
             self.stack.add_named(self._page(section, description), section.lower())
         if self.tv_switches["steam"].get_active():
             self._steam_tv_toggled(self.tv_switches["steam"], None)
         first.set_active(True)
-        backdrop.append(toolbar)
         searchbar = Gtk.Box(spacing=12)
         searchbar.set_margin_start(28)
         searchbar.set_margin_end(28)
@@ -328,7 +374,7 @@ class InfinitySetup(Gtk.Application):
         self.window.connect("notify::is-active", self._refresh_ai)
 
     def _refresh_ai(self, *_args):
-        if not self.window.is_active() or self.busy or self.closing:
+        if self.closing or self.busy or self.window is None or not self.window.is_active():
             return
         if getattr(self, 'refreshing_ai', False):
             return
@@ -355,7 +401,7 @@ class InfinitySetup(Gtk.Application):
         pending = {}
         for app in list(self.switches):
             if app.category == "AI":
-                if keep_pending:
+                if keep_pending or app.kind != "local-model":
                     selected = self.switches[app].get_active()
                     if selected != self.initial_active[app]:
                         pending[app] = selected
@@ -373,6 +419,8 @@ class InfinitySetup(Gtk.Application):
             if app in self.switches:
                 self.switches[app].set_active(selected)
         self.stack.set_visible_child_name(visible)
+        if self.search.get_text().strip():
+            self._filter_catalog()
         self.ai_selection = selection
         if not keep_pending:
             self.status.set_text(tr("AI changed in InfinityConfig. Review your selection again."))
@@ -387,6 +435,19 @@ class InfinitySetup(Gtk.Application):
     def _select_tab(self, button, name):
         if button.get_active():
             self.stack.set_visible_child_name(name)
+
+    def _app_icon(self, app):
+        icon_name = app.source if app.kind == "flatpak" else app.icon
+        for suffix in (".png", ".svg"):
+            private_icon = ICON_DIR / f"{icon_name}{suffix}"
+            if private_icon.is_file():
+                try:
+                    return Gtk.Image.new_from_gicon(catalog_icon(private_icon))
+                except GLib.Error:
+                    continue
+        if not Gtk.IconTheme.get_for_display(self.window.get_display()).has_icon(icon_name):
+            icon_name = app.icon
+        return Gtk.Image.new_from_icon_name(icon_name)
 
     def _page(self, section, description):
         scroller = Gtk.ScrolledWindow()
@@ -406,7 +467,7 @@ class InfinitySetup(Gtk.Application):
         if section == "Office":
             self._add_craft_suite(body)
         previous_group = None
-        selected_model = active_local_model()
+        selected_model = active_local_model() if section == "AI" else None
         catalog = APPS
         if section == "AI":
             catalog = configured_apps(models=self.ai_models)
@@ -423,17 +484,7 @@ class InfinitySetup(Gtk.Application):
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
             row.add_css_class("infinity-row")
             self.rows[app] = row
-            icon_name = app.source if app.kind == "flatpak" else app.icon
-            private_icon = ICON_DIR / f"{icon_name}.png"
-            if not private_icon.is_file():
-                private_icon = ICON_DIR / f"{icon_name}.svg"
-            if private_icon.is_file():
-                icon = Gtk.Image.new_from_gicon(catalog_icon(private_icon))
-            else:
-                if not Gtk.IconTheme.get_for_display(self.window.get_display()).has_icon(icon_name):
-                    icon_name = app.icon
-                icon = Gtk.Image.new_from_icon_name(icon_name)
-            row.append(app_icon_cell(icon))
+            row.append(app_icon_cell(self._app_icon(app)))
             details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
             details.set_hexpand(True)
             details.set_valign(Gtk.Align.START)
@@ -502,13 +553,7 @@ class InfinitySetup(Gtk.Application):
                     switch.connect("notify::active", self._sync_craft_suite)
             self._sync_craft_suite()
         if section == "TV Mode":
-            for mode, name, description, icon_name in (
-                    ("esde", "EmulationStation (ES-DE)",
-                     "Browse your own ROMs in /emulation/roms; place BIOS files in /emulation/bios.",
-                     "input-gaming-symbolic"),
-                    ("steam", "Steam Big Picture",
-                     "Start Steam fullscreen without the GNOME desktop.",
-                     "applications-games-symbolic")):
+            for mode, (name, icon_name, description) in TV_MODES.items():
                 row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
                 row.add_css_class("infinity-row")
                 icon = Gtk.Image.new_from_icon_name(icon_name)
@@ -555,6 +600,8 @@ class InfinitySetup(Gtk.Application):
                 widget.set_active(False)
 
     def _open_lutris_installer(self, button, app, note):
+        if self.close_when_idle:
+            return
         self.opening_installers += 1
         self.save_button.set_sensitive(False)
         button.set_sensitive(False)
@@ -577,13 +624,17 @@ class InfinitySetup(Gtk.Application):
         button.set_sensitive(True)
         self.opening_installers -= 1
         if not self.opening_installers and not self.busy:
-            self.save_button.set_sensitive(True)
+            if self.close_when_idle:
+                self._begin_close()
+            else:
+                self.save_button.set_sensitive(True)
         return False
 
     def _add_craft_suite(self, body):
         self.syncing_suite = False
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
         row.add_css_class("infinity-row")
+        self.suite_row = row
         row.append(app_icon_cell(Gtk.Image.new_from_icon_name("x-office-document-symbolic")))
         details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3, hexpand=True)
         details.append(label("CraftSuite", "infinity-app-name"))
@@ -617,6 +668,12 @@ class InfinitySetup(Gtk.Application):
     def _filter_catalog(self, *_args):
         query = self.search.get_text().casefold().strip()
         matches = []
+        suite_terms = " ".join(("CraftSuite", tr("Install the complete CraftSuite office suite."),
+                                tr("Office"))).casefold()
+        suite_visible = query in suite_terms
+        self.suite_row.set_visible(suite_visible)
+        if suite_visible:
+            matches.append("office")
         for app, row in self.rows.items():
             visible = query in (app.name + " " + tr(app.description) + " " + app.category).casefold()
             row.set_visible(visible)
@@ -640,29 +697,101 @@ class InfinitySetup(Gtk.Application):
         if not changes and not tv_changes:
             self._complete()
             return
-        dialog = Gtk.Dialog(transient_for=self.window, modal=True,
-                            title=tr("Review changes"), default_width=560, default_height=420)
-        lines = [(tr("Install") if enabled else tr("Remove")) + ": " + app.name
-                 for app, enabled in changes]
-        lines += [(tr("Enable") if enabled else tr("Disable")) + ": " + mode
-                  for mode, enabled in tv_changes]
-        lines.append(tr("Unchanged applications: {count}").format(count=len(self.switches) - len(changes)))
-        if any(enabled and (app.source == "com.valvesoftware.Steam" or app.kind == "discord-rpm")
-               for app, enabled in changes):
-            lines.append(tr("Flatpak data is kept. Games and profiles are not migrated automatically."))
-        scroll = Gtk.ScrolledWindow(vexpand=True)
-        summary = Gtk.Label(label="\n".join(lines), xalign=0, wrap=True,
-                            margin_top=20, margin_bottom=20, margin_start=20, margin_end=20)
-        scroll.set_child(summary)
-        dialog.get_content_area().append(scroll)
-        dialog.add_button(tr("Cancel"), Gtk.ResponseType.CANCEL)
-        dialog.add_button(tr("Apply"), Gtk.ResponseType.ACCEPT)
+        dialog = self._review_dialog(changes, tv_changes)
+
         def respond(window, response):
             window.destroy()
             if response == Gtk.ResponseType.ACCEPT:
                 self._start_install(changes, tv_changes)
+
         dialog.connect("response", respond)
         dialog.present()
+
+    def _review_dialog(self, changes, tv_changes):
+        dialog = Gtk.Dialog(transient_for=self.window, modal=True, decorated=False,
+                            destroy_with_parent=True, title=tr("Review changes"),
+                            default_width=550)
+        dialog.add_css_class("infinity-review")
+        if self.window.has_css_class("light-mode"):
+            dialog.add_css_class("light-mode")
+        content = dialog.get_content_area()
+        content.set_spacing(14)
+        content.set_margin_start(18)
+        content.set_margin_end(18)
+        content.set_margin_top(18)
+        content.set_margin_bottom(12)
+
+        header = Gtk.Box(spacing=12)
+        header_icon = Gtk.Image.new_from_icon_name("view-list-symbolic")
+        header_icon.set_pixel_size(22)
+        header_icon.add_css_class("review-header-icon")
+        header.append(header_icon)
+        header.append(label(tr("Review changes"), "review-title"))
+        content.append(header)
+
+        installs, removals, enables, disables = [], [], [], []
+        for app, enabled in changes:
+            (installs if enabled else removals).append((app.name, self._app_icon(app)))
+        for mode, enabled in tv_changes:
+            name, icon, _description = TV_MODES[mode]
+            (enables if enabled else disables).append((tr(name), Gtk.Image.new_from_icon_name(icon)))
+
+        summary = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        for title, icon, items, removal in (
+                ("To install", "list-add-symbolic", installs, False),
+                ("To remove", "list-remove-symbolic", removals, True),
+                ("Enable TV modes", "video-display-symbolic", enables, False),
+                ("Disable TV modes", "video-display-symbolic", disables, True)):
+            if items:
+                summary.append(self._review_group(title, icon, items, removal))
+        scroll = Gtk.ScrolledWindow(propagate_natural_height=True, max_content_height=330)
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.set_child(summary)
+        content.append(scroll)
+
+        if any(enabled and (app.source == "com.valvesoftware.Steam" or app.kind == "discord-rpm")
+               for app, enabled in changes):
+            notice = Gtk.Box(spacing=8)
+            notice.add_css_class("review-note")
+            notice.append(Gtk.Image.new_from_icon_name("dialog-information-symbolic"))
+            message = label(tr("Flatpak data is kept. Games and profiles are not migrated automatically."))
+            message.set_wrap(True)
+            notice.append(message)
+            content.append(notice)
+
+        cancel = dialog.add_button(tr("Back"), Gtk.ResponseType.CANCEL)
+        action = dialog.add_button(tr("Install" if installs and not removals and not tv_changes
+                                      else "Apply changes"), Gtk.ResponseType.ACCEPT)
+        action.add_css_class("suggested-action")
+        action.add_css_class("review-confirm")
+        dialog.set_focus(cancel)
+        return dialog
+
+    @staticmethod
+    def _review_group(title, icon_name, items, removal):
+        group = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        group.add_css_class("review-group")
+        if removal:
+            group.add_css_class("review-removal")
+        heading = Gtk.Box(spacing=8, margin_start=12, margin_end=12, margin_top=8, margin_bottom=8)
+        icon = Gtk.Image.new_from_icon_name(icon_name)
+        icon.add_css_class("review-group-icon")
+        heading.append(icon)
+        heading.append(label(tr(title), "review-group-title"))
+        count = Gtk.Label(label=str(len(items)), halign=Gtk.Align.END, hexpand=True)
+        count.add_css_class("review-count")
+        heading.append(count)
+        group.append(heading)
+        for name, image in items:
+            row = Gtk.Box(spacing=10)
+            row.add_css_class("review-row")
+            image.set_pixel_size(22)
+            row.append(image)
+            name_label = label(name)
+            name_label.set_wrap(True)
+            row.append(name_label)
+            group.append(row)
+        return group
 
     def _start_install(self, changes, tv_changes):
         self.search.set_sensitive(False)
@@ -688,9 +817,18 @@ class InfinitySetup(Gtk.Application):
 
     def _install(self, changes, tv_changes):
         def report(line):
-            GLib.idle_add(self.status.set_text, self.operation_label + "\n" + line)
-        with progress_reporting(report), privileged_transaction():
-            self._install_work(changes, tv_changes)
+            GLib.idle_add(self._set_operation_status, self.operation_label + "\n" + line)
+        try:
+            with progress_reporting(report), privileged_transaction():
+                errors, steam_tv_installed = self._install_work(changes, tv_changes)
+        except Exception as error:
+            errors, steam_tv_installed = [str(error)], False
+        GLib.idle_add(self._finished, errors, steam_tv_installed)
+
+    def _set_operation_status(self, message):
+        if not self.close_when_idle:
+            self.status.set_text(message)
+        return False
 
     def _install_work(self, changes, tv_changes):
         errors = []
@@ -719,7 +857,7 @@ class InfinitySetup(Gtk.Application):
                     "EmulationStation (ES-DE)" if item == "esde" else "Steam Big Picture")
             self.operation_label = tr("Applying {index}/{total}: {name}…").format(
                 index=index, total=total, name=name)
-            GLib.idle_add(self.status.set_text, self.operation_label)
+            GLib.idle_add(self._set_operation_status, self.operation_label)
             if kind == "app" and item.source == "com.valvesoftware.Steam" and \
                     not enabled and steam_tv_disable_failed:
                 errors.append(f"{name}: {tr('Could not disable Steam TV Mode; Steam was left installed.')}")
@@ -752,7 +890,7 @@ class InfinitySetup(Gtk.Application):
                               item, enabled)
                 if kind == "tv" and item == "steam" and enabled:
                     steam_tv_installed = True
-        GLib.idle_add(self._finished, errors, steam_tv_installed)
+        return errors, steam_tv_installed
 
     def _tv_applied(self, mode, enabled):
         self.tv_notes[mode].set_text(tr("Enabled") if enabled else "")
@@ -775,12 +913,15 @@ class InfinitySetup(Gtk.Application):
 
     def _finished(self, errors, steam_tv_installed=False):
         self.busy = False
-        if hasattr(self, "stop_button"):
-            self.stop_button.set_visible(False)
-            self.search.set_sensitive(True)
         if self.progress_source:
             GLib.source_remove(self.progress_source)
             self.progress_source = 0
+        if self.close_when_idle and not self.opening_installers:
+            self._begin_close()
+            return False
+        if hasattr(self, "stop_button"):
+            self.stop_button.set_visible(False)
+            self.search.set_sensitive(True)
         self.progress.set_visible(False)
         self.suite_switch.set_sensitive(True)
         for app, switch in self.switches.items():
@@ -852,8 +993,19 @@ class InfinitySetup(Gtk.Application):
             return
         self.closing = True
         self._animate(opening=False)
+        if self.window is not None:
+            self.close_timeout = GLib.timeout_add(300, self._close_without_frame)
+
+    def _close_without_frame(self):
+        self.close_timeout = 0
+        self._finish_close()
+        return False
 
     def _finish_close(self):
+        if self.close_timeout:
+            GLib.source_remove(self.close_timeout)
+            self.close_timeout = 0
+        self.animation_tick = 0
         self.window.destroy()
         self.window = None
         MARKER.parent.mkdir(parents=True, exist_ok=True)
@@ -861,9 +1013,12 @@ class InfinitySetup(Gtk.Application):
 
     def _close_requested(self, _window):
         if self.busy or self.opening_installers:
-            self.status.set_text(tr("Wait for installation to finish."))
-            return True
-        self._begin_close()
+            self.close_when_idle = True
+            if self.busy:
+                self._request_stop(None)
+            self.status.set_text(tr("Closing after the current operation…"))
+        else:
+            self._begin_close()
         return True
 
 
@@ -872,4 +1027,4 @@ if __name__ == "__main__":
     if first_run and (getpass.getuser() in ("gnome-initial-setup", "liveuser") or
                       MARKER.exists()):
         raise SystemExit(0)
-    raise SystemExit(InfinitySetup().run([sys.argv[0]]))
+    raise SystemExit(InfinityApps().run([sys.argv[0]]))

@@ -1,4 +1,4 @@
-"""Optional, one-account TV sessions for InfinitySetup."""
+"""Optional, one-account TV sessions for InfinityApps."""
 
 import hashlib
 import json

@@ -15,7 +15,7 @@ an installed Infinity OS disk: it can hide a broken installer.
 4. Run `sudo /usr/libexec/infinityos-audit-install` in the installed system.
    Every line must be `PASS` and the command must exit 0. Save its output and
    `/var/log/infinityos-boot-install.log` with the release evidence.
-5. Open Infinity Config, InfinitySetup, Terminal and Updater; check the wallpaper,
+5. Open Infinity Config, InfinityApps, Terminal and Updater; check the wallpaper,
    dock and enabled desktop extensions. Perform one reboot from the installed
    system and run the audit again.
 

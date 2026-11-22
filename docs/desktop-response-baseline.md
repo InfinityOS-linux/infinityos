@@ -33,7 +33,7 @@ time env XDG_RUNTIME_DIR=/run/user/$(id -u) \
 ```
 
 The earlier application ID returned after **0.08 s** on the fresh VM (about
-**0.095 s** on the earlier VM). The command above uses the current InfinitySetup
+**0.095 s** on the earlier VM). The command above uses the current InfinityApps
 ID and has not been timed. The figures measure only the launch request; the
 application window was subsequently confirmed on screen, without measuring
 the time to first paint.
@@ -52,4 +52,4 @@ latencies. The menu was visibly populated.
 
 No reproducible delay in these checks established a code optimization. A
 future performance change should first measure input-to-paint latency for the
-dock and InfinitySetup directly, then compare it with this session baseline.
+dock and InfinityApps directly, then compare it with this session baseline.

@@ -11,8 +11,11 @@ SOURCE = Path(__file__).resolve().parents[1] / 'packages/infinity-setup/root/usr
 
 def controller():
     tree = ast.parse(SOURCE.read_text())
-    original = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'InfinitySetup')
-    methods = [n for n in original.body if isinstance(n, ast.FunctionDef) and n.name in ('_install', '_install_work', '_installed', '_finished', '_refresh_ai', '_apply_ai_refresh', '_complete')]
+    original = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'InfinityApps')
+    methods = [n for n in original.body if isinstance(n, ast.FunctionDef) and n.name in
+               ('_install', '_install_work', '_installed', '_finished', '_refresh_ai',
+                '_apply_ai_refresh', '_complete', '_close_requested', '_request_stop',
+                '_set_operation_status', '_installer_opened')]
     module = ast.Module(body=[ast.ClassDef(name='Callbacks', bases=[], keywords=[], body=methods, decorator_list=[])], type_ignores=[])
     context = {'progress_reporting': lambda callback: nullcontext(), 'privileged_transaction': nullcontext, 'threading': SimpleNamespace(Thread=lambda target, daemon: SimpleNamespace(start=target)), 'GLib': SimpleNamespace(idle_add=lambda fn, *args: fn(*args), source_remove=Mock()),
                'tr': lambda value: value, 'install': Mock(), 'uninstall': Mock(),
@@ -25,10 +28,42 @@ def controller():
     app.status = SimpleNamespace(set_text=Mock())
     app._installed = Mock()
     app._tv_applied = Mock()
+    app.close_when_idle = False
+    app.opening_installers = 0
+    app.progress_source = 0
     return app, context
 
 
 class SetupTransactionsTests(unittest.TestCase):
+    def test_close_stops_the_queue_and_closes_after_transaction_completion(self):
+        app, context = controller()
+        app.busy = True
+        app.stop_button = Mock()
+        app._begin_close = Mock()
+        item = SimpleNamespace(kind='flatpak', source='first', name='First')
+
+        def close_during_install(_item):
+            self.assertTrue(app._close_requested(None))
+            app._begin_close.assert_not_called()
+            app._set_operation_status('Package progress')
+
+        context['install'].side_effect = close_during_install
+        app._install([(item, True), (item, True)], [])
+        context['install'].assert_called_once_with(item)
+        self.assertEqual(app.status.set_text.call_args.args[0],
+                         'Closing after the current operation…')
+        app._begin_close.assert_called_once()
+
+    def test_close_waits_until_external_installer_is_opened(self):
+        app, _context = controller()
+        app.busy = False
+        app.opening_installers = 1
+        app._begin_close = Mock()
+        self.assertTrue(app._close_requested(None))
+        app._begin_close.assert_not_called()
+        app._installer_opened(Mock(), Mock(), 'Finish installation in Lutris.')
+        app._begin_close.assert_called_once()
+
     def test_deactivation_preserves_downloaded_model_in_installed_filter(self):
         from collections import namedtuple
         app, _context = controller()
@@ -129,11 +164,12 @@ class SetupTransactionsTests(unittest.TestCase):
         app.ai_models = ()
         app.ai_selection = (ai, 'old', ())
         from collections import namedtuple
-        Item = namedtuple('Item', 'category')
-        old, other = Item('AI'), Item('System')
+        Item = namedtuple('Item', 'category kind')
+        old, other = Item('AI', 'local-model'), Item('System', 'flatpak')
         app.switches = {old: object(), other: object()}
         app.initial_active = {old: True, other: False}
         app.notes = {old: object(), other: object()}
+        app.search = SimpleNamespace(get_text=lambda: '')
         app.stack = SimpleNamespace(get_visible_child_name=lambda: 'ai',
                                     get_child_by_name=lambda _: 'old-page',
                                     remove=Mock(), add_named=Mock(), set_visible_child_name=Mock())

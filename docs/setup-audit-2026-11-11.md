@@ -1,4 +1,4 @@
-# InfinitySetup audit — 2026-11-11
+# InfinityApps audit — 2026-11-11
 
 ## Changes
 
