@@ -52,8 +52,7 @@ function makeGrid(manager, area) {
 function makeFile(manager, metadata, uri = 'file:///Desktop/example') {
     const item = Object.create(File);
     Object.assign(item, {
-        _desktopManager: manager, _savedCoordinates: metadata.legacy?.split(',').map(Number) ?? null,
-        _monitorPositions: MonitorLayouts.readLayouts(metadata[MonitorLayouts.ATTRIBUTE]),
+        _desktopManager: manager,
         _dropCoordinates: null, _fileExtra: 0,
         _file: {set_attributes_from_info(info) {
             metadata.writes = (metadata.writes ?? 0) + 1;
@@ -66,6 +65,10 @@ function makeFile(manager, metadata, uri = 'file:///Desktop/example') {
             this.actual = [x, y];
             this._grid = grid;
         },
+    });
+    item._readSavedPositions({
+        get_attribute_as_string: name => (name === 'metadata::nautilus-icon-position' ?
+            metadata.legacy : metadata[name]) ?? null,
     });
     Object.defineProperty(item, 'uri', {value: uri});
     return item;
@@ -95,6 +98,17 @@ test('undocking keeps icons visible; reconnecting restores the external layout a
     single.savedCoordinates = [102, 402];
     // Every place() creates new FileItems from serialized attributes, as after login.
     assert.deepEqual(place([laptop], metadata).actual, [102, 402]);
+    assert.deepEqual(place([laptop, external], metadata).actual, [1102, 202]);
+    assert.deepEqual(place([laptop], metadata).actual, [102, 402]);
+});
+
+test('first launch undocked preserves pre-upgrade coordinates through a move and redocking', () => {
+    const metadata = {legacy: '1102,202'};
+    const single = place([laptop], metadata);
+    assert.ok(single.actual[0] < laptop.width);
+    assert.equal(metadata[MonitorLayouts.LEGACY_POSITION_ATTRIBUTE], '1102,202');
+    single.savedCoordinates = [102, 402];
+    assert.equal(metadata.legacy, '102,402');
     assert.deepEqual(place([laptop, external], metadata).actual, [1102, 202]);
     assert.deepEqual(place([laptop], metadata).actual, [102, 402]);
 });

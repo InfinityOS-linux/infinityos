@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Keep independent icon positions for each logical desktop configuration.
 export const ATTRIBUTE = 'metadata::infinityos-monitor-positions';
+export const LEGACY_POSITION_ATTRIBUTE = 'metadata::infinityos-legacy-icon-position';
 const MAX_LAYOUTS = 16;
 
 export function layoutKey(desktops) {

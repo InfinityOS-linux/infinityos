@@ -61,6 +61,21 @@ class BackupsTests(unittest.TestCase):
             self.assertEqual(result.stat().st_mtime_ns, timestamp)
             self.assertEqual(fallback.read_text(), content)
 
+    def test_fstab_keeps_mount_option_field_after_removing_root_selector(self):
+        for original, expected in (
+            ("subvol=root", "defaults"),
+            ("subvolid=256", "defaults"),
+            ("subvol=/infinityos-roots/restored,noatime", "noatime"),
+        ):
+            with self.subTest(options=original), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp) / "fstab"
+                path.write_text(f"UUID=abc / btrfs {original} 0 1\n"
+                                "UUID=abc /var btrfs subvol=var 0 0\n")
+                subprocess.run([FSTAB, path, "abc"], check=True)
+                root, var, _snapshots = path.read_text().splitlines()
+                self.assertEqual(root.split(), ["UUID=abc", "/", "btrfs", expected, "0", "1"])
+                self.assertEqual(var, "UUID=abc /var btrfs subvol=var 0 0")
+
 
 if __name__ == "__main__":
     unittest.main()

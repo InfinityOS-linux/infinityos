@@ -90,6 +90,7 @@ exec /usr/bin/install "$@"''')
         self.write('usr/share/infinityos/image-release-version', '2.0\n')
         self.write('usr/share/infinityos/firefox/installed-policies.json', '{}')
         self.helper('infinityos-refind-install', '''
+printf 'refind-install %s\n' "${2:-copy}" >> "$TEST_COMMAND_LOG"
 if [[ ${2:-} == --activate && $TEST_SCENARIO == nvram-denied ]]; then
     echo 'NVRAM write denied' >&2; exit 1
 fi''')
@@ -107,6 +108,7 @@ cp "$1/EFI/refind/refind.conf" "$1/EFI/BOOT/refind.conf"''')
         self.assertIn('enable infinityos-snapper-setup.service', log)
         self.assertNotIn('systemctl disable ', log)
         self.assertIn('systemctl mask --force ', log)
+        self.assertLess(log.index('refind-install --activate'), log.index('refind-install --remove-obsolete-entries'))
 
     def test_failed_efi_or_nvram_work_does_not_leave_backup_services_unregistered(self):
         for scenario in ('efi-full', 'nvram-denied', 'missing-efi'):
@@ -218,6 +220,41 @@ printf 'snapper %s\\n' "$*" >> "$TEST_COMMAND_LOG"
         self.assertIn('if [ "$1" -eq 1 ]', package)
         self.assertIn('/usr/libexec/infinityos-snapper-setup', package)
         self.assertIn('/usr/lib/systemd/system-preset/00-infinityos-backups.preset', package)
+
+    def test_backup_setup_waits_for_any_queued_boot_conversion(self):
+        units = ROOT / 'root/usr/lib/systemd/system'
+        backup = (units / 'infinityos-backups-setup.service').read_text()
+        boot = (units / 'infinityos-liveinstall-boot-setup.service').read_text()
+        after = next(line.removeprefix('After=').split() for line in backup.splitlines() if line.startswith('After='))
+        self.assertIn('infinityos-liveinstall-boot-setup.service', after)
+        self.assertIn('WantedBy=multi-user.target', backup)
+        self.assertIn('WantedBy=multi-user.target', boot)
+        self.assertIn('Type=oneshot', boot)
+
+    def test_obsolete_loader_cleanup_stops_on_either_failed_rpm_query(self):
+        script = ROOT / 'root/usr/libexec/infinityos-remove-obsolete-efi-loaders'
+        self.command('rpm', '''
+printf '%s\n' "$*" >> "$TEST_COMMAND_LOG"
+if [[ $3 == -qa ]]; then
+    if [[ $TEST_SCENARIO == initial-error ]]; then exit 1; fi
+    if grep -q -- --noscripts "$TEST_COMMAND_LOG"; then
+        if [[ $TEST_SCENARIO == final-error ]]; then exit 1; fi
+        printf 'grub2-tools\n'
+    else
+        printf 'shim-x64\ngrub2-tools\n'
+    fi
+fi
+exit 0''')
+        self.target.mkdir()
+        for scenario in ('initial-error', 'final-error', 'normal'):
+            with self.subTest(scenario=scenario):
+                self.log.unlink(missing_ok=True)
+                result = subprocess.run(['bash', script, self.target], capture_output=True,
+                                        env=dict(self.env, TEST_SCENARIO=scenario))
+                self.assertEqual(result.returncode, 0 if scenario == 'normal' else 1)
+                erasures = [line.split(' -e ', 1)[1] for line in self.log.read_text().splitlines() if ' -e ' in line]
+                self.assertEqual(erasures, [] if scenario == 'initial-error' else
+                                 ['--test shim-x64', '--noscripts --notriggers shim-x64'])
 
 
 if __name__ == '__main__':
