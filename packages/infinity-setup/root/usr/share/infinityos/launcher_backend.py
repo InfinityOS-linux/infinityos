@@ -2,6 +2,7 @@
 
 from contextlib import contextmanager
 from contextvars import ContextVar
+import errno
 import hashlib
 import io
 import json
@@ -583,6 +584,39 @@ def _install_xone_firmware(directory, firmware_dir=Path("/lib/firmware")):
         legacy.unlink()
 
 
+def _activate_xone(usb=Path("/sys/bus/usb")):
+    # A connected adapter may already be claimed by the mt76 Wi-Fi driver.
+    # Rebind only Microsoft adapters supported by this version of xone.
+    _run(["modprobe", "xone_gip_gamepad"])
+    _run(["modprobe", "xone_dongle"])
+    drivers = usb / "drivers"
+    for interface in (usb / "devices").glob("*:*"):
+        try:
+            alias = (interface / "modalias").read_text().strip()
+            match = re.match(r"usb:v045Ep([0-9A-Fa-f]{4})d", alias, re.IGNORECASE)
+            if not match or match[1].lower() not in XONE_FIRMWARES:
+                continue
+            link = interface / "driver"
+            previous = link.readlink().name if link.is_symlink() else None
+            if previous not in (None, "mt76x2u"):
+                continue
+            if previous:
+                (drivers / previous / "unbind").write_text(interface.name)
+            try:
+                (drivers / "xone-dongle/bind").write_text(interface.name)
+            except OSError:
+                # A concurrent USB probe may have bound the same adapter.
+                if link.is_symlink() and link.readlink().name == "xone-dongle":
+                    continue
+                if previous and interface.exists() and not link.is_symlink():
+                    (drivers / previous / "bind").write_text(interface.name)
+                raise
+        except OSError as error:
+            # The radio can disconnect and enumerate again while loading firmware.
+            if error.errno not in (errno.ENOENT, errno.ENODEV) or interface.exists():
+                raise
+
+
 def _old_xone_versions():
     result = subprocess.run(["dkms", "status", "xone"], stdout=subprocess.PIPE,
                             stderr=subprocess.DEVNULL, text=True, check=False)
@@ -606,6 +640,8 @@ def _install_driver_as_root(driver):
     if not build_dir.is_dir():
         raise RuntimeError(f"Kernel headers for {kernel} are missing. Update packages, reboot, then retry.")
     with tempfile.TemporaryDirectory(prefix="infinity-controller-") as directory:
+        if driver == "xone":
+            _install_xone_firmware(directory)
         if not _driver_module_installed(driver, DRIVERS[driver][4]):
             source = _verified_driver_source(driver, directory)
             if driver == "xone":
@@ -632,12 +668,9 @@ def _install_driver_as_root(driver):
                 shutil.copyfile(destination / "install/modprobe.conf", blacklist)
             else:
                 _run(["bash", str(source / "install.sh")])
-        if driver == "xone":
-            _install_xone_firmware(directory)
     _run(["depmod", "-a"])
     if driver == "xone":
-        # Probe already-connected adapters after the firmware and module are installed.
-        _run(["modprobe", "xone_dongle"])
+        _activate_xone()
     else:
         _run(["systemctl", "enable", "--now", "bluetooth.service"])
 
@@ -1201,6 +1234,10 @@ def _install_local_model(app, home):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3 or sys.argv[1] != "--install-driver":
-        raise SystemExit("Usage: launcher_backend.py --install-driver xone|xpadneo")
-    _install_driver_as_root(sys.argv[2])
+    if sys.argv[1:] == ["--prepare-xone"]:
+        if Path("/etc/modprobe.d/xone-blacklist.conf").is_file():
+            _activate_xone()
+    elif len(sys.argv) == 3 and sys.argv[1] == "--install-driver":
+        _install_driver_as_root(sys.argv[2])
+    else:
+        raise SystemExit("Usage: launcher_backend.py --install-driver xone|xpadneo or --prepare-xone")
