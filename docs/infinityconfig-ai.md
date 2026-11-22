@@ -1,6 +1,6 @@
 # AI in InfinityConfig
 
-The AI tab follows InfinitySetup's selection. Provider CLIs must have both the
+The AI tab follows InfinityApps's selection. Provider CLIs must have both the
 user-prefix executable and the desktop entry created by Setup. Local AI uses
 `~/.config/infinityos/local-ai-model`. Config checks for changes every two seconds;
 removing the last selection hides the tab and returns to Desktop.

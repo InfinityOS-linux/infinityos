@@ -103,7 +103,7 @@ def check_updates(report=None):
             errors.append('RPM compatibility: ' + str(error))
             rpm_check_ok = False
 
-    report("InfinitySetup apps")
+    report("InfinityApps apps")
     github_updates, github_errors = check_github_updates()
     updates.extend(github_updates)
     errors.extend(github_errors)
@@ -161,7 +161,13 @@ def save_state(state, path=None):
 def read_state(path=None):
     try:
         with open(path or state_path(), encoding='utf-8') as file:
-            return reconcile_offline_result(json.load(file))
+            state = json.load(file)
+        if isinstance(state, dict):
+            for item in state.get('updates', []):
+                kind = item.get('kind', '')
+                if kind.endswith((' RPM', ' AppImage')):
+                    item['kind'] = 'InfinityApps ' + kind.rsplit(' ', 1)[1]
+        return reconcile_offline_result(state)
     except (OSError, ValueError):
         return {'checked_at': None, 'updates': [], 'release': None,
                 'rpm_check_ok': False, 'errors': []}

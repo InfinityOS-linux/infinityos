@@ -1,6 +1,7 @@
 """Exercise the real GTK catalog and global search without package operations."""
 from pathlib import Path
 import sys
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -14,12 +15,56 @@ except (ImportError, ValueError):
 
 @unittest.skipUnless(Gtk, 'GTK requires Fedora and Xvfb')
 class SetupPageTests(unittest.TestCase):
+    def test_review_groups_changes_and_shows_the_migration_note(self):
+        if not Gtk.init_check():
+            self.skipTest('GTK needs a display')
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'packages/infinity-setup/root/usr/share/infinityos'))
+        import launcher
+
+        app = launcher.InfinityApps()
+        app.window = Gtk.Window()
+        self.addCleanup(app.window.destroy)
+        app.window.add_css_class('light-mode')
+        steam = SimpleNamespace(name='Steam', kind='flatpak', source='com.valvesoftware.Steam',
+                                icon='applications-games-symbolic')
+        other = SimpleNamespace(name='Example', kind='rpm', source='example',
+                                icon='package-x-generic-symbolic')
+        review = app._review_dialog([(steam, True), (other, False)], [('steam', True)])
+        self.addCleanup(review.destroy)
+        self.assertTrue(review.has_css_class('light-mode'))
+        self.assertEqual(review.get_widget_for_response(Gtk.ResponseType.ACCEPT).get_label(),
+                         launcher.tr('Apply changes'))
+        self.assertEqual(review.get_widget_for_response(Gtk.ResponseType.CANCEL).get_label(),
+                         launcher.tr('Back'))
+
+        pending = [review.get_content_area()]
+        labels = []
+        while pending:
+            widget = pending.pop()
+            if isinstance(widget, Gtk.Label):
+                labels.append(widget.get_text())
+            child = widget.get_first_child()
+            while child is not None:
+                pending.append(child)
+                child = child.get_next_sibling()
+        self.assertIn(launcher.tr('To install'), labels)
+        self.assertIn(launcher.tr('To remove'), labels)
+        self.assertIn(launcher.tr('Enable TV modes'), labels)
+        self.assertIn('Steam Big Picture', labels)
+        self.assertNotIn(launcher.tr('Disable TV modes'), labels)
+        self.assertIn(launcher.tr('Flatpak data is kept. Games and profiles are not migrated automatically.'), labels)
+
+        install_only = app._review_dialog([(steam, True)], [])
+        self.addCleanup(install_only.destroy)
+        self.assertEqual(install_only.get_widget_for_response(Gtk.ResponseType.ACCEPT).get_label(),
+                         launcher.tr('Install'))
+
     def test_global_search_preserves_selection(self):
         if not Gtk.init_check():
             self.skipTest('GTK needs a display')
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'packages/infinity-setup/root/usr/share/infinityos'))
         import launcher
-        app = launcher.InfinitySetup()
+        app = launcher.InfinityApps()
         app.window = Gtk.Window()
         self.addCleanup(app.window.destroy)
         app.stack, app.card, app.shade = Gtk.Stack(), Gtk.Box(), Gtk.Box()

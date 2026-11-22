@@ -20,7 +20,7 @@ POLISH = {
     'Downloaded — installs after restart': 'Pobrano — instalacja po ponownym uruchomieniu',
     'Checking: {source}': 'Sprawdzanie: {source}',
     'System packages': 'Pakiety systemowe',
-    'InfinitySetup apps': 'Aplikacje InfinitySetup',
+    'InfinityApps apps': 'Aplikacje InfinityApps',
     'System Flatpaks': 'Systemowe Flatpaki',
     'Your Flatpaks': 'Flatpaki użytkownika',
     'Device firmware': 'Oprogramowanie urządzeń',

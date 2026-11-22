@@ -24,7 +24,7 @@ class CraftSuiteTests(unittest.TestCase):
         cls.launcher = launcher
 
     def suite(self, installed=False):
-        app = self.launcher.InfinitySetup()
+        app = self.launcher.InfinityApps()
         app._add_craft_suite(Gtk.Box())
         for item in self.launcher.APPS:
             if item.source in self.launcher.CRAFT_SUITE:

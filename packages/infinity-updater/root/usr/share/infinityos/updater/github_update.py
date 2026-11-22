@@ -1,4 +1,4 @@
-"""Updates for GitHub RPMs and AppImages installed by InfinitySetup."""
+"""Updates for GitHub RPMs and AppImages installed by InfinityApps."""
 
 import hashlib
 import os
@@ -41,11 +41,11 @@ def check_github_updates(home=None):
         installed_rpms = _installed()
     except (OSError, subprocess.SubprocessError) as error:
         installed_rpms = {}
-        errors.append('InfinitySetup RPM: ' + str(error))
+        errors.append('InfinityApps RPM: ' + str(error))
     for app in APPS:
         remaining = deadline - time.monotonic()
         if remaining <= 0:
-            errors.append("InfinitySetup: check timed out; some apps could not be checked")
+            errors.append("InfinityApps: check timed out; some apps could not be checked")
             break
         if app.kind == 'github-appimage':
             if not available(app) or not installed(app, home):
@@ -56,7 +56,7 @@ def check_github_updates(home=None):
                 with binary.open('rb') as current:
                     digest = hashlib.file_digest(current, 'sha256').hexdigest()
                 if digest != asset['digest'][7:]:
-                    updates.append({'kind': 'InfinitySetup AppImage', 'name': app.name,
+                    updates.append({'kind': 'InfinityApps AppImage', 'name': app.name,
                                     'version': release['tag_name'], 'source': app.source})
             except (OSError, ValueError, KeyError, RuntimeError, TimeoutError) as error:
                 errors.append(f'{app.name}: {error}')
@@ -70,7 +70,7 @@ def check_github_updates(home=None):
             release, _asset = latest_rpm_asset(app, os.uname().machine, timeout=min(15, remaining))
             tag = release['tag_name']
             if _newer(tag, installed_rpms[package]):
-                updates.append({'kind': 'InfinitySetup RPM', 'name': app.name,
+                updates.append({'kind': 'InfinityApps RPM', 'name': app.name,
                                 'version': tag, 'source': app.source})
         except (OSError, ValueError, KeyError, RuntimeError, TimeoutError) as error:
             errors.append(f'{app.name}: {error}')
@@ -81,7 +81,7 @@ def install_github_update(source, home=None):
     app = next((app for app in APPS if app.source == source and
                 app.kind in ('github-rpm', 'winboat-rpm', 'github-appimage')), None)
     if app is None:
-        raise ValueError('Unknown InfinitySetup GitHub source.')
+        raise ValueError('Unknown InfinityApps GitHub source.')
     if app.kind == 'github-appimage':
         if not installed(app, home):
             raise ValueError(f'{app.name} is no longer installed.')

@@ -1,4 +1,4 @@
-"""Application catalog and deferred installation for InfinitySetup."""
+"""Application catalog and deferred installation for InfinityApps."""
 
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -528,7 +528,7 @@ def _xone_firmware_valid(firmware_dir=Path("/lib/firmware")):
 def _verified_driver_source(driver, directory):
     repository, commit, expected, _, _ = DRIVERS[driver]
     url = f"https://codeload.github.com/{repository}/tar.gz/{commit}"
-    request = urllib.request.Request(url, headers={"User-Agent": "InfinitySetup"})
+    request = urllib.request.Request(url, headers={"User-Agent": "InfinityApps"})
     with urllib.request.urlopen(request, timeout=60) as response:
         archive = response.read(20_000_001)
     if len(archive) > 20_000_000 or hashlib.sha256(archive).hexdigest() != expected:
@@ -638,7 +638,7 @@ def _install_driver_as_root(driver):
 
 def latest_rpm_asset(app, arch, timeout=30):
     request = urllib.request.Request(f"https://api.github.com/repos/{app.source}/releases/latest",
-                                     headers={"User-Agent": "InfinitySetup"})
+                                     headers={"User-Agent": "InfinityApps"})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         release = json.load(response)
     release_arch = {"aarch64": "arm64", "x86_64": "amd64"}.get(arch, arch)
@@ -665,7 +665,7 @@ def _latest_rpm(app, arch, directory):
     _release, asset = latest_rpm_asset(app, arch)
     url = asset["browser_download_url"]
     destination = Path(directory) / asset["name"]
-    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "InfinitySetup"}), timeout=60) as response, destination.open("wb") as output:
+    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "InfinityApps"}), timeout=60) as response, destination.open("wb") as output:
         shutil.copyfileobj(response, output)
     if destination.stat().st_size != asset["size"]:
         raise RuntimeError("Release download size did not match GitHub metadata.")
@@ -679,7 +679,7 @@ def _latest_rpm(app, arch, directory):
 
 def latest_appimage_asset(app, arch, timeout=30):
     request = urllib.request.Request(f"https://api.github.com/repos/{app.source}/releases/latest",
-                                     headers={"User-Agent": "InfinitySetup"})
+                                     headers={"User-Agent": "InfinityApps"})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         release = json.load(response)
     assets = [asset for asset in release.get("assets", ())
@@ -704,7 +704,7 @@ def _latest_appimage(app, arch, directory):
     url = asset["browser_download_url"]
     digest = asset["digest"]
     destination = Path(directory) / asset["name"]
-    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "InfinitySetup"}), timeout=60) as response, destination.open("wb") as output:
+    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "InfinityApps"}), timeout=60) as response, destination.open("wb") as output:
         shutil.copyfileobj(response, output)
     if destination.stat().st_size != asset["size"]:
         raise RuntimeError("AppImage download size did not match GitHub metadata.")
@@ -958,7 +958,7 @@ def _install_arm_steam(home, install_dependencies=True):
         staging = Path(directory)
         archive = staging / "client.zip"
         url = f"https://client-update.steamstatic.com/{filename}"
-        request = urllib.request.Request(url, headers={"User-Agent": "InfinitySetup"})
+        request = urllib.request.Request(url, headers={"User-Agent": "InfinityApps"})
         sha = hashlib.sha256()
         received = 0
         with urllib.request.urlopen(request, timeout=90) as response, archive.open("wb") as output:
@@ -1063,7 +1063,7 @@ def _install_epic_native(app, home):
     with tempfile.TemporaryDirectory(dir=root, prefix=".download-") as directory:
         directory = Path(directory)
         package = directory / "launcher.deb"
-        request = urllib.request.Request(app.source, headers={"User-Agent": "InfinitySetup"})
+        request = urllib.request.Request(app.source, headers={"User-Agent": "InfinityApps"})
         with urllib.request.urlopen(request, timeout=60) as response, package.open("wb") as output:
             url = urllib.parse.urlsplit(response.geturl())
             if url.scheme != "https" or not (url.hostname or "").endswith(".epicgames.com"):

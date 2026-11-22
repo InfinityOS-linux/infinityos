@@ -10,7 +10,7 @@ SOURCE = Path(__file__).resolve().parents[1] / 'packages/infinity-setup/root/usr
 
 def controller(animations=True):
     tree = ast.parse(SOURCE.read_text())
-    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'InfinitySetup')
+    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'InfinityApps')
     method = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == '_animate')
     context = {'Gtk': SimpleNamespace(Settings=SimpleNamespace(get_default=lambda: SimpleNamespace(get_property=lambda _: animations)))}
     exec(compile(ast.Module(body=[method], type_ignores=[]), str(SOURCE), 'exec'), context)

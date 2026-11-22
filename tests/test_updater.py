@@ -65,7 +65,7 @@ class UpdaterTests(unittest.TestCase):
             return SimpleNamespace(returncode=0, stdout='{"Devices": []}', stderr='')
         with patch.object(checker, '_run', side_effect=run):
             checker.check_updates(sources.append)
-        self.assertEqual(sources, ['System packages', 'InfinitySetup apps',
+        self.assertEqual(sources, ['System packages', 'InfinityApps apps',
             'System Flatpaks', 'Your Flatpaks', 'Device firmware', 'Infinity OS releases'])
         with patch.object(i18n.locale, 'getlocale', return_value=('pl_PL', 'UTF-8')):
             self.assertEqual(i18n.tr('Checking: {source}').format(
@@ -297,7 +297,7 @@ class UpdaterTests(unittest.TestCase):
              patch.object(github_update, '_newer', return_value=True):
             updates, errors = github_update.check_github_updates()
         self.assertEqual(errors, [])
-        self.assertEqual(updates, [{'kind': 'InfinitySetup RPM', 'name': 'PhotoCraft',
+        self.assertEqual(updates, [{'kind': 'InfinityApps RPM', 'name': 'PhotoCraft',
                                     'version': 'v0.18.0', 'source': app.source}])
         self.assertEqual(updater.install_commands(updates), [
             ('PhotoCraft', ['python3', '/usr/share/infinityos/updater/github_update.py',
@@ -375,7 +375,7 @@ class UpdaterTests(unittest.TestCase):
                               return_value=SimpleNamespace(machine='x86_64')):
                 updates, errors = github_update.check_github_updates(home)
                 self.assertEqual(errors, [])
-                self.assertEqual(updates, [{'kind': 'InfinitySetup AppImage',
+                self.assertEqual(updates, [{'kind': 'InfinityApps AppImage',
                     'name': 'TwinDesk', 'version': 'v2.4.0', 'source': app.source}])
                 self.assertEqual(updater.install_commands(updates), [
                     ('TwinDesk', ['python3', '/usr/share/infinityos/updater/github_update.py',

@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=InfinitySetup
+Name=InfinityApps
 Comment=Choose applications for Infinity OS
 Exec=infinity-setup
 Icon=/usr/share/icons/hicolor/512x512/apps/infinity-setup.png

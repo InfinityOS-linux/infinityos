@@ -25,16 +25,16 @@ def main():
     config_file = Path.home() / ".config/infinityos/local-ai-model"
     model = config_file.read_text(encoding="utf-8").strip() if config_file.exists() else ""
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}", model) or ".." in model:
-        raise SystemExit("Choose and install a local model in InfinitySetup first.")
+        raise SystemExit("Choose and install a local model in InfinityApps first.")
 
     opencode = shutil.which("opencode") or str(Path.home() / ".local/bin/opencode")
     ollama = "/usr/local/bin/ollama" if Path("/usr/local/bin/ollama").exists() else shutil.which("ollama")
     if not Path(opencode).exists() or not ollama:
-        raise SystemExit("OpenCode or Ollama is missing. Reinstall the model from InfinitySetup.")
+        raise SystemExit("OpenCode or Ollama is missing. Reinstall the model from InfinityApps.")
     details = subprocess.run([ollama, "show", "--parameters", model],
                              capture_output=True, text=True, timeout=20, check=False)
     if details.returncode:
-        raise SystemExit("The selected local model is unavailable. Open InfinitySetup to reinstall it.")
+        raise SystemExit("The selected local model is unavailable. Open InfinityApps to reinstall it.")
 
     parameters = dict(line.split() for line in details.stdout.splitlines() if len(line.split()) == 2)
     context = int(parameters.get("num_ctx", 65536))

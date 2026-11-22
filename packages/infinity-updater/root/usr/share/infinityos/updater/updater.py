@@ -227,7 +227,7 @@ def install_commands(updates):
     if 'RPM' in kinds:
         commands.append(('System packages', ['pkexec', '/usr/libexec/infinityos-upgrade-system']))
     for item in updates:
-        if item['kind'] in ('InfinitySetup RPM', 'InfinitySetup AppImage'):
+        if item['kind'] in ('InfinityApps RPM', 'InfinityApps AppImage'):
             commands.append((item['name'], ['python3',
                 '/usr/share/infinityos/updater/github_update.py', item['source']]))
     if 'Flatpak system' in kinds:

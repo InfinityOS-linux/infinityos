@@ -1,4 +1,4 @@
-"""Check InfinitySetup's Steam and TV Mode dependency behavior."""
+"""Check InfinityApps's Steam and TV Mode dependency behavior."""
 
 import importlib.util
 import sys
@@ -39,7 +39,7 @@ class Switch:
 
 class SetupDependencyTests(unittest.TestCase):
     def make_setup(self):
-        setup = setup_module.InfinitySetup.__new__(setup_module.InfinitySetup)
+        setup = setup_module.InfinityApps.__new__(setup_module.InfinityApps)
         steam = next(app for app in setup_module.APPS if app.name == "Steam")
         setup.switches = {steam: Switch()}
         setup.tv_switches = {"steam": Switch()}

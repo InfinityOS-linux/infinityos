@@ -1,7 +1,7 @@
 Name:           infinity-setup
 Version:        1.0.2
 Release:        %{?infinity_release}%{!?infinity_release:1}%{?dist}
-Summary:        Infinity OS welcome and application chooser
+Summary:        InfinityApps application chooser for Infinity OS
 License:        GPL-3.0-or-later
 URL:            https://github.com/InfinityOS-linux/infinityos
 Source0:        infinity-setup-%{version}.tar.gz
@@ -23,7 +23,7 @@ Requires:       dconf
 Requires:       /usr/bin/curl
 
 %description
-InfinitySetup offers first-login application choices for Infinity OS.
+InfinityApps offers first-login application choices for Infinity OS.
 
 %prep
 %setup -q

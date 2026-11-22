@@ -1,4 +1,4 @@
-"""Small, bundled InfinitySetup catalog; English is the fallback language."""
+"""Small, bundled InfinityApps catalog; English is the fallback language."""
 
 import locale
 
@@ -6,7 +6,6 @@ import locale
 POLISH = {
     "Search settings": "Szukaj ustawień", "No matching settings": "Brak pasujących ustawień",
     "Backups": "Kopie zapasowe",
-    "Unchanged applications: {count}": "Aplikacje bez zmian: {count}",
     "Flatpak data is kept. Games and profiles are not migrated automatically.": "Dane Flatpak zostaną zachowane. Gry i profile nie są przenoszone automatycznie.",
     "Search all applications": "Szukaj we wszystkich aplikacjach",
     "All applications": "Wszystkie aplikacje",
@@ -14,6 +13,9 @@ POLISH = {
     "Pending changes": "Zaplanowane zmiany",
     "Matching applications: {count}": "Pasujące aplikacje: {count}",
     "Review changes": "Podsumowanie zmian",
+    "To install": "Do zainstalowania", "To remove": "Do usunięcia",
+    "Enable TV modes": "Włączane tryby TV", "Disable TV modes": "Wyłączane tryby TV",
+    "Back": "Wróć", "Apply changes": "Zastosuj zmiany",
     "Install": "Zainstaluj", "Remove": "Usuń",
     "Enable": "Włącz", "Disable": "Wyłącz", "Cancel": "Anuluj",
     "Stop after current operation": "Zatrzymaj po bieżącej operacji",
