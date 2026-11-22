@@ -380,6 +380,76 @@ class LauncherBackendTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "checksum"):
                 backend._verified_driver_source("xone", directory)
 
+    def test_xone_claims_only_supported_adapters_that_need_a_driver(self):
+        with tempfile.TemporaryDirectory() as directory:
+            usb = Path(directory).resolve()
+            devices = usb / "devices"
+            drivers = usb / "drivers"
+            for name in ("mt76x2u", "xone-dongle", "usbip-host"):
+                (drivers / name).mkdir(parents=True)
+            devices.mkdir()
+
+            def adapter(port, usb_id, owner):
+                interface = devices / port
+                interface.mkdir()
+                (interface / "modalias").write_text(f"usb:{usb_id}d0100dc00")
+                if owner:
+                    (interface / "driver").symlink_to(drivers / owner)
+                return interface
+
+            claimed = adapter("1-1:1.0", "v045Ep02FE", "mt76x2u")
+            wifi = adapter("1-2:1.0", "v0846p9053", "mt76x2u")
+            active = adapter("1-3:1.0", "v045Ep02E6", "xone-dongle")
+            exported = adapter("1-4:1.0", "v045Ep02F9", "usbip-host")
+            unclaimed = adapter("1-5:1.0", "v045Ep091E", None)
+            writes = []
+
+            def write(path, interface_name):
+                interface = devices / interface_name
+                link = interface / "driver"
+                writes.append((path.parent.name, path.name, interface_name))
+                if path.name == "unbind":
+                    self.assertEqual(link.resolve(), path.parent)
+                    link.unlink()
+                else:
+                    link.symlink_to(path.parent)
+
+            with patch.object(backend, "_run") as run, patch.object(Path, "write_text", write):
+                backend._activate_xone(usb)
+                backend._activate_xone(usb)
+            self.assertEqual([call.args[0] for call in run.call_args_list[:2]],
+                             [["modprobe", "xone_gip_gamepad"], ["modprobe", "xone_dongle"]])
+            self.assertCountEqual(writes, [
+                ("mt76x2u", "unbind", claimed.name), ("xone-dongle", "bind", claimed.name),
+                ("xone-dongle", "bind", unclaimed.name)])
+            for unchanged, owner in ((wifi, "mt76x2u"), (active, "xone-dongle"),
+                                     (exported, "usbip-host")):
+                self.assertEqual((unchanged / "driver").resolve(), drivers / owner)
+
+    def test_xone_bind_failure_restores_previous_driver(self):
+        with tempfile.TemporaryDirectory() as directory:
+            usb = Path(directory).resolve()
+            interface = usb / "devices/2-1:1.0"
+            previous = usb / "drivers/mt76x2u"
+            previous.mkdir(parents=True)
+            interface.mkdir(parents=True)
+            (interface / "modalias").write_text("usb:v045Ep02FEd0100")
+            link = interface / "driver"
+            link.symlink_to(previous)
+
+            def fail_bind(path, _name):
+                if path.name == "unbind":
+                    link.unlink()
+                elif path.parent == previous:
+                    link.symlink_to(previous)
+                else:
+                    raise PermissionError("bind failed")
+
+            with patch.object(backend, "_run"), patch.object(Path, "write_text", fail_bind):
+                with self.assertRaisesRegex(PermissionError, "bind failed"):
+                    backend._activate_xone(usb)
+            self.assertEqual(link.resolve(), previous)
+
     def test_xone_old_version_requires_upgrade(self):
         app = next(app for app in backend.APPS if app.source == "xone")
         status = "xone/v0.3, 6.0.0, x86_64: installed\n"

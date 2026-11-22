@@ -118,6 +118,7 @@ fi
 /usr/lib/systemd/system-generators/infinityos-tv-mode-generator
 /usr/lib/systemd/system/infinityos-tv@.service
 /usr/lib/systemd/system/infinityos-tv@.target
+/usr/lib/systemd/system/infinityos-tv@esde.service.d/
 /usr/share/polkit-1/actions/org.infinityos.tv-modes.policy
 /usr/share/polkit-1/actions/org.infinityos.install-session.policy
 /usr/share/polkit-1/actions/org.infinityos.tv-enter.policy
