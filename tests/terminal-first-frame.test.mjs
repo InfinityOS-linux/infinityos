@@ -5,20 +5,27 @@ import vm from 'node:vm';
 
 const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/extension.js', import.meta.url), 'utf8')
     .replace(/^import .*;\n/gm, '').replace('export default class', 'class');
+const monitorSource = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/hardware-monitor.js', import.meta.url), 'utf8')
+    .replace(/^import .*;\n/gm, '').replace('export class', 'class');
 
 function fixture(enableAnimations = true, inset = 0) {
     let nextId = 1;
     const callbacks = new Map();
     const signals = new Map();
+    const windowSignals = new Map();
+    const emit = (handlers, signal) => {
+        for (const [id, {name, callback}] of [...handlers])
+            if (name === signal && handlers.has(id)) callback();
+    };
     const animations = [];
     const focus = {owner: 'panel', activations: 0};
     const actor = {
-        opacity: 255, translation_y: 0, disposed: false,
+        opacity: 255, translation_y: 0, mapped: true, disposed: false,
         connect(name, callback) { const id = nextId++; signals.set(id, {name, callback}); return id; },
         disconnect(id) { assert.equal(this.disposed, false, 'access to disposed actor'); signals.delete(id); },
+        emit(signal) { emit(signals, signal); },
         destroy() {
-            for (const {name, callback} of [...signals.values()])
-                if (name === 'destroy') callback();
+            this.emit('destroy');
             this.disposed = true; signals.clear();
         },
         remove_all_transitions() {},
@@ -26,9 +33,12 @@ function fixture(enableAnimations = true, inset = 0) {
     };
     const window = {
         minimized: false,
-        connect() { return nextId++; }, disconnect() {},
+        connect(name, callback) { const id = nextId++; windowSignals.set(id, {name, callback}); return id; },
+        disconnect(id) { windowSignals.delete(id); },
+        emit(signal) { emit(windowSignals, signal); },
         get_compositor_private: () => actor,
         get_frame_rect: () => ({height: 600}),
+        showing_on_its_workspace() { return actor.mapped && !this.minimized; },
         minimize() { this.minimized = true; },
         unminimize() { this.minimized = false; }, activate() {
             focus.activations++;
@@ -39,7 +49,7 @@ function fixture(enableAnimations = true, inset = 0) {
     const context = vm.createContext({
         St: {Settings: {get: () => ({enable_animations: enableAnimations})}},
         Extension: class {},
-        GLib: {idle_add: schedule, timeout_add: (p, _delay, callback) => schedule(p, callback),
+        GLib: {get_language_names: () => ['en'], idle_add: schedule, timeout_add: (p, _delay, callback) => schedule(p, callback),
             Source: {remove(id) { callbacks.delete(id); }}, SOURCE_REMOVE: false},
         Main: {overview: {visible: false}, layoutManager: {primaryMonitor: {}}, wm: {skipNextEffect() { actor.skipEffect = true; }}},
         Clutter: {AnimationMode: {EASE_OUT_CUBIC: 1, EASE_IN_CUBIC: 2, EASE_OUT_ELASTIC: 3}},
@@ -48,8 +58,20 @@ function fixture(enableAnimations = true, inset = 0) {
     vm.runInContext(source + '\nglobalThis.Controller = InfinityTerminal;', context);
     const controller = new context.Controller();
     Object.assign(controller, {_geometryIds: [], _pendingShow: true, _sourceId: 0,
-        _firstFrame: null, _icon: {}, _topInset: () => inset, _place() {}, _setResizeCursor() {}});
+        _firstFrame: null, _topInset: () => inset, _place() {}, _setResizeCursor() {}});
     return {controller, actor, window, animations, focus,
+        monitor() {
+            const prototype = vm.runInContext(monitorSource + '\nHardwareMonitor.prototype', context);
+            const hardware = Object.create(prototype, {height: {value: 72}});
+            Object.assign(hardware, {
+                actor: {visible: false, set_position() {}, set_size() {}},
+                _mappedChanged: () => controller._syncResizeHandle(),
+                _menu: {close() {}}, _history: new Map(), _restart() {},
+            });
+            controller._hardware = hardware;
+            controller._resizeHandle = {set_position() {}, set_size() {}};
+            return hardware;
+        },
         flush() {
             while (callbacks.size) {
                 const pending = [...callbacks]; callbacks.clear();
@@ -260,4 +282,45 @@ test('app-list restore shows widgets and uses the same animated reveal as the sh
     assert.equal(f.animations[0].start, -616);
     assert.equal(f.animations[0].translation_y, 24);
     assert(hardware.some(call => call.visible && call.actor === f.actor));
+});
+
+test('terminal tracking works without the retired panel icon', () => {
+    const f = fixture();
+    f.controller._track(f.window, false);
+    assert.equal(f.controller._window, f.window);
+    assert.ok(f.controller._unmanagedId > 0);
+    assert.ok(f.controller._minimizedId > 0);
+});
+
+test('Show Desktop hides the widgets even when Mutter does not minimize the window', () => {
+    const f = fixture();
+    const hardware = f.monitor();
+    f.controller._window = f.window;
+    f.controller._syncResizeHandle();
+    assert.equal(hardware.actor.visible, true);
+
+    f.actor.mapped = false;
+    f.actor.emit('notify::mapped');
+    assert.equal(f.window.minimized, false);
+    assert.equal(hardware.actor.visible, false);
+    assert.equal(f.controller._resizeHandle.visible, false);
+
+    f.actor.mapped = true;
+    f.actor.emit('notify::mapped');
+    assert.equal(hardware.actor.visible, true);
+});
+
+test('closing the terminal hides its widgets while the old actor is still in the compositor', () => {
+    const f = fixture();
+    const hardware = f.monitor();
+    f.controller._findWindow = () => f.window;
+    f.controller._track(f.window, false);
+    f.controller._syncResizeHandle();
+    assert.equal(hardware.actor.visible, true);
+
+    f.window.emit('unmanaged');
+    assert.equal(f.actor.mapped, true);
+    assert.equal(hardware.actor.visible, false);
+    assert.equal(f.controller._resizeHandle.visible, false);
+    assert.equal(hardware._windowActor, null);
 });

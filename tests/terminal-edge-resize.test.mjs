@@ -9,8 +9,10 @@ function fixture() {
     const rect = {x: 0, y: 40, width: 1600, height: 500};
     let grabs = 0, dismissals = 0, ratio, cursor, moves = 0, tick;
     let pointer = [500, 536, 1];
+    const actor = {mapped: true, opacity: 255};
     const window = {minimized: false, get_frame_rect: () => rect,
-        get_compositor_private: () => ({opacity: 255}),
+        get_compositor_private: () => actor,
+        showing_on_its_workspace: () => true,
         move_resize_frame(_user, x, y, width, height) {moves++; Object.assign(rect, {x, y, width, height});},
         move_frame(_user, x, y) {Object.assign(rect, {x, y});},
         maximize(...args) {assert.equal(args.length, 0); rect.height = 960;},
@@ -30,7 +32,7 @@ function fixture() {
             assert.equal(actor, handle); grabs++; return {dismiss() {dismissals++;}};
         }}},
     });
-    Object.assign(controller, {_findWindow: () => window, _resizeHandle: handle,
+    Object.assign(controller, {_window: window, _findWindow: () => window, _resizeHandle: handle,
         _settings: {set_double(_key, value) {ratio = value;}}});
     const event = (type, y, time) => controller._handleResize({type: () => type,
         get_state: () => pointer[2], get_key_symbol: () => 27, get_coords: () => [500, y], get_button: () => 1, get_time: () => time});
