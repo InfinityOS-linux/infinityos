@@ -255,8 +255,8 @@ export default class InfinityTerminal extends Extension {
     }
 
     _isGhosTTY(window) {
-        return window.get_gtk_application_id?.() === APP_ID ||
-            window.get_wm_class?.() === APP_ID;
+        return window?.get_gtk_application_id?.() === APP_ID ||
+            window?.get_wm_class?.() === APP_ID;
     }
 
     _setResizeCursor(active) {

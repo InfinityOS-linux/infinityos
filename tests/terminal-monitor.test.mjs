@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {appendSample, defaultMetrics, formatMetric, moveMetric, resolveMetric, uniqueMetrics, toggleMetric, dropMetric, Stopwatch, Countdown, networkTotals, networkRate} from
+import {appendSample, defaultMetrics, formatMetric, moveMetric, resolveMetric, uniqueMetrics, toggleMetric, dropMetric, Stopwatch, Countdown, networkCounters, networkRate} from
     '../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/monitor-model.mjs';
 
 test('selected GPU identity is preserved across enumeration and disconnection', () => {
@@ -192,7 +192,7 @@ test('weather shares Shell settings, handles removal and throttles refreshes', a
             get_location: () => ({get_name: () => 'Warsaw'})}};
     const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/monitor-widgets.js', import.meta.url), 'utf8')
         .replace(/^import .*;\n/gm, '').replaceAll('export ', '');
-    const Widgets = vm.runInNewContext(`${source}\nMonitorWidgets`, {Stopwatch, Countdown, networkTotals, networkRate,
+    const Widgets = vm.runInNewContext(`${source}\nMonitorWidgets`, {Stopwatch, Countdown, networkCounters, networkRate,
         Gio: {Cancellable: class { cancel() {} }},
         GLib: {get_language_names: () => ['en'], get_monotonic_time: () => now * 1000000,
             timeout_add_seconds(_priority, _seconds, callback) { alarms.set(++nextAlarm, callback); return nextAlarm; },
@@ -217,6 +217,12 @@ test('weather shares Shell settings, handles removal and throttles refreshes', a
         State: 2, TimeToEmpty: 5400, IconName: 'battery-good-symbolic'})[name]})};
     assert.equal(widgets.read('widget:battery').text, '65%');
     assert.equal(widgets.read('widget:battery').detail, '1h 30m');
+    widgets._battery = {get_cached_property: name => name === 'IsPresent' ? {deepUnpack: () => true} : null};
+    assert.equal(widgets.read('widget:battery').text, '—');
+    widgets._battery = null;
+    assert.equal(widgets.read('widget:battery').text, '—');
+    widgets._battery = {get_cached_property: name => name === 'IsPresent' ? {deepUnpack: () => false} : null};
+    assert.equal(widgets.read('widget:battery').text, 'No battery');
     widgets.destroy(); assert.equal(disconnected, true);
 });
 
@@ -241,11 +247,64 @@ test('countdown pauses and Pomodoro advances through focus and long breaks', () 
 
 test('network rates exclude loopback and handle counter resets', () => {
     const line = (name, rx, tx) => `${name}: ${rx} 0 0 0 0 0 0 0 ${tx} 0 0 0 0 0 0 0`;
-    const totals = networkTotals([line('lo', 1000, 1000), line('eth0', 100, 200), line('wlan0', 10, 20)].join('\n'));
-    assert.deepEqual(totals, {rx: 110, tx: 220});
-    assert.deepEqual(networkRate(totals, {rx: 150, tx: 300}, 2), {rx: 20, tx: 40});
-    assert.deepEqual(networkRate(totals, {rx: 0, tx: 0}, 1), {rx: 0, tx: 0});
+    const totals = networkCounters([line('lo', 1000, 1000), line('eth0', 100, 200), line('wlan0', 10, 20)].join('\n'));
+    assert.deepEqual(totals, new Map([['eth0', {rx: 100, tx: 200}], ['wlan0', {rx: 10, tx: 20}]]));
+    const next = networkCounters([line('eth0', 130, 260), line('wlan0', 20, 40)].join('\n'));
+    assert.deepEqual(networkRate(totals, next, 2), {rx: 20, tx: 40});
+    assert.deepEqual(networkRate(totals, networkCounters(line('eth0', 0, 0)), 1), {rx: 0, tx: 0});
     assert.deepEqual(networkRate(null, totals, 1), {rx: 0, tx: 0});
+});
+
+test('network rates ignore existing counters on a newly connected interface', () => {
+    const line = (name, rx, tx) => `${name}: ${rx} 0 0 0 0 0 0 0 ${tx} 0 0 0 0 0 0 0`;
+    const previous = networkCounters([line('eth0', 100, 200), line('tun0', 5000, 6000)].join('\n'));
+    const next = networkCounters([line('eth0', 120, 240), line('wlan0', 9000, 8000)].join('\n'));
+    assert.deepEqual(networkRate(previous, next, 2), {rx: 10, tx: 20});
+    const reset = networkCounters([line('eth0', 140, 280), line('wlan0', 1, 1)].join('\n'));
+    assert.deepEqual(networkRate(next, reset, 2), {rx: 10, tx: 20});
+});
+
+test('reopening the strip samples immediately and ignores a stopped sensor process', async () => {
+    const {readFileSync} = await import('node:fs');
+    const vm = await import('node:vm');
+    const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/hardware-monitor.js', import.meta.url), 'utf8')
+        .replace(/^import .*;\n/gm, '').replace('export class', 'class');
+    const processes = [];
+    const timers = new Set();
+    let nextId = 0;
+    const prototype = vm.runInNewContext(`${source}\nHardwareMonitor.prototype`, {
+        GLib: {get_language_names: () => ['en'],
+            timeout_add_seconds() { timers.add(++nextId); return nextId; },
+            Source: {remove(id) { timers.delete(id); }}},
+        Gio: {SubprocessFlags: {STDOUT_PIPE: 1, STDERR_SILENCE: 2}, Subprocess: {
+            new() {
+                const process = {force_exit() { this.stopped = true; },
+                    communicate_utf8_async(_input, _cancel, callback) { this.reply = data => callback(this, data); },
+                    communicate_utf8_finish(data) { return [true, JSON.stringify(data)]; },
+                    get_successful: () => true};
+                processes.push(process);
+                return process;
+            },
+        }},
+    });
+    const readings = [];
+    const monitor = Object.assign(Object.create(prototype), {_alive: true, actor: {visible: true},
+        _extension: {path: '/fixture'}, _cells: [{id: 'memory:used'}], _settings: {get_int: () => 2},
+        _updateWidgets() {}, _update() { readings.push(this._metrics); }});
+    monitor._restart();
+    monitor.actor.visible = false;
+    monitor._restart();
+    assert.equal(processes[0].stopped, true);
+    monitor.actor.visible = true;
+    monitor._restart();
+    assert.equal(processes.length, 2);
+    const currentTimeout = monitor._timeout;
+    processes[0].reply([{value: 5}]);
+    assert.equal(monitor._process, processes[1]);
+    assert.equal(timers.has(currentTimeout), true);
+    assert.deepEqual(readings, []);
+    processes[1].reply([{value: 10}]);
+    assert.equal(readings[0][0].value, 10);
 });
 
 test('drag commits only after DND releases actors, ignores foreign sources', async () => {
@@ -253,33 +312,34 @@ test('drag commits only after DND releases actors, ignores foreign sources', asy
     const vm = await import('node:vm');
     const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/hardware-monitor.js', import.meta.url), 'utf8')
         .replace(/^import .*;\n/gm, '').replace('export class', 'class');
-    let idle, saved; const signals = {};
+    let idle, saved, selected = ['a', 'b']; const signals = {};
     const prototype = vm.runInNewContext(`${source}\nHardwareMonitor.prototype`, {
         GLib: {get_language_names: () => ['en'], idle_add(_priority, callback) { idle = callback; return 1; }},
         DND: {makeDraggable(_actor, options) { assert.equal(options.restoreOnSuccess, false); return {connect(name, cb) { signals[name] = cb; }}; }},
         dropMetric, uniqueMetrics,
     });
     const monitor = Object.assign(Object.create(prototype), {_alive: true, _metrics: [],
-        _settings: {get_strv: () => ['a', 'b'], set_strv(_key, value) { saved = value; }}, _menu: {close() {}}});
+        _settings: {get_strv: () => selected, set_strv(_key, value) { saved = value; }}, _menu: {close() {}}});
     const cell = {id: 'a', actor: {width: 100}};
     monitor._enableDrag(cell);
     assert.equal(cell.actor._delegate.acceptDrop({monitor: {}}, null, 0), false);
     signals['drag-begin'](); assert.equal(monitor._dragging, true);
     assert.equal(cell.actor._delegate.acceptDrop({monitor, id: 'b'}, null, 0), true);
     assert.equal(saved, undefined);
+    selected = ['a', 'b', 'c'];
     signals['drag-end'](); idle();
-    assert.deepEqual(saved, ['b', 'a']); assert.equal(monitor._dragging, false);
+    assert.deepEqual(saved, ['b', 'a', 'c']); assert.equal(monitor._dragging, false);
 });
 
 test('network resume discards stale in-flight samples and starts a fresh baseline', async () => {
     const {readFileSync} = await import('node:fs');
     const vm = await import('node:vm');
-    let now = 0, callback, refreshes = 0;
-    const file = {load_contents_async(_cancel, cb) { callback = cb; },
-        load_contents_finish: () => [true, new TextEncoder().encode('eth0: 100 0 0 0 0 0 0 0 200 0 0 0 0 0 0 0')]};
+    let now = 0, callback, refreshes = 0, readable = true, requests = 0;
+    const file = {load_contents_async(_cancel, cb) { requests++; callback = cb; },
+        load_contents_finish: () => [readable, new TextEncoder().encode('eth0: 100 0 0 0 0 0 0 0 200 0 0 0 0 0 0 0')]};
     const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/monitor-widgets.js', import.meta.url), 'utf8')
         .replace(/^import .*;\n/gm, '').replaceAll('export ', '');
-    const Widgets = vm.runInNewContext(`${source}\nMonitorWidgets`, {Stopwatch, Countdown, networkTotals, networkRate, TextDecoder,
+    const Widgets = vm.runInNewContext(`${source}\nMonitorWidgets`, {Stopwatch, Countdown, networkCounters, networkRate, TextDecoder,
         GLib: {get_language_names: () => ['en'], get_monotonic_time: () => now * 1000000},
         Gio: {Cancellable: class {}, File: {new_for_path: () => file}}, Main: {panel: {statusArea: {}}}});
     const widgets = new Widgets(() => refreshes++, {});
@@ -288,4 +348,10 @@ test('network resume discards stale in-flight samples and starts a fresh baselin
     assert.equal(refreshes, 0); assert.equal(widgets._rate, null);
     widgets.refreshNetwork(); callback(file, {});
     assert.equal(widgets._rate.rx, 0); assert.equal(widgets._rate.tx, 0);
+    now++; readable = false;
+    widgets.refreshNetwork(); callback(file, {});
+    assert.equal(widgets._rate, null);
+    assert.equal(refreshes, 2);
+    widgets.refreshNetwork();
+    assert.equal(requests, 3, 'a failed read cannot trigger an immediate retry');
 });
