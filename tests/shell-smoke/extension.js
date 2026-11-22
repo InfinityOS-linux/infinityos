@@ -83,31 +83,24 @@ export default class Smoke extends Extension {
         await wait();
         const modalActors = () => Main.modalActorFocusStack.map(({actor}) => actor.toString()).join(', ');
         check(Main.modalCount === 0, `startup retained modal input: ${modalActors()}`);
-        const wack = metadata('wack-shell@rinzler69-wastaken.github.com');
-        const wackSource = Gio.SettingsSchemaSource.new_from_directory(
-            `${wack.path}/schemas`, Gio.SettingsSchemaSource.get_default(), false);
-        wack._settings = new Gio.Settings({
-            settings_schema: wackSource.lookup('org.gnome.shell.extensions.wack-shell', true),
-        });
-        wack._settings.set_int('workspace-widget-type', 2);
-        const logo = new WackWorkspaceButton(wack);
-        const logoClick = {type: () => Clutter.EventType.BUTTON_RELEASE};
+        const logo = {_settings: {get_int: () => 2}};
+        const clickLogo = () => WackWorkspaceButton.prototype.vfunc_event.call(
+            logo, {type: () => Clutter.EventType.BUTTON_RELEASE});
         const overview = Main.overview;
         try {
-            logo.vfunc_event(logoClick);
+            clickLogo();
             await wait();
             check(overview.visible && overview.dash.showAppsButton.checked, 'Infinity logo did not open the app grid');
-            logo.vfunc_event(logoClick);
+            clickLogo();
             await wait();
             check(!overview.visible, 'Infinity logo did not close the app grid');
             overview.show();
             await wait();
             check(overview.visible && !overview.dash.showAppsButton.checked, 'workspace preview did not open');
-            logo.vfunc_event(logoClick);
+            clickLogo();
             await wait();
             check(overview.visible && overview.dash.showAppsButton.checked, 'Infinity logo did not switch to the app grid');
         } finally {
-            logo.destroy();
             overview.hide();
             await wait();
         }
