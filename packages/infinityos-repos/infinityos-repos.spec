@@ -31,6 +31,7 @@ fi
 /usr/share/infinityos/build-revisions/infinityos-repos
 %config(noreplace) /etc/yum.repos.d/infinityos.repo
 /etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos
+/usr/share/dnf5/vendors.d/40-infinityos.conf
 /usr/lib/systemd/system/infinityos-repo-trust.service
 /usr/lib/systemd/system/infinityos-repo-trust.timer
 

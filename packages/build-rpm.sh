@@ -68,6 +68,8 @@ elif [[ "$package" == infinityos-repos ]]; then
     "$work/source/$package-$version/etc/yum.repos.d/infinityos.repo"
   install -m 0644 "$repo/root/etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos" \
     "$work/source/$package-$version/etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos"
+  install -D -m 0644 "$repo/packages/infinityos-repos/root/usr/share/dnf5/vendors.d/40-infinityos.conf" \
+    "$work/source/$package-$version/usr/share/dnf5/vendors.d/40-infinityos.conf"
   install -m 0644 "$repo/COPYING" \
     "$work/source/$package-$version/usr/share/licenses/infinityos-repos/COPYING"
 elif [[ "$package" == infinityos-ramdrive ]]; then
@@ -118,6 +120,9 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
   install -m 0755 "$repo/root/usr/libexec/infinityos-enable-desktop-additions" "$source_root/usr/libexec/"
   install -m 0755 "$repo/root/usr/libexec/infinityos-theme-sync" "$source_root/usr/libexec/"
   install -m 0755 "$repo/root/usr/libexec/infinityos-automount" "$source_root/usr/libexec/"
+  install -m 0755 "$repo/root/usr/libexec/infinityos-configure-automount" "$source_root/usr/libexec/"
+  install -D -m 0644 "$repo/root/usr/share/polkit-1/actions/org.infinityos.automount.policy" \
+    "$source_root/usr/share/polkit-1/actions/org.infinityos.automount.policy"
   install -d "$source_root/usr/share/icons"
   cp -a "$repo/root/usr/share/icons/InfinityOS-Modern-Ice" "$source_root/usr/share/icons/"
   install -m 0644 "$repo/root/etc/xdg/autostart/infinityos-enable-desktop-additions.desktop" "$source_root/etc/xdg/autostart/"

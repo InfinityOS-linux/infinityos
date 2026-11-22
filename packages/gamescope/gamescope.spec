@@ -7,6 +7,7 @@
 Name:           gamescope
 Version:        3.16.31
 Release:        2.infinityos%{?dist}
+Vendor:         InfinityOS
 Summary:        Micro-compositor for video games on Wayland
 # Automatically converted from old format: BSD - review is highly recommended.
 License:        LicenseRef-Callaway-BSD

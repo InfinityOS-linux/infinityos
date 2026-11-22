@@ -1,0 +1,191 @@
+#!/usr/bin/python3
+"""Configure a user's per-volume Automount permission."""
+
+from contextlib import contextmanager
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import pwd
+import subprocess
+import sys
+import tempfile
+
+from gi.repository import Gio, GLib
+
+
+UDISKS = "org.freedesktop.UDisks2"
+SETTINGS = "org.infinityos.automount"
+RULE_DIR = Path("/etc/polkit-1/rules.d")
+STATE_DIR = Path("/var/lib/infinityos")
+HEADER = "// Managed by InfinityOS Automount.\n// Grants: "
+MANAGED_MOUNTS = {b"/", b"/boot", b"/boot/efi", b"/home", b"/var"}
+
+
+def disk_properties(device, uuid):
+    bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+    objects, = bus.call_sync(
+        UDISKS, "/org/freedesktop/UDisks2", "org.freedesktop.DBus.ObjectManager",
+        "GetManagedObjects", None, None, Gio.DBusCallFlags.NONE, 5000, None,
+    ).unpack()
+    path = os.path.realpath(device)
+    for interfaces in objects.values():
+        block = interfaces.get(UDISKS + ".Block", {})
+        filesystem = interfaces.get(UDISKS + ".Filesystem")
+        name = os.fsdecode(bytes(block.get("Device", [])).rstrip(b"\0"))
+        if name != path or block.get("IdUUID") != uuid or filesystem is None:
+            continue
+        if MANAGED_MOUNTS.intersection(bytes(p).rstrip(b"\0") for p in filesystem.get("MountPoints", [])):
+            raise ValueError("This volume is managed by the system.")
+        drive = objects.get(block.get("Drive"), {}).get(UDISKS + ".Drive", {})
+        partition = interfaces.get(UDISKS + ".Partition", {})
+        return block, drive, partition
+    raise ValueError("The selected volume is no longer available.")
+
+
+def rule_path(uid):
+    return RULE_DIR / f"49-infinityos-automount-{uid}.rules"
+
+
+def grant_marker(uid, uuid):
+    digest = hashlib.sha256(uuid.encode()).hexdigest()
+    return STATE_DIR / "automount-authorizations" / f"{uid}-{digest}"
+
+
+def has_grant(uid, uuid):
+    try:
+        grant_marker(uid, uuid).stat()
+    except FileNotFoundError:
+        return False
+    except PermissionError:
+        pass  # Let the authorized helper inspect a restricted state directory.
+    return True
+
+
+def read_grants(uid):
+    try:
+        rules = rule_path(uid).read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return {}
+    if not rules.startswith(HEADER):
+        raise ValueError("An administrator-managed Automount rule uses this filename.")
+    return json.loads(rules[len(HEADER):].splitlines()[0])
+
+
+def render_rule(username, grants):
+    return HEADER + json.dumps(grants, sort_keys=True) + "\n" + f"""
+polkit.addRule(function(action, subject) {{
+    if (action.id !== "org.freedesktop.udisks2.filesystem-mount-system" ||
+        subject.user !== {json.dumps(username)})
+        return;
+    var grants = {json.dumps(list(grants.values()), sort_keys=True)};
+    var uuid = action.lookup("id.uuid");
+    for (var i = 0; i < grants.length; i++) {{
+        var grant = grants[i];
+        if (uuid !== grant["id.uuid"])
+            continue;
+        var keys = Object.keys(grant);
+        var match = keys.every(function (key) {{ return action.lookup(key) === grant[key]; }});
+        if (match)
+            return polkit.Result.YES;
+    }}
+}});
+"""
+
+
+@contextmanager
+def grant_lock():
+    STATE_DIR.mkdir(mode=0o755, exist_ok=True)
+    with (STATE_DIR / "automount-authorizations.lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        yield
+
+
+def write_grants(user, grants):
+    path = rule_path(user.pw_uid)
+    if not grants:
+        path.unlink(missing_ok=True)
+        return
+    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=RULE_DIR, delete=False) as file:
+        temporary = Path(file.name)
+        try:
+            file.write(render_rule(user.pw_name, grants))
+            file.close()
+            temporary.chmod(0o644)
+            temporary.replace(path)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+
+def grant_identity(block, drive, partition):
+    identity = {"id.uuid": block["IdUUID"]}
+    if not drive:
+        raise ValueError("This protected volume is not on a physical or virtual drive.")
+    if drive.get("WWN"):
+        identity["drive.wwn"] = drive["WWN"]
+    elif drive.get("Serial"):
+        identity["drive.serial"] = drive["Serial"]
+    if partition.get("UUID"):
+        identity["partition.uuid"] = partition["UUID"]
+    if len(identity) == 1:
+        raise ValueError("This protected drive does not expose a persistent hardware identifier.")
+    return identity
+
+
+def change_grant(mode, device, uuid):
+    uid = int(os.environ.get("PKEXEC_UID", "0"))
+    if uid <= 0:
+        raise PermissionError("Automount authorization requires a signed-in user and administrator approval.")
+    user = pwd.getpwuid(uid)
+    with grant_lock():
+        grants = read_grants(uid)
+        marker = grant_marker(uid, uuid)
+        if mode == "--allow":
+            block, drive, partition = disk_properties(device, uuid)
+            if not block.get("HintSystem"):
+                raise ValueError("This volume does not require system mount permission.")
+            grants[uuid] = grant_identity(block, drive, partition)
+            marker.parent.mkdir(mode=0o755, exist_ok=True)
+            marker.touch(mode=0o644)
+        else:
+            grants.pop(uuid, None)
+        write_grants(user, grants)
+        if mode == "--forget":
+            marker.unlink(missing_ok=True)
+
+
+def configure(mode, device, uuid):
+    settings = Gio.Settings.new(SETTINGS)
+    if not settings.is_writable("volume-uuids"):
+        raise PermissionError("Automount preferences are locked.")
+    if mode == "enable":
+        block, drive, partition = disk_properties(device, uuid)
+        if block.get("HintSystem"):
+            grant_identity(block, drive, partition)
+            subprocess.run(["pkexec", __file__, "--allow", device, uuid], check=True)
+    elif has_grant(os.getuid(), uuid):
+        subprocess.run(["pkexec", __file__, "--forget", device, uuid], check=True)
+    selected = [value for value in settings.get_strv("volume-uuids") if value != uuid]
+    if mode == "enable":
+        selected.append(uuid)
+    if not settings.set_strv("volume-uuids", selected):
+        raise PermissionError("Automount could not save the preference.")
+    Gio.Settings.sync()
+
+
+if __name__ == "__main__":
+    try:
+        mode, device, uuid = sys.argv[1:]
+        if not device.startswith("/dev/") or not uuid or len(uuid) > 128:
+            raise ValueError("A local volume with a filesystem UUID is required.")
+        if os.geteuid() == 0 and mode in {"--allow", "--forget"}:
+            change_grant(mode, device, uuid)
+        elif os.geteuid() != 0 and mode in {"enable", "disable"}:
+            configure(mode, device, uuid)
+        else:
+            raise ValueError("Invalid Automount request.")
+    except subprocess.CalledProcessError as error:
+        raise SystemExit(error.returncode)
+    except (ValueError, OSError, KeyError, GLib.Error) as error:
+        sys.exit(str(error))

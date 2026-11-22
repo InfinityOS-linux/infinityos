@@ -1,13 +1,14 @@
 diff --git a/src/nautilus-sidebar.c b/src/nautilus-sidebar.c
-index 2938fe2..2b43e4a 100644
+index 2938fe2..f3ad5af 100644
 --- a/src/nautilus-sidebar.c
 +++ b/src/nautilus-sidebar.c
-@@ -2253,6 +2253,88 @@ mount_shortcut_cb (GSimpleAction *action,
+@@ -2253,6 +2253,127 @@ mount_shortcut_cb (GSimpleAction *action,
      }
  }
 
 +static char *
-+automount_id_for_row (NautilusSidebarRow *row)
++automount_id_for_row (NautilusSidebarRow  *row,
++                      char              **device_out)
 +{
 +    g_autoptr (GVolume) volume = NULL;
 +    g_autoptr (GMount) mount = NULL;
@@ -37,6 +38,10 @@ index 2938fe2..2b43e4a 100644
 +        return NULL;
 +    }
 +
++    if (device_out != NULL)
++    {
++        *device_out = g_steal_pointer (&device);
++    }
 +    return g_steal_pointer (&uuid);
 +}
 +
@@ -53,45 +58,79 @@ index 2938fe2..2b43e4a 100644
 +    return schema != NULL ? g_settings_new_full (schema, NULL, NULL) : NULL;
 +}
 +
++typedef struct
++{
++    GSimpleAction *action;
++    GVariant *state;
++    char *uuid;
++} AutomountRequest;
++
++static void
++automount_configured (GObject      *source,
++                      GAsyncResult *result,
++                      gpointer      data)
++{
++    AutomountRequest *request = data;
++    g_autoptr (GError) error = NULL;
++
++    if (g_subprocess_wait_check_finish (G_SUBPROCESS (source), result, &error))
++    {
++        const char *menu_uuid = g_object_get_data (G_OBJECT (request->action), "infinityos-automount-uuid");
++        if (g_strcmp0 (menu_uuid, request->uuid) == 0)
++        {
++            g_simple_action_set_state (request->action, request->state);
++        }
++    }
++    else if (!g_error_matches (error, G_SPAWN_EXIT_ERROR, 126) &&
++             !g_error_matches (error, G_SPAWN_EXIT_ERROR, 127))
++    {
++        g_warning ("Could not configure InfinityOS Automount: %s", error->message);
++    }
++
++    g_object_unref (request->action);
++    g_variant_unref (request->state);
++    g_free (request->uuid);
++    g_free (request);
++}
++
 +static void
 +automount_change_state (GSimpleAction *action,
 +                        GVariant      *state,
 +                        gpointer       data)
 +{
 +    NautilusSidebar *sidebar = data;
-+    g_autofree char *uuid = automount_id_for_row (sidebar->context_row);
-+    g_autoptr (GSettings) settings = get_automount_settings ();
-+    g_auto (GStrv) ids = NULL;
-+    GVariantBuilder updated;
++    g_autofree char *device = NULL;
++    g_autofree char *uuid = automount_id_for_row (sidebar->context_row, &device);
++    g_autoptr (GError) error = NULL;
++    g_autoptr (GSubprocess) process = NULL;
++    AutomountRequest *request;
 +
-+    if (uuid == NULL || settings == NULL)
++    if (uuid == NULL)
 +    {
 +        return;
 +    }
 +
-+    ids = g_settings_get_strv (settings, "volume-uuids");
-+    g_variant_builder_init (&updated, G_VARIANT_TYPE_STRING_ARRAY);
-+    for (char **id = ids; *id != NULL; id++)
++    process = g_subprocess_new (G_SUBPROCESS_FLAGS_NONE, &error,
++                                "/usr/libexec/infinityos-configure-automount",
++                                g_variant_get_boolean (state) ? "enable" : "disable",
++                                device, uuid, NULL);
++    if (process == NULL)
 +    {
-+        if (!g_str_equal (*id, uuid))
-+        {
-+            g_variant_builder_add (&updated, "s", *id);
-+        }
++        g_warning ("Could not open InfinityOS Automount: %s", error->message);
++        return;
 +    }
-+    if (g_variant_get_boolean (state))
-+    {
-+        g_variant_builder_add (&updated, "s", uuid);
-+    }
-+    if (g_settings_set_value (settings, "volume-uuids", g_variant_builder_end (&updated)))
-+    {
-+        g_simple_action_set_state (action, state);
-+    }
++
++    request = g_new0 (AutomountRequest, 1);
++    request->action = g_object_ref (action);
++    request->state = g_variant_ref (state);
++    request->uuid = g_steal_pointer (&uuid);
++    g_subprocess_wait_check_async (process, NULL, automount_configured, request);
 +}
 +
  static GMountOperation *
  get_mount_operation (NautilusSidebar *sidebar)
  {
-@@ -2738,6 +2820,7 @@ static GActionEntry entries[] =
+@@ -2738,6 +2859,7 @@ static GActionEntry entries[] =
      { .name = "remove", .activate = remove_shortcut_cb},
      { .name = "rename", .activate = rename_shortcut_cb},
      { .name = "mount", .activate = mount_shortcut_cb},
@@ -99,7 +138,7 @@ index 2938fe2..2b43e4a 100644
      { .name = "unmount", .activate = unmount_shortcut_cb},
      { .name = "eject", .activate = eject_shortcut_cb},
      { .name = "rescan", .activate = rescan_shortcut_cb},
-@@ -2866,6 +2949,8 @@ create_row_popover (NautilusSidebar    *sidebar,
+@@ -2866,6 +2988,8 @@ create_row_popover (NautilusSidebar    *sidebar,
      g_autoptr (GMount) mount = NULL;
      g_autoptr (GVolume) volume = NULL;
      g_autoptr (GDrive) drive = NULL;
@@ -108,12 +147,13 @@ index 2938fe2..2b43e4a 100644
      GAction *action;
      gboolean show_unmount, show_eject;
      gboolean show_stop;
-@@ -2992,6 +3077,22 @@ create_row_popover (NautilusSidebar    *sidebar,
+@@ -2992,6 +3116,24 @@ create_row_popover (NautilusSidebar    *sidebar,
          g_object_unref (item);
      }
 
-+    automount_id = automount_id_for_row (row);
-+    if (automount_id != NULL)
++    automount_id = automount_id_for_row (row, NULL);
++    if (automount_id != NULL &&
++        g_file_test ("/usr/libexec/infinityos-configure-automount", G_FILE_TEST_IS_EXECUTABLE))
 +    {
 +        automount_settings = get_automount_settings ();
 +    }
@@ -121,6 +161,7 @@ index 2938fe2..2b43e4a 100644
 +    {
 +        g_auto (GStrv) ids = g_settings_get_strv (automount_settings, "volume-uuids");
 +        action = g_action_map_lookup_action (G_ACTION_MAP (sidebar->row_actions), "automount");
++        g_object_set_data_full (G_OBJECT (action), "infinityos-automount-uuid", g_strdup (automount_id), g_free);
 +        g_simple_action_set_state (G_SIMPLE_ACTION (action),
 +                                   g_variant_new_boolean (g_strv_contains ((const char * const *) ids, automount_id)));
 +        g_simple_action_set_enabled (G_SIMPLE_ACTION (action),
