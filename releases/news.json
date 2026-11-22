@@ -1,5 +1,68 @@
 [
   {
+    "id": "2026-11-22-rpm-terminal-handle-and-automount",
+    "date": "2026-11-22",
+    "title": "RPM update: terminal handle sizing and Automount discovery",
+    "summary": "The terminal handle responds correctly to maximized windows on GNOME 51, and Automount detects drives whose details become available after initial discovery.",
+    "buildSha": "08568b9b8e1862471ba06c99a84551d8a0d357b4",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This signed RPM update was published for ARM64 and x64 and is included in the current repository packages. The existing TV Mode installer images do not include these later changes."
+      },
+      {
+        "title": "Handle sizing on maximized windows",
+        "text": "The pull handle reads GNOME 51's vertical maximization state directly, so it becomes compact even when a small gap remains between the window and the top bar."
+      },
+      {
+        "title": "Delayed volume discovery",
+        "text": "Automount rescans when a volume changes, allowing a selected drive to mount after its UUID and mount capability become available. Manually unmounted drives remain unmounted."
+      }
+    ]
+  },
+  {
+    "id": "2026-11-22-rpm-terminal-collapse-and-lock",
+    "date": "2026-11-22",
+    "title": "RPM update: terminal widgets stay hidden on collapse and lock",
+    "summary": "InfinityTerminal hides its widgets immediately when collapsing and keeps them off the lock screen.",
+    "buildSha": "04e9feb1888723b5d017e60e0321656564f9b9e9",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This signed RPM update was published for ARM64 and x64 and is included in the current repository packages. The existing TV Mode installer images do not include these later changes."
+      },
+      {
+        "title": "Reliable collapse and reopen",
+        "text": "Widgets and their menu disappear as soon as the terminal starts closing. An interrupted animation still finishes minimizing the window, while reopening cancels the old closing callback."
+      },
+      {
+        "title": "Lock screen visibility",
+        "text": "Widgets and the resize handle stay hidden while the screen shield, lock screen or login mode is active. The widget strip and its popup menu are also stacked below the screen shield."
+      }
+    ]
+  },
+  {
+    "id": "2026-11-22-rpm-terminal-widget-readings",
+    "date": "2026-11-22",
+    "title": "RPM update: steadier terminal widget readings",
+    "summary": "InfinityTerminal refreshes hardware readings more reliably and avoids misleading network speeds when network interfaces change.",
+    "buildSha": "955ee9e0945b3d3f56e97f64bd83f5361c7cad1c",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This signed RPM update was published for ARM64 and x64 and is included in the current repository packages. The existing TV Mode installer images do not include these later changes."
+      },
+      {
+        "title": "Hardware refresh and widget order",
+        "text": "Hiding the widget strip stops sensor sampling and discards stale results, so an older request cannot overwrite a newer reading. Dragging widgets uses the current saved order after the drop completes."
+      },
+      {
+        "title": "Network and battery readings",
+        "text": "Transfer speeds compare counters per interface, avoiding spikes when interfaces appear or disappear. Failed network reads clear the old reading, and missing battery data no longer produces an invalid percentage."
+      }
+    ]
+  },
+  {
     "id": "2026-11-22-rpm-terminal-widget-visibility",
     "date": "2026-11-22",
     "title": "RPM update: terminal widgets hide with the window",
