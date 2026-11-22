@@ -40,6 +40,7 @@ class Switch:
 class SetupDependencyTests(unittest.TestCase):
     def make_setup(self):
         setup = setup_module.InfinityApps.__new__(setup_module.InfinityApps)
+        setup.close_when_idle = False
         steam = next(app for app in setup_module.APPS if app.name == "Steam")
         setup.switches = {steam: Switch()}
         setup.tv_switches = {"steam": Switch()}

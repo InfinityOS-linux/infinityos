@@ -141,7 +141,7 @@ APPS = (
     App("Programming", "Docker CE", "dnf", "docker-ce", "Run apps in isolated containers.", group="Development tools", icon="docker"),
     App("AI", "Anthropic Claude + Claude Code CLI", "npm", "@anthropic-ai/claude-code", "Use Claude in the browser and terminal.", website="https://claude.ai/", group="Assistants", icon="infinity-claude"),
     App("AI", "OpenAI Codex + Codex CLI", "npm", "@openai/codex", "Install ChatGPT desktop and Codex CLI with InfinityTerminal integration.", website="https://chatgpt.com/codex", group="Assistants", icon="infinity-codex"),
-    App("AI", "Google Antigravity + Antigravity CLI", "antigravity", "antigravity", "Install Google Antigravity desktop and the agy CLI with InfinityTerminal integration.", website="https://antigravity.google/", group="Assistants", icon="infinity-ai"),
+    App("AI", "Google Antigravity + Antigravity CLI", "antigravity", "antigravity", "Install Google Antigravity desktop and the agy CLI with InfinityTerminal integration.", website="https://antigravity.google/", group="Assistants", icon="google-g"),
     App("AI", "Qwen3.5 9B Q5 · 16 GB RAM", "local-model", "infinity-qwen-9b", "Run a local AI coding assistant. Needs 10 GB of disk space.", group="Local models", icon="infinity-ai"),
     App("AI", "Gemma 4 12B Q4 · 32 GB RAM", "local-model", "infinity-gemma-12b", "Run a local AI coding assistant. Needs 11 GB of disk space.", group="Local models", icon="infinity-ai"),
     App("AI", "Qwen3.5 35B A3B Q5 · 64 GB RAM", "local-model", "infinity-qwen-35b", "Run a local AI coding assistant. Needs 30 GB of disk space.", group="Local models", icon="infinity-ai"),
@@ -187,6 +187,8 @@ def ollama(path, data=None, timeout=30):
     # Local requests must never travel through a configured HTTP proxy.
     with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(request, timeout=timeout) as response:
         result = json.load(response)
+    if not isinstance(result, dict):
+        raise ValueError("Invalid Ollama response")
     if "error" in result:
         raise RuntimeError("Ollama request failed")
     return result
@@ -312,7 +314,7 @@ def installed(app, home=None, flatpak_ids=None, rpm_names=None, model_names=None
         return binary.is_file() and desktop.is_file()
     if app.kind == "antigravity":
         binary, desktop = antigravity_paths(home)
-        return binary.is_file() and desktop.is_file() and antigravity_cli_present(home)
+        return binary.is_file() and os.access(binary, os.X_OK) and desktop.is_file() and antigravity_cli_present(home)
     if app.kind == "local-model":
         if model_names is not None:
             return app.source.removesuffix(":latest") in {name.removesuffix(":latest") for name in model_names}
@@ -767,7 +769,7 @@ def _install_antigravity(home):
     install_dir.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".install-", dir=install_dir.parent) as temporary:
         temporary = Path(temporary)
-        if not binary.is_file():
+        if not binary.is_file() or not os.access(binary, os.X_OK):
             archive = temporary / "Antigravity.tar.gz"
             url = ("https://storage.googleapis.com/antigravity-public/antigravity-hub/"
                    f"{ANTIGRAVITY_BUILD}/{architecture}/Antigravity.tar.gz")
@@ -785,10 +787,15 @@ def _install_antigravity(home):
                 payload = candidates[0]
             if (payload / binary.name).is_symlink() or not os.access(payload / binary.name, os.X_OK):
                 raise RuntimeError("The Antigravity desktop launcher is not executable.")
-            if not install_dir.exists():
+            previous = temporary / "previous"
+            if install_dir.exists():
+                install_dir.rename(previous)
+            try:
                 payload.rename(install_dir)
-            if not binary.is_file():
-                raise RuntimeError("The Antigravity desktop installation is incomplete.")
+            except OSError:
+                if previous.exists():
+                    previous.rename(install_dir)
+                raise
         if not antigravity_cli_present(home):
             script = temporary / "install-agy.sh"
             _run(["curl", "--fail", "--silent", "--show-error", "--location", "--proto-redir", "=https", "--output", str(script),
@@ -803,7 +810,8 @@ def _install_antigravity(home):
     executable = executable.replace('\\', '\\\\')
     desktop.write_text(
         "[Desktop Entry]\nType=Application\nName=Google Antigravity\n"
-        f'Exec="{executable}"\nIcon=applications-development\nTerminal=false\nCategories=Development;\n',
+        f'Exec="{executable}"\nIcon=/usr/share/infinityos/launcher-icons/google-g.svg\n'
+        'Terminal=false\nCategories=Development;\n',
         encoding="utf-8",
     )
     _refresh_cli_tabs()

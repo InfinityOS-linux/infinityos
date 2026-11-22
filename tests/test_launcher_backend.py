@@ -802,11 +802,17 @@ class LauncherBackendTests(unittest.TestCase):
                     backend.install(app, home)
                     self.assertTrue(backend.installed(app, home))
                     self.assertIn(f'Exec="{binary}"', desktop.read_text())
+                    self.assertIn('Icon=/usr/share/infinityos/launcher-icons/google-g.svg', desktop.read_text())
                     self.assertEqual([call.args[0][0] for call in commands.call_args_list], ["curl", "curl", "bash"])
                     refresh.assert_called_once_with()
                     commands.reset_mock()
                     backend.install(app, home)
                     commands.assert_not_called()
+                    binary.chmod(0o644)
+                    self.assertFalse(backend.installed(app, home))
+                    backend.install(app, home)
+                    self.assertTrue(backend.installed(app, home))
+                    commands.assert_called_once()
 
     def test_craft_member_removal_never_requests_other_packages(self):
         for app in (a for a in backend.APPS if a.source in backend.CRAFT_SUITE):

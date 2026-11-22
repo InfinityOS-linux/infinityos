@@ -69,6 +69,9 @@ class SetupPageTests(unittest.TestCase):
         self.addCleanup(app.window.destroy)
         app.stack, app.card, app.shade = Gtk.Stack(), Gtk.Box(), Gtk.Box()
         app.window.set_child(app.card)
+        app._build_toolbar()
+        self.assertEqual(app.navigation.get_parent().get_last_child().get_icon_name(),
+                         'window-close-symbolic')
         app.ai_models = ()
         app.catalog_status = {}
         with patch.object(app, '_animate'), patch.object(app, '_refresh_ai'), \
@@ -87,6 +90,10 @@ class SetupPageTests(unittest.TestCase):
         self.assertGreater(app.search.get_parent().get_margin_bottom(), 0)
         self.assertFalse(app.search.get_hexpand())
         self.assertFalse(hasattr(app, "filter"))
+        app.search.set_text('CraftSuite')
+        app._filter_catalog()
+        self.assertTrue(app.suite_row.get_visible())
+        self.assertEqual(app.stack.get_visible_child_name(), 'office')
         candidate = next(item for item in app.switches if item.category == 'Programming')
         app.search.set_text(candidate.name)
         app._filter_catalog()

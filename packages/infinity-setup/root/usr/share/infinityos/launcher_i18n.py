@@ -92,7 +92,7 @@ POLISH = {
     "Installed": "Zainstalowano", "Only available on x64 computers": "Dostępne tylko na komputerach x64",
     "Could not install:\n": "Nie udało się zainstalować:\n",
     "Could not apply changes:\n": "Nie udało się wprowadzić zmian:\n",
-    "Wait for installation to finish.": "Poczekaj na zakończenie instalacji.",
+    "Closing after the current operation…": "Zamykanie po zakończeniu bieżącej operacji…",
     "Installing {index}/{total}: {name}…": "Instalowanie {index}/{total}: {name}…",
     "Applying {index}/{total}: {name}…": "Wprowadzanie zmian {index}/{total}: {name}…",
     "Web browsers": "Przeglądarki internetowe", "Media players": "Odtwarzacze multimedialne",
