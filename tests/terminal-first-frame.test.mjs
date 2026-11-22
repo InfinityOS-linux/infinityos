@@ -18,6 +18,7 @@ function fixture(enableAnimations = true, inset = 0) {
             if (name === signal && handlers.has(id)) callback();
     };
     const animations = [];
+    const windows = [];
     const focus = {owner: 'panel', activations: 0};
     const actor = {
         opacity: 255, translation_y: 0, mapped: true, disposed: false,
@@ -53,13 +54,14 @@ function fixture(enableAnimations = true, inset = 0) {
             Source: {remove(id) { callbacks.delete(id); }}, SOURCE_REMOVE: false},
         Main: {overview: {visible: false}, layoutManager: {primaryMonitor: {}}, wm: {skipNextEffect() { actor.skipEffect = true; }}},
         Clutter: {AnimationMode: {EASE_OUT_CUBIC: 1, EASE_IN_CUBIC: 2, EASE_OUT_ELASTIC: 3}},
-        global: {get_current_time: () => 0, stage: {set_key_focus(value) {focus.owner = value;}}},
+        global: {get_current_time: () => 0, get_window_actors: () => windows,
+            stage: {set_key_focus(value) {focus.owner = value;}}},
     });
     vm.runInContext(source + '\nglobalThis.Controller = InfinityTerminal;', context);
     const controller = new context.Controller();
     Object.assign(controller, {_geometryIds: [], _pendingShow: true, _sourceId: 0,
         _firstFrame: null, _topInset: () => inset, _place() {}, _setResizeCursor() {}});
-    return {controller, actor, window, animations, focus,
+    return {controller, actor, window, animations, focus, windows,
         monitor() {
             const prototype = vm.runInContext(monitorSource + '\nHardwareMonitor.prototype', context);
             const hardware = Object.create(prototype, {height: {value: 72}});
@@ -290,6 +292,13 @@ test('terminal tracking works without the retired panel icon', () => {
     assert.equal(f.controller._window, f.window);
     assert.ok(f.controller._unmanagedId > 0);
     assert.ok(f.controller._minimizedId > 0);
+});
+
+test('window lookup skips compositor actors with no attached window', () => {
+    const f = fixture();
+    f.window.get_wm_class = () => 'com.infinityos.GhosTTY';
+    f.windows.push({meta_window: null}, {meta_window: f.window});
+    assert.equal(f.controller._findWindow(), f.window);
 });
 
 test('Show Desktop hides the widgets even when Mutter does not minimize the window', () => {

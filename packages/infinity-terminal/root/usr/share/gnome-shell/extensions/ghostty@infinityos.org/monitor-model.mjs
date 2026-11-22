@@ -101,21 +101,28 @@ export class Countdown {
     }
 }
 
-export function networkTotals(text) {
-    let rx = 0, tx = 0;
+export function networkCounters(text) {
+    const interfaces = new Map();
     for (const line of text.split('\n')) {
         const colon = line.indexOf(':');
-        if (colon < 0 || line.slice(0, colon).trim() === 'lo') continue;
+        if (colon < 0) continue;
+        const name = line.slice(0, colon).trim();
+        if (!name || name === 'lo') continue;
         const fields = line.slice(colon + 1).trim().split(/\s+/).map(Number);
-        if (fields.length >= 16 && Number.isFinite(fields[0]) && Number.isFinite(fields[8])) {
-            rx += fields[0]; tx += fields[8];
-        }
+        if (fields.length >= 16 && Number.isFinite(fields[0]) && Number.isFinite(fields[8]))
+            interfaces.set(name, {rx: fields[0], tx: fields[8]});
     }
-    return {rx, tx};
+    return interfaces;
 }
 
 export function networkRate(previous, current, elapsed) {
     if (!previous || elapsed <= 0) return {rx: 0, tx: 0};
-    return {rx: Math.max(0, current.rx - previous.rx) / elapsed,
-        tx: Math.max(0, current.tx - previous.tx) / elapsed};
+    let rx = 0, tx = 0;
+    for (const [name, counters] of current) {
+        const before = previous.get(name);
+        if (!before) continue;
+        rx += Math.max(0, counters.rx - before.rx);
+        tx += Math.max(0, counters.tx - before.tx);
+    }
+    return {rx: rx / elapsed, tx: tx / elapsed};
 }

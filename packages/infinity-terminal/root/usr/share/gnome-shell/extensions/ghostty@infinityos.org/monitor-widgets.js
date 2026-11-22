@@ -1,7 +1,7 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import {Stopwatch, Countdown, networkTotals, networkRate} from './monitor-model.mjs';
+import {Stopwatch, Countdown, networkCounters, networkRate} from './monitor-model.mjs';
 
 const pl = GLib.get_language_names()[0].startsWith('pl');
 const tr = (en, polish) => pl ? polish : en;
@@ -54,11 +54,14 @@ export class MonitorWidgets {
         if (id === 'widget:battery') {
             const property = name => this._battery?.get_cached_property(name)?.deepUnpack();
             const present = property('IsPresent');
+            const percentage = property('Percentage');
             const charging = property('State') === 1;
             const seconds = property(charging ? 'TimeToFull' : 'TimeToEmpty') ?? 0;
-            return {...choice, text: present ? `${Math.round(property('Percentage'))}%` : tr('No battery', 'Brak baterii'),
+            const text = present === false ? tr('No battery', 'Brak baterii') :
+                present && Number.isFinite(percentage) ? `${Math.round(percentage)}%` : '—';
+            return {...choice, text,
                 icon: property('IconName') || choice.icon,
-                detail: seconds > 0 ? `${Math.floor(seconds / 3600)}h ${Math.floor(seconds / 60) % 60}m` :
+                detail: present && Number.isFinite(seconds) && seconds > 0 ? `${Math.floor(seconds / 3600)}h ${Math.floor(seconds / 60) % 60}m` :
                     present ? (charging ? tr('Charging', 'Ładowanie') : tr('Time unavailable', 'Brak szacunku')) : tr('Unavailable', 'Niedostępna')};
         }
         const client = this.weather;
@@ -109,28 +112,30 @@ export class MonitorWidgets {
 
     pauseNetwork() {
         this._networkGeneration = (this._networkGeneration ?? 0) + 1;
-        this._networkTotals = null;
+        this._networkCounters = null;
         this._networkTime = undefined;
         this._rate = null;
     }
 
     refreshNetwork() {
-        if (!this._selected.has('widget:network') || this._networkPending) return;
+        if (!this._alive || !this._selected.has('widget:network') || this._networkPending) return;
         const now = GLib.get_monotonic_time() / 1000000;
-        if (this._networkTime !== undefined && now - this._networkTime < 1) return;
+        const elapsed = now - (this._networkTime ?? now);
+        if (this._networkTime !== undefined && elapsed < 1) return;
+        this._networkTime = now;
         this._networkPending = true;
         const generation = this._networkGeneration ?? 0;
         Gio.File.new_for_path('/proc/net/dev').load_contents_async(this._cancel, (file, result) => {
             this._networkPending = false;
             if (!this._alive || generation !== (this._networkGeneration ?? 0)) return;
+            let counters = null;
             try {
                 const [ok, bytes] = file.load_contents_finish(result);
-                if (!ok) return;
-                const totals = networkTotals(new TextDecoder().decode(bytes));
-                this._rate = networkRate(this._networkTotals, totals, now - (this._networkTime ?? now));
-                this._networkTotals = totals; this._networkTime = now;
-                this._changed();
-            } catch (_) { this._rate = null; }
+                if (ok) counters = networkCounters(new TextDecoder().decode(bytes));
+            } catch (_) { /* Unavailable until the next successful read. */ }
+            this._rate = counters ? networkRate(this._networkCounters, counters, elapsed) : null;
+            this._networkCounters = counters;
+            this._changed();
         });
     }
 

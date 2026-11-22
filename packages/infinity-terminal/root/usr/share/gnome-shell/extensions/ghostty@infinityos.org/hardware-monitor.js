@@ -118,7 +118,7 @@ export class HardwareMonitor {
         this._widgetTimer = 0;
         if (!this.actor.visible) {
             this._widgets?.pauseNetwork();
-            this._process?.force_exit();
+            this._stopSampling();
             return;
         }
         this._updateWidgets();
@@ -139,7 +139,7 @@ export class HardwareMonitor {
     }
 
     _sample() {
-        if (this._process || !this._alive) return;
+        if (this._process || !this._alive || !this.actor.visible) return;
         try {
             const process = Gio.Subprocess.new(['python3', `${this._extension.path}/hardware-snapshot.py`],
                 Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE);
@@ -151,15 +151,18 @@ export class HardwareMonitor {
             });
             this._timeout = timeout;
             process.communicate_utf8_async(null, null, (proc, result) => {
-                if (this._timeout) GLib.Source.remove(this._timeout);
-                this._timeout = 0;
-                this._process = null;
+                const current = this._process === process;
+                if (current) {
+                    if (this._timeout) GLib.Source.remove(this._timeout);
+                    this._timeout = 0;
+                    this._process = null;
+                }
                 let metrics = [];
                 try {
                     const [, output] = proc.communicate_utf8_finish(result);
-                    if (proc.get_successful()) metrics = JSON.parse(output);
+                    if (current && proc.get_successful()) metrics = JSON.parse(output);
                 } catch (_error) { /* Unavailable sensors remain N/A. */ }
-                if (!this._alive || !this.actor.visible) return;
+                if (!current || !this._alive || !this.actor.visible) return;
                 this._metrics = Array.isArray(metrics) ? metrics : [];
                 this._update();
             });
@@ -167,6 +170,14 @@ export class HardwareMonitor {
             this._metrics = [];
             this._update();
         }
+    }
+
+    _stopSampling() {
+        if (this._timeout) GLib.Source.remove(this._timeout);
+        this._timeout = 0;
+        const process = this._process;
+        this._process = null;
+        process?.force_exit();
     }
 
     _rebuild() {
@@ -402,11 +413,17 @@ export class HardwareMonitor {
             handleDragOver: source => source?.monitor === this ? DND.DragMotionResult.MOVE_DROP : DND.DragMotionResult.CONTINUE,
             acceptDrop: (source, _actor, x) => {
                 if (source?.monitor !== this) return false;
-                const next = dropMetric(this._settings.get_strv('monitor-metrics'), source.id, cell.id, x > cell.actor.width / 2);
+                const sourceId = source.id;
+                const after = x > cell.actor.width / 2;
                 // DND must finish with the old actors before rebuilding the strip.
+                if (this._dropIdle) GLib.Source.remove(this._dropIdle);
                 this._dropIdle = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                     this._dropIdle = 0;
-                    if (this._alive) this._settings.set_strv('monitor-metrics', uniqueMetrics(next, this._metrics));
+                    if (!this._alive) return GLib.SOURCE_REMOVE;
+                    const ids = this._settings.get_strv('monitor-metrics');
+                    const next = dropMetric(ids, sourceId, cell.id, after);
+                    if (next !== ids)
+                        this._settings.set_strv('monitor-metrics', uniqueMetrics(next, this._metrics));
                     return GLib.SOURCE_REMOVE;
                 });
                 return true;
@@ -425,9 +442,7 @@ export class HardwareMonitor {
         this._colorSettings.disconnect(this._colorId);
         this._unfollow();
         if (this._timer) GLib.Source.remove(this._timer);
-        if (this._timeout) GLib.Source.remove(this._timeout);
-        this._timeout = 0;
-        this._process?.force_exit();
+        this._stopSampling();
         this._settings.disconnect(this._settingsId);
         this._menu.destroy();
         Main.layoutManager.removeChrome(this._menuAnchor);
