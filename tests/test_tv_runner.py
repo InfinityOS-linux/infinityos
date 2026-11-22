@@ -83,7 +83,7 @@ class TVRunnerTests(unittest.TestCase):
             log = root / "shutdown.log"
             env = dict(os.environ, HOME=str(root), INFINITYOS_TV_EXIT_REQUEST=str(marker),
                        TV_RUN_TEST_LOG=str(log))
-            subprocess.run([str(helper), "plasma"], env=env, check=True)
+            subprocess.run(["bash", str(helper), "plasma"], env=env, check=True)
             self.assertTrue(marker.is_file())
             self.assertEqual(log.read_text(), "-shutdown")
 

@@ -7,16 +7,21 @@ root=${1:-/}
 # Fedora's Anaconda and grubby still require grub2-common and grub2-tools.
 # Remove the firmware loaders, shim, and systemd-boot only after rEFInd has
 # been installed. This keeps the RPM dependency graph valid.
-mapfile -t obsolete < <(
-    rpm --root "$root" -qa --qf '%{NAME}\n' |
-        grep -E '^(grub2-efi-|grub2-pc($|-)|grub2-tools-efi$|shim-(aa64|ia32|x64)$|systemd-boot-unsigned$)' || true
-)
-if (( ${#obsolete[@]} )); then
+list_obsolete_loaders() {
+    local installed
+    installed=$(rpm --root "$root" -qa --qf '%{NAME}\n') || return
+    awk '/^(grub2-efi-|grub2-pc($|-)|grub2-tools-efi$|shim-(aa64|ia32|x64)$|systemd-boot-unsigned$)/' <<< "$installed"
+}
+
+obsolete_names=$(list_obsolete_loaders)
+if [[ -n $obsolete_names ]]; then
+    obsolete=()
+    while IFS= read -r package; do obsolete+=("$package"); done <<< "$obsolete_names"
     rpm --root "$root" -e --test "${obsolete[@]}"
     rpm --root "$root" -e --noscripts --notriggers "${obsolete[@]}"
 fi
-if rpm --root "$root" -qa --qf '%{NAME}\n' |
-    grep -Eq '^(grub2-efi-|grub2-pc($|-)|grub2-tools-efi$|shim-(aa64|ia32|x64)$|systemd-boot-unsigned$)'; then
+remaining=$(list_obsolete_loaders)
+if [[ -n $remaining ]]; then
     echo 'An obsolete EFI loader package remains installed' >&2
     exit 1
 fi

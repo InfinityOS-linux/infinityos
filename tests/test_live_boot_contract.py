@@ -67,7 +67,7 @@ class LiveBootContractTests(unittest.TestCase):
 
     def test_boot_entry_reads_partition_number_without_padding(self):
         installer = (REPO / "root/usr/libexec/infinityos-refind-install").read_text()
-        self.assertIn('lsblk -nr -o PARTN "$esp_device"', installer)
+        self.assertIn('lsblk -dnro PARTN "$esp_device"', installer)
 
     def test_live_installer_keeps_dock_active(self):
         setup = (REPO / "config.sh").read_text()

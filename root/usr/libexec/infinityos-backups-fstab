@@ -11,9 +11,9 @@ awk '
     count = split($4, options, ",")
     result = ""
     for (i = 1; i <= count; i++)
-      if (options[i] != "subvol=root" && options[i] !~ /^subvolid=/)
+      if (options[i] !~ /^subvol(id)?=/)
         result = result (result == "" ? "" : ",") options[i]
-    $4 = result
+    $4 = result == "" ? "defaults" : result
   }
   $2 != "/.snapshots" { print }
 ' "$fstab" > "$tmp"

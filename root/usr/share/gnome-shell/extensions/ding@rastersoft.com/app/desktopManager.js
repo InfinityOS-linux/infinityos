@@ -418,6 +418,7 @@ export var DesktopManager = class {
             const info = new Gio.FileInfo();
             info.set_attribute_string('metadata::nautilus-icon-position', '');
             info.set_attribute_string(MonitorLayouts.ATTRIBUTE, '');
+            info.set_attribute_string(MonitorLayouts.LEGACY_POSITION_ATTRIBUTE, '');
             if (dropCoordinates !== null)
                 info.set_attribute_string('metadata::nautilus-drop-position', `${dropCoordinates[0]},${dropCoordinates[1]}`);
 

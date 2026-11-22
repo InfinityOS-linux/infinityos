@@ -50,8 +50,7 @@ export var FileItem = class extends desktopIconItem.desktopIconItem {
         this.stackUnique = false;
         this._realizeId = 0;
 
-        this._savedCoordinates = this._readCoordinatesFromAttribute(fileInfo, 'metadata::nautilus-icon-position');
-        this._monitorPositions = MonitorLayouts.readLayouts(fileInfo.get_attribute_as_string(MonitorLayouts.ATTRIBUTE));
+        this._readSavedPositions(fileInfo);
         this._dropCoordinates = this._readCoordinatesFromAttribute(fileInfo, 'metadata::nautilus-drop-position');
 
         this._createIconActor(Gtk.AccessibleRole.LABEL);
@@ -284,6 +283,15 @@ export var FileItem = class extends desktopIconItem.desktopIconItem {
         }
         this._setLabelName(text);
         this.setAccessibleName(text);
+    }
+
+    _readSavedPositions(fileInfo) {
+        this._savedCoordinates = this._readCoordinatesFromAttribute(fileInfo, 'metadata::nautilus-icon-position');
+        this._monitorPositions = MonitorLayouts.readLayouts(fileInfo.get_attribute_as_string(MonitorLayouts.ATTRIBUTE));
+        this._legacyCoordinates = this._readCoordinatesFromAttribute(fileInfo, MonitorLayouts.LEGACY_POSITION_ATTRIBUTE);
+        // A file with no profiles may still have its original pre-upgrade location.
+        if (!this._legacyCoordinates && Object.keys(this._monitorPositions).length === 0)
+            this._legacyCoordinates = this._savedCoordinates;
     }
 
     _readCoordinatesFromAttribute(fileInfo, attribute) {
@@ -975,8 +983,9 @@ export var FileItem = class extends desktopIconItem.desktopIconItem {
     }
 
     get savedCoordinates() {
-        return MonitorLayouts.positionForLayout(this._monitorPositions,
-            this._desktopManager._iconLayoutKey, this._savedCoordinates);
+        const key = this._desktopManager._iconLayoutKey;
+        const fallback = key && this._legacyCoordinates ? this._legacyCoordinates : this._savedCoordinates;
+        return MonitorLayouts.positionForLayout(this._monitorPositions, key, fallback);
     }
 
     rememberMonitorPosition() {
@@ -1001,6 +1010,8 @@ export var FileItem = class extends desktopIconItem.desktopIconItem {
             this._monitorPositions = MonitorLayouts.rememberPosition(this._monitorPositions,
                 this._desktopManager._iconLayoutKey, pos);
             info.set_attribute_string(MonitorLayouts.ATTRIBUTE, JSON.stringify(this._monitorPositions));
+            if (this._legacyCoordinates && this._desktopManager._iconLayoutKey)
+                info.set_attribute_string(MonitorLayouts.LEGACY_POSITION_ATTRIBUTE, this._legacyCoordinates.join(','));
             this.file.set_attributes_from_info(info, Gio.FileQueryInfoFlags.NONE, null);
         } catch (e) {
             print(`Failed to store the desktop coordinates for ${this.uri}: ${e}`);

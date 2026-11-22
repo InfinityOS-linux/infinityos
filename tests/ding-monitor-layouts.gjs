@@ -24,17 +24,14 @@ function reload() {
     const item = Object.create(FileItem.prototype);
     item._desktopManager = manager;
     item._file = file;
-    item._savedCoordinates = item._readCoordinatesFromAttribute(info, 'metadata::nautilus-icon-position');
-    item._monitorPositions = Layouts.readLayouts(info.get_attribute_as_string(Layouts.ATTRIBUTE));
+    item._readSavedPositions(info);
     return item;
 }
 
 try {
-    let item = reload();
-    item.savedCoordinates = [1102, 202];
-    item = reload();
-    check(JSON.stringify(item.savedCoordinates) === '[1102,202]', 'docked metadata did not persist');
+    file.set_attribute_string('metadata::nautilus-icon-position', '1102,202', Gio.FileQueryInfoFlags.NONE, null);
     manager._iconLayoutKey = Layouts.layoutKey([laptop]);
+    let item = reload();
     item._grid = {};
     item.getCoordinates = () => [702, 202];
     item.rememberMonitorPosition();

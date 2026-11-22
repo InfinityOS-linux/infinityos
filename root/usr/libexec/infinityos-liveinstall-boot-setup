@@ -79,12 +79,8 @@ for unit in "${obsolete_units[@]}"; do
 done
 systemctl mask --force "${obsolete_units[@]}"
 
-# Drop firmware entries whose EFI binaries were removed by the conversion.
-while IFS= read -r entry; do
-    if [[ $entry =~ ^Boot([0-9A-Fa-f]{4})\*? ]]; then
-        efibootmgr -b "${BASH_REMATCH[1]}" -B
-    fi
-done < <(efibootmgr -v | grep -Ei 'EFI[\\/]infinityos[\\/](shim|grub)|EFI[\\/]systemd[\\/]systemd-boot' || true)
+# Drop entries for the obsolete loaders on this installation's EFI partition.
+/usr/libexec/infinityos-refind-install "$esp" --remove-obsolete-entries
 
 # Only remove firmware-visible GRUB and systemd-boot paths after rEFInd is
 # complete. The fallback EFI/BOOT path above survives lost NVRAM entries.

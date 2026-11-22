@@ -8,6 +8,60 @@ case $(uname -m) in
 	*) echo 'Unsupported EFI architecture' >&2; exit 1 ;;
 esac
 root=${INFINITYOS_ROOT:-}
+
+read_esp_partition() {
+	esp_device=$(findmnt -n -M "$esp" -o SOURCE)
+	esp_partuuid=$(lsblk -dnro PARTUUID "$esp_device")
+	if [[ ! $esp_partuuid =~ ^[[:xdigit:]]{8}-([[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}|[[:xdigit:]]{2})$ ]]; then
+		echo "Cannot identify the EFI partition at $esp." >&2
+		return 1
+	fi
+}
+
+# efibootmgr separates the human-readable label from the device path with a tab.
+# Match the HD and File nodes together so the same loader on another ESP is safe.
+matching_entries() {
+	LC_ALL=C awk -F '\t' -v target="$(printf '%s' "$esp_partuuid" | tr '[:upper:]' '[:lower:]')" -v refind="$1" '
+		NF == 2 && /^Boot[[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]][* ]/ {
+			device = tolower($2)
+			if (!match(device, /(^|\/)hd\([0-9]+,(gpt|mbr),[^,]+,[^)]*\)\/file\([^)]*\)/))
+				next
+			path = substr(device, RSTART, RLENGTH)
+			hd = path
+			sub(/^\/?hd\(/, "", hd)
+			split(hd, fields, ",")
+			partuuid = fields[3]
+			if (fields[2] == "mbr") {
+				sub(/^0x/, "", partuuid)
+				partuuid = substr("00000000" partuuid, length(partuuid) + 1) sprintf("-%02x", fields[1])
+			}
+			if (partuuid != target)
+				next
+			sub(/^.*\/file\(/, "", path)
+			sub(/\)$/, "", path)
+			gsub(/\\/, "/", path)
+			if (refind != "") {
+				if (substr($1, 9, 1) == "*" && path == refind) {
+					print toupper(substr($1, 5, 4))
+					exit
+				}
+			} else if (path ~ /^\/efi\/(infinityos\/(shim|grub)|systemd\/systemd-boot)[^\/]*\.efi$/) {
+				print toupper(substr($1, 5, 4))
+			}
+		}' <<< "$firmware_state"
+}
+
+if [[ ${2:-} == --remove-obsolete-entries ]]; then
+	read_esp_partition
+	firmware_state=$(efibootmgr -v)
+	obsolete_entries=$(matching_entries '')
+	while IFS= read -r entry; do
+		[[ -n $entry ]] || continue
+		efibootmgr -b "$entry" -B
+	done <<< "$obsolete_entries"
+	exit 0
+fi
+
 source=$root/usr/share/rEFInd/refind
 theme=$root/usr/share/infinityos/refind-theme
 [[ -s $source/refind_$arch.efi && -d $theme && -d $esp/EFI ]] || exit 1
@@ -41,28 +95,33 @@ done
    -s $esp/EFI/BOOT/infinity-theme/icons/os_infinityos_steam.png ]]
 if [[ ${2:-} == --activate ]]; then
 	command -v efibootmgr >/dev/null
-	esp_device=$(findmnt -n -M "$esp" -o SOURCE)
-	disk=$(lsblk -nr -o PKNAME "$esp_device" | head -n 1)
-	part=$(lsblk -nr -o PARTN "$esp_device" | head -n 1)
-	[[ -n $disk && $part =~ ^[0-9]+$ ]] || exit 1
-	firmware_state=$(efibootmgr)
-	boot_entry=$(printf '%s\n' "$firmware_state" | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\* Infinity OS rEFInd.*/\1/p' | head -n 1)
+	read_esp_partition
+	read_firmware_order() {
+		firmware_state=$(efibootmgr -v)
+		order=$(sed -n 's/^BootOrder:[[:space:]]*//p' <<< "$firmware_state" | tr '[:lower:]' '[:upper:]')
+		if [[ -n $order && ! $order =~ ^[0-9A-F]{4}(,[0-9A-F]{4})*$ ]]; then
+			echo "Invalid firmware BootOrder: $order" >&2
+			return 1
+		fi
+	}
+	refind_path="/efi/refind/refind_$arch.efi"
+	read_firmware_order
+	boot_entry=$(matching_entries "$refind_path")
 	if [[ -z $boot_entry ]]; then
-		efibootmgr -c -d "/dev/$disk" -p "$part" -L 'Infinity OS rEFInd' -l "\\EFI\\refind\\refind_$arch.efi"
-		firmware_state=$(efibootmgr)
-		boot_entry=$(printf '%s\n' "$firmware_state" | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\* Infinity OS rEFInd.*/\1/p' | head -n 1)
+		disk=$(lsblk -dnro PKNAME "$esp_device")
+		part=$(lsblk -dnro PARTN "$esp_device")
+		[[ -n $disk && $part =~ ^[0-9]+$ ]] || exit 1
+		# Create the variable without changing BootOrder until it has been cleaned.
+		efibootmgr -C -d "/dev/$disk" -p "$part" -L 'Infinity OS rEFInd' -l "\\EFI\\refind\\refind_$arch.efi"
+		read_firmware_order
+		boot_entry=$(matching_entries "$refind_path")
 	fi
-	[[ -n $boot_entry ]]
-	order=$(printf '%s\n' "$firmware_state" | sed -n 's/^BootOrder:[[:space:]]*//p')
+	[[ -n $boot_entry ]] || { echo 'No active rEFInd entry found for the target EFI partition.' >&2; exit 1; }
 	available_entries=$(printf '%s\n' "$firmware_state" | sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)[*[:space:]].*/\1/p' | tr '[:lower:]' '[:upper:]')
-	new_order=$(printf '%s' "$boot_entry" | tr '[:lower:]' '[:upper:]')
+	new_order=$boot_entry
 	if [[ -n $order ]]; then
 		IFS=, read -r -a existing_entries <<< "$order"
 		for existing in "${existing_entries[@]}"; do
-			[[ $existing =~ ^[0-9A-Fa-f]{4}$ ]] || {
-				echo "Invalid firmware BootOrder entry: $existing" >&2; exit 1;
-			}
-			existing=$(printf '%s' "$existing" | tr '[:lower:]' '[:upper:]')
 			case ,$new_order, in *,$existing,*) continue ;; esac
 			# Some firmware retains IDs after deleting their Boot#### variable.
 			# efibootmgr rejects the entire order if any such reference survives.
@@ -75,5 +134,7 @@ if [[ ${2:-} == --activate ]]; then
 			fi
 		done
 	fi
-	efibootmgr -o "$new_order"
+	if [[ $new_order != "$order" ]]; then
+		efibootmgr -o "$new_order"
+	fi
 fi
