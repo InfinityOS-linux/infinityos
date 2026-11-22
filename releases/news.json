@@ -1,5 +1,26 @@
 [
   {
+    "id": "2026-11-22-rpm-terminal-widget-visibility",
+    "date": "2026-11-22",
+    "title": "RPM update: terminal widgets hide with the window",
+    "summary": "InfinityTerminal widgets and the resize handle disappear with the terminal when you show the desktop or close the window.",
+    "buildSha": "253d5908c4565a6b57b61e415df8f3c6c8255950",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "The signed RPM update is available for ARM64 and x64. The existing TV Mode installer images do not include this later fix; installed systems can receive it through InfinityUpdater."
+      },
+      {
+        "title": "Show Desktop and window visibility",
+        "text": "Widgets follow the terminal window's actual visibility, including Show Desktop when the window is hidden without being minimized. They return when the terminal becomes visible again."
+      },
+      {
+        "title": "Clean window closure",
+        "text": "Closing the terminal hides its widgets and resize handle even while the old window remains in the compositor. Window tracking no longer refers to the removed panel icon."
+      }
+    ]
+  },
+  {
     "id": "2026-11-22-rpm-persistent-tray-icons",
     "date": "2026-11-22",
     "title": "RPM update: tray icons stay on the top bar",
