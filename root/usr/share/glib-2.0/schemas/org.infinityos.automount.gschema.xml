@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.infinityos.automount" path="/org/infinityos/automount/">
+    <key name="volume-uuids" type="as">
+      <default>[]</default>
+      <summary>Local volumes to mount on sign-in</summary>
+      <description>UUIDs of the local volumes selected for Automount in Files.</description>
+    </key>
+  </schema>
+</schemalist>

@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=InfinityOS drive automount
+Exec=/usr/libexec/infinityos-automount
+OnlyShowIn=GNOME;
+NoDisplay=true

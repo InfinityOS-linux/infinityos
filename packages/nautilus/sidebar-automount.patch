@@ -1,0 +1,133 @@
+diff --git a/src/nautilus-sidebar.c b/src/nautilus-sidebar.c
+index 2938fe2..2b43e4a 100644
+--- a/src/nautilus-sidebar.c
++++ b/src/nautilus-sidebar.c
+@@ -2253,6 +2253,88 @@ mount_shortcut_cb (GSimpleAction *action,
+     }
+ }
+
++static char *
++automount_id_for_row (NautilusSidebarRow *row)
++{
++    g_autoptr (GVolume) volume = NULL;
++    g_autoptr (GMount) mount = NULL;
++    g_autofree char *device = NULL;
++    g_autofree char *uuid = NULL;
++
++    if (row == NULL)
++    {
++        return NULL;
++    }
++
++    g_object_get (row, "volume", &volume, "mount", &mount, NULL);
++    if (volume == NULL && mount != NULL)
++    {
++        volume = g_mount_get_volume (mount);
++    }
++    if (volume == NULL)
++    {
++        return NULL;
++    }
++
++    device = g_volume_get_identifier (volume, G_VOLUME_IDENTIFIER_KIND_UNIX_DEVICE);
++    uuid = g_volume_get_identifier (volume, G_VOLUME_IDENTIFIER_KIND_UUID);
++    if (device == NULL || !g_str_has_prefix (device, "/dev/") ||
++        uuid == NULL || *uuid == '\0')
++    {
++        return NULL;
++    }
++
++    return g_steal_pointer (&uuid);
++}
++
++static GSettings *
++get_automount_settings (void)
++{
++    GSettingsSchemaSource *source = g_settings_schema_source_get_default ();
++    g_autoptr (GSettingsSchema) schema = NULL;
++
++    if (source != NULL)
++    {
++        schema = g_settings_schema_source_lookup (source, "org.infinityos.automount", TRUE);
++    }
++    return schema != NULL ? g_settings_new_full (schema, NULL, NULL) : NULL;
++}
++
++static void
++automount_change_state (GSimpleAction *action,
++                        GVariant      *state,
++                        gpointer       data)
++{
++    NautilusSidebar *sidebar = data;
++    g_autofree char *uuid = automount_id_for_row (sidebar->context_row);
++    g_autoptr (GSettings) settings = get_automount_settings ();
++    g_auto (GStrv) ids = NULL;
++    GVariantBuilder updated;
++
++    if (uuid == NULL || settings == NULL)
++    {
++        return;
++    }
++
++    ids = g_settings_get_strv (settings, "volume-uuids");
++    g_variant_builder_init (&updated, G_VARIANT_TYPE_STRING_ARRAY);
++    for (char **id = ids; *id != NULL; id++)
++    {
++        if (!g_str_equal (*id, uuid))
++        {
++            g_variant_builder_add (&updated, "s", *id);
++        }
++    }
++    if (g_variant_get_boolean (state))
++    {
++        g_variant_builder_add (&updated, "s", uuid);
++    }
++    if (g_settings_set_value (settings, "volume-uuids", g_variant_builder_end (&updated)))
++    {
++        g_simple_action_set_state (action, state);
++    }
++}
++
+ static GMountOperation *
+ get_mount_operation (NautilusSidebar *sidebar)
+ {
+@@ -2738,6 +2820,7 @@ static GActionEntry entries[] =
+     { .name = "remove", .activate = remove_shortcut_cb},
+     { .name = "rename", .activate = rename_shortcut_cb},
+     { .name = "mount", .activate = mount_shortcut_cb},
++    { .name = "automount", .state = "false", .change_state = automount_change_state},
+     { .name = "unmount", .activate = unmount_shortcut_cb},
+     { .name = "eject", .activate = eject_shortcut_cb},
+     { .name = "rescan", .activate = rescan_shortcut_cb},
+@@ -2866,6 +2949,8 @@ create_row_popover (NautilusSidebar    *sidebar,
+     g_autoptr (GMount) mount = NULL;
+     g_autoptr (GVolume) volume = NULL;
+     g_autoptr (GDrive) drive = NULL;
++    g_autofree char *automount_id = NULL;
++    g_autoptr (GSettings) automount_settings = NULL;
+     GAction *action;
+     gboolean show_unmount, show_eject;
+     gboolean show_stop;
+@@ -2992,6 +3077,22 @@ create_row_popover (NautilusSidebar    *sidebar,
+         g_object_unref (item);
+     }
+
++    automount_id = automount_id_for_row (row);
++    if (automount_id != NULL)
++    {
++        automount_settings = get_automount_settings ();
++    }
++    if (automount_settings != NULL)
++    {
++        g_auto (GStrv) ids = g_settings_get_strv (automount_settings, "volume-uuids");
++        action = g_action_map_lookup_action (G_ACTION_MAP (sidebar->row_actions), "automount");
++        g_simple_action_set_state (G_SIMPLE_ACTION (action),
++                                   g_variant_new_boolean (g_strv_contains ((const char * const *) ids, automount_id)));
++        g_simple_action_set_enabled (G_SIMPLE_ACTION (action),
++                                     g_settings_is_writable (automount_settings, "volume-uuids"));
++        g_menu_append (section, _("Automount"), "row.automount");
++    }
++
+     show_stop = (drive != NULL && g_drive_can_stop (drive));
+
+     if (show_unmount && !show_stop)

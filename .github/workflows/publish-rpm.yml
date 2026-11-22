@@ -163,11 +163,35 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  build-nautilus:
+    name: Build Nautilus with Automount (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    needs: verify-source
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build patched Fedora Nautilus RPMs
+        run: |
+          INFINITY_PACKAGE_RELEASE="$GITHUB_RUN_NUMBER" packages/build-nautilus-rpm.sh
+      - uses: actions/upload-artifact@v6
+        with:
+          name: rpm-nautilus-${{ matrix.arch }}
+          path: .build/rpm-output/nautilus-*.${{ matrix.arch }}.rpm
+          if-no-files-found: error
+          retention-days: 1
+
   publish:
     name: Sign RPMs and prepare Pages
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    needs: [verify-fedora, verify-shell, build-noarch, build-terminal, build-gamescope]
+    needs: [verify-fedora, verify-shell, build-noarch, build-terminal, build-gamescope, build-nautilus]
     permissions:
       contents: write
       actions: read

@@ -117,9 +117,11 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
     "$source_root/usr/bin/infinityos-shell-recover"
   install -m 0755 "$repo/root/usr/libexec/infinityos-enable-desktop-additions" "$source_root/usr/libexec/"
   install -m 0755 "$repo/root/usr/libexec/infinityos-theme-sync" "$source_root/usr/libexec/"
+  install -m 0755 "$repo/root/usr/libexec/infinityos-automount" "$source_root/usr/libexec/"
   install -d "$source_root/usr/share/icons"
   cp -a "$repo/root/usr/share/icons/InfinityOS-Modern-Ice" "$source_root/usr/share/icons/"
   install -m 0644 "$repo/root/etc/xdg/autostart/infinityos-enable-desktop-additions.desktop" "$source_root/etc/xdg/autostart/"
+  install -m 0644 "$repo/root/etc/xdg/autostart/infinityos-automount.desktop" "$source_root/etc/xdg/autostart/"
   install -m 0644 "$repo/root/usr/share/gnome-shell/extensions/raccoonlauncher@shimafallah.github.io/LICENSE" "$source_root/usr/share/licenses/infinityos-shell-extensions/RaccoonLauncher-GPL-2.0"
   install -m 0644 "$repo/root/usr/share/gnome-shell/extensions/nowplay@LalaloyXyz/LICENSE" "$source_root/usr/share/licenses/infinityos-shell-extensions/NowPlay-GPL-3.0"
   install -m 0755 "$repo/root/usr/libexec/infinityos-enable-global-menu" \
@@ -139,6 +141,8 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
   install -m 0644 "$repo/root/usr/share/icons/hicolor/256x256/apps/infinityos-logo.png" \
     "$source_root/usr/share/icons/hicolor/256x256/apps/infinityos-logo.png"
   cp -a "$fedora_snapshot/glib-2.0/schemas/." \
+    "$source_root/usr/share/glib-2.0/schemas/"
+  install -m 0644 "$repo/root/usr/share/glib-2.0/schemas/org.infinityos.automount.gschema.xml" \
     "$source_root/usr/share/glib-2.0/schemas/"
   install -m 0644 "$repo/root/usr/share/infinityos/gnome-defaults" \
     "$repo/root/usr/share/infinityos/blur-defaults" \
