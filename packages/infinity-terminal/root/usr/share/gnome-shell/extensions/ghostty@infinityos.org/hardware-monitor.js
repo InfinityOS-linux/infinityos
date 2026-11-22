@@ -44,7 +44,6 @@ export class HardwareMonitor {
         Main.layoutManager.addChrome(this._menuAnchor);
         this._menu = new PopupMenu.PopupMenu(this._menuAnchor, 0, St.Side.TOP);
         Main.uiGroup.add_child(this._menu.actor);
-        Main.uiGroup.set_child_below_sibling(this._menu.actor, Main.layoutManager.screenShieldGroup);
         this._menu.actor.hide();
         this._menu.actor.add_style_class_name('infinity-monitor-menu');
         if (this._light) this._menu.actor.add_style_class_name('light');
@@ -374,6 +373,8 @@ export class HardwareMonitor {
         action(this._menu, tr('Settings / manual CPU TDP…', 'Ustawienia / ręczne TDP CPU…'), () => this._extension.openPreferences());
         action(this._menu, tr('Restore default monitors', 'Przywróć domyślne wskaźniki'), () => save(defaultMetrics));
         this._menu.open();
+        // PopupMenu.open() raises the actor to the top of its parent.
+        Main.uiGroup.set_child_below_sibling(this._menu.actor, Main.layoutManager.screenShieldGroup);
     }
 
     _menuStyle() {

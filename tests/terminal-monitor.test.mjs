@@ -126,6 +126,7 @@ test('sensor menu follows click coordinates and marks displayed, hidden and unse
     }
     const prototype = vm.runInNewContext(`${source}\nHardwareMonitor.prototype`, {
         GLib: {get_language_names: () => ['en']}, global: {get_pointer: () => [900, 120, 0]},
+        Main: {uiGroup: {set_child_below_sibling() {}}, layoutManager: {}},
         PopupMenu: {PopupMenuItem: Item, PopupSubMenuMenuItem: Item, PopupSeparatorMenuItem: Item,
             PopupSwitchMenuItem: Item, Ornament: {CHECK: 'check', DOT: 'dot', NONE: 'none'}},
         resolveMetric, formatMetric, uniqueMetrics, toggleMetric, widgetChoices: [],
