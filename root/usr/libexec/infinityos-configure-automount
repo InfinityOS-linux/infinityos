@@ -3,6 +3,7 @@
 
 from contextlib import contextmanager
 import fcntl
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -45,6 +46,21 @@ def disk_properties(device, uuid):
 
 def rule_path(uid):
     return RULE_DIR / f"49-infinityos-automount-{uid}.rules"
+
+
+def grant_marker(uid, uuid):
+    digest = hashlib.sha256(uuid.encode()).hexdigest()
+    return STATE_DIR / "automount-authorizations" / f"{uid}-{digest}"
+
+
+def has_grant(uid, uuid):
+    try:
+        grant_marker(uid, uuid).stat()
+    except FileNotFoundError:
+        return False
+    except PermissionError:
+        pass  # Let the authorized helper inspect a restricted state directory.
+    return True
 
 
 def read_grants(uid):
@@ -124,26 +140,32 @@ def change_grant(mode, device, uuid):
     user = pwd.getpwuid(uid)
     with grant_lock():
         grants = read_grants(uid)
+        marker = grant_marker(uid, uuid)
         if mode == "--allow":
             block, drive, partition = disk_properties(device, uuid)
             if not block.get("HintSystem"):
                 raise ValueError("This volume does not require system mount permission.")
             grants[uuid] = grant_identity(block, drive, partition)
+            marker.parent.mkdir(mode=0o755, exist_ok=True)
+            marker.touch(mode=0o644)
         else:
             grants.pop(uuid, None)
         write_grants(user, grants)
+        if mode == "--forget":
+            marker.unlink(missing_ok=True)
 
 
 def configure(mode, device, uuid):
     settings = Gio.Settings.new(SETTINGS)
     if not settings.is_writable("volume-uuids"):
         raise PermissionError("Automount preferences are locked.")
-    block, drive, partition = disk_properties(device, uuid)
-    if block.get("HintSystem"):
-        if mode == "enable":
+    if mode == "enable":
+        block, drive, partition = disk_properties(device, uuid)
+        if block.get("HintSystem"):
             grant_identity(block, drive, partition)
-        command = "--allow" if mode == "enable" else "--forget"
-        subprocess.run(["pkexec", __file__, command, device, uuid], check=True)
+            subprocess.run(["pkexec", __file__, "--allow", device, uuid], check=True)
+    elif has_grant(os.getuid(), uuid):
+        subprocess.run(["pkexec", __file__, "--forget", device, uuid], check=True)
     selected = [value for value in settings.get_strv("volume-uuids") if value != uuid]
     if mode == "enable":
         selected.append(uuid)

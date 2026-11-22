@@ -25,6 +25,7 @@ class AutomountAuthorizationTests(unittest.TestCase):
         with patch.dict("sys.modules", {"gi": SimpleNamespace(repository=repository), "gi.repository": repository}):
             loader.exec_module(self.helper)
         self.helper.RULE_DIR = self.rules
+        self.helper.STATE_DIR = self.rules
         self.user = SimpleNamespace(pw_uid=1000, pw_name="tester")
         self.block = {"IdUUID": "filesystem-id", "HintSystem": True}
         self.drive = {"WWN": "hardware-id", "Serial": "other-hardware-id"}
@@ -72,10 +73,22 @@ assert.equal(mount('org.freedesktop.udisks2.filesystem-mount-other-seat', 'teste
             self.helper.configure("enable", "/dev/sdb1", "filesystem-id")
             run.assert_called_once_with(["pkexec", self.helper.__file__, "--allow", "/dev/sdb1", "filesystem-id"], check=True)
             settings.set_strv.assert_called_once_with("volume-uuids", ["another-volume", "filesystem-id"])
+            marker = self.helper.grant_marker(self.helper.os.getuid(), "filesystem-id")
+            marker.parent.mkdir()
+            marker.touch()
             run.reset_mock()
             self.helper.configure("disable", "/dev/sdb1", "filesystem-id")
             run.assert_called_once_with(["pkexec", self.helper.__file__, "--forget", "/dev/sdb1", "filesystem-id"], check=True)
             settings.set_strv.assert_called_with("volume-uuids", ["another-volume"])
+
+    def test_deselecting_a_drive_from_the_original_release_needs_no_approval(self):
+        settings = self.gio.Settings.new.return_value
+        settings.is_writable.return_value = True
+        settings.get_strv.return_value = ["filesystem-id"]
+        with patch.object(self.helper.subprocess, "run") as run:
+            self.helper.configure("disable", "/dev/sdb1", "filesystem-id")
+        run.assert_not_called()
+        settings.set_strv.assert_called_once_with("volume-uuids", [])
 
     def test_an_unprotected_volume_does_not_request_administrator_approval(self):
         settings = self.gio.Settings.new.return_value
