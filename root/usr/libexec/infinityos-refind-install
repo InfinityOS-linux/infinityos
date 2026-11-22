@@ -19,15 +19,15 @@ read_esp_partition() {
 }
 
 # efibootmgr separates the human-readable label from the device path with a tab.
-# Match the HD and File nodes together so the same loader on another ESP is safe.
+# Match the HD node and its loader together so entries on other ESPs are safe.
 matching_entries() {
 	LC_ALL=C awk -F '\t' -v target="$(printf '%s' "$esp_partuuid" | tr '[:upper:]' '[:lower:]')" -v refind="$1" '
 		NF == 2 && /^Boot[[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]][* ]/ {
 			device = tolower($2)
-			if (!match(device, /(^|\/)hd\([0-9]+,(gpt|mbr),[^,]+,[^)]*\)\/file\([^)]*\)/))
+			if (!match(device, /(^|\/)hd\([0-9]+,(gpt|mbr),[^,]+,[^)]*\)\//))
 				next
-			path = substr(device, RSTART, RLENGTH)
-			hd = path
+			hd = substr(device, RSTART, RLENGTH - 1)
+			path = substr(device, RSTART + RLENGTH)
 			sub(/^\/?hd\(/, "", hd)
 			split(hd, fields, ",")
 			partuuid = fields[3]
@@ -37,8 +37,13 @@ matching_entries() {
 			}
 			if (partuuid != target)
 				next
-			sub(/^.*\/file\(/, "", path)
-			sub(/\)$/, "", path)
+			# efivar can print a bare EFI path instead of a File(...) node.
+			if (path ~ /^file\([^)]*\)/) {
+				sub(/^file\(/, "", path)
+				sub(/\).*/, "", path)
+			} else if (path !~ /^\\efi\\/) {
+				next
+			}
 			gsub(/\\/, "/", path)
 			if (refind != "") {
 				if (substr($1, 9, 1) == "*" && path == refind) {
