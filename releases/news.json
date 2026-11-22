@@ -33,7 +33,7 @@
     "changes": [
       {
         "title": "Available through InfinityUpdater",
-        "text": "The x64 and ARM64 installer images were published to Cloudflare R2. The signed fixes are available through InfinityUpdater."
+        "text": "The signed fixes are available through InfinityUpdater on x64 and ARM64. Both ISO builds succeeded and their artifacts are present, but the Cloudflare R2 publication was cancelled. These fixes are not included in the earlier Pinokio installer images."
       },
       {
         "title": "First-boot recovery and updates",
