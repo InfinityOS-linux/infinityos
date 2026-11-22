@@ -1,5 +1,34 @@
 [
   {
+    "id": "2026-11-22-efi-backups-desktop",
+    "date": "2026-11-22",
+    "title": "RPM update for boot repair, backups and desktop layouts",
+    "summary": "This update makes rEFInd repair safer on multi-disk systems, improves backup initialization, and preserves desktop icon positions through an upgrade.",
+    "buildSha": "115451b0455f538ec9f366db0b7500d7b8d26b31",
+    "changes": [
+      {
+        "title": "Available for ARM64 and x64",
+        "text": "The signed RPM update is published for both architectures. New installer images for this revision are building."
+      },
+      {
+        "title": "EFI repair on multi-disk systems",
+        "text": "rEFInd activation finds the entry for the mounted EFI partition and the expected loader. Cleanup preserves firmware entries on other EFI partitions. When the boot order is already correct, activation skips the firmware write. If the RPM database cannot be read, obsolete-loader cleanup stops."
+      },
+      {
+        "title": "First-boot backups and recovery",
+        "text": "Backup initialization waits for any boot repair scheduled in the same boot. Btrfs keeps valid root mount options when recovery switches to the default subvolume."
+      },
+      {
+        "title": "Desktop icons after upgrading",
+        "text": "An undocked first login preserves legacy icon coordinates. When the external monitor reconnects, the docked layout can use those positions."
+      },
+      {
+        "title": "Window decorations",
+        "text": "Corrected the bundled Orchis light and dark Metacity theme files so XML parsers can load them."
+      }
+    ]
+  },
+  {
     "id": "2026-11-20-rpm-firmware-boot-order",
     "date": "2026-11-20",
     "title": "RPM update: firmware boot order and repair tools",
