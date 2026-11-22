@@ -1,4 +1,3 @@
-import Atk from 'gi://Atk';
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
@@ -42,21 +41,6 @@ export default class InfinityTerminal extends Extension {
             if (this._window) this._place(this._window);
         });
         this._fullHeight = false;
-        this._indicator = new St.Button({style_class: 'panel-button', reactive: true, can_focus: true,
-            accessible_name: 'Show or hide InfinityTerminal'});
-        this._indicator.accessible_role = Atk.Role.PUSH_BUTTON;
-        this._icon = new St.Icon({
-            icon_name: 'open-menu-symbolic',
-            style_class: 'system-status-icon',
-        });
-        this._indicator.add_child(this._icon);
-        const click = new Clutter.ClickGesture();
-        click.set_recognize_on_press(true);
-        click.connect('recognize', () => this._toggle());
-        this._indicator.add_action(click);
-        // Keep this control out of the panel center box: its visibility must
-        // never change the clock's allocation. The handle positions it beside the clock.
-        Main.layoutManager.addTopChrome(this._indicator, {affectsStruts: false, trackFullscreen: true});
         this._pullHandle = new TerminalPullHandle(this);
         this._hideRequestId = this._settings.connect('changed::hide-request', () => {
             const window = this._findWindow();
@@ -111,7 +95,7 @@ export default class InfinityTerminal extends Extension {
         this._outsideClickId = global.stage.connect('captured-event', (_stage, event) => {
             const source = global.stage.get_event_actor(event);
             if (this._settings.get_boolean('pinned') || event.type() !== Clutter.EventType.BUTTON_PRESS ||
-                (source && this._indicator.contains(source)) || this._pullHandle?.contains(source) || this._hardware.contains(source))
+                this._pullHandle?.contains(source) || this._hardware.contains(source))
                 return Clutter.EVENT_PROPAGATE;
 
             const window = this._findWindow();
@@ -266,10 +250,6 @@ export default class InfinityTerminal extends Extension {
             GLib.Source.remove(this._placementId);
         this._hardware.destroy();
         this._hardware = null;
-        Main.layoutManager.removeChrome(this._indicator);
-        this._indicator.destroy();
-        this._indicator = null;
-        this._icon = null;
         this._window = null;
         this._settings = null;
     }

@@ -181,7 +181,7 @@ export default class Smoke extends Extension {
         Main.overview.hide();
         await wait();
         const terminalWindow = {minimized: true};
-        const pull = new TerminalPullHandle({_indicator: new St.Widget(), _findWindow: () => terminalWindow});
+        const pull = new TerminalPullHandle({_findWindow: () => terminalWindow});
         this._objects.push({disable: () => pull.destroy()});
         await wait();
         const primary = Main.layoutManager.primaryMonitor;

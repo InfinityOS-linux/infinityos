@@ -10,7 +10,7 @@ function fixture() {
     const cr = new Proxy({}, {get: (_, key) => (...args) => drawing.push([key, ...args])});
     const actor = {translation_y: 0, remove_all_transitions() {}, ease(values) { this.translation_y = values.translation_y; values.onComplete?.(); }};
     const window = {minimized: true, activate() {this.activated=true;}, get_frame_rect: () => ({height:500}), get_compositor_private: () => actor};
-    const terminal = {_indicator: {get_preferred_width:()=>[24,24], set_size(w,h){this.width=w;this.height=h;}, set_position(x,y){this.x=x;this.y=y;}}, _findWindow: () => window, _toggle() {toggle++;},
+    const terminal = {_findWindow: () => window, _toggle() {toggle++;},
         _showTerminal(options) {terminal.showOptions = options; shown++; window.minimized = false;}, _hide() {hidden++;},
         _monitor: () => ({height:1000,y:0}), _topInset: () => 30, _settings: {set_double(k,v) {terminal.savedHeight=v*1000;}}, _place() {}, _offscreenOffset: () => -500, _syncResizeHandle() {}};
     const Main = {panel: {...signal, statusArea: {dateMenu: {...signal, get_transformed_position: () => [662, 0], get_transformed_size: () => [100, 32]}},
@@ -84,12 +84,21 @@ test('short pull and Escape cancel; cold-start cancellation clears pending show'
     f.window.minimized=true;f.event(1,40);f.event(3,200);f.terminal._firstFrame={};f.event(4,200,1,27);
     assert.equal(f.terminal._pendingShow,false);assert(f.balanced);
 });
-test('fullscreen compacts bulge; overview and lock hide activators',()=>{
-    const f=fixture();assert(f.handle.actor.visible);assert.equal(f.terminal._indicator.visible,false);
-    f.fullscreen(true);assert(f.handle.actor.visible);assert.equal(f.handle.actor.scale_y,.5);assert(f.terminal._indicator.visible);
-    f.Main.overview.visible=true;f.handle.sync();assert.equal(f.terminal._indicator.visible,false);
-    f.fullscreen(false);assert.equal(f.handle.actor.visible,false);
-    f.Main.overview.visible=false;f.Main.sessionMode.isLocked=true;f.handle.sync();assert.equal(f.handle.actor.visible,false);
+test('fullscreen, overview and lock hide the handle and panel lines', () => {
+    const f = fixture();
+    const chrome = [f.handle.actor, f.handle.panelLine, f.handle.panelLineRight];
+    assert(chrome.every(actor => actor.visible));
+    f.fullscreen(true);
+    assert(chrome.every(actor => !actor.visible));
+    f.fullscreen(false);
+    assert(chrome.every(actor => actor.visible));
+    f.Main.overview.visible = true;
+    f.handle.sync();
+    assert(chrome.every(actor => !actor.visible));
+    f.Main.overview.visible = false;
+    f.Main.sessionMode.isLocked = true;
+    f.handle.sync();
+    assert(chrome.every(actor => !actor.visible));
 });
 test('destroy releases active pointer grab',()=>{const f=fixture();f.event(1,40);f.event(3,200);f.handle.destroy();assert(f.balanced);});
 
@@ -120,7 +129,7 @@ test('pulling an open terminal into the panel hides it without saving a tiny hei
 test('open terminal smoothly compacts bulge and restores it after minimizing',()=>{
  const f=fixture(); f.window.minimized=false; f.handle.sync();
  assert(f.handle.actor.visible); assert(f.handle.panelLine.visible); assert.equal(f.handle.actor.scale_y,.5); assert.equal(f.handle.actor.duration,180);
- f.window.minimized=true; f.handle.sync(); assert(f.handle.actor.visible); assert.equal(f.handle.actor.scale_y,1); assert.equal(f.terminal._indicator.visible,false);
+ f.window.minimized=true; f.handle.sync(); assert(f.handle.actor.visible); assert.equal(f.handle.actor.scale_y,1);
 });
 test('light mode uses dark ink and hamburger is raised three pixels',()=>{
  const f=fixture(); f.terminal.scheme='prefer-light'; f.handle.sync(); f.handle.paint();
@@ -155,16 +164,6 @@ test('title-bar maximization compacts with a panel gap and restores on unmaximiz
  assert.equal(f.handle.actor.scale_y,1);
 });
 
-
-test('fallback icon follows clock width without moving the screen-centered handle',()=>{
- const f=fixture(); f.fullscreen(true);
- assert.equal(f.terminal._indicator.x,762);
- assert.equal(f.handle.actor.x+f.handle.actor.width/2,750);
- f.Main.panel.statusArea.dateMenu.get_transformed_position=()=>[690,0];
- f.Main.panel.statusArea.dateMenu.get_transformed_size=()=>[120,32];
- f.handle.sync(); assert.equal(f.terminal._indicator.x,810);
- assert.equal(f.handle.actor.x+f.handle.actor.width/2,750);
-});
 
 test('clock correction is stable and follows text-width and allocation changes', () => {
  const f=fixture(), clock=f.Main.panel.statusArea.dateMenu;
