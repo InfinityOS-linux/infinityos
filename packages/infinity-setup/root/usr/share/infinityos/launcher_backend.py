@@ -42,6 +42,9 @@ class LocalModel(NamedTuple):
 
 CRAFT_SUITE = {"storytold/pdfcraft", "storytold/wordcraft", "storytold/gridcraft", "storytold/deckcraft"}
 
+ANTIGRAVITY_BUILD = "2.34.0-5887025308631040"
+ANTIGRAVITY_ARCH = {"x86_64": "linux-x64", "aarch64": "linux-arm"}
+ANTIGRAVITY_CLI_INSTALLER = "https://antigravity.google/cli/install.sh"
 
 LOCAL_MODELS = {
     "infinity-qwen-9b": LocalModel("hf.co/unsloth/Qwen3.5-9B-GGUF:UD-Q5_K_XL", 10),
@@ -138,6 +141,7 @@ APPS = (
     App("Programming", "Docker CE", "dnf", "docker-ce", "Run apps in isolated containers.", group="Development tools", icon="docker"),
     App("AI", "Anthropic Claude + Claude Code CLI", "npm", "@anthropic-ai/claude-code", "Use Claude in the browser and terminal.", website="https://claude.ai/", group="Assistants", icon="infinity-claude"),
     App("AI", "OpenAI Codex + Codex CLI", "npm", "@openai/codex", "Install ChatGPT desktop and Codex CLI with InfinityTerminal integration.", website="https://chatgpt.com/codex", group="Assistants", icon="infinity-codex"),
+    App("AI", "Google Antigravity + Antigravity CLI", "antigravity", "antigravity", "Install Google Antigravity desktop and the agy CLI with InfinityTerminal integration.", website="https://antigravity.google/", group="Assistants", icon="infinity-ai"),
     App("AI", "Qwen3.5 9B Q5 · 16 GB RAM", "local-model", "infinity-qwen-9b", "Run a local AI coding assistant. Needs 10 GB of disk space.", group="Local models", icon="infinity-ai"),
     App("AI", "Gemma 4 12B Q4 · 32 GB RAM", "local-model", "infinity-gemma-12b", "Run a local AI coding assistant. Needs 11 GB of disk space.", group="Local models", icon="infinity-ai"),
     App("AI", "Qwen3.5 35B A3B Q5 · 64 GB RAM", "local-model", "infinity-qwen-35b", "Run a local AI coding assistant. Needs 30 GB of disk space.", group="Local models", icon="infinity-ai"),
@@ -153,6 +157,8 @@ APPS = (
 def available(app, arch=None):
     if app.source == "com.valvesoftware.Steam":
         return (arch or os.uname().machine) in ("x86_64", "aarch64")
+    if app.kind == "antigravity":
+        return (arch or os.uname().machine) in ANTIGRAVITY_ARCH
     return not app.x86_only or (arch or os.uname().machine) == "x86_64"
 
 
@@ -200,17 +206,11 @@ def downloaded_local_models():
 
 
 def configured_apps(home=None, models=()):
-    """Active selection and downloaded weights are independent state."""
+    """Offer models to download here. InfinityConfig manages downloaded models."""
     model = active_local_model(home)
-    custom = ()
-    if model and model not in LOCAL_MODELS:
-        custom = (App("AI", model, "local-model", model,
-                      "Manage this model in InfinityConfig.", group="Active custom model", icon="infinity-ai"),)
-    known = {name.removesuffix(":latest") for name in (*LOCAL_MODELS, model or "")}
-    downloaded = tuple(App("AI", name, "local-model", name,
-                           "Manage this model in InfinityConfig.", group="Downloaded models", icon="infinity-ai")
-                       for name in sorted(set(models)) if name.removesuffix(":latest") not in known)
-    return (*custom, *APPS, *downloaded)
+    downloaded = {name.removesuffix(":latest") for name in (*models, model or "")}
+    return tuple(app for app in APPS if app.kind != "local-model" or
+                 downloaded.isdisjoint((app.source, LOCAL_MODELS[app.source].remote)))
 
 
 def deactivate_local_model(home=None):
@@ -310,6 +310,9 @@ def installed(app, home=None, flatpak_ids=None, rpm_names=None, model_names=None
     if app.kind == "github-appimage":
         binary, desktop = appimage_paths(app, home)
         return binary.is_file() and desktop.is_file()
+    if app.kind == "antigravity":
+        binary, desktop = antigravity_paths(home)
+        return binary.is_file() and desktop.is_file() and antigravity_cli_present(home)
     if app.kind == "local-model":
         if model_names is not None:
             return app.source.removesuffix(":latest") in {name.removesuffix(":latest") for name in model_names}
@@ -745,6 +748,73 @@ def _install_github_appimage(app, home):
     )
 
 
+def antigravity_paths(home):
+    return (home / ".local/opt/infinityos-antigravity" / ANTIGRAVITY_BUILD / "Antigravity",
+            home / ".local/share/applications/infinityos-antigravity.desktop")
+
+
+def antigravity_cli_present(home):
+    binary = home / ".local/bin/agy"
+    return binary.is_file() and os.access(binary, os.X_OK)
+
+
+def _install_antigravity(home):
+    architecture = ANTIGRAVITY_ARCH.get(os.uname().machine)
+    if not architecture:
+        raise RuntimeError("Google Antigravity requires x64 or ARM64.")
+    binary, desktop = antigravity_paths(home)
+    install_dir = binary.parent
+    install_dir.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".install-", dir=install_dir.parent) as temporary:
+        temporary = Path(temporary)
+        if not binary.is_file():
+            archive = temporary / "Antigravity.tar.gz"
+            url = ("https://storage.googleapis.com/antigravity-public/antigravity-hub/"
+                   f"{ANTIGRAVITY_BUILD}/{architecture}/Antigravity.tar.gz")
+            _run(["curl", "--fail", "--silent", "--show-error", "--location", "--proto-redir", "=https",
+                  "--output", str(archive), url])
+            payload = temporary / "payload"
+            payload.mkdir()
+            with tarfile.open(archive, "r:gz") as source:
+                source.extractall(payload, filter="data")
+            if not (payload / binary.name).is_file():
+                candidates = [path for path in payload.iterdir()
+                              if path.is_dir() and (path / binary.name).is_file()]
+                if len(candidates) != 1:
+                    raise RuntimeError("The Antigravity desktop archive is missing its launcher.")
+                payload = candidates[0]
+            if (payload / binary.name).is_symlink() or not os.access(payload / binary.name, os.X_OK):
+                raise RuntimeError("The Antigravity desktop launcher is not executable.")
+            if not install_dir.exists():
+                payload.rename(install_dir)
+            if not binary.is_file():
+                raise RuntimeError("The Antigravity desktop installation is incomplete.")
+        if not antigravity_cli_present(home):
+            script = temporary / "install-agy.sh"
+            _run(["curl", "--fail", "--silent", "--show-error", "--location", "--proto-redir", "=https", "--output", str(script),
+                  ANTIGRAVITY_CLI_INSTALLER])
+            _run(["bash", str(script)])
+            if not antigravity_cli_present(home):
+                raise RuntimeError("The Antigravity CLI installer did not install agy.")
+    desktop.parent.mkdir(parents=True, exist_ok=True)
+    executable = str(binary).replace("%", "%%")
+    for character in ('\\', '"', '$', '`'):
+        executable = executable.replace(character, '\\' + character)
+    executable = executable.replace('\\', '\\\\')
+    desktop.write_text(
+        "[Desktop Entry]\nType=Application\nName=Google Antigravity\n"
+        f'Exec="{executable}"\nIcon=applications-development\nTerminal=false\nCategories=Development;\n',
+        encoding="utf-8",
+    )
+    _refresh_cli_tabs()
+
+
+def _refresh_cli_tabs():
+    if shutil.which("gapplication"):
+        subprocess.run(["gapplication", "action", "com.infinityos.GhosTTY", "refresh-cli-tabs"],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+
+
 def _install_steam_rpm(app):
     packages = ["steam", "mesa-dri-drivers.x86_64", "mesa-dri-drivers.i686",
                 "mesa-vulkan-drivers-freeworld.x86_64", "mesa-vulkan-drivers-freeworld.i686",
@@ -789,6 +859,8 @@ def install(app, home=None, *, defer_system_dependencies=False):
             _run(["pkexec", *command] if scope == "--system" else command)
     elif app.kind == "local-model":
         _install_local_model(app, home)
+    elif app.kind == "antigravity":
+        _install_antigravity(home)
     elif app.kind == "epic-native":
         _install_epic_native(app, home)
     elif app.kind == "github-appimage":
@@ -852,11 +924,7 @@ def install(app, home=None, *, defer_system_dependencies=False):
             "Icon=web-browser\nCategories=Network;\n",
             encoding="utf-8",
         )
-        if shutil.which("gapplication"):
-            subprocess.run(
-                ["gapplication", "action", "com.infinityos.GhosTTY", "refresh-cli-tabs"],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
-            )
+        _refresh_cli_tabs()
     else:
         raise ValueError(f"No installation source for {app.name}.")
 

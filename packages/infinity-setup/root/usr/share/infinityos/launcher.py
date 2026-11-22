@@ -18,6 +18,11 @@ from launcher_backend import (APPS, CRAFT_SUITE, active_local_model, configured_
 from launcher_i18n import tr
 from launcher_tv import enabled as tv_enabled, set_enabled as set_tv_enabled
 
+try:
+    from panel_backdrop import PanelBackdrop
+except ImportError:
+    PanelBackdrop = None
+
 
 MARKER = Path.home() / ".config/infinityos/launcher-complete"
 ICON_DIR = Path("/usr/share/infinityos/launcher-icons")
@@ -164,6 +169,8 @@ class InfinitySetup(Gtk.Application):
         self.window = Gtk.ApplicationWindow(application=self, title="InfinitySetup")
         self.window.set_decorated(False)
         self.window.add_css_class("infinity-window")
+        if PanelBackdrop:
+            PanelBackdrop(self.window, "SetupReady")
         self.color_settings = Gio.Settings.new("org.gnome.desktop.interface")
         self.color_settings.connect("changed::color-scheme", self._sync_color_scheme)
         self._sync_color_scheme()
@@ -171,7 +178,7 @@ class InfinitySetup(Gtk.Application):
         self.window.maximize()
 
         css = Gtk.CssProvider()
-        css.load_from_data(CSS)
+        css.load_from_data(CSS + (PanelBackdrop.CSS if PanelBackdrop else b""))
         Gtk.StyleContext.add_provider_for_display(
             self.window.get_display(), css, Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)
 
@@ -334,7 +341,7 @@ class InfinitySetup(Gtk.Application):
             GLib.idle_add(self._apply_ai_refresh, models)
         threading.Thread(target=work, daemon=True).start()
 
-    def _apply_ai_refresh(self, models):
+    def _apply_ai_refresh(self, models, keep_pending=False):
         self.refreshing_ai = False
         if self.closing or self.window is None or self.busy:
             return False
@@ -345,8 +352,13 @@ class InfinitySetup(Gtk.Application):
             return
         visible = self.stack.get_visible_child_name()
         old = self.stack.get_child_by_name("ai")
+        pending = {}
         for app in list(self.switches):
             if app.category == "AI":
+                if keep_pending:
+                    selected = self.switches[app].get_active()
+                    if selected != self.initial_active[app]:
+                        pending[app] = selected
                 del self.switches[app], self.initial_active[app], self.notes[app]
                 if hasattr(self, "rows"):
                     self.rows.pop(app, None)
@@ -357,9 +369,13 @@ class InfinitySetup(Gtk.Application):
         self.stack.remove(old)
         description = next(description for section, _icon, description in SECTIONS if section == "AI")
         self.stack.add_named(self._page("AI", description), "ai")
+        for app, selected in pending.items():
+            if app in self.switches:
+                self.switches[app].set_active(selected)
         self.stack.set_visible_child_name(visible)
         self.ai_selection = selection
-        self.status.set_text(tr("AI changed in InfinityConfig. Review your selection again."))
+        if not keep_pending:
+            self.status.set_text(tr("AI changed in InfinityConfig. Review your selection again."))
         return False
 
     def _sync_color_scheme(self, *_args):
@@ -753,6 +769,8 @@ class InfinitySetup(Gtk.Application):
         if hasattr(self, "catalog_status") and (app.kind != "local-model" or enabled):
             # Deactivation keeps the downloaded model on disk.
             self.catalog_status[app] = enabled
+        if enabled and app.kind == "local-model" and hasattr(self, "ai_models"):
+            self.ai_models = (*self.ai_models, app.source)
         return False
 
     def _finished(self, errors, steam_tv_installed=False):
@@ -774,6 +792,8 @@ class InfinitySetup(Gtk.Application):
             button.set_sensitive(available(app))
         self.save_button.set_label(tr("Retry pending changes") if errors else tr("Apply"))
         self.save_button.set_sensitive(True)
+        if hasattr(self, "ai_selection") and self.ai_models != self.ai_selection[2]:
+            self._apply_ai_refresh(self.ai_models, keep_pending=True)
         if errors:
             self.status.set_text(tr("Could not apply changes:\n") + "\n".join(errors))
         else:

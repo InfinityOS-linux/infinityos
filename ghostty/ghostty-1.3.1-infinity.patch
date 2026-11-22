@@ -39,7 +39,7 @@ diff --git a/src/apprt/gtk/class/application.zig b/src/apprt/gtk/class/applicati
 +            const window = gobject.ext.cast(Window, gtk_window) orelse continue;
 +            window.ensureInfinityCliTabs();
 +        }
-@@ -2277,6 +2312,36 @@
+@@ -2277,6 +2312,44 @@
 -        // Create a new tab with window context (first tab in new window)
 -        win.newTabForWindow(parent, .{
 -            .command = overrides.command,
@@ -73,6 +73,14 @@ diff --git a/src/apprt/gtk/class/application.zig b/src/apprt/gtk/class/applicati
 +                });
 +                first = false;
 +            }
++            if (infinityCliInstalled("agy")) {
++                win.newTabForWindow(if (first) parent else null, .{
++                    .command = .{ .shell = "zsh -ic 'export PATH=\"$HOME/.local/bin:$PATH\"; agy; exec zsh'" },
++                    .title = "Antigravity CLI",
++                    .pinned = true,
++                });
++                first = false;
++            }
 +            // Keep one shell tab available even when CLI tabs are present.
 +            win.newTabForWindow(if (first) parent else null, .{ .pinned = true });
 +        } else {
@@ -88,31 +96,35 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 @@ -24,0 +25,2 @@
 +const infinityCliInstalled = @import("application.zig").infinityCliInstalled;
 +const infinityLocalAiAvailable = @import("application.zig").infinityLocalAiAvailable;
-@@ -257,0 +260,3 @@
+@@ -257,0 +260,4 @@
 +        local_ai_page: ?*adw.TabPage = null,
 +        codex_page: ?*adw.TabPage = null,
 +        claude_page: ?*adw.TabPage = null,
-@@ -359,0 +365,3 @@
++        antigravity_page: ?*adw.TabPage = null,
+@@ -359,0 +366,3 @@
 +            .init("close-context-tab", actionCloseContextTab, null),
 +            .init("yolo-mode", actionYoloMode, null),
 +            .init("local-ai-edit", actionLocalAiEdit, null),
-@@ -400,0 +409 @@
+@@ -400,0 +410 @@
 +            pinned: bool = false,
-@@ -411,0 +421 @@
+@@ -411,0 +422 @@
 +                .pinned = overrides.pinned,
-@@ -423,0 +434 @@
+@@ -423,0 +435 @@
 +            pinned: bool = false,
-@@ -467 +478,8 @@
+@@ -467 +479,11 @@
 -        const page = tab_view.insert(tab.as(gtk.Widget), position);
 +        const pin_position = if (overrides.title) |title|
-+            if (std.mem.eql(u8, title, "Infinity AI")) 0 else if (std.mem.eql(u8, title, "Codex CLI")) @min(1, tab_view.getNPinnedPages()) else if (std.mem.eql(u8, title, "Claude CLI")) @min(2, tab_view.getNPinnedPages()) else tab_view.getNPinnedPages()
++            if (std.mem.eql(u8, title, "Infinity AI")) 0 else if (std.mem.eql(u8, title, "Codex CLI")) @min(1, tab_view.getNPinnedPages()) else if (std.mem.eql(u8, title, "Claude CLI")) @min(2, tab_view.getNPinnedPages()) else if (std.mem.eql(u8, title, "Antigravity CLI"))
++                @min(tab_view.getNPinnedPages(), @as(c_int, @intFromBool(priv.local_ai_page != null)) +
++                    @as(c_int, @intFromBool(priv.codex_page != null)) + @as(c_int, @intFromBool(priv.claude_page != null)))
++            else tab_view.getNPinnedPages()
 +        else
 +            tab_view.getNPinnedPages();
 +        const page = if (overrides.pinned and self.isInfinity())
 +            tab_view.insertPinned(tab.as(gtk.Widget), pin_position)
 +        else
 +            tab_view.insert(tab.as(gtk.Widget), position);
-@@ -468,0 +487,22 @@
+@@ -468,0 +491,25 @@
 +
 +        if (self.isInfinity()) {
 +            if (overrides.title) |title| {
@@ -125,6 +137,9 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +                } else if (std.mem.eql(u8, title, "Claude CLI")) icon: {
 +                    priv.claude_page = page;
 +                    break :icon "infinity-claude";
++                } else if (std.mem.eql(u8, title, "Antigravity CLI")) icon: {
++                    priv.antigravity_page = page;
++                    break :icon "applications-development-symbolic";
 +                } else if (std.mem.endsWith(u8, title, "YOLO")) "infinity-yolo-red" else null;
 +                if (icon_name) |name| {
 +                    tab.as(gtk.Widget).addCssClass("infinity-ai-tab");
@@ -135,9 +150,9 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +                if (std.mem.endsWith(u8, title, "YOLO") or std.mem.endsWith(u8, title, "EDIT")) page.setNeedsAttention(1);
 +            }
 +        }
-@@ -584,0 +625 @@
+@@ -584,0 +632 @@
 +        if (self.isInfinity() and page.getPinned() != 0) return false;
-@@ -614,0 +656,31 @@
+@@ -614,0 +663,38 @@
 +    }
 +
 +    fn isInfinity(self: *Self) bool {
@@ -169,17 +184,24 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +                .pinned = true,
 +            });
 +        }
-@@ -1366,0 +1439,4 @@
++        if (priv.antigravity_page == null and infinityCliInstalled("agy")) {
++            self.newTabForWindow(null, .{
++                .command = .{ .shell = "zsh -ic 'export PATH=\"$HOME/.local/bin:$PATH\"; agy; exec zsh'" },
++                .title = "Antigravity CLI",
++                .pinned = true,
++            });
++        }
+@@ -1366,0 +1453,4 @@
 +        if (self.isInfinity()) {
 +            self.as(gtk.Window).minimize();
 +            return @intFromBool(true);
 +        }
-@@ -1427,0 +1504,4 @@
+@@ -1427,0 +1518,4 @@
 +        if (self.isInfinity() and page.getPinned() != 0) {
 +            priv.tab_view.closePageFinish(page, @intFromBool(false));
 +            return @intFromBool(true);
 +        }
-@@ -1605 +1685,14 @@
+@@ -1605 +1699,14 @@
 -        self.private().context_menu_page = page;
 +        const priv = self.private();
 +        priv.context_menu_page = page;
@@ -195,7 +217,7 @@ diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
 +            action_map.lookupAction("close-context-tab") orelse return) orelse return;
 +        close_action.setEnabled(@intFromBool(page != null and page.?.getPinned() == 0 and
 +            page.?.getChild().hasCssClass("infinity-ai-tab") == 0));
-@@ -1859,0 +1953,43 @@
+@@ -1859,0 +1967,43 @@
 +    }
 +
 +    fn actionCloseContextTab(

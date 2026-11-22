@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import selectors
+import shutil
 import subprocess
 import time
 import uuid
@@ -97,14 +98,18 @@ def provider_status(provider):
 
 def local_status(home=None):
     home = Path(home or Path.home())
-    model = active_local_model(home)
+    active = active_local_model(home)
+    models = downloaded_local_models()
+    model = active or next(iter(models), None)
+    if model is None:
+        raise RuntimeError("No downloaded local models")
     details = ollama('show', {'model': model})
     parameters = {}
     for line in details.get('parameters', '').splitlines():
         fields = line.split()
         if len(fields) == 2:
             parameters[fields[0]] = fields[1]
-    return {'model': model, 'models': downloaded_local_models(),
+    return {'model': model, 'models': models, 'active': active,
             'context': int(parameters.get('num_ctx', 65536)),
             'output': max(1, int(parameters.get('num_predict', 8192))),
             'temperature': float(parameters.get('temperature', 0.8))}
@@ -115,17 +120,21 @@ def select_local(model, context, output, temperature, home=None):
         raise ValueError('Invalid model settings')
     home = Path(home or Path.home())
     marker = home / '.config/infinityos/local-ai-model'
-    previous = marker.read_text()  # Never enable AI that Setup has disabled.
+    previous = active_local_model(home)
     ollama('show', {'model': model})
     # A new alias preserves the working model if creation or selection fails.
     alias = f'infinity-config-{os.getuid()}-{uuid.uuid4().hex}'
     ollama('create', {'model': alias, 'from': model, 'stream': False,
                      'parameters': {'num_ctx': context, 'num_predict': output, 'temperature': temperature}}, timeout=300)
-    if not marker.exists() or marker.read_text() != previous:
-        raise RuntimeError('AI selection changed in InfinitySetup')
+    if active_local_model(home) != previous:
+        raise RuntimeError('The local AI selection changed while saving')
+    marker.parent.mkdir(parents=True, exist_ok=True)
     temporary = marker.with_suffix('.config-tmp')
     temporary.write_text(alias + '\n')
     temporary.replace(marker)
+    if previous is None and shutil.which("gapplication"):
+        subprocess.run(["gapplication", "action", "com.infinityos.GhosTTY", "refresh-cli-tabs"],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
 
 
 def import_model(filename):

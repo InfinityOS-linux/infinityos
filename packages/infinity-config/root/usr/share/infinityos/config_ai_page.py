@@ -6,8 +6,8 @@ import threading
 import shutil
 
 from gi.repository import GLib, Gtk
-from config_ai import (selected_ai, provider_status, provider_command, local_status,
-                       select_local, import_model)
+from config_ai import (active_local_model, downloaded_local_models, selected_ai, provider_status,
+                       provider_command, local_status, select_local, import_model)
 from config_ai_i18n import tr
 
 STORAGE = '/usr/libexec/infinity-ai-storage'
@@ -29,6 +29,9 @@ class AiPage:
         self.app = app
         self.selection = None
         self.local_model = None
+        self.has_downloads = False
+        self.checking_downloads = False
+        self.alive = True
         self.busy = False
         self.generation = 0
         self.tab = Gtk.ToggleButton(hexpand=True)
@@ -53,16 +56,23 @@ class AiPage:
         self.timer = GLib.timeout_add_seconds(2, self.poll)
 
     def close(self, *_args):
+        self.alive = False
         GLib.source_remove(self.timer)
         self.generation += 1
         return False
 
-    def poll(self):
+    def poll(self, check_downloads=True):
         try:
             selection = selected_ai()
-            local_model = (Path.home() / '.config/infinityos/local-ai-model').read_text() if 'local' in selection else None
+            local_model = active_local_model() if 'local' in selection else None
         except OSError:
             return True
+        if 'local' not in selection:
+            if check_downloads and not self.checking_downloads:
+                self.checking_downloads = True
+                threading.Thread(target=self._check_downloads, daemon=True).start()
+            if self.has_downloads:
+                selection = (*selection, 'local')
         self.tab.set_visible(bool(selection))
         if not selection and self.tab.get_active():
             self.group.set_active(True)
@@ -71,6 +81,20 @@ class AiPage:
             self.local_model = local_model
             self.refresh()
         return True
+
+    def _check_downloads(self):
+        try:
+            available = bool(downloaded_local_models())
+        except (OSError, ValueError, KeyError, RuntimeError):
+            available = None
+        GLib.idle_add(self._download_status, available)
+
+    def _download_status(self, available):
+        self.checking_downloads = False
+        if self.alive and available is not None and available != self.has_downloads:
+            self.has_downloads = available
+            self.poll(check_downloads=False)
+        return False
 
     def job(self, work, done):
         if self.busy:
@@ -215,6 +239,8 @@ class AiPage:
         dropdown = Gtk.DropDown.new_from_strings(names)
         if imported in names:
             dropdown.set_selected(names.index(imported))
+        if data.get('active', data['model']) is None:
+            card.append(text(tr('Downloaded models are available. Apply settings to select one.')))
         card.append(text(tr('Model')))
         card.append(dropdown)
         controls = []

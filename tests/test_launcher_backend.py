@@ -751,26 +751,62 @@ class LauncherBackendTests(unittest.TestCase):
                     backend.install(app, home)
             self.assertEqual(config.read_text(), "infinity-gemma-12b\n")
 
-    def test_downloaded_custom_models_remain_listed_without_active_ai(self):
+    def test_setup_hides_downloaded_models_but_offers_other_curated_downloads(self):
         with tempfile.TemporaryDirectory() as home:
-            apps = backend.configured_apps(home, ('custom:q4', 'infinity-qwen-9b:latest'))
-            custom = next(a for a in apps if a.source == 'custom:q4')
-            self.assertEqual(custom.group, 'Downloaded models')
-            self.assertEqual(sum(a.source.startswith('infinity-qwen-9b') for a in apps), 1)
+            apps = backend.configured_apps(home, ('custom:q4', 'infinity-qwen-9b:latest',
+                backend.LOCAL_MODELS["infinity-gemma-12b"].remote))
+            self.assertEqual([a.source for a in apps if a.kind == "local-model"], ["infinity-qwen-35b"])
             self.assertIsNone(backend.active_local_model(home))
 
-    def test_custom_config_model_remains_available_for_removal_in_setup(self):
+    def test_active_config_model_is_absent_from_setup_even_without_model_inventory(self):
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
             marker = home / ".config/infinityos/local-ai-model"
             marker.parent.mkdir(parents=True)
+            marker.write_text("infinity-qwen-9b:latest")
+            self.assertNotIn("infinity-qwen-9b", {app.source for app in backend.configured_apps(home)})
             marker.write_text("infinity-config-1000")
-            apps = backend.configured_apps(home)
-            custom = next(app for app in apps if app.source == "infinity-config-1000")
-            self.assertEqual(custom.kind, "local-model")
-            with patch.object(backend.shutil, "which", return_value=None):
-                backend.deactivate_local_model(home)
             self.assertEqual(backend.configured_apps(home), backend.APPS)
+
+    def test_antigravity_installs_both_clients_and_refreshes_terminal(self):
+        app = next(app for app in backend.APPS if app.kind == "antigravity")
+        self.assertFalse(backend.available(app, "ppc64le"))
+        for arch, archive_arch in (("x86_64", "linux-x64"), ("aarch64", "linux-arm")):
+            with self.subTest(arch=arch), tempfile.TemporaryDirectory(prefix="antigravity home ") as directory:
+                home = Path(directory)
+                binary, desktop = backend.antigravity_paths(home)
+                cli = home / ".local/bin/agy"
+                self.assertTrue(backend.available(app, arch))
+
+                def run(command):
+                    if command[0] == "bash":
+                        cli.parent.mkdir(parents=True)
+                        cli.write_text("#!/bin/sh\n")
+                        cli.chmod(0o755)
+                        return
+                    target = Path(command[command.index("--output") + 1])
+                    if command[-1] == backend.ANTIGRAVITY_CLI_INSTALLER:
+                        target.write_text("#!/bin/sh\n")
+                    else:
+                        self.assertTrue(command[-1].endswith(f"/{archive_arch}/Antigravity.tar.gz"))
+                        with tarfile.open(target, "w:gz") as archive:
+                            member = tarfile.TarInfo("Antigravity-linux/Antigravity")
+                            member.mode = 0o755
+                            member.size = 1
+                            archive.addfile(member, io.BytesIO(b"X"))
+
+                with patch.object(backend.os, "uname", return_value=SimpleNamespace(machine=arch)), \
+                     patch.object(backend, "_run", side_effect=run) as commands, \
+                     patch.object(backend, "_refresh_cli_tabs") as refresh:
+                    self.assertFalse(backend.installed(app, home))
+                    backend.install(app, home)
+                    self.assertTrue(backend.installed(app, home))
+                    self.assertIn(f'Exec="{binary}"', desktop.read_text())
+                    self.assertEqual([call.args[0][0] for call in commands.call_args_list], ["curl", "curl", "bash"])
+                    refresh.assert_called_once_with()
+                    commands.reset_mock()
+                    backend.install(app, home)
+                    commands.assert_not_called()
 
     def test_craft_member_removal_never_requests_other_packages(self):
         for app in (a for a in backend.APPS if a.source in backend.CRAFT_SUITE):

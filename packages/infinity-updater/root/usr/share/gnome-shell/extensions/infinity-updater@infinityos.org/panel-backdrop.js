@@ -4,8 +4,11 @@ import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 const LAYERS = new Set(['wackPanelBackdrop', 'wackPanelBackdropOverlay', 'wackPanelProximityOverlay']);
+const READY_PROPERTIES = ['Ready', 'SetupReady', 'ConfigReady'];
 const BACKDROP_INTERFACE = `<node><interface name="org.infinityos.UpdaterBackdrop">
     <property name="Ready" type="b" access="read"/>
+    <property name="SetupReady" type="b" access="read"/>
+    <property name="ConfigReady" type="b" access="read"/>
 </interface></node>`;
 
 function backgroundStyle(actor) {
@@ -20,7 +23,7 @@ function backgroundStyle(actor) {
 export class PanelBackdrop {
     constructor() {
         this._entries = new Map();
-        this._ready = false;
+        this._ready = new Set();
         this._bus = Gio.DBusExportedObject.wrapJSObject(BACKDROP_INTERFACE, this);
         this._bus.export(Gio.DBus.session, '/org/infinityos/UpdaterBackdrop');
         this._settings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
@@ -28,17 +31,23 @@ export class PanelBackdrop {
         this._extensionId = Main.extensionManager.connect('extension-state-changed', () => this.syncAll());
     }
 
-    get Ready() { return this._ready; }
+    get Ready() { return this._ready.has('Ready'); }
+    get SetupReady() { return this._ready.has('SetupReady'); }
+    get ConfigReady() { return this._ready.has('ConfigReady'); }
 
     syncReady() {
-        const ready = [...this._entries.values()].some(entry =>
-            entry.backdrop && !entry.backdrop.destroyed);
-        if (ready === this._ready) return;
+        const ready = new Set([...this._entries.values()]
+            .filter(entry => entry.backdrop && !entry.backdrop.destroyed)
+            .map(entry => entry.readyProperty));
+        const previous = this._ready;
         this._ready = ready;
-        this._bus.emit_property_changed('Ready', new GLib.Variant('b', ready));
+        for (const property of READY_PROPERTIES) {
+            if (ready.has(property) !== previous.has(property))
+                this._bus.emit_property_changed(property, new GLib.Variant('b', ready.has(property)));
+        }
     }
 
-    attach(window) {
+    attach(window, readyProperty = 'Ready') {
         const actor = window.get_compositor_private();
         if (!actor) return;
         const old = this._entries.get(window);
@@ -49,7 +58,7 @@ export class PanelBackdrop {
         actor.insert_child_at_index(container, 0);
         const tint = new St.Widget({reactive: false});
         container.add_child(tint);
-        const entry = {actor, container, tint, layers: [], signals: []};
+        const entry = {actor, container, tint, layers: [], signals: [], readyProperty};
         this._entries.set(window, entry);
         for (const signal of ['position-changed', 'size-changed'])
             entry.signals.push([window, window.connect(signal, () => this.sync(window))]);

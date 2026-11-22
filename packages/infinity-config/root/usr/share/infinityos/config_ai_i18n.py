@@ -8,6 +8,8 @@ POLISH = {
 
     'Wait for the current AI operation to finish.': 'Poczekaj na zakończenie bieżącej operacji AI.',
     'Accounts and local models': 'Konta i modele lokalne',
+    'Downloaded models are available. Apply settings to select one.':
+        'Pobrane modele są dostępne. Zastosuj ustawienia, aby wybrać model.',
     'Refresh': 'Odśwież', 'Sign in': 'Zaloguj', 'Sign out': 'Wyloguj',
     'Provider usage': 'Zużycie u dostawcy', 'Not signed in': 'Nie zalogowano',
     'Signed in as: {account}': 'Zalogowano jako: {account}',

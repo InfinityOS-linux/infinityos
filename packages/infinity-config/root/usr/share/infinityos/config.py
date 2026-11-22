@@ -22,6 +22,11 @@ from config_proton_page import ProtonPage
 from config_backups_page import BackupsPage
 from config_backups_i18n import tr as backups_tr
 
+try:
+    from panel_backdrop import PanelBackdrop
+except ImportError:
+    PanelBackdrop = None
+
 
 CSS = b"""
 window.infinity-window { background: transparent; }
@@ -124,12 +129,14 @@ class InfinityConfig(Gtk.Application):
         self.window = Gtk.ApplicationWindow(application=self, title="Infinity Config")
         self.window.set_decorated(False)
         self.window.add_css_class("infinity-window")
+        if PanelBackdrop:
+            PanelBackdrop(self.window, "ConfigReady")
         self.color_settings = Gio.Settings.new("org.gnome.desktop.interface")
         self.color_settings.connect("changed::color-scheme", self._sync_color_scheme)
         self._sync_color_scheme()
         self.window.maximize()
         css = Gtk.CssProvider()
-        css.load_from_data(CSS)
+        css.load_from_data(CSS + (PanelBackdrop.CSS if PanelBackdrop else b""))
         Gtk.StyleContext.add_provider_for_display(
             self.window.get_display(), css, Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)
 
