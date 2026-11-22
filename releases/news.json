@@ -1,5 +1,30 @@
 [
   {
+    "id": "2026-11-22-pinokio-desktop-automount",
+    "date": "2026-11-22",
+    "title": "Pinokio, desktop shortcuts and drive Automount",
+    "summary": "InfinityApps adds Pinokio, the Infinity logo opens the app grid, and Nautilus can remember which drives to mount when you sign in.",
+    "buildSha": "58324653272bbaa8a1ed52b6c3260024a882f31f",
+    "changes": [
+      {
+        "title": "Release availability",
+        "text": "The signed update is available through InfinityUpdater for x64 and ARM64. Refreshed installer images are building."
+      },
+      {
+        "title": "Pinokio in InfinityApps",
+        "text": "Find Pinokio at the bottom of the AI tab with its official icon and download link. InfinityApps verifies the native RPM before installing it."
+      },
+      {
+        "title": "App grid and keyboard shortcuts",
+        "text": "Click the Infinity logo to open the app grid. Super+D shows the desktop and restores windows when pressed again. Super+E opens your Home folder in Nautilus."
+      },
+      {
+        "title": "Nautilus drive Automount",
+        "text": "Right-click a local volume in Nautilus and select Automount. Chosen volumes mount in the background at sign-in or when reconnected. Unavailable and ambiguous volumes are skipped, and a slow mount request times out without holding up the desktop."
+      }
+    ]
+  },
+  {
     "id": "2026-11-22-efi-path-compatibility",
     "date": "2026-11-22",
     "title": "Installer fix for rEFInd boot entries",
@@ -497,7 +522,7 @@
       },
       {
         "title": "InfinityApps and InfinityConfig",
-        "text": "Setup opens on the System tab and searches across categories. Config's unused search bar was removed. Both apps have their own icons, and grouped setup changes need one administrator authorization."
+        "text": "InfinityApps opens on the System tab and searches across categories. Config's unused search bar was removed. Both apps have their own icons, and grouped setup changes need one administrator authorization."
       },
       {
         "title": "InfinityTerminal",
