@@ -175,7 +175,38 @@ export default class Smoke extends Extension {
         const [lastX] = last.get_transformed_position();
         const [lastWidth] = last.get_transformed_size();
         check(Math.abs((left + lastX + lastWidth) / 2 - 640) < 2, 'monitor row is not centered');
-        monitor._openMenu(-1); check(monitor.menuOpen, 'monitor menu failed'); monitor._menu.close();
+        monitor._openMenu(-1); check(monitor.menuOpen, 'monitor menu failed');
+        const shield = Main.layoutManager.screenShieldGroup;
+        const chrome = Main.uiGroup.get_children();
+        check(chrome.indexOf(monitor.actor) < chrome.indexOf(shield), 'widget strip is stacked above the screen shield');
+        check(chrome.indexOf(monitor._menu.actor) < chrome.indexOf(shield), 'widget menu is stacked above the screen shield');
+        const windowActor = new St.Widget({width: 1, height: 1});
+        Main.uiGroup.add_child(windowActor);
+        const rect = {x: 0, y: 150, width: 1280, height: 500};
+        const tracked = {minimized: false, get_compositor_private: () => windowActor,
+            showing_on_its_workspace: () => true, get_frame_rect: () => rect};
+        terminalController._window = tracked;
+        terminalController._resizeHandle = new St.Widget();
+        terminalController._hardware = monitor;
+        try {
+            shield.show();
+            terminalController._syncResizeHandle();
+            check(!monitor.actor.visible && !monitor._menu.actor.visible, 'terminal widgets visible on the screen shield');
+            shield.hide();
+            terminalController._syncResizeHandle();
+            check(monitor.actor.visible, 'widgets did not return to the open terminal');
+            tracked.minimized = true;
+            terminalController._syncResizeHandle();
+            check(windowActor.mapped && !monitor.actor.visible, 'mapped but minimized terminal still shows widgets');
+        } finally {
+            shield.hide();
+            terminalController._window = null;
+            terminalController._hardware = null;
+            terminalController._resizeHandle.destroy();
+            terminalController._resizeHandle = null;
+            windowActor.destroy();
+            monitor.sync(rect, true);
+        }
         monitor._widgets.stopwatch.toggle(); monitor._widgets.toggleTimer('widget:timer');
         const iface = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
         Main.overview.hide();

@@ -25,7 +25,8 @@ function startup(username, initial = 0, fail = false) {
         GLib: {get_user_name: () => username},
         Gio: {icon_new_for_string: path => ({path}), Settings: class {}, Subprocess: {new() { starts++; return {wait_check_async(_cancel, done) {done({wait_check_finish() {if (fail) throw new Error("service failed");}}, {});}}; }}, SubprocessFlags: {}},
         Shell: {App: class {}, AppSystem, ActionMode: {}}, Workspace: {Workspace},
-        Main: {notifyError() {errors++;}, layoutManager: {addChrome() {}, addTopChrome() {}}, overview: new Widget(), panel: {addToStatusArea() {}}, wm: {addKeybinding() {}}},
+        Main: {notifyError() {errors++;}, layoutManager: {addChrome() {}, addTopChrome() {}, screenShieldGroup: new Widget()},
+            overview: new Widget(), sessionMode: new Widget(), panel: {addToStatusArea() {}}, wm: {addKeybinding() {}}},
         global: {stage: new Widget(), display: new Widget(), get_window_actors: () => []},
     });
     vm.runInContext(source + '\nglobalThis.controller = new InfinityTerminal(); controller.enable();', context);

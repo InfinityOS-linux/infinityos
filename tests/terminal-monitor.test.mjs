@@ -120,12 +120,18 @@ test('sensor menu follows click coordinates and marks displayed, hidden and unse
     const source = readFileSync(new URL('../packages/infinity-terminal/root/usr/share/gnome-shell/extensions/ghostty@infinityos.org/hardware-monitor.js', import.meta.url), 'utf8')
         .replace(/^import .*;\n/gm, '').replace('export class', 'class');
     const items = [];
+    const shield = {};
+    const stack = [shield];
     class Item {
         constructor(label) { this.label = label; this.menu = {addMenuItem() {}}; items.push(this); }
         connect() {} setOrnament(value) { this.ornament = value; }
     }
     const prototype = vm.runInNewContext(`${source}\nHardwareMonitor.prototype`, {
         GLib: {get_language_names: () => ['en']}, global: {get_pointer: () => [900, 120, 0]},
+        Main: {layoutManager: {screenShieldGroup: shield}, uiGroup: {set_child_below_sibling(actor, sibling) {
+            stack.splice(stack.indexOf(actor), 1);
+            stack.splice(stack.indexOf(sibling), 0, actor);
+        }}},
         PopupMenu: {PopupMenuItem: Item, PopupSubMenuMenuItem: Item, PopupSeparatorMenuItem: Item,
             PopupSwitchMenuItem: Item, Ornament: {CHECK: 'check', DOT: 'dot', NONE: 'none'}},
         resolveMetric, formatMetric, uniqueMetrics, toggleMetric, widgetChoices: [],
@@ -139,7 +145,10 @@ test('sensor menu follows click coordinates and marks displayed, hidden and unse
         {id: 'auto:gpu-temp', metric: gpu, actor: {visible: false}}];
     monitor._settings = {get_strv: () => ['memory:used', 'auto:gpu-temp'], get_int: () => 0, get_boolean: () => true};
     monitor._menuAnchor = {set_position(x, y) { this.position = [x, y]; }};
-    monitor._menu = {close() {}, removeAll() {}, addMenuItem() {}, open() {this.opened = true;}};
+    monitor._menu = {actor: {}, close() {}, removeAll() {}, addMenuItem() {}, open() {
+        if (stack.includes(this.actor)) stack.splice(stack.indexOf(this.actor), 1);
+        stack.push(this.actor);
+    }};
     monitor._openMenu(-1, [300, 80]);
     assert.deepEqual(monitor._menuAnchor.position, [300, 80]);
     assert.equal(items.find(item => item.label.startsWith('RAM (')).ornament, 'check');
@@ -147,7 +156,8 @@ test('sensor menu follows click coordinates and marks displayed, hidden and unse
     assert.equal(selectedGpu.ornament, 'dot');
     assert.ok(selectedGpu.label.endsWith('hidden'));
     assert.equal(items.find(item => item.label.startsWith('Disk (')).ornament, 'none');
-    assert.equal(monitor._menu.opened, true);
+    assert.equal(stack[0], monitor._menu.actor);
+    assert.equal(stack[1], shield);
     monitor._openMenu(-1);
     assert.deepEqual(monitor._menuAnchor.position, [900, 120]);
 });

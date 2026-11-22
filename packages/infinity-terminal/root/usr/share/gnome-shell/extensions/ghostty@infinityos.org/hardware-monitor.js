@@ -39,6 +39,7 @@ export class HardwareMonitor {
         this._colorId = this._colorSettings.connect('changed::color-scheme', syncTheme);
         syncTheme();
         Main.layoutManager.addChrome(this.actor);
+        Main.uiGroup.set_child_below_sibling(this.actor, Main.layoutManager.screenShieldGroup);
         this._menuAnchor = new St.Widget({width: 1, height: 1, opacity: 0, reactive: false});
         Main.layoutManager.addChrome(this._menuAnchor);
         this._menu = new PopupMenu.PopupMenu(this._menuAnchor, 0, St.Side.TOP);
@@ -96,7 +97,10 @@ export class HardwareMonitor {
         }
         if (show === this.actor.visible) return;
         this.actor.visible = show;
-        if (!show) { this._menu.close(); this._history.clear(); }
+        if (!show) {
+            this._menu.close({animate: false});
+            this._history.clear();
+        }
         this._restart();
     }
 
@@ -369,6 +373,8 @@ export class HardwareMonitor {
         action(this._menu, tr('Settings / manual CPU TDP…', 'Ustawienia / ręczne TDP CPU…'), () => this._extension.openPreferences());
         action(this._menu, tr('Restore default monitors', 'Przywróć domyślne wskaźniki'), () => save(defaultMetrics));
         this._menu.open();
+        // PopupMenu.open() raises its actor even when it was already below the shield.
+        Main.uiGroup.set_child_below_sibling(this._menu.actor, Main.layoutManager.screenShieldGroup);
     }
 
     _menuStyle() {

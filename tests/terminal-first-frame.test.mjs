@@ -47,12 +47,16 @@ function fixture(enableAnimations = true, inset = 0) {
         },
     };
     const schedule = (_priority, callback) => { const id = nextId++; callbacks.set(id, callback); return id; };
+    const sessionMode = {isLocked: false, isGreeter: false};
+    const screenShieldGroup = {visible: false};
     const context = vm.createContext({
         St: {Settings: {get: () => ({enable_animations: enableAnimations})}},
         Extension: class {},
         GLib: {get_language_names: () => ['en'], idle_add: schedule, timeout_add: (p, _delay, callback) => schedule(p, callback),
             Source: {remove(id) { callbacks.delete(id); }}, SOURCE_REMOVE: false},
-        Main: {overview: {visible: false}, layoutManager: {primaryMonitor: {}}, wm: {skipNextEffect() { actor.skipEffect = true; }}},
+        Main: {overview: {visible: false, _overview: {controls: {_workspacesDisplay: {_updateWorkspacesViews() {}}}}},
+            sessionMode, layoutManager: {primaryMonitor: {}, screenShieldGroup},
+            wm: {skipNextEffect() { actor.skipEffect = true; }}},
         Clutter: {AnimationMode: {EASE_OUT_CUBIC: 1, EASE_IN_CUBIC: 2, EASE_OUT_ELASTIC: 3}},
         global: {get_current_time: () => 0, get_window_actors: () => windows,
             stage: {set_key_focus(value) {focus.owner = value;}}},
@@ -61,14 +65,14 @@ function fixture(enableAnimations = true, inset = 0) {
     const controller = new context.Controller();
     Object.assign(controller, {_geometryIds: [], _pendingShow: true, _sourceId: 0,
         _firstFrame: null, _topInset: () => inset, _place() {}, _setResizeCursor() {}});
-    return {controller, actor, window, animations, focus, windows,
+    return {controller, actor, window, animations, focus, windows, sessionMode, screenShieldGroup,
         monitor() {
             const prototype = vm.runInContext(monitorSource + '\nHardwareMonitor.prototype', context);
             const hardware = Object.create(prototype, {height: {value: 72}});
             Object.assign(hardware, {
                 actor: {visible: false, set_position() {}, set_size() {}},
                 _mappedChanged: () => controller._syncResizeHandle(),
-                _menu: {close() {}}, _history: new Map(), _restart() {},
+                _menu: {isOpen: false, close() { this.isOpen = false; }}, _history: new Map(), _restart() {},
             });
             controller._hardware = hardware;
             controller._resizeHandle = {set_position() {}, set_size() {}};
@@ -332,4 +336,76 @@ test('closing the terminal hides its widgets while the old actor is still in the
     assert.equal(hardware.actor.visible, false);
     assert.equal(f.controller._resizeHandle.visible, false);
     assert.equal(hardware._windowActor, null);
+});
+
+test('minimized terminal hides widgets even if Mutter still reports the actor mapped', () => {
+    const f = fixture();
+    const hardware = f.monitor();
+    f.window.showing_on_its_workspace = () => true;
+    f.controller._track(f.window, false);
+    f.controller._syncResizeHandle();
+    assert.equal(hardware.actor.visible, true);
+
+    f.window.minimized = true;
+    f.window.emit('notify::minimized');
+    assert.equal(hardware.actor.visible, false);
+    assert.equal(f.controller._resizeHandle.visible, false);
+});
+
+test('collapse hides widgets immediately and settles if Shell interrupts the animation', () => {
+    const f = fixture();
+    const hardware = f.monitor();
+    f.controller._window = f.window;
+    f.controller._syncResizeHandle();
+    assert.equal(hardware.actor.visible, true);
+    hardware._menu.isOpen = true;
+
+    f.controller._hide(f.window);
+    assert.equal(hardware.actor.visible, false);
+    assert.equal(hardware._menu.isOpen, false);
+    assert.equal(f.window.minimized, false);
+    f.controller._syncResizeHandle();
+    assert.equal(hardware.actor.visible, false);
+    f.animations[0].onStopped(false);
+    assert.equal(f.window.minimized, true);
+    assert.equal(f.actor.translation_y, 0);
+    assert.equal(hardware.actor.visible, false);
+});
+
+test('reopening during collapse cancels the stale collapse callback', () => {
+    const f = fixture();
+    const hardware = f.monitor();
+    f.controller._window = f.window;
+    f.controller._syncResizeHandle();
+    f.controller._hide(f.window);
+    f.controller._toggle();
+    f.animations[0].onStopped(false);
+    assert.equal(f.window.minimized, false);
+    assert.equal(hardware.actor.visible, true);
+});
+
+test('widgets stay hidden while the screen shield is up and for locked or greeter modes', () => {
+    const f = fixture();
+    const hardware = f.monitor();
+    f.controller._window = f.window;
+    f.controller._syncResizeHandle();
+    assert.equal(hardware.actor.visible, true);
+
+    f.screenShieldGroup.visible = true;
+    f.controller._syncResizeHandle();
+    assert.equal(hardware.actor.visible, false);
+    f.sessionMode.isLocked = true;
+    f.screenShieldGroup.visible = false;
+    f.controller._syncResizeHandle();
+    assert.equal(hardware.actor.visible, false);
+    f.sessionMode.isLocked = false;
+    f.sessionMode.isGreeter = true;
+    f.controller._syncResizeHandle();
+    assert.equal(hardware.actor.visible, false);
+    f.sessionMode.isGreeter = false;
+    f.controller._syncResizeHandle();
+    assert.equal(hardware.actor.visible, true);
+    f.window.minimized = true;
+    f.controller._syncResizeHandle();
+    assert.equal(hardware.actor.visible, false);
 });
