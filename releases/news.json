@@ -1,5 +1,26 @@
 [
   {
+    "id": "2026-11-22-efi-path-compatibility",
+    "date": "2026-11-22",
+    "title": "Installer fix for rEFInd boot entries",
+    "summary": "Fixes a final-stage installation error on some x64 UEFI systems where the installer could not recognize the rEFInd entry it had just created.",
+    "buildSha": "ff6a99e3b45c6b3b806ffc8b8e7162c7a8f7dfad",
+    "changes": [
+      {
+        "title": "Release availability",
+        "text": "The signed RPM update is available. Refreshed x64 and ARM64 installer images are building."
+      },
+      {
+        "title": "EFI boot entry recognition",
+        "text": "The installer recognizes both forms of EFI loader paths printed by efibootmgr. It matches the exact rEFInd loader and EFI system partition before adding the entry to the boot order."
+      },
+      {
+        "title": "Regression coverage",
+        "text": "A dual-boot test reproduces the reported x64 failure and verifies that rEFInd is activated on the target disk."
+      }
+    ]
+  },
+  {
     "id": "2026-11-22-infinityapps-review",
     "date": "2026-11-22",
     "title": "InfinityApps and a clearer install review",
