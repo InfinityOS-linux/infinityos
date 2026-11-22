@@ -2,13 +2,13 @@
   {
     "id": "2026-11-22-efi-backups-desktop",
     "date": "2026-11-22",
-    "title": "RPM update for boot repair, backups and desktop layouts",
-    "summary": "This update makes rEFInd repair safer on multi-disk systems, improves backup initialization, and preserves desktop icon positions through an upgrade.",
+    "title": "InfinityOS _02 installer update for ARM64 and x64",
+    "summary": "Fresh Fedora 45 and GNOME 51 images bring together safer EFI repair, backup reliability improvements and the recent desktop and updater changes.",
     "buildSha": "115451b0455f538ec9f366db0b7500d7b8d26b31",
     "changes": [
       {
-        "title": "Available for ARM64 and x64",
-        "text": "The signed RPM update is published for both architectures. New installer images for this revision are building."
+        "title": "Downloads and updates",
+        "text": "Both installer images are available from the Download page with SHA-256 and MD5 checksums. The fixes are also available to existing installations through the signed RPM repository."
       },
       {
         "title": "EFI repair on multi-disk systems",
@@ -16,15 +16,19 @@
       },
       {
         "title": "First-boot backups and recovery",
-        "text": "Backup initialization waits for any boot repair scheduled in the same boot. Btrfs keeps valid root mount options when recovery switches to the default subvolume."
+        "text": "Backup setup waits for any boot repair scheduled in the same boot, keeps valid Btrfs root mount options, and gives clearer diagnostics when snapshot initialization is incomplete."
       },
       {
-        "title": "Desktop icons after upgrading",
-        "text": "An undocked first login preserves legacy icon coordinates. When the external monitor reconnects, the docked layout can use those positions."
+        "title": "Desktop layouts and window decorations",
+        "text": "Desktop icons remember separate monitor layouts and preserve their original docked positions when the first login after an upgrade happens undocked. The bundled Orchis window-decoration XML is corrected."
       },
       {
-        "title": "Window decorations",
-        "text": "Corrected the bundled Orchis light and dark Metacity theme files so XML parsers can load them."
+        "title": "Dock, updater and cursor polish",
+        "text": "The dock uses panel-matched live blur. InfinityUpdater avoids dark hover artifacts, slides in without a bounce, groups dependency-held packages separately and retries a failed repository download after refreshing metadata. The waiting glove animates in native GNOME 51 apps."
+      },
+      {
+        "title": "Terminal, tray and RAMDrive",
+        "text": "The application grid opens InfinityTerminal in its pull-down drawer. Tray icons are centered in Quick Settings. Before a restart, RAMDrive can move its contents to Saved Files on the desktop or clear them when requested."
       }
     ]
   },
