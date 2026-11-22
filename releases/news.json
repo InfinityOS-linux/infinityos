@@ -2,13 +2,13 @@
   {
     "id": "2026-11-22-vendor-policy-and-protected-automount",
     "date": "2026-11-22",
-    "title": "RPM updates and protected drive Automount",
-    "summary": "InfinityOS packages upgrade with Fedora 45's vendor policy. Nautilus remembers administrator approval for selected protected drives.",
+    "title": "TV Mode input, Automount and DNF updates",
+    "summary": "The TV session prepares keyboard and controller access for ES-DE. Steam uses drives selected in Nautilus, and DNF applies InfinityOS updates with Fedora's vendor protection enabled.",
     "buildSha": "8cbbc8c098bc1d3ad056f57612be4ea6ef6a7b95",
     "changes": [
       {
         "title": "Release availability",
-        "text": "The vendor policy and Automount fixes are available through InfinityUpdater. New x64 and ARM64 installer images are building."
+        "text": "The signed RPM update is available through InfinityUpdater on x64 and ARM64. Installer images for both architectures are building."
       },
       {
         "title": "Fedora 45 package updates",
@@ -19,8 +19,8 @@
         "text": "Enabling Automount asks for administrator approval once when a protected drive requires it. The approval is tied to the selected user and disk and is reused after restart. An earlier selection can be switched off and back on to record approval."
       },
       {
-        "title": "Steam TV Mode and controllers",
-        "text": "Steam TV Mode waits for the initial Automount scan before launching Steam. The TV session switches to the correct virtual terminal, and already connected Xbox adapters are probed after driver installation."
+        "title": "ES-DE and Steam TV Mode",
+        "text": "ES-DE starts on the active TV virtual terminal after input devices have had time to register. With xone installed it uses the kernel input path for Xbox One and Series controllers. Steam mounts available drives selected in Nautilus and continues watching for reconnects across Steam restarts."
       }
     ]
   },
