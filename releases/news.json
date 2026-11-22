@@ -1,5 +1,30 @@
 [
   {
+    "id": "2026-11-22-rpm-antigravity-and-app-blur",
+    "date": "2026-11-22",
+    "title": "RPM update: Google Antigravity, shared blur and model management",
+    "summary": "InfinitySetup adds Google Antigravity, InfinityTerminal gets a pinned Antigravity CLI tab, and InfinityConfig shows downloaded AI models.",
+    "buildSha": "63809ab0522503adc97b4d967abec3008afbe73f",
+    "changes": [
+      {
+        "title": "Available for ARM64 and x64",
+        "text": "Install the signed RPM update through InfinityUpdater. The installer images from build 115451b can receive this update after installation."
+      },
+      {
+        "title": "Google Antigravity and InfinityTerminal",
+        "text": "InfinitySetup can install the Google Antigravity desktop app and the official agy command-line tool on both architectures. Once agy is installed, InfinityTerminal adds a pinned Antigravity CLI tab, including when reopening the terminal drawer."
+      },
+      {
+        "title": "Matching blur in Setup and Config",
+        "text": "InfinitySetup and InfinityConfig share the GNOME Shell backdrop used by InfinityUpdater. Both use a solid background when the blur is unavailable."
+      },
+      {
+        "title": "Downloaded models in InfinityConfig",
+        "text": "InfinityConfig lists downloaded AI models even when no model is active. InfinitySetup shows the models available to download."
+      }
+    ]
+  },
+  {
     "id": "2026-11-22-efi-backups-desktop",
     "date": "2026-11-22",
     "title": "InfinityOS _02 installer update for ARM64 and x64",
