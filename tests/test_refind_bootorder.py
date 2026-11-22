@@ -1,4 +1,4 @@
-"""Exercise rEFInd activation against firmware snapshots with stale boot IDs."""
+"""Exercise rEFInd activation and cleanup against firmware snapshots."""
 import json
 import os
 from pathlib import Path
@@ -14,9 +14,10 @@ OTHER = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
 REFIND = r'\EFI\refind\refind_x64.efi'
 
 
-def efi_entry(label='Infinity OS rEFInd', partuuid=TARGET, path=REFIND, active=True):
+def efi_entry(label='Infinity OS rEFInd', partuuid=TARGET, path=REFIND, active=True, wrapped=True):
     flag = '*' if active else ' '
-    return f'{flag} {label}\tHD(1,GPT,{partuuid},0x800,0x100000)/File({path})'
+    loader = f'File({path})' if wrapped else path
+    return f'{flag} {label}\tHD(1,GPT,{partuuid},0x800,0x100000)/{loader}'
 
 
 class RefindBootOrderTests(unittest.TestCase):
@@ -63,7 +64,9 @@ if operation == '-C':
     label = args[args.index('-L') + 1]
     loader = args[args.index('-l') + 1]
     partuuid = os.environ['TEST_ESP_PARTUUID']
-    state['entries']['00AB'] = f'* {label}\tHD(1,GPT,{partuuid},0x800,0x100000)/File({loader})'
+    if os.environ['TEST_EFI_WRAP_CREATE'] == '1':
+        loader = f'File({loader})'
+    state['entries']['00AB'] = f'* {label}\tHD(1,GPT,{partuuid},0x800,0x100000)/{loader}'
     path.write_text(json.dumps(state))
 elif operation == '-o':
     order = args[1].split(',')
@@ -90,14 +93,16 @@ else:
         if executable:
             path.chmod(0o755)
 
-    def run_firmware(self, order, entries, failure='', mode='--activate', partuuid=TARGET):
+    def run_firmware(self, order, entries, failure='', mode='--activate', partuuid=TARGET,
+                     wrapped_create=True):
         self.log.unlink(missing_ok=True)
         state = {'entries': entries}
         if order is not None:
             state['order'] = order
         self.state.write_text(json.dumps(state))
         return subprocess.run(['/bin/bash', str(INSTALL), str(self.esp), mode],
-                              env=dict(self.env, TEST_EFI_FAILURE=failure, TEST_ESP_PARTUUID=partuuid),
+                              env=dict(self.env, TEST_EFI_FAILURE=failure, TEST_ESP_PARTUUID=partuuid,
+                                       TEST_EFI_WRAP_CREATE='1' if wrapped_create else '0'),
                               capture_output=True, text=True)
 
     def commands(self):
@@ -126,6 +131,31 @@ else:
         self.assertEqual([command[0] for command in self.commands()], ['-v', '-C', '-v', '-o'])
         self.assertEqual(self.commands()[1][1:], [
             '-d', '/dev/nvme0n1', '-p', '1', '-L', 'Infinity OS rEFInd', '-l', REFIND])
+
+    def test_live_x64_install_activates_a_bare_refind_path_in_dual_boot(self):
+        entries = {
+            '0000': efi_entry('cachyos', OTHER, r'\EFI\CACHYOS\GRUBX64.EFI', wrapped=False),
+            '0001': efi_entry('UEFI OS', OTHER, r'\EFI\BOOT\BOOTX64.EFI0000424f', wrapped=False),
+            '0002': '* Live USB',
+            '0003': efi_entry('Infinity OS', TARGET, r'\EFI\infinityos\shimx64.efi', wrapped=False),
+        }
+        result = self.run_firmware('0003,0000,0001,0002', entries, wrapped_create=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        state = json.loads(self.state.read_text())
+        self.assertEqual(state['order'], '00AB,0003,0000,0001,0002')
+        self.assertEqual({identifier: state['entries'][identifier] for identifier in entries}, entries)
+        self.assertEqual([command[0] for command in self.commands()], ['-v', '-C', '-v', '-o'])
+
+    def test_bare_refind_paths_still_require_active_entry_and_exact_esp_and_loader(self):
+        entries = {
+            '0001': efi_entry(partuuid=OTHER, wrapped=False),
+            '0002': efi_entry(path=REFIND + '.bak', wrapped=False),
+            '0003': efi_entry(active=False, wrapped=False),
+            '0004': efi_entry('Renamed', TARGET.upper(), REFIND.upper(), wrapped=False),
+        }
+        result = self.run_firmware('0001,0002,0003,0004', entries)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.commands(), [['-v'], ['-o', '0004,0001,0002,0003']])
 
     def test_missing_bootorder_can_be_initialized(self):
         result = self.run_firmware(None, {'0004': efi_entry()})
@@ -172,18 +202,21 @@ else:
         entries = {
             '0001': efi_entry('Linux Boot Manager', OTHER, systemd_loader),
             '0002': efi_entry('Linux Boot Manager', TARGET, systemd_loader),
-            '0003': efi_entry('Old Infinity OS', TARGET, r'\EFI\infinityos\shimx64.efi', active=False),
+            '0003': efi_entry('Old Infinity OS', TARGET, r'\EFI\infinityos\shimx64.efi',
+                              active=False, wrapped=False),
             '0004': efi_entry('Fedora', TARGET, r'\EFI\fedora\shimx64.efi'),
             '0005': efi_entry('Systemd loader backup', TARGET, systemd_loader + '.bak'),
             '0006': efi_entry(f'Label\tHD(1,GPT,{TARGET},0,0)/File({systemd_loader})', OTHER, systemd_loader),
             '0007': efi_entry(),
+            '0008': efi_entry('Ambiguous loader', TARGET, systemd_loader + '0000424f', wrapped=False),
+            '0009': efi_entry('Other system', OTHER, systemd_loader, wrapped=False),
         }
-        result = self.run_firmware('0001,0002,0003,0004,0005,0006,0007', entries,
+        result = self.run_firmware('0001,0002,0003,0004,0005,0006,0007,0008,0009', entries,
                                    mode='--remove-obsolete-entries')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.commands(), [['-v'], ['-b', '0002', '-B'], ['-b', '0003', '-B']])
         self.assertEqual(set(json.loads(self.state.read_text())['entries']),
-                         {'0001', '0004', '0005', '0006', '0007'})
+                         {'0001', '0004', '0005', '0006', '0007', '0008', '0009'})
 
     def test_cleanup_propagates_read_write_and_invalid_partition_failures(self):
         entries = {'0001': efi_entry(path=r'\EFI\systemd\systemd-bootx64.efi')}
