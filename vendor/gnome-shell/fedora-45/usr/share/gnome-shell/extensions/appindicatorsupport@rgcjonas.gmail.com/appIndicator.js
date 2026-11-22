@@ -459,6 +459,7 @@ export class AppIndicator extends Signals.EventEmitter {
             await this._proxy.initAsync(cancellable);
             this._checkIfReady();
             await this._proxy.refreshAllProperties();
+            this._updateAppInfo(cancellable).catch(logError);
         } catch (e) {
             if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)) {
                 logError(e, `While initalizing proxy for ${this._uniqueId}`);
@@ -494,16 +495,28 @@ export class AppIndicator extends Signals.EventEmitter {
 
         if (!this.hasNameOwner) {
             delete this._appInfo;
+            delete this._preferenceExecutable;
             return;
         } else if (this._appInfo) {
             return;
         }
 
+        const owner = this._proxy.gNameOwner;
         let commandLine;
         try {
             const pid = await DBusUtils.getProcessId(this.busName, cancellable);
+            if (cancellable.is_cancelled() || this._proxy.gNameOwner !== owner)
+                return;
             this._appInfo =
                 Shell.WindowTracker.get_default().get_app_from_pid(pid)?.appInfo;
+
+            try {
+                const executable = GLib.file_read_link(`/proc/${pid}/exe`);
+                this._preferenceExecutable =
+                    GLib.path_get_basename(executable).replace(/ \(deleted\)$/, '').toLowerCase();
+            } catch {
+                // Some sandboxes hide the executable. Use GNOME's app ID when known.
+            }
 
             if (!this._appInfo) {
                 commandLine = await DBusUtils.getProcessNameForPid(pid,
@@ -517,13 +530,22 @@ export class AppIndicator extends Signals.EventEmitter {
                 `${this.uniqueId}, failed getting command line: ${e.message}\n${e.stack}`);
         }
 
+        if (cancellable.is_cancelled() || this._proxy.gNameOwner !== owner)
+            return;
+
         if (this._appInfo) {
             this.emit('accessible-name');
         } else {
             this._fakeAppInfo = Gio.AppInfo.create_from_commandline(
                 commandLine ?? 'true', this.title ?? this.id,
                 Gio.AppInfoCreateFlags.SUPPORTS_STARTUP_NOTIFICATION);
+            if (!this._preferenceExecutable && commandLine) {
+                const executable = this._fakeAppInfo.get_executable();
+                if (executable)
+                    this._preferenceExecutable = GLib.path_get_basename(executable).toLowerCase();
+            }
         }
+        this.emit('identity-changed');
     }
 
     _checkIfReady() {
@@ -612,6 +634,14 @@ export class AppIndicator extends Signals.EventEmitter {
 
     get id() {
         return this._proxy.Id;
+    }
+
+    get preferenceAppId() {
+        const executable = this._preferenceExecutable;
+        if (executable && !/^(?:electron(?:[-_.].*)?|flatpak|bwrap|zypak.*)$/.test(executable))
+            return `exec:${executable}`;
+        const desktopId = this._appInfo?.get_id();
+        return desktopId ? `desktop:${desktopId}` : null;
     }
 
     get uniqueId() {
@@ -740,8 +770,10 @@ export class AppIndicator extends Signals.EventEmitter {
         props.forEach(property => {
             // some property changes require updates on our part,
             // a few need to be passed down to the displaying code
-            if (property === 'Id')
+            if (property === 'Id') {
                 checkIfReadyChanged();
+                signalsToEmit.add('identity-changed');
+            }
 
             // all these can mean that the icon has to be changed
             if (property.startsWith('Icon') ||

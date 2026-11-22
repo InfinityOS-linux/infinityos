@@ -5,7 +5,7 @@ import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {InjectionManager} from 'resource:///org/gnome/shell/extensions/extension.js';
-import {isUserIndicator, readPreferences, topItems} from './trayLayout.js';
+import {isUserIndicator, readPreferences, topItems, trayLocation, trayPreferenceKey} from './trayLayout.js';
 import {trayText} from './trayStrings.js';
 
 // Move the actual actors, preserving app menus, icons, badges and scroll actions.
@@ -112,13 +112,15 @@ export default class UserTray {
             this._panelOrder.splice(index, 0, actor);
         }
         for (const [role, indicator] of Object.entries(Main.panel.statusArea)) {
-            const actor = indicator.container;
+            const actor = indicator?.container;
             if (!actor || this._entries.has(indicator) ||
                 !isUserIndicator(role, actor.get_parent(), Main.panel))
                 continue;
             const parent = actor.get_parent();
-            const key = String(indicator._indicator?.id ?? role);
-            const entry = {indicator, actor, parent, key,
+            const notifier = role.startsWith('appindicator-') ? indicator._indicator : null;
+            const entry = {indicator, actor, parent, role, key: trayPreferenceKey(role, indicator), notifier,
+                identitySignals: notifier?.connect ? ['ready', 'identity-changed'].map(signal =>
+                    notifier.connect(signal, () => this._queueSync())) : [],
                 style: actor.get_style(), menu: null, icons: new Map(), iconNodes: new Map(), alignments: new Map(),
                 wrapper: new St.Bin({y_align: Clutter.ActorAlign.CENTER,
                     x_align: Clutter.ActorAlign.CENTER, clip_to_allocation: true})};
@@ -141,6 +143,7 @@ export default class UserTray {
                 return Clutter.EVENT_PROPAGATE;
             });
             entry.destroy = indicator.connect('destroy', () => {
+                entry.identitySignals.forEach(id => notifier.disconnect(id));
                 if (entry.menu)
                     this._menus.removeMenu(entry.menu);
                 this._entries.delete(indicator);
@@ -155,7 +158,8 @@ export default class UserTray {
         const unlocked = Main.sessionMode.currentMode === 'user' && !Main.sessionMode.isLocked;
         let position = 0;
         for (const entry of this._entries.values()) {
-            const location = this._preferences[entry.key] ?? 'menu';
+            this._refreshPreferenceKey(entry);
+            const location = trayLocation(this._preferences, entry);
             const pinned = location === 'panel';
             const appVisible = entry.actor.visible !== false && entry.indicator.visible !== false;
             entry.wrapper.set_style(pinned ? null : 'width: 32px; height: 32px; min-width: 0; min-height: 0; padding: 0; margin: 0;');
@@ -263,13 +267,33 @@ export default class UserTray {
         entry.icons.clear();
     }
 
+    _refreshPreferenceKey(entry) {
+        const key = trayPreferenceKey(entry.role, entry.indicator);
+        if (entry.key === key)
+            return;
+
+        entry.key = key;
+        // A click can arrive before the notifier publishes its identity.
+        if (key !== entry.role && Object.hasOwn(this._preferences, entry.role) &&
+            !Object.hasOwn(this._preferences, key)) {
+            try {
+                this._savePreferences({...this._preferences, [key]: this._preferences[entry.role]});
+            } catch (error) {
+                console.warn(`InfinityOS tray preferences: ${error}`);
+            }
+        }
+    }
+
+    _savePreferences(next) {
+        GLib.mkdir_with_parents(this._file.get_parent().get_path(), 0o700);
+        this._file.replace_contents(new TextEncoder().encode(JSON.stringify(next)),
+            null, false, Gio.FileCreateFlags.PRIVATE, null);
+        this._preferences = next;
+    }
+
     _setLocation(entry, location) {
-        const next = {...this._preferences, [entry.key]: location};
         try {
-            GLib.mkdir_with_parents(this._file.get_parent().get_path(), 0o700);
-            this._file.replace_contents(new TextEncoder().encode(JSON.stringify(next)),
-                null, false, Gio.FileCreateFlags.PRIVATE, null);
-            this._preferences = next;
+            this._savePreferences({...this._preferences, [entry.key]: location});
             entry.menu?.close();
             this._sync();
         } catch (error) {
@@ -288,7 +312,7 @@ export default class UserTray {
         this._contextManager.addMenu(menu);
         const entries = selected ? [selected] : [...this._entries.values()];
         for (const entry of entries) {
-            const location = this._preferences[entry.key] ?? 'menu';
+            const location = trayLocation(this._preferences, entry);
             const label = entry.indicator.accessible_name || entry.key;
             const target = selected ? menu : new PopupMenu.PopupSubMenuMenuItem(label);
             if (!selected)
@@ -299,11 +323,11 @@ export default class UserTray {
             actions.addAction(trayText(location === 'panel' ? 'menu' : 'panel'), () =>
                 this._setLocation(entry, location === 'panel' ? 'menu' : 'panel'));
         }
-        if (selected && [...this._entries.values()].some(entry => this._preferences[entry.key] === 'hidden')) {
+        if (selected && [...this._entries.values()].some(entry => trayLocation(this._preferences, entry) === 'hidden')) {
             const allApps = new PopupMenu.PopupSubMenuMenuItem(trayText('manage'));
             menu.addMenuItem(allApps);
             for (const entry of this._entries.values()) {
-                if (this._preferences[entry.key] !== 'hidden')
+                if (trayLocation(this._preferences, entry) !== 'hidden')
                     continue;
                 allApps.menu.addAction(`${trayText('show')}: ${entry.indicator.accessible_name || entry.key}`,
                     () => this._setLocation(entry, 'menu'));
@@ -321,6 +345,7 @@ export default class UserTray {
         this._context?.destroy();
         this._menus.activeMenu?.close();
         for (const entry of this._entries.values()) {
+            entry.identitySignals.forEach(id => entry.notifier.disconnect(id));
             entry.indicator.disconnect(entry.event);
             entry.indicator.disconnect(entry.destroy);
             this._restoreIcons(entry);

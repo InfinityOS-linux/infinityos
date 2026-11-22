@@ -11,7 +11,7 @@ function source(file) {
         .replace(/^import .*;\n/gm, '').replace(/export default /g, '')
         .replace(/export /g, '');
 }
-function setup() {
+function setup(initialPreferences = {}) {
     let id = 0;
     class Actor {
         constructor(props = {}) {
@@ -71,7 +71,7 @@ function setup() {
         removeMenu(menu) { this.menus.delete(menu); }
     }
     const pending = new Map();
-    let saved = '{}';
+    let saved = JSON.stringify(initialPreferences);
     let failWrite = false;
     const file = {
         load_contents: () => [true, new TextEncoder().encode(saved)],
@@ -121,8 +121,9 @@ function setup() {
     });
     vm.runInContext(source('trayLayout.js') + source('trayStrings.js') + source('userTray.js') +
         '\nglobalThis.UserTray = UserTray; globalThis.trayText = trayText; globalThis.labels = labels;', context);
-    const add = role => {
+    const add = (role, statusNotifier) => {
         const indicator = new Actor({container: new Actor(), menu: new Menu(), accessible_name: role});
+        indicator._indicator = statusNotifier;
         panel.addToStatusArea(role, indicator); return indicator;
     };
     const flush = () => {
@@ -193,6 +194,67 @@ test('pin/hide/show are persisted per app and survive extension reload', () => {
     assert.equal(entry.wrapper.get_parent(), tray._icons);
     s.failWrite(); tray._setLocation(entry, 'panel');
     assert.equal(entry.wrapper.get_parent(), tray._icons, 'failed persistence does not change location');
+    tray.destroy();
+});
+
+test('Discord keeps its pin after the tray identity and D-Bus connection change', () => {
+    const first = setup();
+    const source = new first.Actor({id: 'chrome_status_icon_1'});
+    const discord = first.add('appindicator-:1.24@/StatusNotifierItem', source);
+    const before = first.create();
+    const entry = before._entries.get(discord);
+    before._openMenu(discord, entry);
+    before._context.actions[1].callback();
+    assert.equal(entry.wrapper.get_parent(), first.panel._rightBox);
+
+    source.preferenceAppId = 'exec:discord';
+    source.emit('identity-changed');
+    first.flush();
+    before.destroy();
+
+    const second = setup({...first.saved(), chrome_status_icon_1: 'hidden'});
+    const replacement = new second.Actor();
+    const discordAfter = second.add('appindicator-:1.77@/StatusNotifierItem', replacement);
+    const slack = second.add('appindicator-:1.89@/StatusNotifierItem',
+        new second.Actor({id: 'chrome_status_icon_1', preferenceAppId: 'exec:slack'}));
+    const after = second.create();
+    replacement.id = 'chrome_status_icon_1';
+    replacement.emit('ready');
+    replacement.preferenceAppId = 'exec:discord';
+    replacement.emit('identity-changed');
+    second.flush();
+    assert.equal(after._entries.get(discordAfter).wrapper.get_parent(), second.panel._rightBox);
+    assert.equal(after._entries.get(slack).wrapper.get_parent(), after._icons);
+    assert.equal(after._entries.get(slack).wrapper.visible, true);
+    after.destroy();
+});
+
+test('a late StatusNotifierItem ID restores the saved placement', () => {
+    const s = setup({steam: 'hidden'});
+    const source = new s.Actor();
+    const steam = s.add('appindicator-:1.44@/StatusNotifierItem', source);
+    const tray = s.create();
+    assert.equal(tray._entries.get(steam).wrapper.visible, true);
+    source.id = 'steam';
+    source.emit('ready');
+    s.flush();
+    assert.equal(tray._entries.get(steam).wrapper.visible, false);
+    tray.destroy();
+});
+
+test('a saved legacy Discord pin survives a PID change and can be moved back', () => {
+    const s = setup({'appindicator-legacy:Discord:1100': 'panel'});
+    const app = s.add('appindicator-legacy:discord:2200');
+    let tray = s.create();
+    const entry = tray._entries.get(app);
+    assert.equal(entry.wrapper.get_parent(), s.panel._rightBox);
+    tray._setLocation(entry, 'menu');
+    tray.destroy();
+
+    const next = setup(s.saved());
+    const nextApp = next.add('appindicator-legacy:Discord:3300');
+    tray = next.create();
+    assert.equal(tray._entries.get(nextApp).wrapper.get_parent(), tray._icons);
     tray.destroy();
 });
 
