@@ -25,6 +25,7 @@ export default class InfinityTerminal extends Extension {
         this._window = null;
         this._pendingShow = false;
         this._firstFrame = null;
+        this._closingWindow = null;
         this._sourceId = 0;
         this._placementId = 0;
         this._geometryIds = [];
@@ -72,6 +73,9 @@ export default class InfinityTerminal extends Extension {
         this._gesture = null;
         this._overviewHiddenId = 0;
         this._overviewShowingId = Main.overview.connect('showing', () => this._hideForOverview());
+        this._sessionModeId = Main.sessionMode.connect('updated', () => this._syncResizeHandle());
+        this._shieldId = Main.layoutManager.screenShieldGroup.connect('notify::visible',
+            () => this._syncResizeHandle());
         this._gestureEventId = global.stage.connect('captured-event',
             (_stage, event) => this._handleGesture(event));
         this._resizeEventId = global.stage.connect('captured-event',
@@ -193,9 +197,12 @@ export default class InfinityTerminal extends Extension {
     }
 
     disable() {
+        Main.sessionMode.disconnect(this._sessionModeId);
+        Main.layoutManager.screenShieldGroup.disconnect(this._shieldId);
         this._removeAppActivation();
         this._pullHandle?.destroy();
         this._pullHandle = null;
+        this._closingWindow = null;
         if (Workspace.Workspace.prototype._isOverviewWindow === this._filteredOverviewWindow)
             Workspace.Workspace.prototype._isOverviewWindow = this._isOverviewWindow;
         if (Shell.AppSystem.prototype.get_running === this._filteredRunning)
@@ -241,8 +248,11 @@ export default class InfinityTerminal extends Extension {
         this._geometryIds = [];
         if (this._window) {
             const actor = this._window.get_compositor_private();
-            if (actor)
+            if (actor) {
+                actor.remove_all_transitions();
+                actor.translation_y = 0;
                 actor.opacity = 255;
+            }
         }
         if (this._sourceId)
             GLib.Source.remove(this._sourceId);
@@ -269,14 +279,15 @@ export default class InfinityTerminal extends Extension {
     }
 
     _syncResizeHandle() {
-        this._pullHandle?.sync();
         if (!this._resizeHandle)
             return;
         // A closing window can still be returned by get_window_actors().
         const window = this._window;
         const actor = window?.get_compositor_private() ?? null;
         const visible = !!(actor?.mapped && actor.opacity > 0 &&
-            window.showing_on_its_workspace() && !this._firstFrame && !Main.overview.visible);
+            !window.minimized && window !== this._closingWindow && window.showing_on_its_workspace() &&
+            !this._firstFrame && !Main.overview.visible && !Main.sessionMode.isLocked &&
+            !Main.sessionMode.isGreeter && !Main.layoutManager.screenShieldGroup.visible);
         const rect = visible ? window.get_frame_rect() : null;
         this._resizeHandle.visible = visible && !this._sliding;
         this._hardware?.sync(rect, visible, actor);
@@ -284,6 +295,7 @@ export default class InfinityTerminal extends Extension {
             this._resizeHandle.set_position(rect.x, rect.y + rect.height - RESIZE_EDGE);
             this._resizeHandle.set_size(rect.width, RESIZE_EDGE);
         }
+        this._pullHandle?.sync();
     }
 
     _finishResize(save = true) {
@@ -460,6 +472,7 @@ export default class InfinityTerminal extends Extension {
     }
 
     _hideForOverview() {
+        this._closingWindow = null;
         this._sliding = false;
         this._finishResize();
         if (this._resizeHandle) this._resizeHandle.visible = false;
@@ -508,7 +521,7 @@ export default class InfinityTerminal extends Extension {
             return;
         }
         const window = this._findWindow();
-        if (!window || window.minimized)
+        if (!window || window.minimized || window === this._closingWindow)
             this._toggle({bounce});
         else {
             this._syncResizeHandle();
@@ -593,6 +606,8 @@ export default class InfinityTerminal extends Extension {
             this._window.disconnect(this._minimizedId);
         for (const id of this._geometryIds)
             this._window?.disconnect(id);
+        if (this._window !== window)
+            this._closingWindow = null;
         this._window = window;
         this._geometryIds = [
             window.connect('position-changed', () => { this._enforcePlacement(window); this._syncResizeHandle(); }),
@@ -619,6 +634,7 @@ export default class InfinityTerminal extends Extension {
                 this._sourceId = 0;
             }
             this._window = null;
+            this._closingWindow = null;
             this._sliding = false;
             this._finishResize(false);
             this._syncResizeHandle();
@@ -700,7 +716,7 @@ export default class InfinityTerminal extends Extension {
         if (!window) {
             this._pendingShow = true;
             this._spawn();
-        } else if (window.minimized) {
+        } else if (window.minimized || window === this._closingWindow) {
             this._reveal(window, {bounce});
         } else {
             this._hide(window);
@@ -714,6 +730,7 @@ export default class InfinityTerminal extends Extension {
 
     _reveal(window, {bounce = true} = {}) {
         this._selectMonitor();
+        this._closingWindow = null;
         this._sliding = true;
         const actor = window.get_compositor_private();
         if (actor) {
@@ -766,19 +783,37 @@ export default class InfinityTerminal extends Extension {
     }
 
     _hide(window) {
-        this._finishResize();
-        if (this._resizeHandle) this._resizeHandle.visible = false;
+        if (window === this._closingWindow)
+            return;
         if (this._firstFrame && window === this._window) {
             this._pendingShow = false;
             return;
         }
+        this._closingWindow = window;
+        this._sliding = true;
+        this._finishResize();
         if (this._sourceId) {
             GLib.Source.remove(this._sourceId);
             this._sourceId = 0;
         }
+        this._syncResizeHandle();
+
         const actor = window.get_compositor_private();
-        if (!actor) {
+        const finish = () => {
+            if (this._closingWindow !== window)
+                return;
+            const currentActor = window.get_compositor_private();
+            if (currentActor)
+                Main.wm.skipNextEffect(currentActor);
             window.minimize();
+            if (currentActor)
+                currentActor.translation_y = 0;
+            this._closingWindow = null;
+            this._sliding = false;
+            this._syncResizeHandle();
+        };
+        if (!actor) {
+            finish();
             return;
         }
         actor.remove_all_transitions();
@@ -786,12 +821,7 @@ export default class InfinityTerminal extends Extension {
             translation_y: this._offscreenOffset(window),
             duration: St.Settings.get().enable_animations ? 250 : 0,
             mode: Clutter.AnimationMode.EASE_IN_CUBIC,
-            onComplete: () => {
-                Main.wm.skipNextEffect(actor);
-                window.minimize();
-                actor.translation_y = 0;
-                this._sliding = false;
-            },
+            onStopped: finish,
         });
     }
 }

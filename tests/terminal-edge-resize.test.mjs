@@ -18,7 +18,7 @@ function fixture() {
         maximize(...args) {assert.equal(args.length, 0); rect.height = 960;},
         unmaximize(...args) {assert.equal(args.length, 0);}};
     const handle = {visible: true, set_cursor_type(value) {cursor = value;}, set_position(x, y) {this.x = x; this.y = y;}, set_size() {}};
-    const layout = {primaryMonitor: {x: 0, y: 0, width: 1600, height: 1000}};
+    const layout = {primaryMonitor: {x: 0, y: 0, width: 1600, height: 1000}, screenShieldGroup: {visible: false}};
     const controller = vm.runInNewContext(`${source}\nnew InfinityTerminal()`, {
         Extension: class {}, clampTerminalHeight, isFullHeight,
         GLib: {PRIORITY_DEFAULT: 0, SOURCE_REMOVE: false, SOURCE_CONTINUE: true,
@@ -26,7 +26,8 @@ function fixture() {
         console: {error() {}},
         Clutter: {CursorType: {DEFAULT: 0, NS_RESIZE: 1}, ModifierType: {BUTTON1_MASK: 1}, EventType: {MOTION: 1, BUTTON_PRESS: 2, BUTTON_RELEASE: 3, KEY_PRESS: 4}, KEY_Escape: 27, EVENT_STOP: true, EVENT_PROPAGATE: false},
         Meta: {Cursor: {DEFAULT: 0, SOUTH_RESIZE: 1}, MaximizeFlags: {BOTH: 3}},
-        Main: {overview: {visible: false}, panel: {height: 40, get_transformed_size: () => [1000,40]},
+        Main: {overview: {visible: false}, sessionMode: {isLocked: false},
+            panel: {height: 40, get_transformed_size: () => [1000,40]},
             layoutManager: layout},
         global: {get_pointer: () => pointer, display: {set_cursor(value) {cursor = value;}}, stage: {grab(actor) {
             assert.equal(actor, handle); grabs++; return {dismiss() {dismissals++;}};
