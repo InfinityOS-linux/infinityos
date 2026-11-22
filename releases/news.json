@@ -1,5 +1,30 @@
 [
   {
+    "id": "2026-11-22-rpm-esde-xbox-adapter",
+    "date": "2026-11-22",
+    "title": "RPM update: ES-DE gamepad icon and Xbox adapter setup",
+    "summary": "ES-DE gets a white gamepad icon in the boot menu, and Xbox wireless adapters are activated more reliably after driver installation and before TV Mode starts.",
+    "buildSha": "253ea893bb1eef82a4bef3bfa6bf925df17a51d9",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "The signed RPM update is available for ARM64 and x64. The existing TV Mode installer images do not include these later changes; installed systems can receive them through InfinityUpdater."
+      },
+      {
+        "title": "Xbox wireless adapter activation",
+        "text": "Xbox adapter firmware is installed before building the driver. Supported Microsoft adapters already claimed by the mt76 Wi-Fi driver are reassigned to xone, with the previous driver restored if binding fails."
+      },
+      {
+        "title": "ES-DE startup",
+        "text": "When Xbox dongle support is installed, ES-DE prepares the xone drivers before starting TV Mode. A failure in this optional step does not block startup with a keyboard or another controller."
+      },
+      {
+        "title": "ES-DE boot icon",
+        "text": "A white gamepad replaces the joystick icon for ES-DE in the rEFInd boot menu."
+      }
+    ]
+  },
+  {
     "id": "2026-11-22-rpm-terminal-handle-and-automount",
     "date": "2026-11-22",
     "title": "RPM update: terminal handle sizing and Automount discovery",
