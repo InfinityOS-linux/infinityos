@@ -8,7 +8,7 @@
     "changes": [
       {
         "title": "Available on ARM64 and x64",
-        "text": "The signed update is available through InfinityUpdater on ARM64 and x64. Fresh installer images for both architectures are building."
+        "text": "The ARM64 and x64 installer images are published to Cloudflare R2. Get the images and their SHA-256 and MD5 checksums on the Download page. Existing installations can get the signed update through InfinityUpdater."
       },
       {
         "title": "Review your selection",
