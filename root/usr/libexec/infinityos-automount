@@ -21,6 +21,7 @@ class Automount:
         self.scan_source = 0
         self.ready_file = ready_file
         monitor.connect("volume-added", self.queue_scan)
+        monitor.connect("volume-changed", self.queue_scan)
         monitor.connect("volume-removed", self.volume_removed)
         settings.connect("changed::volume-uuids", self.settings_changed)
         self.queue_scan()

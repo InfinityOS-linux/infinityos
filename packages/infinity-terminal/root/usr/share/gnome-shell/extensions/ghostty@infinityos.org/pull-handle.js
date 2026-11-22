@@ -3,7 +3,6 @@ import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import Meta from 'gi://Meta';
 import GObject from 'gi://GObject';
 import Mtk from 'gi://Mtk';
 import Cairo from 'cairo';
@@ -290,7 +289,7 @@ export class TerminalPullHandle {
                 !candidate.can_close()) return false;
             // Maximization is authoritative even when theme gaps or work-area
             // insets leave the window frame a few pixels below the panel.
-            if ((candidate.get_maximized?.() ?? 0) & Meta.MaximizeFlags.VERTICAL)
+            if (candidate.maximized_vertically)
                 return true;
             const frame = candidate.get_frame_rect();
             const center = monitor.x + monitor.width / 2;
@@ -509,4 +508,3 @@ export class TerminalPullHandle {
         this.actor.destroy();
     }
 }
-

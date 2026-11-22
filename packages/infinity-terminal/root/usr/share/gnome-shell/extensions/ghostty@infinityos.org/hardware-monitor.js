@@ -373,7 +373,7 @@ export class HardwareMonitor {
         action(this._menu, tr('Settings / manual CPU TDP…', 'Ustawienia / ręczne TDP CPU…'), () => this._extension.openPreferences());
         action(this._menu, tr('Restore default monitors', 'Przywróć domyślne wskaźniki'), () => save(defaultMetrics));
         this._menu.open();
-        // PopupMenu.open() raises the actor to the top of its parent.
+        // PopupMenu.open() raises its actor even when it was already below the shield.
         Main.uiGroup.set_child_below_sibling(this._menu.actor, Main.layoutManager.screenShieldGroup);
     }
 
