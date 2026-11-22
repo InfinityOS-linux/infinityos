@@ -12,9 +12,10 @@ const pl = GLib.get_language_names()[0].startsWith('pl');
 const tr = (en, polish) => pl ? polish : en;
 
 export class HardwareMonitor {
-    constructor(extension, changed) {
+    constructor(extension, changed, mappedChanged = () => {}) {
         this._extension = extension;
         this._settings = extension.getSettings();
+        this._mappedChanged = mappedChanged;
         this._metrics = [];
         this._history = new Map();
         this._cells = [];
@@ -79,6 +80,8 @@ export class HardwareMonitor {
                 this._translationId = windowActor.connect('notify::translation-y', () => {
                     this.actor.translation_y = windowActor.translation_y;
                 });
+                // Show Desktop may unmap the actor without changing Window.minimized.
+                this._mappedId = windowActor.connect('notify::mapped', this._mappedChanged);
                 this._destroyActorId = windowActor.connect('destroy', () => {
                     this._unfollow();
                     this.hide();
@@ -102,6 +105,7 @@ export class HardwareMonitor {
     _unfollow() {
         if (this._windowActor) {
             this._windowActor.disconnect(this._translationId);
+            this._windowActor.disconnect(this._mappedId);
             this._windowActor.disconnect(this._destroyActorId);
         }
         this._windowActor = null;

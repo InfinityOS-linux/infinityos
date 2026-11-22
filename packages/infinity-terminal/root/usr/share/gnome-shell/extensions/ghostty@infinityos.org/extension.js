@@ -39,7 +39,7 @@ export default class InfinityTerminal extends Extension {
         Main.layoutManager.addChrome(this._resizeHandle);
         this._hardware = new HardwareMonitor(this, () => {
             if (this._window) this._place(this._window);
-        });
+        }, () => this._syncResizeHandle());
         this._fullHeight = false;
         this._pullHandle = new TerminalPullHandle(this);
         this._hideRequestId = this._settings.connect('changed::hide-request', () => {
@@ -272,13 +272,15 @@ export default class InfinityTerminal extends Extension {
         this._pullHandle?.sync();
         if (!this._resizeHandle)
             return;
-        const window = this._findWindow();
-        const visible = window && !window.minimized && !this._firstFrame &&
-            !Main.overview.visible && window.get_compositor_private()?.opacity > 0;
-        this._resizeHandle.visible = !!visible && !this._sliding;
-        this._hardware?.sync(window?.get_frame_rect(), visible, window?.get_compositor_private());
-        if (visible) {
-            const rect = window.get_frame_rect();
+        // A closing window can still be returned by get_window_actors().
+        const window = this._window;
+        const actor = window?.get_compositor_private() ?? null;
+        const visible = !!(actor?.mapped && actor.opacity > 0 &&
+            window.showing_on_its_workspace() && !this._firstFrame && !Main.overview.visible);
+        const rect = visible ? window.get_frame_rect() : null;
+        this._resizeHandle.visible = visible && !this._sliding;
+        this._hardware?.sync(rect, visible, actor);
+        if (rect) {
             this._resizeHandle.set_position(rect.x, rect.y + rect.height - RESIZE_EDGE);
             this._resizeHandle.set_size(rect.width, RESIZE_EDGE);
         }
@@ -606,10 +608,8 @@ export default class InfinityTerminal extends Extension {
             if (!this._pendingShow && !waitForFrame)
                 window.minimize();
         }
-        this._icon.opacity = window.minimized ? 112 : 255;
         this._minimizedId = window.connect('notify::minimized', () => {
             this._syncResizeHandle();
-            this._icon.opacity = window.minimized ? 112 : 255;
             Main.overview._overview.controls._workspacesDisplay._updateWorkspacesViews();
         });
         this._unmanagedId = window.connect('unmanaged', () => {
@@ -619,10 +619,9 @@ export default class InfinityTerminal extends Extension {
                 this._sourceId = 0;
             }
             this._window = null;
+            this._sliding = false;
             this._finishResize(false);
             this._syncResizeHandle();
-            this._setResizeCursor(false);
-            this._icon.opacity = 112;
             this._unmanagedId = 0;
             this._minimizedId = 0;
             this._geometryIds = [];
