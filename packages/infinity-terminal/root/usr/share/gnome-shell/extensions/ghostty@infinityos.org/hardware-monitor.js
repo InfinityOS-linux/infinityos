@@ -39,10 +39,12 @@ export class HardwareMonitor {
         this._colorId = this._colorSettings.connect('changed::color-scheme', syncTheme);
         syncTheme();
         Main.layoutManager.addChrome(this.actor);
+        Main.uiGroup.set_child_below_sibling(this.actor, Main.layoutManager.screenShieldGroup);
         this._menuAnchor = new St.Widget({width: 1, height: 1, opacity: 0, reactive: false});
         Main.layoutManager.addChrome(this._menuAnchor);
         this._menu = new PopupMenu.PopupMenu(this._menuAnchor, 0, St.Side.TOP);
         Main.uiGroup.add_child(this._menu.actor);
+        Main.uiGroup.set_child_below_sibling(this._menu.actor, Main.layoutManager.screenShieldGroup);
         this._menu.actor.hide();
         this._menu.actor.add_style_class_name('infinity-monitor-menu');
         if (this._light) this._menu.actor.add_style_class_name('light');
@@ -96,7 +98,10 @@ export class HardwareMonitor {
         }
         if (show === this.actor.visible) return;
         this.actor.visible = show;
-        if (!show) { this._menu.close(); this._history.clear(); }
+        if (!show) {
+            this._menu.close({animate: false});
+            this._history.clear();
+        }
         this._restart();
     }
 
