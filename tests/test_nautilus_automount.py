@@ -149,6 +149,22 @@ class AutomountTests(unittest.TestCase):
         chosen.mount.assert_called_once()
         second.mount.assert_called_once()
 
+    def test_startup_ready_waits_for_the_initial_mounts_only(self):
+        chosen = Volume("chosen")
+        self.volumes = [chosen]
+        ready = self.service.ready_file = Mock()
+        self.service.scan()
+        ready.touch.assert_not_called()
+        chosen.finish()
+        ready.touch.assert_called_once()
+        self.service.scan()
+        ready.touch.assert_called_once()
+
+    def test_unavailable_drive_does_not_delay_steam(self):
+        ready = self.service.ready_file = Mock()
+        self.service.scan()
+        ready.touch.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()

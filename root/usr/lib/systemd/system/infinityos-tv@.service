@@ -1,6 +1,6 @@
 [Unit]
 Description=Infinity OS %i TV session
-After=multi-user.target systemd-logind.service kmsconvt@tty1.service
+After=multi-user.target systemd-logind.service display-manager.service getty@tty1.service kmsconvt@tty1.service
 Requires=systemd-logind.service
 # KMSCon also owns the VT and DRM device on installations using a graphical console.
 Conflicts=display-manager.service getty@tty1.service kmsconvt@tty1.service
@@ -15,9 +15,11 @@ StandardError=journal
 UtmpIdentifier=tty1
 UtmpMode=user
 Environment=XDG_SESSION_TYPE=wayland
+Environment=XDG_SEAT=seat0 XDG_VTNR=1
 Environment=LIBSEAT_BACKEND=logind
 SyslogIdentifier=infinityos-tv
 ExecStartPre=+/usr/libexec/infinityos-tv-control consume %i
+ExecStartPre=+/usr/bin/chvt 1
 # PAM may grant ambient capabilities which Bubblewrap refuses to inherit.
-ExecStart=/usr/bin/setpriv --ambient-caps=-all --inh-caps=-all -- /usr/libexec/infinityos-tv-run %i
+ExecStart=/usr/bin/setpriv --ambient-caps=-all --inh-caps=-all -- /usr/bin/dbus-run-session -- /usr/libexec/infinityos-tv-run %i
 ExecStopPost=+/usr/libexec/infinityos-tv-return-desktop
