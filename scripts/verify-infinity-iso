@@ -157,6 +157,7 @@ for required in \
     usr/lib/systemd/system/infinityos-snapper-setup.service \
     usr/lib/systemd/system/infinityos-backups-setup.service \
     usr/lib/systemd/system-preset/00-infinityos-backups.preset \
+    usr/share/dnf5/vendors.d/40-infinityos.conf \
     usr/lib/kernel/install.d/96-infinityos-esp.install \
     usr/share/anaconda/interactive-defaults.ks; do
     [[ -f "$rootpoint/$required" ]] || {
@@ -387,6 +388,8 @@ rpm --root "$rootpoint" -q infinityos-shell-extensions >/dev/null || {
 }
 if [[ $(rpm --root "$rootpoint" -q --qf '%{RELEASE}' nautilus) != *.infinityos.* ||
     ! -x "$rootpoint/usr/libexec/infinityos-automount" ||
+    ! -x "$rootpoint/usr/libexec/infinityos-configure-automount" ||
+    ! -f "$rootpoint/usr/share/polkit-1/actions/org.infinityos.automount.policy" ||
     ! -f "$rootpoint/etc/xdg/autostart/infinityos-automount.desktop" ]]; then
     echo 'Nautilus Automount is missing from the ISO' >&2
     exit 1

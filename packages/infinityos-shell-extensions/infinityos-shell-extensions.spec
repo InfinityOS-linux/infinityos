@@ -12,6 +12,7 @@ Requires:       gpaste-ui >= 51.0
 Requires:       glib2
 Requires:       dconf
 Requires:       python3-gobject
+Requires:       polkit
 Requires:       librsvg2
 Requires:       gettext
 Requires:       gnome-rounded-blur
@@ -73,6 +74,8 @@ gtk-update-icon-cache -f -q /usr/share/icons/hicolor || :
 /usr/libexec/infinityos-enable-desktop-additions
 /usr/libexec/infinityos-theme-sync
 /usr/libexec/infinityos-automount
+/usr/libexec/infinityos-configure-automount
+/usr/share/polkit-1/actions/org.infinityos.automount.policy
 /usr/share/icons/InfinityOS-Modern-Ice/
 /etc/xdg/autostart/infinityos-enable-desktop-additions.desktop
 /etc/xdg/autostart/infinityos-automount.desktop

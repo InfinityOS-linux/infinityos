@@ -24,7 +24,8 @@ docker run --rm \
     spec=/build/rpmbuild/SPECS/nautilus.spec
     cp /source/sidebar-automount.patch /build/rpmbuild/SOURCES/
     grep -Eq "^%autosetup([[:space:]]|$)" "$spec"
-    sed -i -e "/^Release:/cRelease: ${release}.infinityos.${INFINITY_PACKAGE_RELEASE}\nSource900: sidebar-automount.patch" \
+    sed -i -e "/^Vendor:/d" \
+      -e "/^Release:/cRelease: ${release}.infinityos.${INFINITY_PACKAGE_RELEASE}\nVendor: InfinityOS\nSource900: sidebar-automount.patch" \
       -e "/^%autosetup/a patch --fuzz=0 -p1 < %{SOURCE900}" "$spec"
     dnf -qy builddep "$spec"
     rpmbuild -bb --define "_topdir /build/rpmbuild" "$spec"
