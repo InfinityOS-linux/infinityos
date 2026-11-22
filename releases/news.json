@@ -8,7 +8,7 @@
     "changes": [
       {
         "title": "Release availability",
-        "text": "The signed RPM update is available. Refreshed x64 and ARM64 installer images are building."
+        "text": "The updated x64 and ARM64 installer images are available on Cloudflare R2. The Download page lists their SHA-256 and MD5 checksums. The signed update is also available for existing installations."
       },
       {
         "title": "EFI boot entry recognition",
