@@ -1,5 +1,30 @@
 [
   {
+    "id": "2026-11-22-infinityapps-review",
+    "date": "2026-11-22",
+    "title": "InfinityApps and a clearer install review",
+    "summary": "InfinityApps is the InfinityOS application chooser. Its redesigned confirmation shows exactly what will be installed, removed, or changed in TV Mode.",
+    "buildSha": "4b83b7bfe30eddb1260298a595cc319bbee36a2e",
+    "changes": [
+      {
+        "title": "Available on ARM64 and x64",
+        "text": "The signed update is available through InfinityUpdater on ARM64 and x64. Fresh installer images for both architectures are building."
+      },
+      {
+        "title": "Review your selection",
+        "text": "The confirmation groups changes by action and shows app icons and counts. Install-only selections have a dedicated Install button."
+      },
+      {
+        "title": "Close during setup or installation",
+        "text": "The close button is available while the catalog loads. During an installation, closing lets the current operation finish, stops the remaining queue, and then closes the window."
+      },
+      {
+        "title": "Search, AI and Antigravity",
+        "text": "CraftSuite appears in search. Refreshing AI model availability preserves other app selections and the active search. The Antigravity entry uses the Google G, and retrying a partial desktop installation repairs it."
+      }
+    ]
+  },
+  {
     "id": "2026-11-22-rpm-antigravity-and-app-blur",
     "date": "2026-11-22",
     "title": "RPM update: Google Antigravity, shared blur and model management",
