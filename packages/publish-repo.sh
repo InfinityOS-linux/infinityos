@@ -32,6 +32,11 @@ for arch in aarch64 x86_64; do
         echo "Missing $required RPM for $arch" >&2; exit 1;
       }
   done
+  for required in nautilus nautilus-extensions; do
+    compgen -G "$rpms/$required-51.*.infinityos.*.$arch.rpm" >/dev/null || {
+      echo "Missing patched $required RPM for $arch" >&2; exit 1;
+    }
+  done
   if [[ $arch == x86_64 ]]; then
     compgen -G "$rpms/gamescope-*.x86_64.rpm" >/dev/null || {
       echo 'Missing patched gamescope RPM for x86_64' >&2; exit 1;

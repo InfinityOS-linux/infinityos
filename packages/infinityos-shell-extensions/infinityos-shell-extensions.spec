@@ -72,8 +72,10 @@ gtk-update-icon-cache -f -q /usr/share/icons/hicolor || :
 %files
 /usr/libexec/infinityos-enable-desktop-additions
 /usr/libexec/infinityos-theme-sync
+/usr/libexec/infinityos-automount
 /usr/share/icons/InfinityOS-Modern-Ice/
 /etc/xdg/autostart/infinityos-enable-desktop-additions.desktop
+/etc/xdg/autostart/infinityos-automount.desktop
 /usr/share/gnome-shell/extensions/nowplay@LalaloyXyz/
 /usr/share/gnome-shell/extensions/raccoonlauncher@shimafallah.github.io/
 /usr/bin/infinityos-shell-recover
@@ -113,6 +115,7 @@ gtk-update-icon-cache -f -q /usr/share/icons/hicolor || :
 /usr/share/glib-2.0/schemas/org.gnome.shell.extensions.caffeine.gschema.xml
 /usr/share/glib-2.0/schemas/org.gnome.shell.extensions.user-theme.gschema.xml
 /usr/share/glib-2.0/schemas/org.gnome.shell.extensions.vertical-workspaces.gschema.xml
+/usr/share/glib-2.0/schemas/org.infinityos.automount.gschema.xml
 %license /usr/share/licenses/infinityos-shell-extensions/*
 
 %changelog

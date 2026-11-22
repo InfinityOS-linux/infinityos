@@ -1,0 +1,102 @@
+#!/usr/bin/python3
+"""Mount user-selected local volumes in the GNOME session."""
+
+import logging
+from collections import defaultdict
+
+from gi.repository import Gio, GLib
+
+
+MOUNT_TIMEOUT_SECONDS = 20
+
+
+class Automount:
+    def __init__(self, settings, monitor):
+        self.settings = settings
+        self.monitor = monitor
+        self.attempted = set()
+        self.pending = {}
+        self.scan_source = 0
+        monitor.connect("volume-added", self.queue_scan)
+        monitor.connect("volume-removed", self.volume_removed)
+        settings.connect("changed::volume-uuids", self.settings_changed)
+        self.queue_scan()
+
+    def queue_scan(self, *_args):
+        if not self.scan_source:
+            self.scan_source = GLib.idle_add(self.scan)
+
+    def settings_changed(self, *_args):
+        selected = set(self.settings.get_strv("volume-uuids"))
+        for uuid, cancellable, _ in self.pending.values():
+            if uuid not in selected:
+                cancellable.cancel()
+        self.queue_scan()
+
+    def volume_removed(self, _monitor, volume):
+        self.attempted.discard(volume)
+        request = self.pending.get(volume)
+        if request is not None:
+            request[1].cancel()
+        self.queue_scan()
+
+    def scan(self):
+        self.scan_source = 0
+        selected = set(self.settings.get_strv("volume-uuids"))
+        if not selected:
+            self.attempted.clear()
+            return GLib.SOURCE_REMOVE
+
+        by_uuid = defaultdict(list)
+        for volume in self.monitor.get_volumes():
+            device = volume.get_identifier(Gio.VOLUME_IDENTIFIER_KIND_UNIX_DEVICE)
+            uuid = volume.get_identifier(Gio.VOLUME_IDENTIFIER_KIND_UUID)
+            if uuid in selected and device and device.startswith("/dev/"):
+                by_uuid[uuid].append(volume)
+
+        # Keep a manually unmounted drive unmounted until it is reconnected.
+        self.attempted.intersection_update(volume for volumes in by_uuid.values() for volume in volumes)
+        for uuid, volumes in by_uuid.items():
+            if len(volumes) != 1:
+                logging.warning("Skipping ambiguous volume UUID %s", uuid)
+                continue
+            volume = volumes[0]
+            if volume in self.attempted or volume in self.pending:
+                continue
+            if volume.get_mount() is not None:
+                self.attempted.add(volume)
+            elif volume.can_mount():
+                self.start_mount(volume, uuid)
+        return GLib.SOURCE_REMOVE
+
+    def start_mount(self, volume, uuid):
+        cancellable = Gio.Cancellable()
+
+        def timeout():
+            self.pending[volume] = (uuid, cancellable, 0)
+            logging.warning("Timed out mounting volume %s", uuid)
+            cancellable.cancel()
+            return GLib.SOURCE_REMOVE
+
+        self.attempted.add(volume)
+        timeout_id = GLib.timeout_add_seconds(MOUNT_TIMEOUT_SECONDS, timeout)
+        self.pending[volume] = (uuid, cancellable, timeout_id)
+        # A background mount must not ask the user to unlock or authorize a drive.
+        volume.mount(Gio.MountMountFlags.NONE, None, cancellable, self.mount_finished, None)
+
+    def mount_finished(self, volume, result, _user_data):
+        uuid, _, timeout_id = self.pending.pop(volume)
+        if timeout_id:
+            GLib.source_remove(timeout_id)
+        try:
+            volume.mount_finish(result)
+        except GLib.Error as error:
+            if not any(error.matches(Gio.io_error_quark(), code) for code in (
+                Gio.IOErrorEnum.CANCELLED, Gio.IOErrorEnum.ALREADY_MOUNTED
+            )):
+                logging.warning("Could not mount volume %s: %s", uuid, error.message)
+
+
+if __name__ == "__main__":
+    automount = Automount(Gio.Settings.new("org.infinityos.automount"), Gio.VolumeMonitor.get())
+    GLib.MainLoop().run()
