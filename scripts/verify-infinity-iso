@@ -391,6 +391,10 @@ if [[ $(rpm --root "$rootpoint" -q --qf '%{RELEASE}' nautilus) != *.infinityos.*
     echo 'Nautilus Automount is missing from the ISO' >&2
     exit 1
 fi
+if [[ ! -f "$rootpoint/usr/share/dnf5/vendors.d/50-infinityos-desktop.toml" ]]; then
+    echo 'InfinityOS desktop package vendor policy is missing from the ISO' >&2
+    exit 1
+fi
 for package in gnome-shell-extension-appindicator gnome-shell-extension-blur-my-shell gnome-shell-extension-caffeine gnome-shell-extension-gpaste gnome-shell-extension-user-theme gnome-shell-extension-vertical-workspaces; do
     if rpm --root "$rootpoint" -q "$package" >/dev/null 2>&1; then
         echo "Upstream GNOME extension package still installed in ISO: $package" >&2

@@ -1,13 +1,89 @@
 #!/usr/bin/python3
 """Mount user-selected local volumes in the GNOME session."""
 
+import argparse
+import fcntl
 import logging
+import os
+import re
+import sys
 from collections import defaultdict
+from pathlib import Path
 
 from gi.repository import Gio, GLib
 
 
 MOUNT_TIMEOUT_SECONDS = 20
+SETTINGS_SCHEMA = "org.infinityos.automount"
+UDISKS = "org.freedesktop.UDisks2"
+UDISKS_PATH = "/org/freedesktop/UDisks2"
+UDISKS_BLOCK = f"{UDISKS}.Block"
+UDISKS_FILESYSTEM = f"{UDISKS}.Filesystem"
+FSTAB_MKDIR = "X-mount.mkdir"
+
+
+def fstab_record(uuid, filesystem):
+    # UDisks can mount this entry after sign-in without asking again. The
+    # session monitor checks for missing and duplicate UUIDs before mounting.
+    options = ["noauto", "nofail", "nosuid", "nodev", FSTAB_MKDIR, "x-gvfs-show"]
+    if filesystem in {"vfat", "exfat", "ntfs", "ntfs3"}:
+        options.extend((f"uid={os.getuid()}", f"gid={os.getgid()}", "umask=077"))
+    return {"fsname": f"UUID={uuid}".encode() + b"\0",
+            "dir": f"/mnt/infinityos-{uuid}".encode() + b"\0",
+            "type": b"auto\0", "opts": ",".join(options).encode() + b"\0",
+            "freq": 0, "passno": 0}
+
+
+def configure_fixed_volume(bus, uuid, enabled):
+    if not re.fullmatch(r"[A-Za-z0-9-]{1,128}", uuid):
+        raise ValueError("Invalid filesystem UUID.")
+    objects, = bus.call_sync(UDISKS, UDISKS_PATH, "org.freedesktop.DBus.ObjectManager",
+                             "GetManagedObjects", None, None, Gio.DBusCallFlags.NONE,
+                             5000, None).unpack()
+    matches = [(path, interfaces[UDISKS_BLOCK]) for path, interfaces in objects.items()
+               if UDISKS_FILESYSTEM in interfaces and UDISKS_BLOCK in interfaces
+               and interfaces[UDISKS_BLOCK].get("IdUUID") == uuid]
+    if len(matches) != 1:
+        raise ValueError("The selected filesystem is unavailable or its UUID is shared by another drive.")
+
+    path, block = matches[0]
+    record = fstab_record(uuid, block.get("IdType"))
+    entries = [item for kind, item in block.get("Configuration", ()) if kind == "fstab"]
+    owned = next((item for item in entries
+                  if bytes(item.get("fsname", ())) == record["fsname"]
+                  and bytes(item.get("dir", ())) == record["dir"]
+                  and FSTAB_MKDIR.encode() in bytes(item.get("opts", ())).rstrip(b"\0").split(b",")), None)
+    if enabled:
+        if owned is not None or not block.get("HintSystem"):
+            return
+        if entries:
+            raise ValueError("This drive already has a system mount entry. Manage it in Disks.")
+        if block.get("HintIgnore") or block.get("CryptoBackingDevice", "/") != "/":
+            raise ValueError("This drive cannot be mounted automatically without unlocking it.")
+        method, item = "AddConfigurationItem", record
+    else:
+        if owned is None:
+            return
+        method, item = "RemoveConfigurationItem", owned
+
+    fields = {key: GLib.Variant("i", item[key]) if key in ("freq", "passno")
+              else GLib.Variant("ay", bytes(item[key])) for key in record}
+    bus.call_sync(UDISKS, path, UDISKS_BLOCK, method,
+                  GLib.Variant("((sa{sv})a{sv})", (("fstab", fields), {})),
+                  None, Gio.DBusCallFlags.ALLOW_INTERACTIVE_AUTHORIZATION, 120000, None)
+
+
+def set_automount(settings, uuid, enabled):
+    if not settings.is_writable("volume-uuids"):
+        raise ValueError("Automount preferences are locked.")
+    bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+    configure_fixed_volume(bus, uuid, enabled)
+    selected = [value for value in settings.get_strv("volume-uuids") if value != uuid]
+    if enabled:
+        selected.append(uuid)
+    if not settings.set_strv("volume-uuids", selected):
+        raise ValueError("Could not save the Automount preference.")
+    Gio.Settings.sync()
 
 
 class Automount:
@@ -98,5 +174,23 @@ class Automount:
 
 
 if __name__ == "__main__":
-    automount = Automount(Gio.Settings.new("org.infinityos.automount"), Gio.VolumeMonitor.get())
-    GLib.MainLoop().run()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--configure", nargs=2, metavar=("UUID", "on|off"))
+    args = parser.parse_args()
+    settings = Gio.Settings.new(SETTINGS_SCHEMA)
+    if args.configure:
+        uuid, mode = args.configure
+        if mode not in ("on", "off"):
+            parser.error("expected on or off")
+        try:
+            lock = Path(GLib.get_user_runtime_dir()) / "infinityos-automount.lock"
+            with lock.open("a") as handle:
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                set_automount(settings, uuid, mode == "on")
+        except BlockingIOError:
+            sys.exit("Another Automount change is still in progress.")
+        except (GLib.Error, OSError, ValueError) as error:
+            sys.exit(str(error))
+    else:
+        automount = Automount(settings, Gio.VolumeMonitor.get())
+        GLib.MainLoop().run()

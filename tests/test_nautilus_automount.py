@@ -53,6 +53,7 @@ class AutomountTests(unittest.TestCase):
         self.glib = SimpleNamespace(
             Error=MountError,
             SOURCE_REMOVE=False,
+            Variant=lambda signature, value: (signature, value),
             idle_add=Mock(return_value=1),
             timeout_add_seconds=Mock(return_value=2),
             source_remove=Mock(),
@@ -61,6 +62,7 @@ class AutomountTests(unittest.TestCase):
             VOLUME_IDENTIFIER_KIND_UUID="uuid",
             VOLUME_IDENTIFIER_KIND_UNIX_DEVICE="unix-device",
             Cancellable=Mock(side_effect=Mock),
+            DBusCallFlags=SimpleNamespace(NONE=0, ALLOW_INTERACTIVE_AUTHORIZATION=1),
             MountMountFlags=SimpleNamespace(NONE=0),
             IOErrorEnum=SimpleNamespace(CANCELLED="cancelled", ALREADY_MOUNTED="already-mounted"),
             io_error_quark=lambda: "gio",
@@ -71,6 +73,7 @@ class AutomountTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         with patch.dict("sys.modules", {"gi": SimpleNamespace(repository=repository), "gi.repository": repository}):
             loader.exec_module(module)
+        self.module = module
         self.settings = SimpleNamespace(connect=Mock(), get_strv=lambda _key: self.selected)
         self.monitor = SimpleNamespace(connect=Mock(), get_volumes=lambda: self.volumes)
         self.service = module.Automount(self.settings, self.monitor)
@@ -148,6 +151,60 @@ class AutomountTests(unittest.TestCase):
         self.service.scan()
         chosen.mount.assert_called_once()
         second.mount.assert_called_once()
+
+    def system_volume(self, *, internal=True, filesystem="ext4", entries=()):
+        objects = {"/drive": {
+            self.module.UDISKS_BLOCK: {"IdUUID": "chosen", "IdType": filesystem,
+                                      "HintSystem": internal, "Configuration": entries},
+            self.module.UDISKS_FILESYSTEM: {},
+        }}
+        bus = Mock()
+        bus.call_sync.return_value.unpack.return_value = (objects,)
+        return bus, objects
+
+    def test_fixed_drive_only_requests_authorization_when_setting_up_its_mount(self):
+        bus, objects = self.system_volume(filesystem="exfat")
+        self.module.configure_fixed_volume(bus, "chosen", True)
+        call = bus.call_sync.call_args.args
+        self.assertEqual(call[1:4], ("/drive", self.module.UDISKS_BLOCK, "AddConfigurationItem"))
+        self.assertEqual(call[6], self.module.Gio.DBusCallFlags.ALLOW_INTERACTIVE_AUTHORIZATION)
+        _, ((kind, record), _) = call[4]
+        self.assertEqual(kind, "fstab")
+        self.assertEqual(record["fsname"], ("ay", b"UUID=chosen\0"))
+        options = record["opts"][1].rstrip(b"\0").split(b",")
+        for option in (b"noauto", b"nofail", b"nosuid", b"nodev", b"X-mount.mkdir", b"umask=077"):
+            self.assertIn(option, options)
+        self.assertNotIn(b"x-udisks-auth", options)
+
+        block = objects["/drive"][self.module.UDISKS_BLOCK]
+        block["Configuration"] = (("fstab", {key: value for key, (_, value) in record.items()}),)
+        bus.reset_mock()
+        self.module.configure_fixed_volume(bus, "chosen", True)
+        self.assertEqual(bus.call_sync.call_count, 1)
+        self.module.configure_fixed_volume(bus, "chosen", False)
+        self.assertEqual(bus.call_sync.call_args.args[3], "RemoveConfigurationItem")
+
+    def test_removable_drive_keeps_session_automount(self):
+        bus, _ = self.system_volume(internal=False)
+        self.module.configure_fixed_volume(bus, "chosen", True)
+        self.assertEqual(bus.call_sync.call_count, 1)
+
+    def test_existing_mount_configuration_is_preserved(self):
+        bus, _ = self.system_volume(entries=(("fstab", {"dir": b"/mnt/data\0"}),))
+        with self.assertRaisesRegex(ValueError, "already has a system mount entry"):
+            self.module.configure_fixed_volume(bus, "chosen", True)
+        self.module.configure_fixed_volume(bus, "chosen", False)
+        self.assertEqual(bus.call_sync.call_count, 2)
+
+    def test_missing_and_duplicate_filesystems_never_request_authorization(self):
+        bus, objects = self.system_volume()
+        objects["/duplicate"] = objects["/drive"]
+        with self.assertRaisesRegex(ValueError, "UUID is shared"):
+            self.module.configure_fixed_volume(bus, "chosen", True)
+        objects.clear()
+        with self.assertRaisesRegex(ValueError, "unavailable"):
+            self.module.configure_fixed_volume(bus, "chosen", True)
+        self.assertEqual(bus.call_sync.call_count, 2)
 
 
 if __name__ == "__main__":

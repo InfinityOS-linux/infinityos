@@ -33,6 +33,7 @@ fi
 /etc/pki/rpm-gpg/RPM-GPG-KEY-infinityos
 /usr/lib/systemd/system/infinityos-repo-trust.service
 /usr/lib/systemd/system/infinityos-repo-trust.timer
+/usr/share/dnf5/vendors.d/50-infinityos-desktop.toml
 
 %changelog
 * Wed Oct 14 2026 Infinity OS Contributors <noreply@gitlab.com> - 1.0.0-1

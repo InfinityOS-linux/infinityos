@@ -192,6 +192,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [build-gamescope, build-nautilus]
     steps:
+      - uses: actions/checkout@v6
       - uses: actions/download-artifact@v7
         with:
           name: rpm-gamescope-x86_64
@@ -200,12 +201,19 @@ jobs:
         with:
           name: rpm-nautilus-x86_64
           path: desktop-rpms
-      - name: Upgrade all three packages in a disposable Fedora system
+      - name: Upgrade all three packages from the InfinityOS repository without a vendor override
         run: |
-          docker run --rm -v "$PWD/desktop-rpms:/desktop-rpms:ro" fedora:45 bash -euo pipefail -c '
-            dnf -qy --setopt=install_weak_deps=False install gamescope nautilus
-            dnf -qy --setopt=install_weak_deps=False upgrade /desktop-rpms/gamescope-*.x86_64.rpm \
-              /desktop-rpms/nautilus-51.*.x86_64.rpm /desktop-rpms/nautilus-extensions-*.x86_64.rpm
+          docker run --rm -v "$PWD/desktop-rpms:/desktop-rpms:ro" \
+            -v "$PWD/packages/infinityos-repos/root/usr/share/dnf5/vendors.d/50-infinityos-desktop.toml:/policy.toml:ro" \
+            fedora:45 bash -euo pipefail -c '
+            dnf -qy --setopt=install_weak_deps=False install createrepo_c gamescope nautilus
+            cp -a /desktop-rpms /tmp/infinityos-repo
+            createrepo_c /tmp/infinityos-repo
+            install -D -m 0644 /policy.toml /usr/share/dnf5/vendors.d/50-infinityos-desktop.toml
+            dnf --setopt=allow_vendor_change=False --dump-vendor-policies | grep -F 50-infinityos-desktop.toml
+            dnf -qy --repofrompath=infinityos,file:///tmp/infinityos-repo \
+              --setopt=allow_vendor_change=False --setopt=install_weak_deps=False \
+              upgrade gamescope nautilus nautilus-extensions
             for package in gamescope nautilus nautilus-extensions; do
               [[ $(rpm -q --qf "%{RELEASE}" "$package") == *.infinityos.* ]]
             done
