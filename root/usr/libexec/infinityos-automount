@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 """Mount user-selected local volumes in the GNOME session."""
 
+import argparse
 import logging
 from collections import defaultdict
+from pathlib import Path
 
 from gi.repository import Gio, GLib
 
@@ -11,12 +13,13 @@ MOUNT_TIMEOUT_SECONDS = 20
 
 
 class Automount:
-    def __init__(self, settings, monitor):
+    def __init__(self, settings, monitor, ready_file=None):
         self.settings = settings
         self.monitor = monitor
         self.attempted = set()
         self.pending = {}
         self.scan_source = 0
+        self.ready_file = ready_file
         monitor.connect("volume-added", self.queue_scan)
         monitor.connect("volume-removed", self.volume_removed)
         settings.connect("changed::volume-uuids", self.settings_changed)
@@ -45,6 +48,7 @@ class Automount:
         selected = set(self.settings.get_strv("volume-uuids"))
         if not selected:
             self.attempted.clear()
+            self.notify_ready()
             return GLib.SOURCE_REMOVE
 
         by_uuid = defaultdict(list)
@@ -67,7 +71,17 @@ class Automount:
                 self.attempted.add(volume)
             elif volume.can_mount():
                 self.start_mount(volume, uuid)
+        self.notify_ready()
         return GLib.SOURCE_REMOVE
+
+    def notify_ready(self):
+        if self.ready_file is None or self.pending:
+            return
+        try:
+            self.ready_file.touch()
+        except OSError as error:
+            logging.warning("Could not notify Steam about the initial drive scan: %s", error)
+        self.ready_file = None
 
     def start_mount(self, volume, uuid):
         cancellable = Gio.Cancellable()
@@ -95,8 +109,12 @@ class Automount:
                 Gio.IOErrorEnum.CANCELLED, Gio.IOErrorEnum.ALREADY_MOUNTED
             )):
                 logging.warning("Could not mount volume %s: %s", uuid, error.message)
+        self.notify_ready()
 
 
 if __name__ == "__main__":
-    automount = Automount(Gio.Settings.new("org.infinityos.automount"), Gio.VolumeMonitor.get())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--ready-file", type=Path)
+    args = parser.parse_args()
+    automount = Automount(Gio.Settings.new("org.infinityos.automount"), Gio.VolumeMonitor.get(), args.ready_file)
     GLib.MainLoop().run()

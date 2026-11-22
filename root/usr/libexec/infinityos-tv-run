@@ -6,7 +6,7 @@ run_steam() {
     set -- /usr/libexec/infinityos-tv-steam-splash "$@"
     while true; do
         started=$SECONDS
-        if dbus-run-session -- gamescope -e -f -- "$@"; then
+        if gamescope -e -f -- "$@"; then
             [[ ! -e $INFINITYOS_TV_EXIT_REQUEST ]] || return 0
             if (( SECONDS - started >= 20 )); then
                 return 0
@@ -32,15 +32,41 @@ run_steam() {
             return "$status"
         fi
         echo "gamescope exited early ($status); trying Cage with software rendering" >&2
-        WLR_RENDERER=pixman dbus-run-session -- cage -- "$@"
+        WLR_RENDERER=pixman cage -- "$@"
         return $?
     done
+}
+
+start_automount() {
+    local helper=/usr/libexec/infinityos-automount
+    [[ -x $helper ]] || return 0
+    local ready="$session_tools/mounts-ready" deadline=$((SECONDS + 4))
+    "$helper" --ready-file "$ready" &
+    automount_pid=$!
+    # Let already-connected drives mount before Steam scans for libraries.
+    # The watcher keeps running if a drive is slow or connected later.
+    while [[ ! -e $ready ]] && kill -0 "$automount_pid" 2>/dev/null && (( SECONDS < deadline )); do
+        sleep 0.1
+    done
+}
+
+cleanup_steam() {
+    if [[ -n ${automount_pid:-} ]]; then
+        kill "$automount_pid" 2>/dev/null || :
+        wait "$automount_pid" 2>/dev/null || :
+    fi
+    rm -rf -- "$session_tools"
 }
 
 case ${1:-} in
     esde)
         app="$HOME/.local/share/infinityos/tv/ES-DE.AppImage"
         [[ -x $app ]] || { echo "ES-DE is not installed for $USER" >&2; exit 1; }
+        udevadm settle --timeout=3 || :
+        if modinfo xone_dongle >/dev/null 2>&1; then
+            # xone provides Xbox One/Series controllers through Linux input devices.
+            export SDL_JOYSTICK_HIDAPI_XBOX_ONE="${SDL_JOYSTICK_HIDAPI_XBOX_ONE:-0}"
+        fi
         exec cage -- "$app"
         ;;
     steam)
@@ -48,18 +74,19 @@ case ${1:-} in
         export STEAM_GAMESCOPE_FORCE_OUTPUT_TO_HDR10PQ_DEFAULT=0
         mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/gamescope/scripts"
         session_tools=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/infinityos-steam-tools.XXXXXXXX")
-        trap 'rm -rf -- "$session_tools"' EXIT
+        trap cleanup_steam EXIT
         ln -s /usr/libexec/infinityos-tv-steam-exit "$session_tools/steamos-session-select"
         export PATH="$session_tools:$PATH"
         export INFINITYOS_TV_EXIT_REQUEST="$session_tools/exit-requested"
         if [[ $(uname -m) == aarch64 ]]; then
             client="$HOME/.local/share/Steam/steamrtarm64/steam"
             [[ -x $client ]] || { echo 'Steam ARM64 is missing' >&2; exit 1; }
-            run_steam "$client" -gamepadui -steamos3 -steampal -steamdeck
-            exit $?
+        else
+            command -v steam >/dev/null 2>&1 || { echo 'Steam RPM is missing' >&2; exit 1; }
+            client=/usr/libexec/infinityos-steam
         fi
-        command -v steam >/dev/null 2>&1 || { echo 'Steam RPM is missing' >&2; exit 1; }
-        run_steam /usr/libexec/infinityos-steam -gamepadui -steamos3 -steampal -steamdeck
+        start_automount
+        run_steam "$client" -gamepadui -steamos3 -steampal -steamdeck
         ;;
     *) echo 'Unknown TV mode' >&2; exit 2 ;;
 esac

@@ -635,7 +635,10 @@ def _install_driver_as_root(driver):
         if driver == "xone":
             _install_xone_firmware(directory)
     _run(["depmod", "-a"])
-    if driver == "xpadneo":
+    if driver == "xone":
+        # Probe already-connected adapters after the firmware and module are installed.
+        _run(["modprobe", "xone_dongle"])
+    else:
         _run(["systemctl", "enable", "--now", "bluetooth.service"])
 
 

@@ -15,6 +15,8 @@ Requires:       util-linux
 Requires:       cage
 Requires:       dbus-daemon
 Requires:       dbus-tools
+Requires:       gvfs
+Requires:       kbd
 Requires:       kernel-modules-core
 Requires:       efibootmgr
 Requires:       snapper
