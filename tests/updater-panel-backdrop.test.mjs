@@ -98,6 +98,27 @@ test('a failed backdrop creation is retried without requiring a settings change'
     f.helper.destroy();
 });
 
+test('Setup and Config only make their own surface transparent', () => {
+    const f = fixture();
+    const config = new f.Actor();
+    Object.assign(config, {
+        get_compositor_private: () => new f.Actor(),
+        get_frame_rect: () => f.frame, get_buffer_rect: () => f.buffer,
+        get_monitor: () => 1,
+    });
+    f.helper.attach(f.window, 'SetupReady');
+    assert.equal(f.helper.SetupReady, true);
+    assert.equal(f.helper.ConfigReady, false);
+    assert.equal(f.helper.Ready, false);
+    f.helper.attach(config, 'ConfigReady');
+    f.helper.detach(f.window);
+    assert.equal(f.helper.SetupReady, false);
+    assert.equal(f.helper.ConfigReady, true);
+    assert.deepEqual(f.properties, [['SetupReady', true], ['ConfigReady', true], ['SetupReady', false]]);
+    f.helper.destroy();
+    assert.equal(f.helper.ConfigReady, false);
+});
+
 test('dynamic blur fills the drawer and reconnects after preset changes and panel resets', () => {
     const f = fixture(); f.blur.settings.panel.STATIC_BLUR = false;
     f.helper.attach(f.window);

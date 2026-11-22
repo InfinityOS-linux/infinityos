@@ -85,5 +85,5 @@ class AuditRegressionTests(unittest.TestCase):
         self.assertEqual(sum(args[0] == 'rpm' for args in calls), 1)
         self.assertEqual(sum(args[0] == 'flatpak' for args in calls), 2)
         self.assertFalse(any(args[0] == 'ollama' for args in calls))
-        model = next(app for app in states if app.source == 'infinity-qwen-9b')
-        self.assertTrue(states[model])
+        self.assertEqual(models, ('infinity-qwen-9b:latest',))
+        self.assertNotIn('infinity-qwen-9b', {app.source for app in states})

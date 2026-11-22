@@ -48,6 +48,7 @@ sed 's|^Exec=.*|Exec=/usr/bin/true|' \
     > "$sandbox/system/applications/com.infinityos.GhosTTY.desktop"
 export INFINITY_SMOKE_TERMINAL_DESKTOP="$sandbox/system/applications/com.infinityos.GhosTTY.desktop"
 export INFINITY_SMOKE_UPDATER="$repo/packages/infinity-updater/root/usr/share/infinityos/updater/updater.py"
+export INFINITY_SMOKE_APP_BACKDROP="$repo/packages/infinity-updater/root/usr/share/infinityos/panel_backdrop.py"
 export INFINITY_SMOKE_BACKDROP_REPORT="$sandbox/updater-backdrop.json"
 export INFINITY_SMOKE_CURSOR_REPORT="$sandbox/cursor-client.json"
 export INFINITY_SMOKE_GTK_THEME="$repo/root/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/gtk.css"

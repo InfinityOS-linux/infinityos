@@ -76,6 +76,7 @@ fi
 /usr/libexec/__pycache__/infinityos-offline-update*.pyc
 /usr/libexec/__pycache__/infinityos-backups-manage*.pyc
 /usr/share/infinityos/updater/
+/usr/share/infinityos/panel_backdrop.py
 /usr/share/dbus-1/services/org.infinityos.Updater.service
 /usr/share/applications/org.infinityos.Updater.desktop
 /usr/share/icons/hicolor/512x512/apps/org.infinityos.Updater.png

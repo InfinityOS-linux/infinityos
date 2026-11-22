@@ -556,6 +556,24 @@ export default class Smoke extends Extension {
         check(!redrawOwner.fullRedraw, 'detaching drawer left full repaint enabled');
         updater._drawerBackdrop.attach(drawer.meta_window); await wait();
         check(readBackdrop().transparent, 'GTK did not recover after reattaching the backdrop');
+        for (const [app, ready] of [['Setup', 'SetupReady'], ['Config', 'ConfigReady']]) {
+            const id = `org.infinityos.${app}`;
+            const report = GLib.getenv('INFINITY_SMOKE_BACKDROP_REPORT').replace(/\.json$/, `-${app}.state`);
+            const surface = Gio.Subprocess.new(['python3', this.dir.get_child('app-backdrop-client.py').get_path(),
+                id, ready, report], Gio.SubprocessFlags.NONE);
+            this._objects.push({disable: () => surface.force_exit()});
+            await wait(); await wait(); await wait();
+            const found = global.get_window_actors().find(actor => actor.meta_window?.get_gtk_application_id() === id);
+            check(found && updater._drawerBackdrop._entries.get(found.meta_window)?.backdrop,
+                `${app} did not receive the shared GNOME Shell blur`);
+            const read = () => new TextDecoder().decode(GLib.file_get_contents(report)[1]);
+            check(read() === 'ready', `${app} stayed opaque after its backdrop became ready`);
+            const other = ready === 'SetupReady' ? 'ConfigReady' : 'SetupReady';
+            check(!updater._drawerBackdrop[other], `${app} made the other app's backdrop appear ready`);
+            updater._drawerBackdrop.detach(found.meta_window); await wait();
+            check(read() === 'opaque', `${app} lost its backdrop without restoring the opaque fallback`);
+            surface.force_exit(); await wait();
+        }
         const panelIndicators = new PanelIndicators();
         this._objects.push({disable: () => panelIndicators.destroy()});
         const powerIcon = Main.panel.statusArea.quickSettings._powerProfiles._indicator;

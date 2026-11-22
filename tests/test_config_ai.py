@@ -80,6 +80,19 @@ class ConfigAiTests(unittest.TestCase):
             self.assertTrue(marker.read_text().startswith('infinity-config-'))
             self.assertEqual(api.call_args.args[1]['parameters']['num_ctx'], 4096)
 
+    def test_config_can_select_a_downloaded_model_when_none_is_active(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / '.config/infinityos/local-ai-model'
+            with patch.object(ai, 'downloaded_local_models', return_value=('existing:q4',)), \
+                 patch.object(ai, 'ollama', return_value={}), \
+                 patch.object(ai.shutil, 'which', return_value=None):
+                state = ai.local_status(directory)
+                self.assertIsNone(state['active'])
+                self.assertEqual(state['model'], 'existing:q4')
+                self.assertFalse(marker.exists())
+                ai.select_local('existing:q4', 4096, 1024, 0.5, directory)
+            self.assertTrue(marker.read_text().startswith('infinity-config-'))
+
     def test_changing_settings_does_not_overwrite_the_active_model(self):
         with tempfile.TemporaryDirectory() as directory:
             marker = Path(directory) / '.config/infinityos/local-ai-model'

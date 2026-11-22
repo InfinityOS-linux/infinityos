@@ -18,14 +18,19 @@ export default class InfinityUpdater extends Extension {
         this._pendingWindows = new Map();
         this._windowCreatedId = global.display.connect('window-created', (_display, window) => this._watchDrawer(window));
         this._drawerBackdrop = new PanelBackdrop();
-        for (const actor of global.get_window_actors())
-            if (this._isUpdater(actor.meta_window) && !actor.meta_window.minimized)
-                this._drawerBackdrop.attach(actor.meta_window);
-        this._destroyId = global.window_manager.connect('destroy', (_wm, actor) => {
-            if (this._isUpdater(actor.meta_window)) {
-                this._cancelOpening(actor.meta_window);
-                this._drawerBackdrop.detach(actor.meta_window);
+        for (const actor of global.get_window_actors()) {
+            const window = actor.meta_window;
+            if (window && !window.minimized) {
+                if (this._isUpdater(window))
+                    this._drawerBackdrop.attach(window);
+                else
+                    this._attachAppBackdrop(window);
             }
+        }
+        this._destroyId = global.window_manager.connect('destroy', (_wm, actor) => {
+            if (this._isUpdater(actor.meta_window))
+                this._cancelOpening(actor.meta_window);
+            this._drawerBackdrop.detach(actor.meta_window);
         });
         this._focusId = global.display.connect('notify::focus-window',
             () => this._onFocusChanged());
@@ -34,10 +39,14 @@ export default class InfinityUpdater extends Extension {
         this._mapId = global.window_manager.connect('map', (_wm, actor) => {
             if (this._isUpdater(actor.meta_window))
                 this._showDrawer(actor.meta_window);
+            else
+                this._attachAppBackdrop(actor.meta_window);
         });
         this._unminimizeId = global.window_manager.connect('unminimize', (_wm, actor) => {
             if (this._isUpdater(actor.meta_window))
                 this._showDrawer(actor.meta_window);
+            else
+                this._attachAppBackdrop(actor.meta_window);
         });
         this._monitorsId = Main.layoutManager.connect('monitors-changed', () => {
             for (const actor of global.get_window_actors()) {
@@ -197,6 +206,16 @@ export default class InfinityUpdater extends Extension {
         return window && !window.get_transient_for() &&
             (window.get_gtk_application_id() === 'org.infinityos.Updater' ||
              window.get_wm_class() === 'org.infinityos.Updater');
+    }
+
+    _attachAppBackdrop(window) {
+        if (!window || window.get_transient_for())
+            return;
+        const app = window.get_gtk_application_id() || window.get_wm_class();
+        if (app === 'org.infinityos.Setup')
+            this._drawerBackdrop.attach(window, 'SetupReady');
+        else if (app === 'org.infinityos.Config')
+            this._drawerBackdrop.attach(window, 'ConfigReady');
     }
 
     _watchDrawer(window) {

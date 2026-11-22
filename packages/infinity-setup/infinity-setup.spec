@@ -20,6 +20,7 @@ Requires:       efibootmgr
 Requires:       snapper
 Requires:       dracut
 Requires:       dconf
+Requires:       /usr/bin/curl
 
 %description
 InfinitySetup offers first-login application choices for Infinity OS.

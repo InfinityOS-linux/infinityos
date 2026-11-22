@@ -186,6 +186,8 @@ POLISH = {
         "Zobacz, jak działa dowolna strona, aplikacja lub gra, a potem zbuduj własną.",
     "Run apps in isolated containers.": "Uruchamiaj aplikacje w odizolowanych kontenerach.",
     "Use Claude in the browser and terminal.": "Korzystaj z Claude w przeglądarce i terminalu.",
+    "Install Google Antigravity desktop and the agy CLI with InfinityTerminal integration.":
+        "Zainstaluj aplikację Google Antigravity i agy CLI z integracją z InfinityTerminal.",
     "Install ChatGPT desktop and Codex CLI with InfinityTerminal integration.":
         "Zainstaluj aplikację ChatGPT i Codex CLI z integracją z InfinityTerminal.",
     "Run a local AI coding assistant. Needs 10 GB of disk space.":
