@@ -8,7 +8,7 @@
     "changes": [
       {
         "title": "Release availability",
-        "text": "The x64 and ARM64 installer images are available on Cloudflare R2 with SHA-256 and MD5 checksums on the Download page. The signed update is available through InfinityUpdater."
+        "text": "The signed RPM update is available for ARM64 and x64 through InfinityUpdater. Both installer images have built successfully and their ISO artifacts are present. Publication to Cloudflare R2 is still in progress."
       },
       {
         "title": "Pinokio in InfinityApps",
