@@ -1,6 +1,10 @@
 --- a/src/apprt/gtk/ui/1.5/window.blp
 +++ b/src/apprt/gtk/ui/1.5/window.blp
-@@ -133,0 +134,24 @@
+@@ -131,6 +131,30 @@
+             focus-on-click: false;
+           }
+-
++
 +          Gtk.ToggleButton {
 +            styles [
 +              "flat",
@@ -25,9 +29,15 @@
 +            focus-on-click: false;
 +          }
 +
+           Gtk.MenuButton {
+             visible: false;
+             styles [
 --- a/src/apprt/gtk/class/window.zig
 +++ b/src/apprt/gtk/class/window.zig
-@@ -1377,0 +1378,29 @@
+@@ -1375,6 +1375,35 @@
+     fn btnNewTab(_: *adw.SplitButton, self: *Self) callconv(.c) void {
+         self.performBindingAction(.new_tab);
+     }
 +    // Send terminal controls to the Shell controller without changing tab focus.
 +    fn setInfinityControl(key: []const u8, value: []const u8) void {
 +        const argv = [_][]const u8{ "gsettings", "--schemadir", "/usr/share/gnome-shell/extensions/ghostty@infinityos.org/schemas", "set", "org.infinityos.GhosTTY", key, value };
@@ -57,6 +67,19 @@
 +        setInfinityControl("hide-request", request);
 +    }
 +
-@@ -2226,0 +2256,2 @@
+-
++
+     fn tabOverviewCreateTab(
+         _: *adw.TabOverview,
+@@ -2224,8 +2253,10 @@
+             class.bindTemplateChildPrivate("tab_overview", .{});
+             class.bindTemplateChildPrivate("tab_bar", .{});
+             class.bindTemplateChildPrivate("tab_view", .{});
 +            class.bindTemplateCallback("infinity_pin_toggled", &btnInfinityPinToggled);
 +            class.bindTemplateCallback("infinity_hide", &btnInfinityHide);
+             class.bindTemplateChildPrivate("toolbar", .{});
+             class.bindTemplateChildPrivate("toast_overlay", .{});
+-
++
+             // Template Callbacks
+             class.bindTemplateCallback("realize", &windowRealize);
