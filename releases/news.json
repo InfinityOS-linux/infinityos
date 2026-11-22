@@ -8,7 +8,7 @@
     "changes": [
       {
         "title": "Release availability",
-        "text": "The verified x64 and ARM64 installer images are available on Cloudflare R2. The Download page lists the SHA-256 and MD5 checksums. Existing installations can get the signed packages through InfinityUpdater."
+        "text": "The verified x64 and ARM64 installer images are available on the Download page with SHA-256 and MD5 checksums. The signed RPM update is also available through InfinityUpdater."
       },
       {
         "title": "Fedora 45 package updates",
