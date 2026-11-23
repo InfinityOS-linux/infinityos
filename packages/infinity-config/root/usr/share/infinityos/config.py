@@ -190,8 +190,7 @@ class InfinityConfig(Gtk.Application):
 
         group = None
         for name, symbol, description in (
-            ("Desktop", "user-desktop-symbolic", "Pointer and desktop appearance"),
-            ("Dock", "view-grid-symbolic", "Size and appearance of the dock"),
+            ("Design", "user-desktop-symbolic", "Cursor, dock and scrolling"),
             ("Tweaks", "preferences-system-symbolic", "System tools and diagnostics"),
         ):
             button = Gtk.ToggleButton()
@@ -209,12 +208,15 @@ class InfinityConfig(Gtk.Application):
             button.connect("toggled", self._select_tab, name)
             nav.append(button)
             page = self._page(name, description)
-            self.stack.add_named(page, name)
-            if name == "Desktop":
+            if name == "Design":
+                scroll = Gtk.ScrolledWindow(vexpand=True)
+                scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+                page.set_margin_bottom(18)
+                scroll.set_child(page)
+                self.stack.add_named(scroll, name)
                 self._add_control(page, "Cursor size", "Scale the system pointer.",
                                   CURSOR_SCHEMA, "cursor-size", Gio.Settings.new(CURSOR_SCHEMA),
                                   cursor_percent, cursor_size, "int")
-            elif name == "Dock":
                 try:
                     settings = dock_settings()
                 except Exception as exc:
@@ -223,7 +225,9 @@ class InfinityConfig(Gtk.Application):
                     self._add_control(page, "Dock size", "Scale dock icons and their spacing.",
                                       DOCK_SCHEMA, "icon-size", settings,
                                       dock_percent, dock_size, "double")
+                self._add_scroll_direction(page)
             else:
+                self.stack.add_named(page, name)
                 self._add_shortcut(page, "Extensions", "Enable or disable GNOME extensions.",
                                    "application-x-addon-symbolic", ["gnome-extensions-app"])
                 self._add_shortcut(page, "System settings", "Open GNOME system settings.",
@@ -300,6 +304,24 @@ class InfinityConfig(Gtk.Application):
         else:
             button.connect("clicked", self._save_diagnostics)
         page.append(button)
+
+    def _add_scroll_direction(self, page):
+        row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        row.add_css_class("infinity-row")
+        row.append(label("Scroll direction", "infinity-setting-name"))
+        description = label("With natural scrolling, content follows your scrolling motion.",
+                            "infinity-muted")
+        description.set_wrap(True)
+        row.append(description)
+        for title, schema in (
+            ("Natural scrolling for mouse", "org.gnome.desktop.peripherals.mouse"),
+            ("Natural scrolling for touchpad", "org.gnome.desktop.peripherals.touchpad"),
+        ):
+            toggle = Gtk.CheckButton(label=tr(title))
+            settings = Gio.Settings.new(schema)
+            settings.bind("natural-scroll", toggle, "active", Gio.SettingsBindFlags.DEFAULT)
+            row.append(toggle)
+        page.append(row)
 
     def _launch_tool(self, _button, command):
         try:
