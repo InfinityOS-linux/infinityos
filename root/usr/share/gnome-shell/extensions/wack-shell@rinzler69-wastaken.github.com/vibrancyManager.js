@@ -874,7 +874,6 @@ export default class VibrancyManager {
 
     applyVibrancyStyle() {
         const enabled = this._settings.get_boolean('enable-vibrancy');
-        const blurMode = this._settings.get_int('vibrancy-blur-mode');
         const style = this._settings.get_int('vibrancy-style');
         const bmsConflict = this._bmsHasPanelBlur();
         const vibrancyClasses = ['panel-ventura-light', 'panel-bigsur'];
@@ -987,34 +986,7 @@ export default class VibrancyManager {
             this._settingStyle = false;
         }
 
-        const effectiveStyle = useVenturaLight ? 2 : 1;
-        let resolvedBlurMode = blurMode;
-        if (blurMode === 3) {
-            resolvedBlurMode = this._isWallpaperLenient() ? 2 : 1;
-        }
-        let brightness, radius;
-        if (bmsConflict) {
-            radius = 0;
-            brightness = 1.0;
-        } else {
-            radius = resolvedBlurMode === 1 ? RADIUS_LINEAR : RADIUS_LENIENT;
-            brightness = (effectiveStyle === 2) ? 1.0 : (isDark ? 0.90 : 0.95);
-        }
         this._vibrancyStyleActive = true;
-
-        const isLockMode = Main.sessionMode.currentMode === 'unlock-dialog';
-        const isShieldActive = Main.screenShield && (Main.screenShield.active || Main.screenShield.locked);
-        const isOverviewActive = Main.overview.visible || Main.overview.visibleTarget;
-
-        if (!isLockMode && !isShieldActive && !isOverviewActive) {
-            global.wack_panel_cached_classes = Main.panel.get_style_class_name() || '';
-            global.wack_panel_cached_style = Main.panel.style || '';
-            global.wack_panel_cached_proximity_bg = null;
-            global.wack_panel_cached_proximity_fg = null;
-            global.wack_panel_cached_foreground = Main.panel.has_style_class_name('light-contrast') ? '#585560' : null;
-            global.wack_panel_cached_blur_mode = resolvedBlurMode;
-            global.wack_panel_cached_brightness = brightness;
-        }
     }
 
     _isDarkColorScheme() {

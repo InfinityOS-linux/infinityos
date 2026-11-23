@@ -52,7 +52,6 @@ for uuid in \
     raccoonlauncher@shimafallah.github.io \
     nowplay@LalaloyXyz \
     ding@rastersoft.com \
-    wack-lockscreen-clock@rinzler69-wastaken.github.com \
     wack-shell@rinzler69-wastaken.github.com \
     globalmenu@ShiroOSL.github.io \
     tilingshell@ferrarodomenico.com \
@@ -109,7 +108,6 @@ gtk-update-icon-cache -f -q /usr/share/icons/hicolor || :
 /usr/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/
 /usr/share/gnome-shell/extensions/user-theme@gnome-shell-extensions.gcampax.github.com/
 /usr/share/gnome-shell/extensions/vertical-workspaces@G-dH.github.com/
-/usr/share/gnome-shell/extensions/wack-lockscreen-clock@rinzler69-wastaken.github.com/
 /usr/share/gnome-shell/extensions/wack-shell@rinzler69-wastaken.github.com/
 /usr/share/gnome-shell/extensions/windowIsReady_Remover@nunofarruca@gmail.com/
 /usr/share/themes/Orchis-Purple-Light-Compact/gnome-shell/gnome-shell.css

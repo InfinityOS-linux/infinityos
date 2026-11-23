@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 EXTENSIONS = ('nowplay@LalaloyXyz', 'raccoonlauncher@shimafallah.github.io')
+RETIRED_LOCKSCREEN = 'wack-lockscreen-clock@rinzler69-wastaken.github.com'
 
 def with_extensions(enabled):
     return [*enabled, *(uuid for uuid in EXTENSIONS if uuid not in enabled)]
@@ -15,20 +16,29 @@ def without_launcher_conflict(shortcuts):
 def main():
     from gi.repository import Gio
     marker = Path(os.environ.get('XDG_STATE_HOME', Path.home() / '.local/state')) / 'infinityos/desktop-additions-v1'
-    if marker.exists():
-        return 0
     shell = Gio.Settings.new('org.gnome.shell')
-    keys = Gio.Settings.new('org.gnome.desktop.wm.keybindings')
-    current = list(keys.get_strv('switch-input-source'))
-    updated = without_launcher_conflict(current)
-    if updated != current and not keys.set_strv('switch-input-source', updated):
-        return 1
     enabled = list(shell.get_strv('enabled-extensions'))
-    updated = with_extensions(enabled)
+    updated = enabled
+    user_data = Path(os.environ.get('XDG_DATA_HOME', Path.home() / '.local/share'))
+    if RETIRED_LOCKSCREEN in enabled and not (user_data / 'gnome-shell/extensions' / RETIRED_LOCKSCREEN).exists():
+        updated = [uuid for uuid in enabled if uuid != RETIRED_LOCKSCREEN]
+
+    first_run = not marker.exists()
+    if first_run:
+        keys = Gio.Settings.new('org.gnome.desktop.wm.keybindings')
+        shortcuts = list(keys.get_strv('switch-input-source'))
+        migrated = without_launcher_conflict(shortcuts)
+        if migrated != shortcuts and not keys.set_strv('switch-input-source', migrated):
+            return 1
+        updated = with_extensions(updated)
+
     if updated != enabled and not shell.set_strv('enabled-extensions', updated):
         return 1
-    marker.parent.mkdir(parents=True, exist_ok=True)
-    marker.touch()
+    if first_run or updated != enabled:
+        Gio.Settings.sync()
+    if first_run:
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.touch()
     return 0
 
 if __name__ == '__main__':

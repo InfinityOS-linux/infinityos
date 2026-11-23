@@ -175,7 +175,7 @@ export class PanelBlur {
             this._connect(ppb, 'notify::position',
                 () => this._updateSize(panel, panel_box));
 
-        // 7. Hide in overview and lockscreen; show on desktop + Sonoma unlock fade
+        // 7. Hide in overview and lockscreen; show on desktop
         //    Mirrors BMS update_visibility: !hasWindows == lockscreen/unlock-dialog
         const _updateSessionVisibility = () => {
             if (this._sessionVisibilityTimeoutId) {
