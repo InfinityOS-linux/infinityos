@@ -6,9 +6,8 @@ import Meta from 'gi://Meta';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as OverviewControls from 'resource:///org/gnome/shell/ui/overviewControls.js';
-import * as BackgroundMenu from 'resource:///org/gnome/shell/ui/backgroundMenu.js';
 
-import { Extension, gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
+import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import {
     WackLogoButton,
@@ -25,39 +24,9 @@ import RamdriveRestart from './ramdriveRestart.js';
 import { createWarpButton } from './warpButton.js';
 import { APP_GRID_WORKSPACE_RATIO, APP_GRID_WORKSPACE_FADE_RANGE, APP_GRID_WORKSPACE_FADE_SNAP } from './constants.js';
 
-const PowerProfilesIface = `<node>
-<interface name="net.hadess.PowerProfiles">
-    <property name="ActiveProfile" type="s" access="readwrite"/>
-</interface>
-</node>`;
-
-const PowerProfilesProxy = Gio.DBusProxy.makeProxyWrapper(PowerProfilesIface);
-
-
-
-
 export default class WackShellExtension extends Extension {
     enable() {
         this._settings = this.getSettings();
-        this._clearSnapshotsTimeoutId = 0;
-        this.lastPanelStateIsProximity = false;
-        this._dockActors = [];
-        this._dockSignalIds = [];
-        this._dockSnapshotTimeoutId = 0;
-        this._dockDiscoveryTimeoutId = 0;
-        global.wack_proximity_active = false;
-        global.wack_proximity_bg = null;
-        global.wack_proximity_fg = null;
-        global.wack_panel_cached_style = '';
-        global.wack_panel_cached_classes = '';
-        global.wack_panel_cached_proximity_bg = null;
-        global.wack_panel_cached_proximity_fg = null;
-        global.wack_panel_cached_foreground = null;
-        global.wack_panel_cached_blur_mode = null;
-        global.wack_panel_cached_brightness = null;
-        global.wackDockSnapshots = [];
-        global.wack_window_snapshots = [];
-        this._setupDockSnapshots();
         this._limitDashIconSize();
 
 
@@ -78,7 +47,6 @@ export default class WackShellExtension extends Extension {
         this._warpButton = createWarpButton(this.path);
         Main.panel.addToStatusArea('infinity-warp', this._warpButton, 1, 'right');
 
-        this._lastHasWindows = Main.sessionMode.hasWindows;
 
         this._sessionModeOwner = {};
         Main.sessionMode.connectObject('updated', () => this._syncSessionModeUI(), this._sessionModeOwner);
@@ -113,60 +81,6 @@ this._settings.connectObject(
         this._ramdriveRestart = new RamdriveRestart();
         this._qsPowerManager.sync();
 
-        this._windowSnapshotCachingEnabled = true;
-        this._lockscreenSettings = null;
-
-        try {
-            const lockExt = Main.extensionManager.lookup('wack-lockscreen-clock@rinzler69-wastaken.github.com');
-            if (lockExt && lockExt.state === 1 /* ExtensionState.ENABLED */) {
-                const schemaDir = lockExt.dir.get_child('schemas');
-                if (schemaDir.query_exists(null)) {
-                    const source = Gio.SettingsSchemaSource.new_from_directory(
-                        schemaDir.get_path(),
-                        Gio.SettingsSchemaSource.get_default(),
-                        false
-                    );
-                    const schema = source.lookup('org.gnome.shell.extensions.wack-lockscreen-clock', true);
-                    if (schema) {
-                        this._lockscreenSettings = new Gio.Settings({ settings_schema: schema });
-                        this._lockscreenSettings.connectObject(
-                            'changed::lockscreen-mode', () => this._syncWindowSnapshotCaching(),
-                            'changed::cupertino-unlock-fade', () => this._syncWindowSnapshotCaching(),
-                            this
-                        );
-                    }
-                }
-            }
-        } catch {
-        }
-
-        this._setupLockscreenWallpaperMenu();
-
-        this._powerProfilesProxy = null;
-        try {
-            this._powerProfilesProxy = new PowerProfilesProxy(
-                Gio.DBus.system,
-                'net.hadess.PowerProfiles',
-                '/net/hadess/PowerProfiles',
-                (proxy, error) => {
-                    if (error) {
-                        this._syncWindowSnapshotCaching();
-                        return;
-                    }
-                    if (!this._powerProfilesProxy)
-                        return;
-                    proxy.connectObject('g-properties-changed', () => {
-                        this._syncWindowSnapshotCaching();
-                    }, this);
-                    this._syncWindowSnapshotCaching();
-                }
-            );
-        } catch {
-        }
-
-        this._syncWindowSnapshotCaching();
-
-        this._setupWindowCache();
         this._initWorkspacesAppGrid();
         this._appDashboard = new AppDashboard();
         if (!global.infinityosPanelEntrancePlayed && Main.sessionMode.currentMode === 'user') {
@@ -223,32 +137,10 @@ this._settings.connectObject(
             Main.panel.opacity = 255;
         }
         this._restoreDashIconSize();
-        // Guideline EGO-M-008: Documenting use of unlock-dialog.
-        // This extension supports running during the 'unlock-dialog' session mode
-        // to coordinate with the lock screen. When the extension is disabled during
-        // a lockscreen transition (such as when entering the lockscreen/unlock-dialog),
-        // we perform the following:
-        // - Preserve and cache panel styles, vibrancy classes, and proximity states
-        //   via global variables (_cachePanelHandoffState) so they can be seamlessly
-        //   inherited by the lockscreen clock/dialog without a jarring visual pop.
-        // - Retain the cached window texture snapshots (_destroyWindowCache(isLockscreen))
-        //   so that the lockscreen extension can use them to perform the Cupertino-style
-        //   unlock fade animation.
-        // - Prevent restoring the native activities button visibility on the panel
-        //   if the session is locked, maintaining lockscreen UI integrity.
-        //
-        // Otherwise, if the extension is disabled under normal session conditions, all
-        // temporary handoff states, caches, and custom panel modifications are fully cleared.
         const currentMode = Main.sessionMode.currentMode;
         const isLockscreen = currentMode === 'unlock-dialog' || currentMode === 'greeter' ||
             currentMode === 'gdm' || Main.screenShield?.active || Main.screenShield?.locked;
 
-        if (isLockscreen)
-            this._cachePanelHandoffState();
-        else
-            this._clearPanelHandoffState();
-
-        this.lastPanelStateIsProximity = false;
         this._activities?.container?.disconnectObject(this);
         this._activities = null;
 
@@ -269,11 +161,6 @@ this._settings.connectObject(
         if (this._queuedUpdateId) {
             GLib.source_remove(this._queuedUpdateId);
             this._queuedUpdateId = null;
-        }
-
-        if (this._clearSnapshotsTimeoutId) {
-            GLib.source_remove(this._clearSnapshotsTimeoutId);
-            this._clearSnapshotsTimeoutId = 0;
         }
 
         // Disable VibrancyManager
@@ -326,41 +213,9 @@ this._settings.connectObject(
         if (!isLockscreen) {
             Main.panel.statusArea['activities']?.container.show();
         }
-        this._destroyWindowCache(isLockscreen);
         this._appDashboard?.destroy();
         this._appDashboard = null;
         this._destroyWorkspacesAppGrid();
-        this._windowSnapshotCachingEnabled = false;
-        this._teardownLockscreenWallpaperMenu();
-        this._lockscreenSettings?.disconnectObject(this);
-        this._lockscreenSettings = null;
-        this._powerProfilesProxy?.disconnectObject(this);
-        this._powerProfilesProxy = null;
-
-        this._disconnectDockSnapshotWatchers();
-
-if (this._dockSnapshotTimeoutId) {
-    GLib.source_remove(
-        this._dockSnapshotTimeoutId
-    );
-    this._dockSnapshotTimeoutId = 0;
-}
-
-if (this._dockDiscoveryTimeoutId) {
-    GLib.source_remove(
-        this._dockDiscoveryTimeoutId
-    );
-    this._dockDiscoveryTimeoutId = 0;
-}
-
-this._dockActors = [];
-
-if (global.wackDockSnapshots) {
-    for (const snapshot of global.wackDockSnapshots)
-        snapshot.content = null;
-
-    global.wackDockSnapshots = [];
-}
     }
 
     _limitDashIconSize() {
@@ -390,277 +245,6 @@ if (global.wackDockSnapshots) {
         this._dash = null;
         this._originalDashSetMaxSize = null;
         this._lastDashSize = null;
-    }
-
-    // ── Lockscreen Wallpaper Desktop Menu ────────────────────────────────────
-    //
-    // Injects a "Set as Lockscreen Wallpaper…" item into GNOME Shell's desktop
-    // right-click BackgroundMenu. When clicked, spawns zenity to let the user
-    // pick an image file, then writes the path directly to the sonoma lockscreen
-    // extension's GSettings (lockscreen-wallpaper-path + lockscreen-wallpaper-enable).
-    // Uses InjectionManager so cleanup is guaranteed on disable().
-
-    _getLockscreenSettings() {
-        if (this._lockscreenSettings)
-            return this._lockscreenSettings;
-
-        try {
-            const lockExt = Main.extensionManager.lookup('wack-lockscreen-clock@rinzler69-wastaken.github.com');
-            if (lockExt && lockExt.state === 1 /* ExtensionState.ENABLED */) {
-                const schemaDir = lockExt.dir?.get_child('schemas');
-                if (schemaDir?.query_exists(null)) {
-                    const source = Gio.SettingsSchemaSource.new_from_directory(
-                        schemaDir.get_path(),
-                        Gio.SettingsSchemaSource.get_default(),
-                        false
-                    );
-                    const schema = source.lookup('org.gnome.shell.extensions.wack-lockscreen-clock', true);
-                    if (schema) {
-                        this._lockscreenSettings = new Gio.Settings({ settings_schema: schema });
-                        this._lockscreenSettings.connectObject(
-                            'changed::lockscreen-mode', () => this._syncWindowSnapshotCaching(),
-                            'changed::cupertino-unlock-fade', () => this._syncWindowSnapshotCaching(),
-                            this
-                        );
-                        return this._lockscreenSettings;
-                    }
-                }
-            }
-        } catch {
-        }
-
-        try {
-            this._lockscreenSettings = new Gio.Settings({ schema_id: 'org.gnome.shell.extensions.wack-lockscreen-clock' });
-            return this._lockscreenSettings;
-        } catch {
-            return null;
-        }
-    }
-
-    _isCustomWallpaperEnabled() {
-        const settings = this._getLockscreenSettings();
-        if (!settings)
-            return false;
-        try {
-            return settings.get_boolean('lockscreen-wallpaper-enable');
-        } catch {
-            return false;
-        }
-    }
-
-    _setupLockscreenWallpaperMenu() {
-        this._addedBgMenuItems = [];
-
-        // Lazily inject our item into every BackgroundMenu instance when it opens IF custom lockscreen wallpaper is enabled.
-        const ext = this;
-        const origOpen = BackgroundMenu.BackgroundMenu.prototype.open;
-        BackgroundMenu.BackgroundMenu.prototype.open = function (...args) {
-            const isWallpaperEnabled = ext._isCustomWallpaperEnabled();
-            if (isWallpaperEnabled) {
-                if (!this._wackLockscreenWallpaperItem) {
-                    const item = ext._createLockscreenWallpaperMenuItem(this);
-                    if (item) {
-                        this._wackLockscreenWallpaperItem = item;
-                        ext._addedBgMenuItems.push(item);
-                    }
-                }
-            } else if (this._wackLockscreenWallpaperItem) {
-                const idx = ext._addedBgMenuItems.indexOf(this._wackLockscreenWallpaperItem);
-                if (idx !== -1)
-                    ext._addedBgMenuItems.splice(idx, 1);
-                this._wackLockscreenWallpaperItem.destroy();
-                delete this._wackLockscreenWallpaperItem;
-            }
-            return origOpen.call(this, ...args);
-        };
-        this._origBgMenuOpen = origOpen;
-    }
-
-    _createLockscreenWallpaperMenuItem(menu) {
-        const item = menu.addAction(_('Change Lockscreen Background\u2026'), () => {
-            this._pickLockscreenWallpaper();
-        });
-        // Place right after "Change Background…" (index 0) and before the separator
-        menu.moveMenuItem(item, 1);
-        return item;
-    }
-
-    _pickLockscreenWallpaper() {
-        const imageFilter = 'image/png image/jpeg image/webp image/jxl image/gif image/bmp image/tiff';
-        const argv = [
-            'zenity',
-            '--file-selection',
-            '--title', _('Select Lockscreen Wallpaper'),
-            '--file-filter', `${_('Image files')} | *.png *.jpg *.jpeg *.webp *.jxl *.gif *.bmp *.tiff *.tif`,
-        ];
-
-        try {
-            const proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE);
-            proc.communicate_utf8_async(null, null, (_proc, result) => {
-                try {
-                    const [, stdout] = proc.communicate_utf8_finish(result);
-                    if (proc.get_exit_status() !== 0 || !stdout)
-                        return;
-                    const path = stdout.trim();
-                    if (!path || !Gio.File.new_for_path(path).query_exists(null))
-                        return;
-                    this._applyLockscreenWallpaper(path);
-                } catch (e) {
-                    console.error(`[Wack Shell] Lockscreen wallpaper picker failed: ${e}`);
-                }
-            });
-        } catch (e) {
-            console.error(`[Wack Shell] Failed to spawn zenity: ${e}`);
-        }
-    }
-
-    _applyLockscreenWallpaper(path) {
-        // Prefer the already-loaded _lockscreenSettings; fall back to a fresh lookup.
-        let settings = this._lockscreenSettings;
-        if (!settings) {
-            try {
-                const lockExt = Main.extensionManager.lookup('wack-lockscreen-clock@rinzler69-wastaken.github.com');
-                if (lockExt?.dir) {
-                    const schemaDir = lockExt.dir.get_child('schemas');
-                    if (schemaDir.query_exists(null)) {
-                        const source = Gio.SettingsSchemaSource.new_from_directory(
-                            schemaDir.get_path(),
-                            Gio.SettingsSchemaSource.get_default(),
-                            false
-                        );
-                        const schema = source.lookup('org.gnome.shell.extensions.wack-lockscreen-clock', true);
-                        if (schema)
-                            settings = new Gio.Settings({ settings_schema: schema });
-                    }
-                }
-            } catch {
-            }
-        }
-
-        if (!settings) {
-            // Last resort: try the compiled system schema
-            try {
-                settings = new Gio.Settings({ schema_id: 'org.gnome.shell.extensions.wack-lockscreen-clock' });
-            } catch {
-                console.error('[Wack Shell] Could not find wack-lockscreen-clock schema to set wallpaper.');
-                return;
-            }
-        }
-
-        settings.set_string('lockscreen-wallpaper-path', path);
-        settings.set_boolean('lockscreen-wallpaper-enable', true);
-        console.log(`[Wack Shell] Lockscreen wallpaper set to: ${path}`);
-    }
-
-    _teardownLockscreenWallpaperMenu() {
-        if (this._origBgMenuOpen) {
-            BackgroundMenu.BackgroundMenu.prototype.open = this._origBgMenuOpen;
-            this._origBgMenuOpen = null;
-        }
-        for (const item of (this._addedBgMenuItems ?? [])) {
-            if (item) {
-                delete item.menu?._wackLockscreenWallpaperItem;
-                item.destroy();
-            }
-        }
-        this._addedBgMenuItems = [];
-    }
-
-    _clearPanelHandoffState() {
-        delete global.wack_proximity_active;
-        delete global.wack_proximity_bg;
-        delete global.wack_proximity_fg;
-        delete global.wack_panel_cached_style;
-        delete global.wack_panel_cached_classes;
-        delete global.wack_panel_cached_proximity_bg;
-        delete global.wack_panel_cached_proximity_fg;
-        delete global.wack_panel_cached_foreground;
-        delete global.wack_panel_cached_blur_mode;
-        delete global.wack_panel_cached_brightness;
-    }
-
-    _findActorsByName(root, name, results = []) {
-    if (!root)
-        return results;
-
-    try {
-        if (root.name === name)
-            results.push(root);
-
-        for (const child of root.get_children())
-            this._findActorsByName(child, name, results);
-    } catch (e) {
-        // Actor may have been destroyed while traversing.
-    }
-
-    return results;
-}
-
-    _cachePanelHandoffState() {
-        const currentClasses = Main.panel.get_style_class_name() || '';
-        const proximityActive = Main.panel.has_style_class_name('panel-proximity') ||
-            this.lastPanelStateIsProximity || global.wack_proximity_active;
-
-        const classes = currentClasses.split(/\s+/).filter(Boolean);
-        global.wack_proximity_active = proximityActive;
-
-        const isLockscreenMode = Main.sessionMode.currentMode === 'unlock-dialog' ||
-            Main.sessionMode.currentMode === 'greeter' ||
-            Main.sessionMode.currentMode === 'gdm' ||
-            Main.screenShield?.active || Main.screenShield?.locked;
-
-        if (isLockscreenMode) {
-            global.wack_panel_cached_classes = global.wack_panel_cached_classes || currentClasses;
-            global.wack_panel_cached_style = global.wack_panel_cached_style || Main.panel.style || '';
-        } else {
-            global.wack_panel_cached_classes = currentClasses;
-            global.wack_panel_cached_style = Main.panel.style || '';
-        }
-
-        const cachedClassesList = (global.wack_panel_cached_classes || '').split(/\s+/).filter(Boolean);
-        global.wack_panel_cached_foreground = cachedClassesList.includes('light-contrast') ? '#585560' : null;
-
-        if (this._settings) {
-            let blurMode = this._settings.get_int('vibrancy-blur-mode');
-            if (blurMode === 3 && this._vibrancyManager) {
-                blurMode = this._vibrancyManager._isWallpaperLenient() ? 2 : 1;
-            }
-            global.wack_panel_cached_blur_mode = (blurMode === 1 || blurMode === 2) ? blurMode : 1;
-
-            const isDark = this._desktopSettings?.get_string('color-scheme') === 'prefer-dark';
-            const style = this._settings.get_int('vibrancy-style');
-            const useVenturaLight = style === 2 && !isDark;
-            const effectiveStyle = useVenturaLight ? 2 : 1;
-            const bmsConflict = this._vibrancyManager ? this._vibrancyManager._bmsHasPanelBlur() : false;
-            let brightness = 1.0;
-            if (!bmsConflict) {
-                brightness = (effectiveStyle === 2) ? 1.0 : (isDark ? 0.90 : 0.95);
-            }
-            global.wack_panel_cached_brightness = brightness;
-        }
-
-        if (!proximityActive)
-            return;
-
-        if (!classes.includes('panel-proximity'))
-            classes.push('panel-proximity');
-        global.wack_panel_cached_classes = classes.join(' ');
-        global.wack_panel_cached_style = '';
-
-        let bg = global.wack_proximity_bg;
-        let fg = global.wack_proximity_fg;
-        if ((!bg || !fg) && this._settings) {
-            try {
-                const isDark = this._desktopSettings?.get_string('color-scheme') === 'prefer-dark';
-                bg = this._settings.get_string(isDark ? 'dark-bg-color' : 'light-bg-color').replace(/'/g, '');
-                fg = this._settings.get_string(isDark ? 'dark-fg-color' : 'light-fg-color').replace(/'/g, '');
-            } catch {
-            }
-        }
-
-        global.wack_panel_cached_proximity_bg = bg || null;
-        global.wack_panel_cached_proximity_fg = fg || null;
-        global.wack_panel_cached_foreground = fg || global.wack_panel_cached_foreground;
     }
 
     _syncLogoMenu() {
@@ -774,298 +358,6 @@ if (global.wackDockSnapshots) {
         }
 
         this._qsPowerManager?.sync();
-
-        // Ensure windows are reset to full opacity and scale when transitioning from locked to unlocked
-        if (hasWindows && this._lastHasWindows === false) {
-            this._resetWindowsOpacity();
-            if (!(Main.sessionMode.currentMode === 'unlock-dialog' && this._isLockscreenCupertinoMode())) {
-                if (this._clearSnapshotsTimeoutId) {
-                    GLib.source_remove(this._clearSnapshotsTimeoutId);
-                    this._clearSnapshotsTimeoutId = 0;
-                }
-                // Defer clearing snapshots to allow the lockscreen fade animation to complete
-                this._clearSnapshotsTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 2000, () => {
-                    this._clearSnapshotsTimeoutId = 0;
-                    this._clearWindowSnapshots();
-                    return GLib.SOURCE_REMOVE;
-                });
-            }
-        }
-
-        this._lastHasWindows = hasWindows;
-    }
-
-    _setupWindowCache() {
-        if (!global.wack_window_snapshots)
-            global.wack_window_snapshots = [];
-
-        const shield = Main.screenShield;
-        if (shield) {
-            this._origShieldActivate = shield.activate.bind(shield);
-            shield.activate = (animate) => {
-                if (this._windowSnapshotCachingEnabled)
-                    this._cacheWindowTextures();
-                else
-                    this._clearWindowSnapshots();
-                return this._origShieldActivate(animate);
-            };
-        }
-    }
-
-_setupDockSnapshots() {
-    const extension =
-        Main.extensionManager.lookup(
-            'dash-to-dock@micxgx.gmail.com'
-        );
-
-    if (!extension || extension.state !== 1) {
-        console.log('[Wack Shell] Dash to Dock not enabled');
-        return;
-    }
-
-    console.log('[Wack Shell] Dash to Dock detected');
-
-    const findDock = () => {
-        const docks = this._findActorsByName(
-            global.stage,
-            'dashtodockContainer'
-        );
-
-        if (docks.length === 0) {
-            console.log(
-                '[Wack Shell] Waiting for Dash to Dock actor...'
-            );
-
-            return GLib.SOURCE_CONTINUE;
-        }
-
-        this._dockDiscoveryTimeoutId = 0;
-
-        console.log(
-            `[Wack Shell] Found ${docks.length} live dock actor(s)`
-        );
-
-        this._dockActors = docks;
-
-        this._connectDockSnapshotWatchers();
-
-        // Initial snapshot immediately while fully unlocked.
-        this._scheduleDockSnapshot();
-
-        return GLib.SOURCE_REMOVE;
-    };
-
-    // Try immediately first.
-    const result = findDock();
-
-    if (result === GLib.SOURCE_CONTINUE) {
-        this._dockDiscoveryTimeoutId =
-            GLib.timeout_add(
-                GLib.PRIORITY_DEFAULT,
-                500,
-                findDock
-            );
-    }
-}
-
-    _clearWindowSnapshots() {
-        if (this._clearSnapshotsTimeoutId) {
-            GLib.source_remove(this._clearSnapshotsTimeoutId);
-            this._clearSnapshotsTimeoutId = 0;
-        }
-        if (global.wack_window_snapshots) {
-            for (const snap of global.wack_window_snapshots)
-                snap.content = null;
-        }
-        global.wack_window_snapshots = [];
-    }
-
-
-    _cacheWindowTextures() {
-        this._clearWindowSnapshots();
-        const workspace = global.workspace_manager.get_active_workspace();
-        const actors = global.get_window_actors().filter(actor => {
-            const win = actor.metaWindow;
-            if (!win) return false;
-            return !win.is_override_redirect() &&
-                win.located_on_workspace(workspace) &&
-                win.get_window_type() !== Meta.WindowType.DESKTOP &&
-                !win.is_hidden();
-        });
-
-        // Traverse front-to-back (top-to-bottom z-order) and select visible window actors
-        const reversedActors = actors.slice().reverse();
-        const selectedActors = [];
-        for (const actor of reversedActors) {
-            selectedActors.push(actor);
-            const win = actor.metaWindow;
-            if (win) {
-                const isMaximized = win.maximized_horizontally && win.maximized_vertically;
-                const isFullscreen = win.is_fullscreen();
-                if (isMaximized || isFullscreen) {
-                    break;
-                }
-            }
-        }
-
-        // Restore original bottom-to-top z-order for correct overlay rendering
-        selectedActors.reverse();
-
-        // Paint only the selected window actors
-        selectedActors.forEach(actor => {
-            const win = actor.metaWindow;
-            if (!win) return;
-            const bufferRect = win.get_buffer_rect();
-            const content = actor.paint_to_content(null);
-            if (content) {
-                global.wack_window_snapshots.push({
-                    content,
-                    rect: {
-                        x: bufferRect.x,
-                        y: bufferRect.y,
-                        width: bufferRect.width,
-                        height: bufferRect.height
-                    }
-                });
-            }
-        });
-    }
-
-_cacheDockSnapshots() {
-    if (!this._dockActors?.length)
-        return;
-
-    const snapshots = [];
-
-    for (const dock of this._dockActors) {
-        try {
-            if (!dock || dock.is_destroyed?.())
-                continue;
-
-            const [x, y] =
-                dock.get_transformed_position();
-
-            const [width, height] =
-                dock.get_transformed_size();
-
-            if (width <= 0 || height <= 0)
-                continue;
-
-            const content =
-                dock.paint_to_content(null);
-
-            if (!content)
-                continue;
-
-            snapshots.push({
-                content,
-                x: Math.round(x),
-                y: Math.round(y),
-                width: Math.round(width),
-                height: Math.round(height),
-            });
-
-            console.log(
-                `[Wack Shell] Cached live dock snapshot ` +
-                `${Math.round(width)}x${Math.round(height)} ` +
-                `at ${Math.round(x)},${Math.round(y)}`
-            );
-        } catch (e) {
-            console.error(
-                `[Wack Shell] Dock snapshot failed: ${e}`
-            );
-        }
-    }
-
-    // Important:
-    // Only replace a valid existing cache if capture succeeded.
-    if (snapshots.length > 0) {
-        global.wackDockSnapshots = snapshots;
-
-        console.log(
-            `[Wack Shell] Updated dock cache: ` +
-            `${snapshots.length} snapshot(s)`
-        );
-    }
-}
-
-_scheduleDockSnapshot() {
-    if (this._dockSnapshotTimeoutId) {
-        GLib.source_remove(
-            this._dockSnapshotTimeoutId
-        );
-    }
-
-    this._dockSnapshotTimeoutId =
-        GLib.timeout_add(
-            GLib.PRIORITY_DEFAULT,
-            100,
-            () => {
-                this._dockSnapshotTimeoutId = 0;
-
-                this._cacheDockSnapshots();
-
-                return GLib.SOURCE_REMOVE;
-            }
-        );
-}
-
-_connectDockSnapshotWatchers() {
-    this._disconnectDockSnapshotWatchers();
-
-    for (const dock of this._dockActors) {
-        const connect = signal => {
-            try {
-                const id = dock.connect(
-                    signal,
-                    () => this._scheduleDockSnapshot()
-                );
-
-                this._dockSignalIds.push({
-                    actor: dock,
-                    id,
-                });
-            } catch (e) {
-                console.error(
-                    `[Wack Shell] Could not watch ` +
-                    `${signal}: ${e}`
-                );
-            }
-        };
-
-        connect('notify::allocation');
-        connect('notify::visible');
-    }
-
-    console.log(
-        '[Wack Shell] Dock snapshot watchers connected'
-    );
-}
-
-_disconnectDockSnapshotWatchers() {
-    for (const {actor, id} of this._dockSignalIds) {
-        try {
-            actor.disconnect(id);
-        } catch (e) {
-            // Actor may already be destroyed.
-        }
-    }
-
-    this._dockSignalIds = [];
-}
-
-
-    _destroyWindowCache(preserveSnapshots = false) {
-        if (Main.screenShield && this._origShieldActivate) {
-            Main.screenShield.activate = this._origShieldActivate;
-            this._origShieldActivate = null;
-        }
-        if (this._clearSnapshotsTimeoutId) {
-            GLib.source_remove(this._clearSnapshotsTimeoutId);
-            this._clearSnapshotsTimeoutId = 0;
-        }
-        if (!preserveSnapshots)
-            this._clearWindowSnapshots();
     }
 
     _initWorkspacesAppGrid() {
@@ -1235,52 +527,6 @@ _disconnectDockSnapshotWatchers() {
         }
     }
 
-    _isLockscreenCupertinoMode() {
-        return this._lockscreenSettings?.get_string('lockscreen-mode') === 'cupertino';
-    }
-
-    _isLockscreenUnlockFadeEnabled() {
-        return this._lockscreenSettings?.get_boolean('cupertino-unlock-fade') ?? false;
-    }
-
-    _isPowerSaverActive() {
-        try {
-            return this._powerProfilesProxy?.ActiveProfile === 'power-saver';
-        } catch {
-            return false;
-        }
-    }
-
-    _syncWindowSnapshotCaching() {
-        try {
-            if (!this._lockscreenSettings) {
-                this._windowSnapshotCachingEnabled = true;
-                return;
-            }
-            this._windowSnapshotCachingEnabled = this._isLockscreenCupertinoMode() &&
-                this._isLockscreenUnlockFadeEnabled() &&
-                !this._isPowerSaverActive();
-        } catch {
-            this._windowSnapshotCachingEnabled = true;
-        }
-    }
-
-    _resetWindowsOpacity() {
-        const workspace = global.workspace_manager.get_active_workspace();
-        const windows = workspace.list_windows().filter(metaWindow => {
-            return !metaWindow.is_hidden() &&
-                metaWindow.get_window_type() !== Meta.WindowType.DESKTOP &&
-                !metaWindow.is_attached_dialog();
-        });
-        const windowActors = windows.map(w => w.get_compositor_private()).filter(actor => actor !== null);
-        windowActors.forEach(actor => {
-            actor.remove_all_transitions();
-            actor.opacity = 255;
-            actor.scale_x = 1.0;
-            actor.scale_y = 1.0;
-        });
-    }
-
     _initProximity() {
         this._proximityWindowSignals = new Map();
         this._themeContext = St.ThemeContext.get_for_stage(global.stage);
@@ -1435,14 +681,8 @@ _disconnectDockSnapshotWatchers() {
         }
 
         const isDark = this._isProximityDarkMode();
-        const bg = this._settings.get_string(isDark ? 'dark-bg-color' : 'light-bg-color');
         const fg = this._settings.get_string(isDark ? 'dark-fg-color' : 'light-fg-color');
-
-        const bgCss = bg.replace(/'/g, '');
         const fgCss = fg.replace(/'/g, '');
-
-        global.wack_proximity_bg = bgCss;
-        global.wack_proximity_fg = fgCss;
 
         const cssString = `
 #panel.panel-proximity {
@@ -1522,8 +762,6 @@ _disconnectDockSnapshotWatchers() {
         }
 
         if (!this._settings.get_boolean('enable-panel-proximity')) {
-            this.lastPanelStateIsProximity = false;
-            global.wack_proximity_active = false;
             this._clearPanelStyle();
             return;
         }
@@ -1561,12 +799,8 @@ _disconnectDockSnapshotWatchers() {
         });
 
         if (windowNearPanel) {
-            this.lastPanelStateIsProximity = true;
-            global.wack_proximity_active = true;
             this._applyPanelStyle();
         } else {
-            this.lastPanelStateIsProximity = false;
-            global.wack_proximity_active = false;
             this._clearPanelStyle();
         }
     }
@@ -1580,20 +814,6 @@ _disconnectDockSnapshotWatchers() {
         }
 
         Main.panel.set_style(null);
-
-        const isLockscreen = Main.sessionMode.currentMode === 'unlock-dialog';
-        const isShieldActive = Main.screenShield && (Main.screenShield.active || Main.screenShield.locked);
-        const isOverview = Main.overview.visible || Main.overview.visibleTarget;
-
-        if (!isLockscreen && !isShieldActive && !isOverview) {
-            global.wack_panel_cached_classes = Main.panel.get_style_class_name() || '';
-            global.wack_panel_cached_style = '';
-            const isDark = this._isProximityDarkMode();
-            const bg = this._settings.get_string(isDark ? 'dark-bg-color' : 'light-bg-color');
-            const fg = this._settings.get_string(isDark ? 'dark-fg-color' : 'light-fg-color');
-            global.wack_panel_cached_proximity_bg = bg.replace(/'/g, '');
-            global.wack_panel_cached_proximity_fg = fg.replace(/'/g, '');
-        }
 
         if (this._vibrancyManager) {
             const isDark = this._isProximityDarkMode();
