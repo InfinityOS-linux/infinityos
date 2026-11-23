@@ -73,6 +73,45 @@ stage {
 EOF
         changed=1
     fi
+    if ! grep -Fq 'Infinity OS GDM account picker v1' "$css"; then
+        cat >> "$css" <<'EOF'
+
+/* Infinity OS GDM account picker v1 */
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item {
+  border: 2px solid #796296;
+  border-radius: 999px;
+  padding: 7px;
+}
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item:selected,
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item:hover,
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item:focus {
+  border-color: #bb9ce5;
+  box-shadow: none !important;
+}
+/* GDM aligns the button to START. Give it the list width so its label
+   is centered under the accounts in either text direction. */
+.login-dialog-user-selection-box .login-dialog-user-list-view,
+.login-dialog-user-selection-box .login-dialog-not-listed-button {
+  width: 25em;
+}
+.login-dialog-user-selection-box .login-dialog-not-listed-button {
+  padding: 0;
+  margin: 6px 0;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: #c8c8cc;
+}
+.login-dialog-not-listed-label {
+  text-align: center;
+}
+.login-dialog-not-listed-button:focus .login-dialog-not-listed-label,
+.login-dialog-not-listed-button:hover .login-dialog-not-listed-label {
+  color: #ffffff;
+  text-decoration: underline;
+}
+EOF
+        changed=1
+    fi
     patched=$((patched + 1))
 done
 [[ $patched -gt 0 ]] || { echo 'No supported GNOME Shell theme CSS found' >&2; exit 1; }
