@@ -8,15 +8,20 @@ from datetime import datetime, timezone
 
 from release import available_release, installed_version, load_manifest
 from github_update import check_github_updates
-from pending import packages as pending_packages
+from pending import OFFLINE, packages as pending_packages
 from compatibility import classify_updates
+import flatpak_updates
 
 
-def offline_status(directory=Path('/var/lib/infinityos'), trigger=Path('/system-update')):
-    if trigger.is_symlink():
+def offline_status(directory=Path('/var/lib/infinityos'), trigger=Path('/system-update'), dnf_offline=OFFLINE):
+    try:
+        prepared = trigger.is_symlink() and trigger.resolve() == dnf_offline and dnf_offline.is_dir()
+    except (OSError, RuntimeError):
+        prepared = False
+    if prepared:
         result = {'pending': True}
         try:
-            result['packages'] = pending_packages(trigger.resolve())
+            result['packages'] = pending_packages(dnf_offline)
         except (OSError, ValueError, KeyError, TypeError):
             pass
         return result
@@ -111,13 +116,14 @@ def check_updates(report=None):
     for scope in ('system', 'user'):
         report('System Flatpaks' if scope == 'system' else 'Your Flatpaks')
         result = _run(['flatpak', 'remote-ls', '--' + scope, '--updates',
-                       '--columns=application,version,origin'])
+                       '--columns=ref,version,origin'])
         if result.returncode == 0:
             for line in result.stdout.splitlines():
                 fields = line.split('\t')
-                if len(fields) >= 3:
-                    updates.append({'kind': 'Flatpak ' + scope, 'name': fields[0],
-                                    'version': fields[1], 'source': fields[2]})
+                if len(fields) == 3 and len(fields[0].split('/')) == 4:
+                    item = flatpak_updates.classify(scope, *fields)
+                    if item is not None:
+                        updates.append(item)
         else:
             errors.append('Flatpak ' + scope + ': ' +
                           (result.stderr.strip() or 'Could not check updates'))
@@ -194,6 +200,9 @@ def reconcile_offline_result(state, directory=Path('/var/lib/infinityos')):
 
 
 def fresh_state(state, max_age=300):
+    if any(item.get('kind', '').startswith('Flatpak ') and not item.get('ref')
+           for item in state.get('updates', [])):
+        return False
     try:
         age = (datetime.now(timezone.utc) - datetime.fromisoformat(state['checked_at'])).total_seconds()
         return 0 <= age < max_age and not state.get('errors')

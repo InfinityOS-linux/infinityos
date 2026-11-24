@@ -4,6 +4,12 @@ import locale
 
 
 POLISH = {
+    'Updates with problems ({count})': 'Aktualizacje z problemami ({count})',
+    'Retry this update': 'Ponów tę aktualizację',
+    'Flatpak could not verify the update plan.': 'Flatpak nie mógł zweryfikować planu aktualizacji.',
+    'Flatpak installation failed.': 'Instalacja aktualizacji Flatpak nie powiodła się.',
+    'Flatpak finished, but the same update is still pending. No restart is needed.':
+        'Flatpak zakończył pracę, ale ta sama aktualizacja nadal oczekuje. Restart nie jest potrzebny.',
     'Authorizing': 'Autoryzacja',
     'Waiting for compatibility ({count})': 'Oczekują na zgodność ({count})',
     'These packages will be offered automatically when compatible dependencies are available.':

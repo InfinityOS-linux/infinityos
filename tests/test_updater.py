@@ -76,11 +76,12 @@ class UpdaterTests(unittest.TestCase):
     def test_checks_each_source_and_saves_state(self):
         outputs = [
             type('Result', (), {'returncode': 0, 'stdout': 'firefox|158.0|updates\n', 'stderr': ''})(),
-            type('Result', (), {'returncode': 0, 'stdout': 'org.gnome.Evince\t51.0\tflathub\n', 'stderr': ''})(),
+            type('Result', (), {'returncode': 0, 'stdout': 'app/org.gnome.Evince/x86_64/stable\t51.0\tflathub\n', 'stderr': ''})(),
             type('Result', (), {'returncode': 0, 'stdout': '', 'stderr': ''})(),
             type('Result', (), {'returncode': 0, 'stdout': '{"Devices": []}', 'stderr': ''})(),
         ]
-        with patch.object(checker, '_run', side_effect=outputs):
+        with patch.object(checker, '_run', side_effect=outputs), patch.object(
+                checker.flatpak_updates, 'plan', return_value=[('app/org.gnome.Evince/x86_64/stable', 'abc')]):
             state = checker.check_updates()
         self.assertEqual([item['kind'] for item in state['updates']], ['RPM', 'Flatpak system'])
         self.assertEqual(state['updates'][0]['name'], 'firefox')
@@ -275,7 +276,7 @@ class UpdaterTests(unittest.TestCase):
             write.assert_not_called()
 
     def test_installation_only_runs_for_sources_with_updates(self):
-        commands = updater.install_commands([{'kind': 'RPM'}, {'kind': 'Flatpak user'},
+        commands = updater.install_commands([{'kind': 'RPM'}, {'kind': 'Flatpak user', 'ref': 'app/org.test.App/aarch64/stable'},
                                              {'kind': 'Firmware'}])
         self.assertEqual(commands[0][1], ['pkexec', '/usr/libexec/infinityos-upgrade-system'])
         self.assertEqual(commands[1][1][:3], ['flatpak', 'update', '--user'])
@@ -492,7 +493,8 @@ class UpdaterTests(unittest.TestCase):
             (root / 'offline-update.log').unlink()
             self.assertEqual(checker.offline_status(root, trigger)['status'], 'failed')
             trigger.symlink_to(root)
-            self.assertEqual(checker.offline_status(root, trigger), {'pending': True})
+            self.assertFalse(checker.offline_status(root, trigger).get('pending'))
+            self.assertEqual(checker.offline_status(root, trigger, root), {'pending': True})
 
     def test_update_command_streams_carriage_return_progress(self):
         events = []

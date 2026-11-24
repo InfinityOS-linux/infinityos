@@ -72,7 +72,9 @@ def allowed(command):
                             args[1].startswith('/tmp/infinity-updater-rpm-') and
                             owned_temporary(args[1], 'infinity-updater-rpm-', '.rpm'))
     if program == '/usr/bin/flatpak':
-        return args == ['update', '--system', '--noninteractive', '--assumeyes']
+        update = ['update', '--system', '--noninteractive', '--assumeyes']
+        return args == update or (len(args) == 5 and args[:4] == update and
+            re.fullmatch(r'(?:app|runtime)/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+/[A-Za-z0-9_]+/[A-Za-z0-9][A-Za-z0-9_.-]*', args[4]) is not None)
     if program == '/usr/bin/fwupdmgr':
         return args == ['update', '--assume-yes', '--no-reboot-check']
     return False

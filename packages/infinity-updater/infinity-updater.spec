@@ -10,6 +10,7 @@ Requires:       python3-gobject
 Requires:       gtk4
 Requires:       dnf5
 Requires:       flatpak
+Requires:       flatpak-libs
 Requires:       fwupd
 Requires:       polkit
 Requires:       snapper
@@ -19,6 +20,7 @@ Requires:       gnupg2
 Requires:       infinityos-repos >= 1.0.0
 Requires:       infinityos-shell-extensions >= 1.0.0
 Requires:       infinity-setup >= 1.0.1
+Requires:       infinityos-flatpak-ref-update
 Requires:       python3-rpm
 Requires:       python3-libdnf5
 Requires:       dracut

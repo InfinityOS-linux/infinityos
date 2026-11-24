@@ -220,3 +220,20 @@ class UpdaterActionsTests(unittest.TestCase):
                 self.assertFalse(groups[0].get_expanded())
                 normal_cards = [widget for widget in widgets if widget.has_css_class('update-card')]
                 self.assertEqual(len(normal_cards), count)
+
+        failed = dict(kind='Flatpak system', name='org.example.Reader', version='1',
+                      source='fedora', ref='app/org.example.Reader/x86_64/stable',
+                      deferred=True, problem='Disk is full', retryable=True)
+        app.on_apply = Mock()
+        for updates in ([failed], [ready, failed]):
+            app.state['updates'] = updates
+            namespace['render'](app)
+            widgets = children(app.items)
+            self.assertEqual(app.apply.get_visible(), ready in updates)
+            group, = [widget for widget in widgets if isinstance(widget, Gtk.Expander)]
+            self.assertEqual(group.get_label(), 'Updates with problems (1)')
+            self.assertTrue(group.get_expanded())
+            details = children(group.get_child().get_first_child())
+            self.assertEqual(details[-2].get_label(), 'Disk is full')
+            details[-1].emit('clicked')
+            app.on_apply.assert_called_with(details[-1], failed)

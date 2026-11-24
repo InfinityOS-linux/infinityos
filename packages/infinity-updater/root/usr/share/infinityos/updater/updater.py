@@ -8,6 +8,7 @@ from datetime import datetime
 from checker import check_updates, read_state, save_state, offline_status, state_path, refresh_state
 from i18n import tr, update_count
 from progress import run_update_command
+import flatpak_updates
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from launcher_backend import privileged_transaction, progress_reporting, run_privileged
@@ -230,12 +231,12 @@ def install_commands(updates):
         if item['kind'] in ('InfinityApps RPM', 'InfinityApps AppImage'):
             commands.append((item['name'], ['python3',
                 '/usr/share/infinityos/updater/github_update.py', item['source']]))
-    if 'Flatpak system' in kinds:
-        commands.append(('System Flatpaks', ['pkexec', '/usr/bin/flatpak', 'update',
-                                              '--system', '--noninteractive', '--assumeyes']))
-    if 'Flatpak user' in kinds:
-        commands.append(('Your Flatpaks', ['flatpak', 'update', '--user',
-                                            '--noninteractive', '--assumeyes']))
+    for item in updates:
+        if item['kind'] in ('Flatpak system', 'Flatpak user'):
+            scope = item['kind'].split()[1]
+            program = ['pkexec', '/usr/bin/flatpak'] if scope == 'system' else ['flatpak']
+            commands.append((item['ref'], program + ['update', '--' + scope, '--noninteractive',
+                                                      '--assumeyes', item['ref']]))
     if 'Firmware' in kinds:
         commands.append(('Device firmware', ['pkexec', '/usr/bin/fwupdmgr', 'update',
                                              '--assume-yes', '--no-reboot-check']))
@@ -252,6 +253,31 @@ def apply_command(label, args, report):
         except Exception as error:
             return subprocess.CompletedProcess(args, 1, '', str(error))
     return run_update_command(label, args, report, privileged=run_privileged)
+
+
+def apply_flatpak(item, scope, label, args, report):
+    ref = item['ref']
+    path = flatpak_updates.failure_path(scope, ref)
+    try:
+        before = flatpak_updates.plan(scope, ref)
+        if not before:
+            path.unlink(missing_ok=True)
+            return subprocess.CompletedProcess(args, 0, '', '')
+        fingerprint = flatpak_updates.signature(before, item['source'])
+        result = apply_command(label, args, report)
+        if result.returncode:
+            message = result.stderr.strip() or result.stdout.strip() or tr('Flatpak installation failed.')
+        else:
+            remaining = flatpak_updates.plan(scope, ref)
+            if not set(before).intersection(remaining):
+                path.unlink(missing_ok=True)
+                return result
+            fingerprint = flatpak_updates.signature(remaining, item['source'])
+            message = tr('Flatpak finished, but the same update is still pending. No restart is needed.')
+        flatpak_updates.remember_failure(path, fingerprint, message)
+    except Exception as error:
+        message = str(error)
+    return subprocess.CompletedProcess(args, 1, '', message)
 
 
 def main():
@@ -579,7 +605,10 @@ def main():
                 restart.set_tooltip_text(tr('Downloaded — installs after restart'))
                 title_row.append(restart)
             card.append(title_row)
-            detail = Gtk.Label(label=f"{item['kind']}  ·  {item['version']}  ·  {item['source']}", xalign=0)
+            metadata = [item['kind'], item['version'], item['source']]
+            if item.get('ref'):
+                metadata.append('/'.join(item['ref'].split('/')[2:]))
+            detail = Gtk.Label(label='  ·  '.join(filter(None, metadata)), xalign=0)
             detail.add_css_class('muted')
             detail.set_ellipsize(Pango.EllipsizeMode.END)
             card.append(detail)
@@ -588,7 +617,8 @@ def main():
         def render(self):
             offline = offline_status()
             rows = update_rows(self.state.get('updates', []), offline)
-            deferred = [item for item in rows if item.get('deferred')]
+            deferred = [item for item in rows if item.get('deferred') and not item.get('problem')]
+            problems = [item for item in rows if item.get('problem')]
             updates = [item for item in rows if not item.get('deferred')]
             self.restart_ready = restart_ready(offline)
             if self.restart_ready:
@@ -620,7 +650,7 @@ def main():
                 self.items.remove(child)
             errors = self.state.get('errors', [])
             release = self.state.get('release')
-            empty_state = not (updates or deferred or errors or release or offline.get('pending') or offline.get('status') == 'failed')
+            empty_state = not (updates or deferred or problems or errors or release or offline.get('pending') or offline.get('status') == 'failed')
             self.items.set_valign(Gtk.Align.CENTER if empty_state else Gtk.Align.FILL)
             if release:
                 card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
@@ -643,7 +673,7 @@ def main():
             self.items.append(count_row)
             if not updates:
                 message = (tr('Could not confirm whether updates are available.') if errors
-                           else tr('No updates ready to install.') if deferred
+                           else tr('No updates ready to install.') if deferred or problems
                            else tr('Your system is up to date.'))
                 empty = Gtk.Label(label=message, xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER)
                 empty.set_margin_top(24)
@@ -660,6 +690,23 @@ def main():
                 held.append(note)
                 for item in deferred:
                     held.append(self.update_card(item))
+                group.set_child(held)
+                self.items.append(group)
+            if problems:
+                group = Gtk.Expander(label=tr('Updates with problems ({count})').format(count=len(problems)))
+                group.set_expanded(True)
+                held = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+                for item in problems:
+                    card = self.update_card(item)
+                    detail = Gtk.Label(label=item['problem'], xalign=0, wrap=True, selectable=True)
+                    detail.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+                    card.append(detail)
+                    if item.get('retryable'):
+                        retry = Gtk.Button(label=tr('Retry this update'), halign=Gtk.Align.START)
+                        retry.set_sensitive(not self.busy)
+                        retry.connect('clicked', self.on_apply, item)
+                        card.append(retry)
+                    held.append(card)
                 group.set_child(held)
                 self.items.append(group)
             if errors:
@@ -837,9 +884,18 @@ def main():
             dialog.set_child(scroll)
             dialog.present()
 
-        def on_apply(self, _button):
+        def on_apply(self, _button, retry_item=None):
+            if getattr(self, 'busy', False):
+                return
             updates = [item for item in update_rows(self.state['updates'], offline_status())
                        if not item.get('pending') and not item.get('deferred')]
+            if retry_item is not None:
+                updates = [{**item, 'deferred': False} for item in self.state['updates']
+                           if item == retry_item and item.get('retryable')]
+            if any(item['kind'].startswith('Flatpak ') and not item.get('ref') for item in updates):
+                self.on_refresh(None)
+                return
+            flatpaks = {(item['kind'], item['ref']): item for item in updates if item.get('ref')}
             commands = install_commands(updates)
             if not commands:
                 return
@@ -858,18 +914,21 @@ def main():
                 completed = 0
                 with privileged_transaction():
                     for label, args in commands:
-                        result = apply_command(label, args, self.report_progress)
+                        scope = 'system' if '--system' in args else 'user'
+                        item = flatpaks.get(('Flatpak ' + scope, args[-1]))
+                        if item:
+                            result = apply_flatpak(item, scope, label, args, self.report_progress)
+                        else:
+                            result = apply_command(label, args, self.report_progress)
                         try:
                             record_operation(label, 'Failed' if result.returncode else
                                              'Downloaded; restart required' if offline_status().get('pending') and
                                              any('infinityos-upgrade-system' in arg for arg in args) else 'Completed',
                                              (result.stderr.strip() or result.stdout.strip()) if result.returncode else
-                                             ', '.join(item.get('name', '') for item in updates
-                                                       if item['kind'] == {'System packages': 'RPM',
-                                                           'System Flatpaks': 'Flatpak system',
-                                                           'Your Flatpaks': 'Flatpak user',
+                                             label if item else ', '.join(row.get('name', '') for row in updates
+                                                       if row['kind'] == {'System packages': 'RPM',
                                                            'Device firmware': 'Firmware'}.get(label)
-                                                       or item.get('name') == label))
+                                                       or row.get('name') == label))
                         except OSError as error:
                             errors.append('History: ' + str(error))
                         if result.returncode:
@@ -880,7 +939,7 @@ def main():
                             if label == 'Device firmware':
                                 firmware_updated = True
                 prepared = offline_status().get('pending', False)
-                if errors and completed == 0:
+                if errors and completed == 0 and not flatpaks:
                     # Cancellation/failure is not evidence that updates disappeared.
                     # Keep the published list until a real refresh or successful install.
                     GLib.idle_add(self.finish_error, '\n'.join(errors), prepared)

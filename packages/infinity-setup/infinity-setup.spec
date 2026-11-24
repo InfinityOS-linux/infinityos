@@ -7,6 +7,7 @@ URL:            https://github.com/InfinityOS-linux/infinityos
 Source0:        infinity-setup-%{version}.tar.gz
 BuildArch:      noarch
 Provides:       infinity-launcher = %{version}-%{release}
+Provides:       infinityos-flatpak-ref-update
 Obsoletes:      infinity-launcher < 1.0.1
 Requires:       python3-gobject
 Requires:       gtk4
