@@ -129,6 +129,7 @@ export default class Dash2DockLiteExt extends Extension {
       dock.undock();
       dock.cancelAnimations();
       dock.destroyDash();
+      dock.destroy();
       this.dock = null;
     });
     this.docks = [];

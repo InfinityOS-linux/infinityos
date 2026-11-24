@@ -15,8 +15,9 @@ function isScript(id) {
 }
 
 function isHelperApp(app) {
-  return isInternal(app?.get_id?.()) || isScript(app?.get_id?.()) ||
-    isScript(app?.get_name?.());
+  const id = app?.get_id?.();
+  return isInternal(id) || isScript(id) ||
+    ((!id?.endsWith('.desktop') || app.is_window_backed?.()) && isScript(app?.get_name?.()));
 }
 
 function isInternalWindow(window) {
