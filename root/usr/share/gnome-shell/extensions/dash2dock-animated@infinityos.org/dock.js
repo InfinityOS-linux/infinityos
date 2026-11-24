@@ -11,7 +11,7 @@ import Clutter from 'gi://Clutter';
 import Graphene from 'gi://Graphene';
 import St from 'gi://St';
 
-import {excludeFromDock} from './dock-apps.mjs';
+import {dockWindows, excludeFromDock} from './dock-apps.mjs';
 import { Dash } from 'resource:///org/gnome/shell/ui/dash.js';
 
 import { TintEffect } from './effects/tint_effect.js';
@@ -387,12 +387,17 @@ export let Dock = GObject.registerClass(
       let dash = new Dash();
 
       dash._adjustIconSize = () => {};
-      let con = console;
-      let orig = dash._createAppItem;
-      orig = orig.bind(dash);
+      const dock = this;
+      const createAppItem = dash._createAppItem.bind(dash);
       dash._createAppItem = function (app) {
-        let item = orig.call(this, app);
+        const item = createAppItem(app);
+        dock._icons = null;
         item.child.visible = false;
+        if (excludeFromDock(app, dock._favorite_ids?.includes(app.get_id?.()))) {
+          item._hiddenFromDock = true;
+          item.child.reactive = false;
+          item.hide();
+        }
         if (app.get_id?.() === 'com.infinityos.GhosTTY.desktop')
           item.child.activate = toggleInfinityTerminal;
         return item;
@@ -415,6 +420,13 @@ export let Dock = GObject.registerClass(
       });
       this._separator.name = 'separator';
       this._extraIcons.add_child(this._separator);
+      this._mountSeparator = new St.Widget({
+        style_class: 'dash-separator',
+        name: 'mount-separator',
+        y_align: Clutter.ActorAlign.CENTER,
+        visible: false,
+      });
+      this._extraIcons.add_child(this._mountSeparator);
 
       this.dash.reactive = true;
       this.dash.track_hover = true;
@@ -562,9 +574,15 @@ export let Dock = GObject.registerClass(
     }
     
     _inspectIcon(c) {
-      if (c.animatingOut || (!c.custom_icon && excludeFromDock(c.child?.app))) {
+      const app = c.child?.app;
+      const favorite = this._favorite_ids?.includes(app?.get_id?.());
+      if (c.animatingOut || (!c.custom_icon && excludeFromDock(app, favorite))) {
         c._hiddenFromDock = true;
-        if (c.child) c.child.reactive = false;
+        if (c.child) {
+          c.child.reactive = false;
+          c.child._menu?.close?.();
+        }
+        c.hideLabel?.();
         c.hide();
         return false;
       }
@@ -757,7 +775,6 @@ export let Dock = GObject.registerClass(
         }
       }
 
-      this._joinedSeparator = null;
       if (this._extraIcons) {
         const lastAppItem = this._dashItems.at(-1);
         const appIconCount = this._icons.length;
@@ -768,8 +785,6 @@ export let Dock = GObject.registerClass(
         if (!this._separator.visible) {
           this._dashItems = this._dashItems.filter(item => item !== this._separator);
           this._separators = this._separators.filter(item => item !== this._separator);
-          if (hasExtras && appDivider && lastAppItem === appDivider)
-            this._joinedSeparator = appDivider;
         }
       }
 
@@ -844,7 +859,8 @@ export let Dock = GObject.registerClass(
         if (c._appwell && !c._appwell._activate) {
           c._appwell._activate = c._appwell.activate;
           c._appwell.activate = (...args) => {
-            if (!c.custom_icon && excludeFromDock(c._appwell.app)) return;
+            const app = c._appwell.app;
+            if (!c.custom_icon && excludeFromDock(app, this._favorite_ids?.includes(app?.get_id?.()))) return;
             if (c._appwell.app?.get_id?.() === 'com.infinityos.GhosTTY.desktop') {
               toggleInfinityTerminal();
               return;
@@ -996,12 +1012,27 @@ export let Dock = GObject.registerClass(
         this._extraIcons.remove_child(this._trashIcon);
         this._trashIcon = null;
         this._icons = null;
-      } else if (this._trashIcon && this.extension.trash_icon) {
-        // move trash icon to the end
-        if (this._extraIcons.last_child != this._trashIcon) {
-          this._extraIcons.remove_child(this._trashIcon);
-          this._extraIcons.add_child(this._trashIcon);
-        }
+      }
+
+      this._orderExtraIcons();
+    }
+
+    _orderExtraIcons() {
+      const mounts = this._extraIcons.get_children().filter(actor => actor._mountType);
+      const showMountSeparator = mounts.length > 0 &&
+        Boolean(this._downloadsIcon || this._recentFilesIcon);
+      if (this._mountSeparator.visible !== showMountSeparator) {
+        this._mountSeparator.visible = showMountSeparator;
+        this._icons = null;
+      }
+      const order = [this._separator, this._recentFilesIcon, this._downloadsIcon,
+        this._mountSeparator, ...mounts, this._trashIcon].filter(Boolean);
+      for (let index = 1; index < order.length; index++) {
+        const actor = order[index];
+        const previous = order[index - 1];
+        if (actor.get_previous_sibling() === previous) continue;
+        this._extraIcons.set_child_above_sibling(actor, previous);
+        this._icons = null;
       }
     }
 
@@ -1460,7 +1491,7 @@ export let Dock = GObject.registerClass(
 
         // multi-monitors fix -- where focus can seem to get lost
         if (!hidden.length) {
-          let windows = app.get_windows().filter((w) => {
+          let windows = dockWindows(app).filter((w) => {
             return w.get_monitor() == this._monitor.index;
           });
           if (windows.length > 0) {
@@ -1522,6 +1553,7 @@ export let Dock = GObject.registerClass(
     }
 
     getAppWindowsFiltered(app) {
+      const windows = dockWindows(app);
       var apply_filtering = this.extension.multi_monitor_filter != 0;
 
       // no filtering needed for a single dock
@@ -1540,7 +1572,7 @@ export let Dock = GObject.registerClass(
         var on_current_monitor = false;
         var on_other_monitor = false;
 
-        app.get_windows().forEach((w) => {
+        windows.forEach((w) => {
           on_current_monitor =
             on_current_monitor || w.get_monitor() == this._monitor.index;
           on_other_monitor =
@@ -1553,11 +1585,9 @@ export let Dock = GObject.registerClass(
       }
 
       if (apply_filtering) {
-        return app.get_windows().filter((w) => {
-          return w.get_monitor() == this._monitor.index;
-        });
+        return windows.filter(w => w.get_monitor() === this._monitor.index);
       }
-      return app.get_windows();
+      return windows;
     }
 
     _onScrollEvent(obj, evt) {
