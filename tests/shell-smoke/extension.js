@@ -120,6 +120,18 @@ export default class Smoke extends Extension {
                 try {
                     popups.interface_settings.set_string('gtk-theme', `Orchis-Purple-${variant}-Compact`);
                     popups.interface_settings.set_string('color-scheme', preference);
+                    const clockBox = new St.BoxLayout({style_class: 'unlock-dialog-clock'});
+                    const time = new St.Label({style_class: 'unlock-dialog-clock-time', text: '10:56 AM'});
+                    const date = new St.Label({style_class: 'unlock-dialog-clock-date', text: 'Tuesday November 24'});
+                    clockBox.add_child(time);
+                    clockBox.add_child(date);
+                    Main.uiGroup.add_child(clockBox);
+                    try {
+                        const face = time.get_theme_node().get_font();
+                        check(face.get_family().includes('IBM Plex Sans') && face.get_weight() === 300,
+                            `${variant} native clock font: ${face.to_string()}`);
+                        check(date.get_theme_node().get_font().get_weight() === 400, 'clock rule changed date weight');
+                    } finally { clockBox.destroy(); }
                     const checkOpenMenu = async menu => {
                         await wait();
                         const color = menu.box.get_theme_node().get_background_color();

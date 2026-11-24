@@ -4531,7 +4531,9 @@ StWidget.focused .app-grid-running-dot {
   padding-bottom: 2.5em;
 }
 
-.unlock-dialog-clock-time {
+.unlock-dialog-clock .unlock-dialog-clock-time {
+  font-family: "IBM Plex Sans";
+  font-weight: 300;
   font-size: 64pt;
   padding-top: 42px;
   font-feature-settings: "tnum";
