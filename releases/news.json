@@ -1,5 +1,26 @@
 [
   {
+    "id": "2026-11-24-native-clock-light-menu-isos",
+    "date": "2026-11-24",
+    "title": "New installers with the native lock screen and light desktop blur",
+    "summary": "Fresh x64 and ARM64 installs use the native GNOME lock screen with an IBM Plex Sans Light clock. In light mode, the desktop menu provides the reference tint for the dock, panel menus and InfinityTerminal.",
+    "buildSha": "32745ff8d342b4c0574e0031361440810b100a37",
+    "changes": [
+      {
+        "title": "Native lock screen",
+        "text": "Both installer images are checked for the retired WACK Sonoma extension and its activation in GNOME defaults. The time uses IBM Plex Sans Light, while the date uses the regular weight."
+      },
+      {
+        "title": "Light desktop appearance",
+        "text": "Quick Settings and the top-bar menus blur the wallpaper at its original brightness. The adaptive dock, terminal and widget strip use the desktop context menu’s translucent tint."
+      },
+      {
+        "title": "Downloads",
+        "text": "The x64 and ARM64 images and their SHA-256 and MD5 checksums are available on the Download page."
+      }
+    ]
+  },
+  {
     "id": "2026-11-24-rpm-light-mode-and-lock-clock",
     "date": "2026-11-24",
     "title": "RPM update: light mode backdrops and lock screen clock",
