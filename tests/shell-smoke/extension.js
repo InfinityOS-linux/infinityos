@@ -12,6 +12,7 @@ import AppDashboard from '../wack-shell@rinzler69-wastaken.github.com/appDashboa
 import TerminalController from '../ghostty@infinityos.org/extension.js';
 import Shell from 'gi://Shell';
 import {TerminalPullHandle} from '../ghostty@infinityos.org/pull-handle.js';
+import {PanelBackdrop} from '../ghostty@infinityos.org/panel-backdrop.js';
 import {HardwareMonitor} from '../ghostty@infinityos.org/hardware-monitor.js';
 import {widgetChoices} from '../ghostty@infinityos.org/monitor-widgets.js';
 import NowPlay from '../nowplay@LalaloyXyz/extension.js';
@@ -657,6 +658,30 @@ export default class Smoke extends Extension {
         updater._drawerBackdrop.detach(drawer.meta_window); await wait();
         check(!readBackdrop().transparent, 'GTK remained transparent after the backdrop was detached');
         check(!redrawOwner.fullRedraw, 'detaching drawer left full repaint enabled');
+        // Exercise the terminal controller against a real Wayland window actor.
+        terminalController._window = drawer.meta_window;
+        terminalController._hardware = monitor;
+        terminalController._resizeHandle = new St.Widget();
+        terminalController._drawerBackdrop = new PanelBackdrop({exportReadiness: false});
+        try {
+            terminalController._syncResizeHandle();
+            await wait();
+            const entry = terminalController._drawerBackdrop._entries.get(drawer.meta_window);
+            for (const surface of [entry, entry?.stripSurface])
+                check(surface?.backdrop?.background.is_mapped() && surface.backdrop.background.get_effects().length,
+                    'terminal window or widget strip lacks a mapped native blur');
+            check(monitor.actor.get_children()[0] === entry.stripSurface.container,
+                'terminal blur covers the widget strip contents');
+            check(!readBackdrop().transparent, 'terminal claimed updater backdrop readiness');
+        } finally {
+            terminalController._drawerBackdrop.destroy();
+            terminalController._drawerBackdrop = null;
+            terminalController._resizeHandle.destroy();
+            terminalController._resizeHandle = null;
+            terminalController._hardware = null;
+            terminalController._window = null;
+            monitor.hide();
+        }
         updater._drawerBackdrop.attach(drawer.meta_window); await wait();
         check(readBackdrop().transparent, 'GTK did not recover after reattaching the backdrop');
         for (const [app, ready] of [['Setup', 'SetupReady'], ['Config', 'ConfigReady']]) {

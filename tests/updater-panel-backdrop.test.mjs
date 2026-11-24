@@ -6,7 +6,7 @@ import vm from 'node:vm';
 const source = readFileSync(new URL('../packages/infinity-updater/root/usr/share/gnome-shell/extensions/infinity-updater@infinityos.org/panel-backdrop.js', import.meta.url), 'utf8')
     .replace(/^import .*;\n/gm, '').replace('export class', 'class');
 
-function fixture() {
+function fixture(options) {
     let next = 1, theme = 'prefer-dark';
     const timers = new Map(), records = [], properties = [];
     const bus = {export() {}, unexport() {this.unexported = true;},
@@ -51,7 +51,7 @@ function fixture() {
         St: {Widget: Actor}, Main: {panel, extensionManager: manager,
             layoutManager: {primaryIndex: 0, monitors: [{x: 0, y: 0}, {x: 1280, y: 0}]}}, global, console,
     });
-    return {helper: new Helper(), actor, window, frame, buffer, panel, blur, global, timers, records, properties, bus,
+    return {helper: new Helper(options), actor, window, frame, buffer, panel, blur, global, timers, records, properties, bus,
         Actor, theme(value) {theme = value;}};
 }
 
@@ -147,4 +147,33 @@ test('disabled blur uses an opaque fallback and restores matching tint when reen
     f.blur.enabled = true; f.helper.syncAll();
     assert.match(e.tint.style, /rgba/); assert.equal(e.layers.length, 1);
     f.helper.destroy();
+});
+
+test('terminal and widget strip share the panel pipeline without claiming updater readiness', () => {
+    const f = fixture({exportReadiness: false});
+    const strip = new f.Actor({x: f.frame.x, y: f.frame.y - 72, width: f.frame.width, height: 72});
+    const widgets = new f.Actor();
+    strip.add_child(widgets);
+    f.helper.attach(f.window, null, strip);
+    const entry = f.helper._entries.get(f.window);
+    assert.deepEqual(strip.children, [entry.stripSurface.container, widgets]);
+    assert.ok(Math.abs(entry.stripSurface.backdrop.background.y - entry.backdrop.background.y - strip.height) < .001);
+    assert.deepEqual(f.properties, []);
+    f.blur.enabled = false;
+    f.theme('prefer-light');
+    f.helper.syncAll();
+    assert.equal(entry.stripSurface.tint.style, entry.tint.style);
+    assert.match(entry.tint.style, /#faf7ff/);
+    f.blur.enabled = true;
+    f.blur.settings.panel.STATIC_BLUR = false;
+    f.helper.syncAll();
+    assert.equal(entry.stripSurface.backdrop.background.height, strip.height);
+    const stripBlur = entry.stripSurface.backdrop;
+    strip.visible = false;
+    f.helper.syncAll();
+    assert(stripBlur.destroyed);
+    assert(!entry.backdrop.destroyed);
+    f.helper.destroy();
+    assert.equal(f.timers.size, 0);
+    assert.deepEqual(strip.children, [widgets]);
 });

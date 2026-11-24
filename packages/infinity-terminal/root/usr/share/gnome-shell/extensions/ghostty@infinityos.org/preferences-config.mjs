@@ -1,5 +1,5 @@
 export const defaults = {
-    'font-family': 'Iosevka Term', 'font-size': 11, 'background-opacity': 0.93,
+    'font-family': 'Iosevka Term', 'font-size': 11, 'background-opacity': 0,
     background: '', foreground: '', 'cursor-style': 'block',
     'cursor-style-blink': true, 'copy-on-select': false, 'window-padding-x': 12,
 };
@@ -18,7 +18,7 @@ export function writePreferences(values, previous = '') {
     const v = {...defaults, ...values};
     if (!v['font-family'].trim() || /[\r\n\\"#=]/.test(v['font-family']))
         throw new Error('Invalid font family');
-    for (const [key, min, max] of [['font-size', 6, 48], ['background-opacity', 0.2, 1], ['window-padding-x', 0, 40]]) {
+    for (const [key, min, max] of [['font-size', 6, 48], ['background-opacity', 0, 1], ['window-padding-x', 0, 40]]) {
         if (!Number.isFinite(v[key]) || v[key] < min || v[key] > max)
             throw new Error(`Invalid ${key}`);
     }

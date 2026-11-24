@@ -44,7 +44,7 @@ export default class TerminalPreferences extends ExtensionPreferences {
             return row;
         };
         const size = spin('font-size', tr('Font size', 'Rozmiar czcionki'), 6, 48, 1);
-        const opacity = spin('background-opacity', tr('Background opacity', 'Krycie tła'), 0.2, 1, 0.05, 2);
+        const opacity = spin('background-opacity', tr('Background opacity', 'Krycie tła'), 0, 1, 0.05, 2);
         const padding = spin('window-padding-x', tr('Inner padding', 'Margines wewnętrzny'), 0, 40, 1);
         const custom = new Adw.SwitchRow({title: tr('Custom colors', 'Własne kolory'),
             subtitle: tr('Off: follow the system light/dark theme.', 'Wyłączone: używaj jasnego lub ciemnego motywu systemu.'),

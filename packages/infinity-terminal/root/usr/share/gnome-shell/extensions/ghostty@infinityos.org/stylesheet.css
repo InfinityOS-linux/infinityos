@@ -1,4 +1,5 @@
-.infinity-monitor { background-gradient-direction: vertical; background-gradient-start: #14111d; background-gradient-end: rgba(11,9,18,0.93); color: #f4f0fa; padding: 4px 8px 10px; }
+.infinity-monitor { color: #f4f0fa; }
+.infinity-monitor-content { padding: 4px 8px 10px; }
 .infinity-monitor-cell { padding: 2px 8px; border-right: 1px solid rgba(200,180,230,0.15); border-radius: 0; }
 .infinity-monitor-cell:hover, .infinity-monitor-cell:focus { background-color: rgba(180,140,240,0.10); }
 .infinity-monitor-value { font-size: 15px; font-weight: bold; }
@@ -6,7 +7,7 @@
 
 .infinity-monitor-graph { height: 16px; }
 
-.infinity-monitor.light { background-gradient-start: #eee9f5; background-gradient-end: rgba(247,244,251,0.93); color: #211b2b; }
+.infinity-monitor.light { color: #211b2b; }
 .infinity-monitor.light .infinity-monitor-label { color: #514561; }
 
 .infinity-widget-top { spacing: 6px; }

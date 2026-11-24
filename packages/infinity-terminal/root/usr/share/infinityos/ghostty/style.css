@@ -12,7 +12,7 @@ window.ssd.no-border-radius.fullscreen tabbar {
 }
 
 tabbar {
-  background-color: #17151d;
+  background-color: transparent;
   color: #eeeaf6;
   border-top: 1px solid #645394;
   border-bottom: 1px solid #342d40;
@@ -31,7 +31,6 @@ tabbar tab.needs-attention {
 
 @media (prefers-color-scheme: light) {
   tabbar {
-    background-color: #f0eaf7;
     color: #30283f;
     border-top: 1px solid #b49acb;
     border-bottom: 1px solid #d8cce5;

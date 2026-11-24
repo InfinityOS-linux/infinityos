@@ -21,11 +21,13 @@ function backgroundStyle(actor) {
 
 // Only the backdrop is blurred. GTK's labels, icons and buttons stay sharp.
 export class PanelBackdrop {
-    constructor() {
+    constructor({exportReadiness = true} = {}) {
         this._entries = new Map();
         this._ready = new Set();
-        this._bus = Gio.DBusExportedObject.wrapJSObject(BACKDROP_INTERFACE, this);
-        this._bus.export(Gio.DBus.session, '/org/infinityos/UpdaterBackdrop');
+        if (exportReadiness) {
+            this._bus = Gio.DBusExportedObject.wrapJSObject(BACKDROP_INTERFACE, this);
+            this._bus.export(Gio.DBus.session, '/org/infinityos/UpdaterBackdrop');
+        }
         this._settings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
         this._colorId = this._settings.connect('changed::color-scheme', () => this.syncAll());
         this._extensionId = Main.extensionManager.connect('extension-state-changed', () => this.syncAll());
@@ -36,6 +38,7 @@ export class PanelBackdrop {
     get ConfigReady() { return this._ready.has('ConfigReady'); }
 
     syncReady() {
+        if (!this._bus) return;
         const ready = new Set([...this._entries.values()]
             .filter(entry => entry.backdrop && !entry.backdrop.destroyed)
             .map(entry => entry.readyProperty));
@@ -47,18 +50,13 @@ export class PanelBackdrop {
         }
     }
 
-    attach(window, readyProperty = 'Ready') {
+    attach(window, readyProperty = 'Ready', strip = null) {
         const actor = window.get_compositor_private();
         if (!actor) return;
         const old = this._entries.get(window);
         if (old?.actor === actor) { this.sync(window); return; }
         this.detach(window);
-        const container = new St.Widget({name: 'infinity-updater-backdrop',
-            reactive: false, clip_to_allocation: true});
-        actor.insert_child_at_index(container, 0);
-        const tint = new St.Widget({reactive: false});
-        container.add_child(tint);
-        const entry = {actor, container, tint, layers: [], signals: [], readyProperty};
+        const entry = {...this._createSurface(actor), actor, strip, signals: [], readyProperty};
         this._entries.set(window, entry);
         for (const signal of ['position-changed', 'size-changed'])
             entry.signals.push([window, window.connect(signal, () => this.sync(window))]);
@@ -76,6 +74,20 @@ export class PanelBackdrop {
         });
     }
 
+    _createSurface(actor) {
+        const container = new St.Widget({name: 'infinity-updater-backdrop',
+            reactive: false, clip_to_allocation: true});
+        actor.insert_child_at_index(container, 0);
+        const tint = new St.Widget({reactive: false});
+        container.add_child(tint);
+        return {container, tint, layers: []};
+    }
+
+    _destroySurface(surface) {
+        surface.backdrop?.destroy();
+        surface.container.destroy();
+    }
+
     syncAll() {
         for (const window of this._entries.keys()) this.sync(window);
     }
@@ -89,6 +101,18 @@ export class PanelBackdrop {
         const monitor = Main.layoutManager.monitors[monitorIndex];
         if (!monitor) return;
         entry.container.set_position(frame.x - buffer.x, frame.y - buffer.y);
+        this._paintSurface(entry, frame, monitorIndex, monitor);
+        if (entry.strip?.visible) {
+            entry.stripSurface ??= this._createSurface(entry.strip);
+            this._paintSurface(entry.stripSurface, entry.strip, monitorIndex, monitor);
+        } else if (entry.stripSurface) {
+            this._destroySurface(entry.stripSurface);
+            entry.stripSurface = null;
+        }
+        this.syncReady();
+    }
+
+    _paintSurface(entry, frame, monitorIndex, monitor) {
         entry.container.set_size(frame.width, frame.height);
         const blur = global.blur_my_shell?._panel_blur;
         const source = blur?.enabled && blur.createMatchingBackdrop ? blur : null;
@@ -100,7 +124,7 @@ export class PanelBackdrop {
             entry.source = source;
             entry.key = key;
             try { entry.backdrop = source?.createMatchingBackdrop(entry.container, monitorIndex); }
-            catch (error) { console.warn(`InfinityUpdater backdrop: ${error}`); }
+            catch (error) { console.warn(`InfinityOS panel backdrop: ${error}`); }
         }
         const backdrop = entry.backdrop;
         if (backdrop && !backdrop.destroyed) {
@@ -134,7 +158,6 @@ export class PanelBackdrop {
             target.visible = source.visible;
             target.set_size(frame.width, frame.height);
         });
-        this.syncReady();
     }
 
     detach(window) {
@@ -142,8 +165,8 @@ export class PanelBackdrop {
         if (!entry) return;
         this._entries.delete(window);
         for (const [object, id] of entry.signals) object.disconnect(id);
-        entry.backdrop?.destroy();
-        entry.container.destroy();
+        if (entry.stripSurface) this._destroySurface(entry.stripSurface);
+        this._destroySurface(entry);
         this.syncReady();
         if (!this._entries.size && this._timer) {
             GLib.Source.remove(this._timer);
@@ -155,6 +178,6 @@ export class PanelBackdrop {
         for (const window of [...this._entries.keys()]) this.detach(window);
         this._settings.disconnect(this._colorId);
         Main.extensionManager.disconnect(this._extensionId);
-        this._bus.unexport();
+        this._bus?.unexport();
     }
 }
