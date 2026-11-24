@@ -132,6 +132,22 @@ export default class Smoke extends Extension {
                             `${variant} native clock font: ${face.to_string()}`);
                         check(date.get_theme_node().get_font().get_weight() === 400, 'clock rule changed date weight');
                     } finally { clockBox.destroy(); }
+                    if (variant === 'Light') {
+                        const shield = new St.Widget({style_class: 'infinity-light-unlock'});
+                        const dialog = new St.BoxLayout({style_class: 'unlock-dialog'});
+                        const name = new St.Label({style_class: 'user-widget-label', text: 'Test'});
+                        const entry = new St.PasswordEntry({style_class: 'login-dialog-prompt-entry', hint_text: 'Password'});
+                        dialog.add_child(name);
+                        dialog.add_child(entry);
+                        shield.add_child(dialog);
+                        Main.uiGroup.add_child(shield);
+                        try {
+                            entry.add_style_pseudo_class('focus');
+                            check(name.get_theme_node().get_foreground_color().red === 41, 'unreadable unlock username');
+                            check(entry.get_theme_node().get_foreground_color().red === 41, 'unreadable password');
+                            check(entry.get_theme_node().get_background_color().red === 250, 'missing light entry surface');
+                        } finally { shield.destroy(); }
+                    }
                     const checkOpenMenu = async menu => {
                         await wait();
                         const color = menu.box.get_theme_node().get_background_color();

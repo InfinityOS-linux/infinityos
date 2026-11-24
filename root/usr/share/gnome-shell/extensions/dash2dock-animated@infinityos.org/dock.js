@@ -565,7 +565,7 @@ export let Dock = GObject.registerClass(
         c.hide();
         return false;
       }
-      if (!c.visible) return false;
+      if (!c.visible && c !== this.dash._separator && c !== this._separator) return false;
 
       /* release any reference once destroyed */
       if (!c._destroyConnectId) {
@@ -582,7 +582,6 @@ export let Dock = GObject.registerClass(
       if (c._cls === 'dash-separator') {
         this._separators.push(c);
         this._dashItems.push(c);
-        c.visible = true;
         c.style = 'margin-left: 8px; margin-right: 8px;';
         return false;
       }
@@ -739,26 +738,29 @@ export let Dock = GObject.registerClass(
         this._dashItems.splice(this._dashItems.indexOf(duplicate), 1);
       }
 
-      // hide separator between running apps and favorites - if not needed
-      if (this.extension.favorites_only) {
-        if (this._separators.length) {
-          this._separators[0].visible = false;
+      const appDivider = dashSeparators[0];
+      if (appDivider) {
+        appDivider.visible = !this.extension.favorites_only;
+        if (!appDivider.visible) {
+          this._dashItems.splice(this._dashItems.indexOf(appDivider), 1);
           this._separators = [];
-        }
-      } else {
-        if (this._separators.length) {
-          this._separators[0].visible = true;
         }
       }
 
-      //--------------------
-      // find custom icons (trash, mounts, downloads, etc...)
-      //--------------------
+      this._joinedSeparator = null;
       if (this._extraIcons) {
-        this._extraIcons.get_children().forEach((icon) => {
-          this._inspectIcon(icon);
-        });
-        this._extraIcons.visible = this._extraIcons.get_children().length > 1;
+        const lastAppItem = this._dashItems.at(-1);
+        const appIconCount = this._icons.length;
+        this._extraIcons.get_children().forEach(icon => this._inspectIcon(icon));
+        const hasExtras = this._icons.length > appIconCount;
+        this._extraIcons.visible = hasExtras;
+        this._separator.visible = hasExtras && Boolean(lastAppItem?._icon);
+        if (!this._separator.visible) {
+          this._dashItems = this._dashItems.filter(item => item !== this._separator);
+          this._separators = this._separators.filter(item => item !== this._separator);
+          if (hasExtras && appDivider && lastAppItem === appDivider)
+            this._joinedSeparator = appDivider;
+        }
       }
 
       //--------------------
@@ -877,6 +879,8 @@ export let Dock = GObject.registerClass(
         c._prev = prev;
         prev = c;
       });
+
+      if (prev) prev._next = null;
 
       return this._icons;
     }

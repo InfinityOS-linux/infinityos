@@ -989,12 +989,13 @@ export let Animator = class {
         actor.translationY =
           (prev._icon.translationY + next._icon.translationY) / 2;
         let thickness = dock.extension.separator_thickness || 0;
+        const joined = actor === dock._joinedSeparator;
         if (vertical) {
-          actor.width = iconSize * 0.5 * scaleFactor;
+          actor.width = iconSize * (joined ? 1 : 0.5) * scaleFactor;
           actor.height = thickness + 0.5;
         } else {
           actor.width = thickness + 0.5;
-          actor.height = iconSize * 0.75 * scaleFactor;
+          actor.height = iconSize * (joined ? 1 : 0.75) * scaleFactor;
         }
         actor.visible = thickness > 0;
       }

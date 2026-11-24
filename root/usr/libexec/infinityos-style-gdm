@@ -141,6 +141,29 @@ EOF
 EOF
         changed=1
     fi
+    if [[ ${css##*/} == gnome-shell-light.css ]] && ! grep -Fq 'Infinity OS light authentication contrast v1' "$css"; then
+        cat >> "$css" <<'EOF'
+
+/* Infinity OS light authentication contrast v1 */
+.login-dialog .login-dialog-prompt-entry,
+.login-dialog .login-dialog-prompt-entry:focus {
+  background-color: #faf7fc;
+  color: #292136;
+  caret-color: #292136;
+}
+
+.login-dialog .login-dialog-prompt-entry StLabel.hint-text,
+.login-dialog .login-dialog-prompt-entry StIcon,
+.login-dialog .login-dialog-default-button-well .next-button {
+  color: #574960;
+}
+
+.login-dialog StPasswordEntry.login-dialog-prompt-entry:focus {
+  box-shadow: inset 0 0 0 2px #715098 !important;
+}
+EOF
+        changed=1
+    fi
     patched=$((patched + 1))
 done
 [[ $patched -gt 0 ]] || { echo 'No supported GNOME Shell theme CSS found' >&2; exit 1; }
