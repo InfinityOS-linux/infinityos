@@ -717,11 +717,6 @@ export let Dock = GObject.registerClass(
       if (c._image && c._image.get_parent()) {
         c._image.get_parent().remove_child(c._image);
       }
-      if (c._menu) {
-        const menu = c._menu;
-        c._menu = null;
-        menu.destroy();
-      }
       if (c._label) {
         let p = c._label.get_parent();
         if (p) {

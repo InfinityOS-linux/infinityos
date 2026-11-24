@@ -302,11 +302,11 @@ export const DockItemContainer = GObject.registerClass(
         this._menuManager.addMenu(this._menu);
         this._menu.close();
         dashIcon._menu = this._menu;
-        this.connect('destroy', () => {
-          const menu = this._menu;
-          this._menu = null;
-          menu?.destroy();
+        this._menu.connect('destroy', menu => {
+          if (this._menu === menu) this._menu = null;
+          if (dashIcon._menu === menu) dashIcon._menu = null;
         });
+        this.connect('destroy', () => this._menu?.destroy());
       }
     }
 

@@ -74,3 +74,11 @@ test('unmounting a drive destroys the icon and its open popup', () => {
   assert.deepEqual(closed, ['popup', 'icon']);
   assert.equal(dock._icons, null);
 });
+
+test('replacing an icon texture keeps the owning launcher menu usable', () => {
+  const cleanup = new Function(`return ({${get('_cleanupIcon', '    _findIcons(')}})._cleanupIcon`)();
+  const menu = {actor: {}, destroy() { assert.fail('the launcher still owns the menu'); }};
+  const launcher = {_menu: menu, _image: {get_parent: () => null}};
+  cleanup.call({}, launcher);
+  assert.equal(launcher._menu, menu);
+});
