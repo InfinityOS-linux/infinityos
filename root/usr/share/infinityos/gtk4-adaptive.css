@@ -6,3 +6,5 @@
 @media (prefers-color-scheme: dark) {
   @import url("/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/gtk.css");
 }
+
+@import url("/usr/share/infinityos/gtk4-menus.css");

@@ -11,6 +11,16 @@ brightness=0.64
 override-background=true
 unblur-in-overview=false
 
+[org/gnome/shell/extensions/blur-my-shell/popup]
+blur=true
+static-blur=false
+sigma=28
+brightness=0.64
+menu-corner-radius=18
+quick-settings-corner-radius=18
+override-background=true
+preserve-shell-theme=true
+
 [org/gnome/shell/extensions/blur-my-shell/overview]
 blur=true
 pipeline='pipeline_default'

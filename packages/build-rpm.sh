@@ -102,7 +102,6 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
     "$source_root/usr/share/icons/kora/places/scalable" \
     "$source_root/usr/share/icons/hicolor/scalable/apps" \
     "$source_root/usr/share/icons/hicolor/256x256/apps" \
-    "$source_root/usr/share/themes/Orchis-Purple-Light-Compact/gnome-shell" \
     "$source_root/usr/share/licenses/infinityos-shell-extensions" \
     "$source_root/etc/dconf/db/local.d" \
     "$source_root/etc/xdg/autostart"
@@ -151,9 +150,13 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
     "$source_root/usr/share/glib-2.0/schemas/"
   install -m 0644 "$repo/root/usr/share/infinityos/gnome-defaults" \
     "$repo/root/usr/share/infinityos/blur-defaults" \
+    "$repo/root/usr/share/infinityos/gtk4-adaptive.css" \
+    "$repo/root/usr/share/infinityos/gtk4-menus.css" \
     "$source_root/usr/share/infinityos/"
-  install -m 0644 "$repo/root/usr/share/themes/Orchis-Purple-Light-Compact/gnome-shell/gnome-shell.css" \
-    "$source_root/usr/share/themes/Orchis-Purple-Light-Compact/gnome-shell/gnome-shell.css"
+  for variant in Light Dark; do
+    theme_css="usr/share/themes/Orchis-Purple-${variant}-Compact/gnome-shell/gnome-shell.css"
+    install -Dm 0644 "$repo/root/$theme_css" "$source_root/$theme_css"
+  done
   ln -s /usr/share/infinityos/gnome-defaults \
     "$source_root/etc/dconf/db/local.d/00-infinityos"
   ln -s /usr/share/infinityos/blur-defaults \

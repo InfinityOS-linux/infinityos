@@ -1,0 +1,19 @@
+@media (prefers-contrast: no-preference) {
+    popover.menu {
+        --infinity-menu-tint: rgba(226, 222, 233, 0.82);
+    }
+    popover.menu > contents,
+    popover.menu > arrow {
+        background-image: none;
+        background-color: var(--infinity-menu-tint);
+    }
+    popover.menu > contents {
+        backdrop-filter: blur(28px);
+        border-radius: 18px;
+    }
+}
+@media (prefers-color-scheme: dark) {
+    popover.menu {
+        --infinity-menu-tint: rgba(12, 10, 18, 0.70);
+    }
+}

@@ -23,12 +23,12 @@ export const POPUP_CORNER_RADII = [
     {
         key: 'menu-corner-radius',
         property: 'MENU_CORNER_RADIUS',
-        style_classes: ['popup-menu-content', 'popup-menu', 'candidate-popup-content', 'candidate-popup-boxpointer'],
+        style_classes: ['popup-menu-content', 'popup-menu', 'candidate-popup-content', 'candidate-popup-boxpointer', 'switcher-list'],
     },
     {
         key: 'osd-corner-radius',
         property: 'OSD_CORNER_RADIUS',
-        style_classes: ['osd-window', 'resize-popup', 'switcher-list', 'workspace-switcher'],
+        style_classes: ['osd-window', 'resize-popup', 'workspace-switcher'],
     },
     {
         key: 'dialog-corner-radius',

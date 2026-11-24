@@ -744,8 +744,8 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 .popup-menu .popup-menu-content {
   padding: 4px;
   margin: 0 3px 14px;
-  background-color: rgba(250, 247, 255, 0.88);
-  border-radius: 16px;
+  background-color: rgba(232, 228, 239, 0.96);
+  border-radius: 18px;
   border: none;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
 }
@@ -943,7 +943,7 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 }
 
 .datemenu-popover {
-  border-radius: 22px !important;
+  border-radius: 18px;
 }
 
 .datemenu-calendar-column {
@@ -1633,7 +1633,7 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 
 .candidate-popup-content {
   background-color: #FFFFFF;
-  border-radius: 9px;
+  border-radius: 18px;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
   margin: 2px 10px 13px;
   padding: 4px;
@@ -1707,7 +1707,7 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 
 .quick-settings {
   padding: 12px !important;
-  border-radius: 28px !important;
+  border-radius: 18px;
   margin-top: 2px !important;
   border: none;
 }
@@ -1904,16 +1904,16 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 }
 
 .quick-toggle-menu {
-  border-radius: 20px !important;
+  border-radius: 18px;
   padding: 8px;
   margin-top: 8px;
   margin-bottom: 0;
-  background-color: white !important;
+  background-color: rgba(232, 228, 239, 0.96);
   color: rgba(0, 0, 0, 0.65) !important;
 }
 
 .quick-toggle-menu:insensitive {
-  background-color: white !important;
+  background-color: rgba(232, 228, 239, 0.96);
   color: rgba(0, 0, 0, 0.65) !important;
 }
 
@@ -5235,4 +5235,13 @@ StWidget.focused .app-grid-running-dot {
 .overview-components-light .search-entry StLabel.hint-text,
 .overview-components-dark .search-entry StLabel.hint-text {
   color: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* Translucent only while Blur My Shell supplies the menu backdrop. */
+.bms-popup-surface-light .popup-menu .popup-menu-content,
+.bms-popup-surface-light .candidate-popup-content,
+.bms-popup-surface-light .switcher-list,
+.bms-popup-surface-light .quick-toggle-menu,
+.bms-popup-surface-light .quick-toggle-menu:insensitive {
+  background-color: rgba(226, 222, 233, 0.82);
 }

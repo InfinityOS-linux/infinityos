@@ -23,6 +23,7 @@ import GLibUnix from 'gi://GLibUnix';
 import Gtk from 'gi://Gtk?version=4.0';
 import Gdk from 'gi://Gdk?version=4.0';
 import Gio from 'gi://Gio';
+import GObject from 'gi://GObject';
 import Adw from 'gi://Adw?version=1';
 
 import * as dndClipboardUtils from './dndClipboardUtils.js';
@@ -223,6 +224,9 @@ export var DesktopManager = class {
         this.rubberBand = false;
 
         let cssProvider = new Gtk.CssProvider();
+        const gtkSettings = Gtk.Settings.get_default();
+        gtkSettings.bind_property('gtk-interface-color-scheme', cssProvider, 'prefers-color-scheme', GObject.BindingFlags.SYNC_CREATE);
+        gtkSettings.bind_property('gtk-interface-contrast', cssProvider, 'prefers-contrast', GObject.BindingFlags.SYNC_CREATE);
         cssProvider.load_from_file(Gio.File.new_for_path(GLib.build_filenamev([codePath, 'stylesheet.css'])));
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), cssProvider, Gtk.STYLE_PROVIDER_PRIORITY_USER);
         cssProvider = undefined;
