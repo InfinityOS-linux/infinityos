@@ -25,7 +25,7 @@ test('modern Cogl colors are supported and the dock fallback stays transparent i
         get_children: () => []};
     assert.deepEqual(dockSurfaceLayers(panel, false, true), [[.1, .2, .3, .4]]);
     assert.deepEqual(dockSurfaceLayers(panel, false, false), [[0, 0, 0, 0]]);
-    assert.deepEqual(dockSurfaceLayers(panel, true, true), [[226 / 255, 222 / 255, 233 / 255, .82]]);
+    assert.deepEqual(dockSurfaceLayers(panel, true, true), [[226 / 255, 222 / 255, 233 / 255, .42]]);
     assert.deepEqual(dockSurfaceLayers(panel, true, false), [[0, 0, 0, 0]]);
 });
 

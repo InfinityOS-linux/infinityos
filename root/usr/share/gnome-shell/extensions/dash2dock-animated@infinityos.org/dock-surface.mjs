@@ -9,8 +9,8 @@ function rgba(actor) {
 
 export function dockSurfaceLayers(panel, light, blurReady) {
     if (!blurReady) return [[0, 0, 0, 0]];
-    // Match the GTK desktop menu with a single tint over the live light backdrop.
-    if (light) return [[226 / 255, 222 / 255, 233 / 255, 0.82]];
+    // Keep the desktop menu hue with a lighter tint over the dock's live blur.
+    if (light) return [[226 / 255, 222 / 255, 233 / 255, 0.42]];
     const layers = [rgba(panel)];
     for (const actor of panel.get_children()) {
         if (!PANEL_LAYERS.has(actor.name) || !actor.visible) continue;
