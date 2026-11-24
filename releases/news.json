@@ -1,5 +1,26 @@
 [
   {
+    "id": "2026-11-24-rpm-authentication-dialogs",
+    "date": "2026-11-24",
+    "title": "RPM update: clearer authentication dialogs",
+    "summary": "Password prompts now reveal their blurred backdrop and use more compact spacing below the password field in both light and dark mode.",
+    "buildSha": "fa850cd4de6eb48f60c8868aab356d25bbc75ee1",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This RPM update is available for ARM64 and x64. The installer images published earlier today do not include these later changes."
+      },
+      {
+        "title": "Authentication backdrop",
+        "text": "Authentication dialogs use the matching translucent surface when Blur My Shell supplies the backdrop. The inner content no longer covers the blur with an opaque panel."
+      },
+      {
+        "title": "Password field spacing",
+        "text": "Reduced spacing and bottom padding bring the action buttons closer to the password field. The empty feedback placeholder takes less space while authentication messages retain room above the buttons."
+      }
+    ]
+  },
+  {
     "id": "2026-11-24-rpm-updater-reopen-and-dock",
     "date": "2026-11-24",
     "title": "RPM update: reliable updater reopening and cleaner dock",
