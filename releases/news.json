@@ -1,5 +1,34 @@
 [
   {
+    "id": "2026-11-25-rpm-dock-alignment-and-window-switching",
+    "date": "2026-11-25",
+    "title": "RPM update: dock alignment and window switching",
+    "summary": "Dock dividers keep a consistent thickness and running indicators stay centered. Window switching, helper filtering and automatic hiding after monitor changes are more reliable.",
+    "buildSha": "0688a631e0a8b629c8f847475f8302477a79f4f4",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This RPM update is available for ARM64 and x64. It includes the dock improvements published since the failed update recovery and drive groups update. The current installer images do not include these later changes."
+      },
+      {
+        "title": "Dividers and running indicators",
+        "text": "Dividers are drawn at whole-pixel positions independently of icon animation, keeping their thickness consistent. The mounted-drive divider remains part of the layout when needed. Running indicators stay centered beneath their icons, including multiple-window indicators and scaled icons."
+      },
+      {
+        "title": "Script helper windows",
+        "text": "Recognized shell and script helpers stay out of the dock even when GNOME registers them as applications. Icons are refreshed when their helper classification changes, and suppressed helpers no longer linger as fading icons."
+      },
+      {
+        "title": "Window switching",
+        "text": "Scrolling over an application selects one window without restoring all of its minimized windows. Smooth scrolling is supported, and holding Ctrl limits switching to the current workspace. Click-to-minimize respects the current workspace, and Shift-click maximization works with GNOME 51."
+      },
+      {
+        "title": "Menus and monitor changes",
+        "text": "Dock menus are cleaned up when their icons are removed and remain usable when icon textures refresh. Automatic hiding disconnects old window signals and cancels pending work when docks are rebuilt after monitor changes, preventing stale callbacks."
+      }
+    ]
+  },
+  {
     "id": "2026-11-24-rpm-update-recovery-and-drive-groups",
     "date": "2026-11-24",
     "title": "RPM update: failed update recovery and dock drive groups",
