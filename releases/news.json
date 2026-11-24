@@ -1,5 +1,30 @@
 [
   {
+    "id": "2026-11-24-rpm-updater-reopen-and-dock",
+    "date": "2026-11-24",
+    "title": "RPM update: reliable updater reopening and cleaner dock",
+    "summary": "InfinityUpdater keeps the restart action available when reopened after staging updates. Its drawer and dialogs stay out of the dock, with safer opening and closing animations.",
+    "buildSha": "605f0b62217ba58c9ef4a7d1cb910e663531e17c",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This RPM update is available for ARM64 and x64. The installer images published earlier today do not include these later fixes."
+      },
+      {
+        "title": "Restart after reopening",
+        "text": "Reopening InfinityUpdater after updates have been staged restores the restart action from local state without starting another update check. The footer also avoids rebuilding its buttons when their layout has not changed."
+      },
+      {
+        "title": "Updater windows in the dock",
+        "text": "The updater drawer and its dialogs stay out of the running application icons, including when GNOME identifies them through a generic window entry. Hidden helper windows are filtered while regular application windows remain available."
+      },
+      {
+        "title": "Drawer and dock animations",
+        "text": "Opening and closing the updater now changes only its horizontal slide animation, preserving other window transitions. Duplicate dock dividers are hidden while GNOME completes their removal, and outgoing icons no longer participate in dock interaction."
+      }
+    ]
+  },
+  {
     "id": "2026-11-24-rpm-dock-dividers-and-unlock",
     "date": "2026-11-24",
     "title": "RPM update: cleaner dock dividers and readable light unlock screen",
