@@ -1,5 +1,30 @@
 [
   {
+    "id": "2026-11-24-rpm-dock-dividers-and-unlock",
+    "date": "2026-11-24",
+    "title": "RPM update: cleaner dock dividers and readable light unlock screen",
+    "summary": "The dock removes adjacent dividers when no application sits between them. Light mode improves the contrast of the unlock screen and login password field.",
+    "buildSha": "b509c0244b3d5e23feff0e337708ebb8be497d6a",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This RPM update is available for ARM64 and x64. The translucent light dock installer images published earlier today do not include these later fixes."
+      },
+      {
+        "title": "Dock dividers",
+        "text": "When the running application group is empty, adjacent application and drive dividers collapse into one full-height divider. Separate dividers return when application icons reappear, and empty extra-icon groups no longer leave a divider behind."
+      },
+      {
+        "title": "Light unlock screen",
+        "text": "The username, clock, date, messages and password field use darker text against the light background. User icons and action buttons receive clearer surfaces, and the password field keeps a visible focus outline. The appearance follows the system color preference."
+      },
+      {
+        "title": "Login password field",
+        "text": "The light login screen uses a pale password field with dark text, cursor, hint and icons, plus a stronger purple focus outline."
+      }
+    ]
+  },
+  {
     "id": "2026-11-24-translucent-light-dock-isos",
     "date": "2026-11-24",
     "title": "New installers with the translucent light dock",
