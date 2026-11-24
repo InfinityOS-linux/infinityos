@@ -24,6 +24,10 @@ import {DashBlur} from '../blur-my-shell@aunetx/components/dash_to_dock.js';
 import {Connections} from '../blur-my-shell@aunetx/conveniences/connections.js';
 import {DockBackground} from '../dash2dock-animated@infinityos.org/dockItems.js';
 import {PanelBlur} from '../blur-my-shell@aunetx/components/panel.js';
+import {PopupBlur} from '../blur-my-shell@aunetx/components/popup.js';
+import {Settings} from '../blur-my-shell@aunetx/conveniences/settings.js';
+import {KEYS} from '../blur-my-shell@aunetx/conveniences/keys.js';
+import {EffectsManager} from '../blur-my-shell@aunetx/conveniences/effects_manager.js';
 import BlurMyShell from '../blur-my-shell@aunetx/extension.js';
 import PanelIndicators from '../wack-shell@rinzler69-wastaken.github.com/panelIndicators.js';
 import {WackWorkspaceButton} from '../wack-shell@rinzler69-wastaken.github.com/panelComponents.js';
@@ -83,6 +87,40 @@ export default class Smoke extends Extension {
         await wait();
         const modalActors = () => Main.modalActorFocusStack.map(({actor}) => actor.toString()).join(', ');
         check(Main.modalCount === 0, `startup retained modal input: ${modalActors()}`);
+        const popupSettings = new Settings(KEYS, Gio.Settings.new('org.gnome.shell.extensions.blur-my-shell'));
+        const effectSignals = new Connections();
+        const popupEffects = new EffectsManager(effectSignals);
+        const popups = new PopupBlur(new Connections(), popupSettings, popupEffects);
+        try {
+            popups.enable();
+            for (const [variant, style, tint] of [['Dark', 2, 12], ['Light', 1, 226]]) {
+                const css = Gio.File.new_for_path(`${GLib.getenv('INFINITY_SMOKE_THEMES')}/Orchis-Purple-${variant}-Compact/gnome-shell/gnome-shell.css`);
+                theme.load_stylesheet(css);
+                try {
+                    popupSettings.popup.settings.set_int('style-popup', style);
+                    popups.update_background();
+                    for (const indicator of [Main.panel.statusArea.dateMenu, Main.panel.statusArea.quickSettings]) {
+                        const menu = indicator.menu;
+                        menu.open();
+                        await wait();
+                        const color = menu.box.get_theme_node().get_background_color();
+                        const surface = popups.surfaces.get(menu.box);
+                        check(color.red === tint && color.alpha < 240, `${variant} menu material: ${color.to_string()}`);
+                        check(surface?.blur_actor?.mapped && surface.pipeline.effect.get_actor() === surface.blur_actor,
+                            'menu backdrop is missing a mapped native blur effect');
+                        menu.close();
+                        await wait();
+                    }
+                } finally {
+                    theme.unload_stylesheet(css);
+                }
+            }
+        } finally {
+            popups.disable();
+            popupEffects.destroy_all();
+            effectSignals.disconnect_all();
+            popupSettings.disconnect_all_settings();
+        }
         const logo = {_settings: {get_int: () => 2}};
         const clickLogo = () => WackWorkspaceButton.prototype.vfunc_event.call(
             logo, {type: () => Clutter.EventType.BUTTON_RELEASE});

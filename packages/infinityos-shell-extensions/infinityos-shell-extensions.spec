@@ -111,6 +111,7 @@ gtk-update-icon-cache -f -q /usr/share/icons/hicolor || :
 /usr/share/gnome-shell/extensions/wack-shell@rinzler69-wastaken.github.com/
 /usr/share/gnome-shell/extensions/windowIsReady_Remover@nunofarruca@gmail.com/
 /usr/share/themes/Orchis-Purple-Light-Compact/gnome-shell/gnome-shell.css
+/usr/share/themes/Orchis-Purple-Dark-Compact/gnome-shell/gnome-shell.css
 /usr/share/glib-2.0/schemas/org.gnome.shell.extensions.appindicator.gschema.xml
 /usr/share/glib-2.0/schemas/org.gnome.shell.extensions.blur-my-shell.gschema.xml
 /usr/share/glib-2.0/schemas/org.gnome.shell.extensions.caffeine.gschema.xml

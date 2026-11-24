@@ -39,6 +39,12 @@ sha256sum "$SMOKE_EXTENSIONS/nowplay@LalaloyXyz/ui.js"
 if grep -n 'const animateUp' "$SMOKE_EXTENSIONS/nowplay@LalaloyXyz/ui.js"; then
     echo 'Obsolete recursive equalizer implementation'; exit 1
 fi
+export INFINITY_SMOKE_THEMES="$repo/root/usr/share/themes"
+export INFINITY_SMOKE_BLUR_DEFAULTS="$repo/root/usr/share/infinityos/blur-defaults"
+export GSETTINGS_SCHEMA_DIR="$sandbox/menu-schemas"
+mkdir -p "$GSETTINGS_SCHEMA_DIR"
+cp "$repo/vendor/gnome-shell/fedora-45/usr/share/glib-2.0/schemas/org.gnome.shell.extensions.blur-my-shell.gschema.xml" "$GSETTINGS_SCHEMA_DIR/"
+glib-compile-schemas --strict "$GSETTINGS_SCHEMA_DIR"
 export SMOKE_LOG="$sandbox/shell.log"
 # The persistent terminal binary is not installed in this disposable Shell.
 # Keep its desktop ID while using an available inert executable for AppInfo.
@@ -53,6 +59,7 @@ export INFINITY_SMOKE_BACKDROP_REPORT="$sandbox/updater-backdrop.json"
 export INFINITY_SMOKE_CURSOR_REPORT="$sandbox/cursor-client.json"
 export INFINITY_SMOKE_GTK_THEME="$repo/root/usr/share/themes/Orchis-Purple-Dark-Compact/gtk-4.0/gtk.css"
 dbus-run-session -- bash -euo pipefail -c '
+    dconf load / < "$INFINITY_SMOKE_BLUR_DEFAULTS"
     # Test vendored code, never replace it with extensions.gnome.org downloads.
     gsettings set org.gnome.shell allow-extension-installation false
     gsettings set org.gnome.shell disable-user-extensions false
