@@ -1,5 +1,18 @@
 [
   {
+    "id": "2026-11-24-translucent-light-dock-isos",
+    "date": "2026-11-24",
+    "title": "New installers with the translucent light dock",
+    "summary": "The x64 and ARM64 installers now include the lighter dock tint. Both images and their checksums are available on the Download page.",
+    "buildSha": "6e2bb9d813c2ab2bf63e3c41da2cb9394158fe99",
+    "changes": [
+      {
+        "title": "Desktop appearance",
+        "text": "The adaptive dock in light mode lets more wallpaper show through its blur with a 42% tint, down from 82%."
+      }
+    ]
+  },
+  {
     "id": "2026-11-24-rpm-light-dock-transparency",
     "date": "2026-11-24",
     "title": "RPM update: more translucent light mode dock",
