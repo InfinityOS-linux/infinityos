@@ -504,6 +504,11 @@ export const PopupBlur = class PopupBlur {
         if (lower_uri.includes('yaru'))
             return lower_uri.includes('dark') ? 2 : 1;
 
+        // InfinityOS theme-sync uses light Orchis for the default preference.
+        // GNOME Shell can still report its own preferred dark variant here.
+        if (/^Orchis-Purple-(Light|Dark)-Compact$/.test(this.interface_settings.get_string('gtk-theme')))
+            return this.interface_settings.get_string('color-scheme') === 'prefer-dark' ? 2 : 1;
+
         const shell_style = Main.getStyleVariant();
         if (shell_style === 'light')
             return 1;

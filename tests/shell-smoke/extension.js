@@ -98,12 +98,12 @@ export default class Smoke extends Extension {
             popups.enable();
             globalMenus.updateMenuForWindow(null);
             check(globalMenus._buttons.length === 7, 'expected all seven desktop panel menus');
-            for (const [variant, style, tint] of [['Dark', 2, 12], ['Light', 1, 226]]) {
+            for (const [variant, preference, tint] of [['Dark', 'prefer-dark', 12], ['Light', 'default', 226]]) {
                 const css = Gio.File.new_for_path(`${GLib.getenv('INFINITY_SMOKE_THEMES')}/Orchis-Purple-${variant}-Compact/gnome-shell/gnome-shell.css`);
                 theme.load_stylesheet(css);
                 try {
-                    popupSettings.popup.settings.set_int('style-popup', style);
-                    popups.update_background();
+                    popups.interface_settings.set_string('gtk-theme', `Orchis-Purple-${variant}-Compact`);
+                    popups.interface_settings.set_string('color-scheme', preference);
                     for (const indicator of [Main.panel.statusArea.dateMenu, Main.panel.statusArea.quickSettings, ...globalMenus._buttons]) {
                         const menu = indicator.menu;
                         menu.open();
@@ -123,6 +123,8 @@ export default class Smoke extends Extension {
         } finally {
             globalMenus.destroy();
             popups.disable();
+            popups.interface_settings.reset('gtk-theme');
+            popups.interface_settings.reset('color-scheme');
             popupEffects.destroy_all();
             effectSignals.disconnect_all();
             popupSettings.disconnect_all_settings();
