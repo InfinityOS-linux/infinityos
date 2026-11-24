@@ -44,6 +44,10 @@ fedora_extensions = {
 lines = defaults.read_text().splitlines()
 enabled_line = next(line for line in lines if line.startswith("enabled-extensions="))
 enabled = ast.literal_eval(enabled_line.partition("=")[2])
+retired_lockscreen = "wack-lockscreen-clock@rinzler69-wastaken.github.com"
+if retired_lockscreen in enabled or (extensions / retired_lockscreen).exists():
+    raise SystemExit("WACK Sonoma Lockscreen must not be installed or enabled by default")
+
 new_dock = "dash2dock-animated@infinityos.org"
 old_dock = "dash2dock-lite@icedman.github.com"
 if new_dock not in enabled or old_dock in enabled:
