@@ -1011,10 +1011,6 @@ export default class Dash2DockLiteExt extends Extension {
       return 'dark';
     }
 
-    if (scheme === 'default' && Main.panel?.has_style_pseudo_class?.('dark')) {
-      return 'dark';
-    }
-
     return 'light';
   }
 

@@ -90,7 +90,7 @@ class DashInfos {
     panel_key() {
         const extension = this.dash_container.extension;
         const source = global.blur_my_shell?._panel_blur;
-        return [extension?.adaptive_background, extension?.panel_mode,
+        return [extension?.adaptive_background, extension?.panel_mode, extension?._getPreferredColorScheme?.(),
             extension?.computed_border_radius, source?.enabled,
             source?.settings.panel.STATIC_BLUR, source?.settings.panel.PIPELINE].join(':');
     }
@@ -551,6 +551,7 @@ export const DashBlur = class DashBlur extends Signals.EventEmitter {
                 if (!panel?.enabled || !panel.createMatchingBackdrop)
                     throw new Error('panel blur is disabled');
                 const matched = panel.createMatchingBackdrop(background_group, monitor.index, {
+                    lightMenu: extension._getPreferredColorScheme?.() === 'light',
                     corner_radius_getter: () => extension.computed_border_radius ?? this.settings.dash_to_dock.CORNER_RADIUS,
                     // Dock actors repaint through Clutter; GTK drawers separately
                     // request complete frames for their window damage rectangles.

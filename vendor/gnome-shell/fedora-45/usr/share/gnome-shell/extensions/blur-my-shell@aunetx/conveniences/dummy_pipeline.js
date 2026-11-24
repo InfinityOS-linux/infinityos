@@ -9,6 +9,7 @@ export const DummyPipeline = class DummyPipeline {
         this.settings = settings;
         this.corner_radius_key = options.corner_radius_key ?? 'corner-radius';
         this.corner_radius_getter = options.corner_radius_getter ?? (() => this.settings.CORNER_RADIUS);
+        this.brightness_getter = options.brightness_getter ?? (() => this.settings.BRIGHTNESS);
         this.opacity_factor = 1;
         this.effect = null;
         this.attach_effect_to_actor(actor);
@@ -104,7 +105,7 @@ export const DummyPipeline = class DummyPipeline {
     }
 
     get_brightness() {
-        return 1 - (1 - this.settings.BRIGHTNESS) * this.opacity_factor;
+        return 1 - (1 - this.brightness_getter()) * this.opacity_factor;
     }
 
     repaint_effect() {

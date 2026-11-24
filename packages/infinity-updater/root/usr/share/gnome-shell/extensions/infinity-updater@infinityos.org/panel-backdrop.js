@@ -116,14 +116,15 @@ export class PanelBackdrop {
         entry.container.set_size(frame.width, frame.height);
         const blur = global.blur_my_shell?._panel_blur;
         const source = blur?.enabled && blur.createMatchingBackdrop ? blur : null;
-        const key = source ? `${monitorIndex}:${source.settings.panel.STATIC_BLUR}:${source.settings.panel.PIPELINE}` : '';
+        const light = this._settings.get_string('color-scheme') !== 'prefer-dark';
+        const key = source ? `${monitorIndex}:${light}:${source.settings.panel.STATIC_BLUR}:${source.settings.panel.PIPELINE}` : '';
         if (source !== entry.source || key !== entry.key || entry.backdrop?.destroyed ||
             (source && !entry.backdrop)) {
             entry.backdrop?.destroy();
             entry.backdrop = null;
             entry.source = source;
             entry.key = key;
-            try { entry.backdrop = source?.createMatchingBackdrop(entry.container, monitorIndex); }
+            try { entry.backdrop = source?.createMatchingBackdrop(entry.container, monitorIndex, {lightMenu: light}); }
             catch (error) { console.warn(`InfinityOS panel backdrop: ${error}`); }
         }
         const backdrop = entry.backdrop;
@@ -135,13 +136,12 @@ export class PanelBackdrop {
                 bg.set_position(0, 0);
                 bg.set_size(frame.width, frame.height);
             }
-            entry.tint.set_style(backgroundStyle(Main.panel));
+            entry.tint.set_style(light ? 'background-color: rgba(226,222,233,0.82);' : backgroundStyle(Main.panel));
         } else {
-            const light = this._settings.get_string('color-scheme') !== 'prefer-dark';
             entry.tint.set_style(`background-color: ${light ? '#faf7ff' : '#181624'};`);
         }
         entry.tint.set_size(frame.width, frame.height);
-        const layers = backdrop && !backdrop.destroyed
+        const layers = !light && backdrop && !backdrop.destroyed
             ? Main.panel.get_children().filter(actor => LAYERS.has(actor.name)) : [];
         while (entry.layers.length > layers.length) entry.layers.pop().destroy();
         layers.forEach((source, index) => {

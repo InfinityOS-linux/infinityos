@@ -30,6 +30,16 @@ tabbar tab.needs-attention {
 }
 
 @media (prefers-color-scheme: light) {
+  /* Ghostty drops the background class for translucent windows. Keep the
+     theme's window and tab strip fills from covering Shell's shared tint. */
+  window:not(.background),
+  window:not(.background) toolbarview,
+  window:not(.background) tabbar,
+  window:not(.background) tabbar > revealer > box {
+    background-color: transparent;
+    background-image: none;
+  }
+
   tabbar {
     color: #30283f;
     border-top: 1px solid #b49acb;

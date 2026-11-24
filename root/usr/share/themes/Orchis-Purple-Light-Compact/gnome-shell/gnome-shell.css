@@ -5237,6 +5237,13 @@ StWidget.focused .app-grid-running-dot {
   color: rgba(255, 255, 255, 0.35) !important;
 }
 
+/* The BoxPointer also paints a polygon behind its content. Leave the blur
+ * visible through that polygon; the menu content supplies the desktop tint. */
+.bms-popup-surface-light .popup-menu-boxpointer {
+  -arrow-background-color: transparent;
+  -arrow-border-color: transparent;
+}
+
 /* Translucent only while Blur My Shell supplies the menu backdrop. */
 .bms-popup-surface-light .popup-menu .popup-menu-content,
 .bms-popup-surface-light .candidate-popup-content,

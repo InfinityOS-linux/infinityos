@@ -388,7 +388,8 @@ export const PanelBlur = class PanelBlur {
                 }
             } else {
                 pipeline = new DummyPipeline(this.effects_manager, this.settings.panel,
-                    null, {corner_radius_getter: options.corner_radius_getter ?? (() => 0)});
+                    null, {corner_radius_getter: options.corner_radius_getter ?? (() => 0),
+                        brightness_getter: options.lightMenu ? () => 1 : undefined});
                 const [widget, manager] = pipeline.create_background_with_effect(
                     container, 'infinity-panel-matched-backdrop');
                 background = widget;

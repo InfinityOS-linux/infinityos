@@ -1,6 +1,7 @@
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 import St from 'gi://St';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { DummyPipeline } from '../../conveniences/dummy_pipeline.js';
 import { PaintSignals } from '../../conveniences/paint_signals.js';
@@ -101,6 +102,9 @@ export const PopupBlurSurface = class PopupBlurSurface {
             this.settings.popup,
             this.blur_actor,
             {
+                // GTK's desktop menu blurs at the wallpaper's original luminance.
+                brightness_getter: () => Main.uiGroup.has_style_class_name('bms-popup-surface-light')
+                    ? 1 : this.settings.popup.BRIGHTNESS,
                 corner_radius_key: this.corner_radius.key,
                 corner_radius_getter: () => this.get_corner_radius(),
             }
@@ -382,6 +386,7 @@ export const PopupBlurSurface = class PopupBlurSurface {
     update_settings() {
         this.style.update_target_style();
         this.static_actor?.update_settings();
+        if (!this.static_blur) this.pipeline?.update_effect();
     }
 
     get_corner_radius() {

@@ -145,7 +145,10 @@ test('disabled blur uses an opaque fallback and restores matching tint when reen
     assert.match(e.tint.style, /#181624/); assert.equal(e.layers.length, 0);
     f.theme('prefer-light'); f.helper.syncAll(); assert.match(e.tint.style, /#faf7ff/);
     f.blur.enabled = true; f.helper.syncAll();
-    assert.match(e.tint.style, /rgba/); assert.equal(e.layers.length, 1);
+    assert.equal(e.tint.style, 'background-color: rgba(226,222,233,0.82);');
+    assert.equal(e.layers.length, 0);
+    f.theme('prefer-dark'); f.helper.syncAll();
+    assert.equal(e.layers.length, 1);
     f.helper.destroy();
 });
 
@@ -167,6 +170,8 @@ test('terminal and widget strip share the panel pipeline without claiming update
     f.blur.enabled = true;
     f.blur.settings.panel.STATIC_BLUR = false;
     f.helper.syncAll();
+    assert.equal(entry.stripSurface.tint.style, entry.tint.style);
+    assert.equal(entry.tint.style, 'background-color: rgba(226,222,233,0.82);');
     assert.equal(entry.stripSurface.backdrop.background.height, strip.height);
     const stripBlur = entry.stripSurface.backdrop;
     strip.visible = false;

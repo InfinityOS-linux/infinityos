@@ -89,6 +89,21 @@ export default class Smoke extends Extension {
         await wait();
         const modalActors = () => Main.modalActorFocusStack.map(({actor}) => actor.toString()).join(', ');
         check(Main.modalCount === 0, `startup retained modal input: ${modalActors()}`);
+        const screenshot = new Shell.Screenshot();
+        const edgeContrast = async (edgeX, sampleY) => {
+            // Capture the full stage so the blur kernel can sample surrounding
+            // pixels. A one-pixel pick_color capture clips those neighbours.
+            const stream = Gio.MemoryOutputStream.new_resizable();
+            await screenshot.screenshot(false, stream);
+            stream.close(null);
+            const loader = GdkPixbuf.PixbufLoader.new();
+            loader.write(stream.steal_as_bytes().get_data()); loader.close();
+            const image = loader.get_pixbuf();
+            const pixels = image.get_pixels();
+            const at = x => pixels[sampleY * image.rowstride + x * image.n_channels];
+            const left = at(edgeX - 6), right = at(edgeX + 6);
+            return {left, right, contrast: right - left};
+        };
         const popupSettings = new Settings(KEYS, Gio.Settings.new('org.gnome.shell.extensions.blur-my-shell'));
         const effectSignals = new Connections();
         const popupEffects = new EffectsManager(effectSignals);
@@ -112,6 +127,34 @@ export default class Smoke extends Extension {
                         check(color.red === tint && color.alpha < 240, `${variant} menu material: ${color.to_string()}`);
                         check(surface?.blur_actor?.mapped && surface.pipeline.effect.get_actor() === surface.blur_actor,
                             'menu backdrop is missing a mapped native blur effect');
+                        if (variant === 'Light') {
+                            check(Math.abs(surface.pipeline.effect.brightness - 1) < .001,
+                                'light menus still darken their backdrop');
+                            if (menu === globalMenus._buttons[2].menu) {
+                                // Sample the empty right margin of the open Edit menu.
+                                const [left, top] = menu.box.get_transformed_position();
+                                const [width, height] = menu.box.get_transformed_size();
+                                const edge = Math.round(left + width - 24);
+                                const y = Math.round(top + height / 2);
+                                const field = new St.Widget({width: global.stage.width, height: global.stage.height,
+                                    style: 'background-color: black;'});
+                                field.add_child(new St.Widget({x: edge, width: global.stage.width - edge,
+                                    height: global.stage.height, style: 'background-color: white;'}));
+                                surface.parent.insert_child_below(field, surface.actor);
+                                try {
+                                    await wait();
+                                    const blurred = await edgeContrast(edge, y);
+                                    surface.pipeline.effect.enabled = false;
+                                    await wait();
+                                    const sharp = await edgeContrast(edge, y);
+                                    check(sharp.contrast > 20 && blurred.contrast + 6 < sharp.contrast,
+                                        `light menu obscures the wallpaper or lacks blur: ${JSON.stringify({blurred, sharp})}`);
+                                } finally {
+                                    surface.pipeline.effect.enabled = true;
+                                    field.destroy();
+                                }
+                            }
+                        }
                         menu.close();
                         await wait();
                     };
@@ -407,29 +450,14 @@ export default class Smoke extends Extension {
             style: 'background-color: white;'}));
         dockHolder.get_parent().insert_child_below(pattern, dockHolder);
         this._objects.push({disable: () => pattern.destroy()});
-        const screenshot = new Shell.Screenshot();
-        const edgeContrast = async () => {
-            // Capture the full stage so the blur kernel can sample surrounding
-            // pixels. A one-pixel pick_color capture clips those neighbours.
-            const stream = Gio.MemoryOutputStream.new_resizable();
-            await screenshot.screenshot(false, stream);
-            stream.close(null);
-            const loader = GdkPixbuf.PixbufLoader.new();
-            loader.write(stream.steal_as_bytes().get_data()); loader.close();
-            const image = loader.get_pixbuf();
-            const pixels = image.get_pixels();
-            const at = x => pixels[sampleY * image.rowstride + x * image.n_channels];
-            const left = at(edgeX - 6), right = at(edgeX + 6);
-            return {left, right, contrast: right - left};
-        };
         dockHolder._background.opacity = 0;
         dockInfo.background.get_effects()[0].queue_repaint();
         await wait();
-        const stagePixels = await edgeContrast();
+        const stagePixels = await edgeContrast(edgeX, sampleY);
         dockInfo.background.get_effects()[0].enabled = false;
         dockInfo.background.get_effects()[0].queue_repaint();
         await wait();
-        const disabledPixels = await edgeContrast();
+        const disabledPixels = await edgeContrast(edgeX, sampleY);
         console.log(`INFINITY_DOCK_BLUR_PIXELS ${JSON.stringify({stagePixels, disabledPixels})}`);
         check(stagePixels.left > 10 && stagePixels.right < 220 &&
             stagePixels.contrast + 60 < disabledPixels.contrast,
