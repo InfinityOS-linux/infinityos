@@ -104,9 +104,7 @@ export default class Smoke extends Extension {
                 try {
                     popups.interface_settings.set_string('gtk-theme', `Orchis-Purple-${variant}-Compact`);
                     popups.interface_settings.set_string('color-scheme', preference);
-                    for (const indicator of [Main.panel.statusArea.dateMenu, Main.panel.statusArea.quickSettings, ...globalMenus._buttons]) {
-                        const menu = indicator.menu;
-                        menu.open();
+                    const checkOpenMenu = async menu => {
                         await wait();
                         const color = menu.box.get_theme_node().get_background_color();
                         const surface = popups.surfaces.get(menu.box);
@@ -115,7 +113,13 @@ export default class Smoke extends Extension {
                             'menu backdrop is missing a mapped native blur effect');
                         menu.close();
                         await wait();
+                    };
+                    for (const indicator of [Main.panel.statusArea.dateMenu, Main.panel.statusArea.quickSettings, ...globalMenus._buttons]) {
+                        indicator.menu.open();
+                        await checkOpenMenu(indicator.menu);
                     }
+                    monitor._openMenu(-1);
+                    await checkOpenMenu(monitor._menu);
                 } finally {
                     theme.unload_stylesheet(css);
                 }

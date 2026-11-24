@@ -1633,7 +1633,7 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 
 .candidate-popup-content {
   background-color: #FFFFFF;
-  border-radius: 9px;
+  border-radius: 18px;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
   margin: 2px 10px 13px;
   padding: 4px;
@@ -5239,6 +5239,8 @@ StWidget.focused .app-grid-running-dot {
 
 /* Translucent only while Blur My Shell supplies the menu backdrop. */
 .bms-popup-surface-light .popup-menu .popup-menu-content,
+.bms-popup-surface-light .candidate-popup-content,
+.bms-popup-surface-light .switcher-list,
 .bms-popup-surface-light .quick-toggle-menu,
 .bms-popup-surface-light .quick-toggle-menu:insensitive {
   background-color: rgba(226, 222, 233, 0.82);
