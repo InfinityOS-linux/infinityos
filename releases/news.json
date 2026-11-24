@@ -1,5 +1,34 @@
 [
   {
+    "id": "2026-11-24-rpm-menu-backdrops",
+    "date": "2026-11-24",
+    "title": "RPM update: consistent menu backdrops",
+    "summary": "Calendar, Quick Settings, desktop menus and terminal widget menus share a more consistent blur, tint and rounded appearance in light and dark mode.",
+    "buildSha": "c86fe3b0dbc1fdb0970edbdba2561781a9f568a4",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This RPM update is available for ARM64 and x64. The existing TV Mode installer images do not include these later changes; installed systems can receive them through InfinityUpdater."
+      },
+      {
+        "title": "Shell menus",
+        "text": "Calendar, Quick Settings and other Shell popups use matching rounded corners and translucent backgrounds while menu blur is active. More opaque backgrounds remain available when blur is disabled."
+      },
+      {
+        "title": "Desktop and GTK menus",
+        "text": "Desktop context menus and menus using the InfinityOS GTK 4 theme share a blurred, rounded background. Desktop menus follow changes to the system color scheme and contrast preference, and the shared GTK treatment leaves high-contrast styling intact."
+      },
+      {
+        "title": "Widget menus and input suggestions",
+        "text": "InfinityTerminal widget menus inherit the Shell menu background instead of covering it with a solid fill. Input suggestions and the application switcher also use the matching popup treatment."
+      },
+      {
+        "title": "Light and dark mode",
+        "text": "Automatic menu tint follows the InfinityOS color preference, including the light appearance used by the default setting."
+      }
+    ]
+  },
+  {
     "id": "2026-11-24-rpm-native-lock-screen",
     "date": "2026-11-24",
     "title": "RPM update: native GNOME lock screen",
