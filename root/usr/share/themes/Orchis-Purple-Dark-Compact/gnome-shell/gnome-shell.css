@@ -2300,6 +2300,7 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 /* Password or Authentication Dialog */
 .prompt-dialog {
   width: 28em;
+  spacing: 2px;
 }
 
 .prompt-dialog .modal-dialog-button:first-child {
@@ -2354,8 +2355,8 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
   margin-right: 20px;
 }
 
-.prompt-dialog-password-layout {
-  spacing: 8px;
+.prompt-dialog .prompt-dialog-password-layout {
+  spacing: 4px;
 }
 
 .prompt-dialog-password-entry {
@@ -2376,6 +2377,7 @@ StScrollBar StButton#vhandle:active, StScrollBar StButton#hhandle:active {
 .prompt-dialog .prompt-dialog-null-label {
   font-size: 1px;
   padding: 0;
+  margin: 0;
   border: none;
   color: transparent;
 }
