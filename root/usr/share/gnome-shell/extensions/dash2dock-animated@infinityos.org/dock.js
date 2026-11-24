@@ -387,12 +387,13 @@ export let Dock = GObject.registerClass(
       let dash = new Dash();
 
       dash._adjustIconSize = () => {};
+      const dock = this;
       const createAppItem = dash._createAppItem.bind(dash);
-      dash._createAppItem = app => {
+      dash._createAppItem = function (app) {
         const item = createAppItem(app);
-        this._icons = null;
+        dock._icons = null;
         item.child.visible = false;
-        if (excludeFromDock(app, this._favorite_ids?.includes(app.get_id?.()))) {
+        if (excludeFromDock(app, dock._favorite_ids?.includes(app.get_id?.()))) {
           item._hiddenFromDock = true;
           item.child.reactive = false;
           item.hide();
