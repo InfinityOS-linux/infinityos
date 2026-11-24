@@ -147,3 +147,43 @@
     border: 1px solid rgba(193, 161, 236, 0.3);
     background-color: #211a2f;
 }
+
+/* InfinityOS uses the light wallpaper for both default and prefer-light. */
+.infinity-light-unlock .unlock-dialog .user-widget-label,
+.infinity-light-unlock .unlock-dialog .user-icon,
+.infinity-light-unlock .unlock-dialog .unlock-dialog-clock,
+.infinity-light-unlock .unlock-dialog .unlock-dialog-clock-time,
+.infinity-light-unlock .unlock-dialog .unlock-dialog-clock-date,
+.infinity-light-unlock .unlock-dialog .unlock-dialog-clock-hint,
+.infinity-light-unlock .unlock-dialog .login-dialog-message,
+.infinity-light-unlock .unlock-dialog .caps-lock-warning-label {
+  color: #292136;
+}
+
+.infinity-light-unlock .unlock-dialog .user-icon StIcon {
+  color: #42354f;
+  background-color: #e3dbea;
+}
+
+.infinity-light-unlock .unlock-dialog .switch-user-button,
+.infinity-light-unlock .unlock-dialog .cancel-button {
+  color: #33293e;
+  background-color: #eee8f3;
+}
+
+.infinity-light-unlock .unlock-dialog .login-dialog-prompt-entry,
+.infinity-light-unlock .unlock-dialog .login-dialog-prompt-entry:focus {
+  background-color: #faf7fc;
+  color: #292136;
+  caret-color: #292136;
+}
+
+.infinity-light-unlock .unlock-dialog .login-dialog-prompt-entry StLabel.hint-text,
+.infinity-light-unlock .unlock-dialog .login-dialog-prompt-entry StIcon,
+.infinity-light-unlock .unlock-dialog .login-dialog-default-button-well .next-button {
+  color: #574960;
+}
+
+.infinity-light-unlock .unlock-dialog StPasswordEntry.login-dialog-prompt-entry:focus {
+  box-shadow: inset 0 0 0 2px #715098 !important;
+}

@@ -186,6 +186,7 @@ this._settings.connectObject(
         this._settings.disconnectObject(this);
         this._settings = null;
 
+        Main.layoutManager.screenShieldGroup.remove_style_class_name('infinity-light-unlock');
         this._desktopSettings?.disconnectObject(this);
         this._desktopSettings = null;
 
@@ -546,8 +547,19 @@ this._settings.connectObject(
             this
         );
 
+        const syncUnlockAppearance = () => {
+            const shield = Main.layoutManager.screenShieldGroup;
+            if (this._desktopSettings.get_string('color-scheme') === 'prefer-dark')
+                shield.remove_style_class_name('infinity-light-unlock');
+            else
+                shield.add_style_class_name('infinity-light-unlock');
+        };
+        syncUnlockAppearance();
         this._desktopSettings.connectObject(
-            'changed::color-scheme', () => this._updateProximityStylesheet(),
+            'changed::color-scheme', () => {
+                syncUnlockAppearance();
+                this._updateProximityStylesheet();
+            },
             this
         );
 

@@ -4,7 +4,7 @@ import { test } from 'node:test';
 
 const source = readFileSync(new URL('../root/usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/dock.js', import.meta.url), 'utf8');
 const start = source.indexOf('const dashSeparators = this._separators.filter(');
-const end = source.indexOf('// hide separator between running apps and favorites', start);
+const end = source.indexOf('const appDivider = dashSeparators[0];', start);
 assert.ok(start > 0 && end > start);
 const deduplicate = new Function(source.slice(start, end));
 
@@ -28,4 +28,41 @@ test('Dash removes only duplicate built-in dividers', () => {
   assert.deepEqual(dock._separators, [first, downloads]);
   assert.deepEqual(dock._dashItems, [first, downloads]);
   assert.equal(duplicate.removed, true);
+});
+
+const collectGroups = new Function('dashSeparators', source.slice(end, source.indexOf('// find the showAppsIcon', end)));
+
+test('a filtered running app leaves one tall divider and reappearing icons restore both', () => {
+  const pinned = {_icon: {}};
+  const running = {_icon: {}};
+  const drive = {_icon: {}};
+  const appDivider = {};
+  const extraDivider = {};
+  const dock = {
+    extension: {}, _separator: extraDivider,
+    _extraIcons: {get_children: () => [extraDivider, drive]},
+    _inspectIcon(actor) {
+      this._dashItems.push(actor);
+      (actor === extraDivider ? this._separators : this._icons).push(actor);
+    },
+  };
+  function collect(apps, favoritesOnly = false) {
+    dock.extension.favorites_only = favoritesOnly;
+    dock._icons = [pinned, ...apps];
+    dock._dashItems = [pinned, appDivider, ...apps];
+    dock._separators = [appDivider];
+    collectGroups.call(dock, [appDivider]);
+  }
+  collect([]);
+  assert.equal(extraDivider.visible, false);
+  assert.equal(dock._joinedSeparator, appDivider);
+  assert.deepEqual(dock._dashItems, [pinned, appDivider, drive]);
+  collect([running]);
+  assert.equal(extraDivider.visible, true);
+  assert.equal(dock._joinedSeparator, null);
+  assert.deepEqual(dock._dashItems, [pinned, appDivider, running, extraDivider, drive]);
+  collect([], true);
+  assert.equal(appDivider.visible, false);
+  assert.deepEqual(dock._separators, [extraDivider]);
+  assert.deepEqual(dock._dashItems, [pinned, extraDivider, drive]);
 });
