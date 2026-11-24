@@ -11,7 +11,13 @@ function isInternal(id) {
 }
 
 function isScript(id) {
-  return Boolean(id && SCRIPT_WINDOW.test(id.split('/').at(-1)));
+  return Boolean(id && SCRIPT_WINDOW.test(id.split('/').at(-1).replace(/\.desktop$/i, '')));
+}
+
+function isHelperApp(app) {
+  const id = app?.get_id?.();
+  return isInternal(id) || isScript(id) ||
+    ((!id?.endsWith('.desktop') || app.is_window_backed?.()) && isScript(app?.get_name?.()));
 }
 
 function isInternalWindow(window) {
@@ -28,20 +34,20 @@ function isDockWindow(window, windowBacked) {
   if (type !== undefined && !TASK_WINDOW_TYPES.has(type))
     return false;
   const ids = identities(window);
-  return !ids.some(isInternal) && !(windowBacked && ids.some(isScript));
+  return !ids.some(isInternal) && !ids.some(isScript) &&
+    !(windowBacked && !ids.some(Boolean) && isScript(window.get_title?.()));
 }
 
 export function dockWindows(app) {
   const windowBacked = app?.is_window_backed?.();
-  if (isInternal(app?.get_id?.()) || (windowBacked && isScript(app?.get_name?.()))) return [];
+  if (isHelperApp(app)) return [];
   return (app?.get_windows?.() ?? []).filter(window => isDockWindow(window, windowBacked));
 }
 
 export function excludeFromDock(app, favorite = false) {
   if (!app) return false;
-  if (isInternal(app.get_id?.())) return true;
+  if (isHelperApp(app)) return true;
   const windowBacked = app.is_window_backed?.();
-  if (windowBacked && isScript(app.get_name?.())) return true;
 
   const windows = app.get_windows?.() ?? [];
   // Keep registered favorites and their launch animation when they are closed.

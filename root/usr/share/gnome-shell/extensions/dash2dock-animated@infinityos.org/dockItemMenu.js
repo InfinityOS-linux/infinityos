@@ -73,7 +73,7 @@ export const DockItemList = GObject.registerClass(
           console.error(err);
           return;
         }
-        if (!files) return;
+        if (!files || !target._menu) return;
         if (files.length < dock.extension.services[f.itemsLength]) {
           files = [
             {

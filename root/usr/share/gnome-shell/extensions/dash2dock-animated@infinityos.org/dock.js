@@ -5,6 +5,7 @@ import * as Fav from 'resource:///org/gnome/shell/ui/appFavorites.js';
 import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 
 import Shell from 'gi://Shell';
+import Meta from 'gi://Meta';
 import GObject from 'gi://GObject';
 import Gio from 'gi://Gio';
 import Clutter from 'gi://Clutter';
@@ -170,7 +171,8 @@ export let Dock = GObject.registerClass(
           this._icons = null;
         }
 
-        this.remove_child(this.dash);
+        this._destroyList();
+        this.dash.destroy();
         this.dash = null;
         this._trashIcon = null;
         this._recentFilesIcon = null;
@@ -395,6 +397,7 @@ export let Dock = GObject.registerClass(
         item.child.visible = false;
         if (excludeFromDock(app, dock._favorite_ids?.includes(app.get_id?.()))) {
           item._hiddenFromDock = true;
+          item._filteredFromDock = true;
           item.child.reactive = false;
           item.hide();
         }
@@ -420,6 +423,7 @@ export let Dock = GObject.registerClass(
       });
       this._separator.name = 'separator';
       this._extraIcons.add_child(this._separator);
+      this._showMountSeparator = false;
       this._mountSeparator = new St.Widget({
         style_class: 'dash-separator',
         name: 'mount-separator',
@@ -576,7 +580,8 @@ export let Dock = GObject.registerClass(
     _inspectIcon(c) {
       const app = c.child?.app;
       const favorite = this._favorite_ids?.includes(app?.get_id?.());
-      if (c.animatingOut || (!c.custom_icon && excludeFromDock(app, favorite))) {
+      c._filteredFromDock = !c.custom_icon && excludeFromDock(app, favorite);
+      if (c.animatingOut || c._filteredFromDock) {
         c._hiddenFromDock = true;
         if (c.child) {
           c.child.reactive = false;
@@ -590,7 +595,8 @@ export let Dock = GObject.registerClass(
         c._hiddenFromDock = false;
         c.show();
       }
-      if (!c.visible && c !== this.dash._separator && c !== this._separator) return false;
+      if (!c.visible && c !== this.dash._separator && c !== this._separator &&
+          !(c === this._mountSeparator && this._showMountSeparator)) return false;
 
       /* release any reference once destroyed */
       if (!c._destroyConnectId) {
@@ -604,7 +610,9 @@ export let Dock = GObject.registerClass(
 
       /* separator */
       c._cls = c._cls || c.get_style_class_name();
-      if (c._cls === 'dash-separator') {
+      if (c._cls === 'dash-separator' || c.has_style_class_name?.('dash-separator')) {
+        // Dash lays out this spacer. The animator paints the line separately.
+        c.opacity = 0;
         this._separators.push(c);
         this._dashItems.push(c);
         c.style = 'margin-left: 8px; margin-right: 8px;';
@@ -709,10 +717,6 @@ export let Dock = GObject.registerClass(
       if (c._image && c._image.get_parent()) {
         c._image.get_parent().remove_child(c._image);
       }
-      if (c._menu && c._menu.actor) {
-        Main.uiGroup.remove_child(c._menu.actor);
-        c._menu = null;
-      }
       if (c._label) {
         let p = c._label.get_parent();
         if (p) {
@@ -723,11 +727,15 @@ export let Dock = GObject.registerClass(
 
     _findIcons() {
       if (this._icons && !this._dragging) {
-        let _boxIconsLength = this.dash._box.get_children().length;
-        if (_boxIconsLength != this._boxIconsLength) {
+        const items = this.dash._box.get_children();
+        if (items.length !== this._boxIconsLength || items.some(item => {
+          const app = item.child?.app;
+          return app && !item.custom_icon && !item.animatingOut &&
+            Boolean(item._filteredFromDock) !== excludeFromDock(app, this._favorite_ids?.includes(app.get_id?.()));
+        })) {
           this._icons = null;
         }
-        this._boxIconsLength = _boxIconsLength;
+        this._boxIconsLength = items.length;
         if (this._extraIcons) {
           let _extraIconsLength = this._extraIcons.get_children().length;
           if (_extraIconsLength != this._extraIconsLength) {
@@ -870,7 +878,7 @@ export let Dock = GObject.registerClass(
                 this._maybeBounce(c);
               }
               this._markLaunching(c._appwell.app);
-              this._maybeMinimizeOrMaximize(c._appwell.app);
+              this._maybeMinimizeOrMaximize(app, args[0]);
               c._appwell._activate(...args);
             } catch (err) {
               // happens with dummy DashIcons
@@ -932,8 +940,7 @@ export let Dock = GObject.registerClass(
             return;
           }
           if (!mounted.includes(extra._mountPath)) {
-            this._extraIcons.remove_child(extra);
-            this._icons = null;
+            this._removeExtraIcon(extra);
           }
         });
 
@@ -990,9 +997,8 @@ export let Dock = GObject.registerClass(
           this._icons = null;
         } else if (this[f.icon] && !f.show) {
           // unpin downloads icon
-          this._extraIcons.remove_child(this[f.icon]);
+          this._removeExtraIcon(this[f.icon]);
           this[f.icon] = null;
-          this._icons = null;
         }
         f.cleanup();
       });
@@ -1009,19 +1015,25 @@ export let Dock = GObject.registerClass(
         this._icons = null;
       } else if (this._trashIcon && !this.extension.trash_icon) {
         // unpin trash icon
-        this._extraIcons.remove_child(this._trashIcon);
+        this._removeExtraIcon(this._trashIcon);
         this._trashIcon = null;
-        this._icons = null;
       }
 
       this._orderExtraIcons();
+    }
+
+    _removeExtraIcon(icon) {
+      if (this._list?._target === icon) this._destroyList();
+      icon.destroy();
+      this._icons = null;
     }
 
     _orderExtraIcons() {
       const mounts = this._extraIcons.get_children().filter(actor => actor._mountType);
       const showMountSeparator = mounts.length > 0 &&
         Boolean(this._downloadsIcon || this._recentFilesIcon);
-      if (this._mountSeparator.visible !== showMountSeparator) {
+      if (this._showMountSeparator !== showMountSeparator) {
+        this._showMountSeparator = showMountSeparator;
         this._mountSeparator.visible = showMountSeparator;
         this._icons = null;
       }
@@ -1383,8 +1395,9 @@ export let Dock = GObject.registerClass(
 
     _destroyList() {
       if (this._list) {
-        Main.uiGroup.remove_child(this._list);
+        const list = this._list;
         this._list = null;
+        list.destroy();
       }
     }
 
@@ -1429,90 +1442,44 @@ export let Dock = GObject.registerClass(
       });
     }
 
-    _maybeMinimizeOrMaximize(app) {
-      if (!app.get_windows) {
-        return;
-      }
+    _maybeMinimizeOrMaximize(app, button = 1) {
+      if (button !== 1 || !app.get_windows) return;
+      const windows = this.getAppWindowsFiltered(app);
+      if (!windows.length) return;
 
-      // let windows = app.get_windows();
-      let windows = this.getAppWindowsFiltered(app);
-      if (!windows.length) {
-        return;
-      }
+      const modifiers = Clutter.get_current_event()?.get_state() ?? 0;
+      if ((modifiers & Clutter.ModifierType.CONTROL_MASK) &&
+          app.state === Shell.AppState.RUNNING && app.can_open_new_window?.()) return;
+      const shift = Boolean(modifiers & Clutter.ModifierType.SHIFT_MASK);
+      const focusedWindow = windows.find(window => window.has_focus());
+      const activeWorkspace = global.workspace_manager.get_active_workspace();
 
-      let event = Clutter.get_current_event();
-      let modifiers = event ? event.get_state() : 0;
-
-      let button1 = (modifiers & Clutter.ModifierType.BUTTON1_MASK) != 0;
-      let button2 = (modifiers & Clutter.ModifierType.BUTTON2_MASK) != 0;
-      let button3 = (modifiers & Clutter.ModifierType.BUTTON3_MASK) != 0;
-      let shift = (modifiers & Clutter.ModifierType.SHIFT_MASK) != 0;
-      let isMiddleButton = button3; // middle?
-      let isCtrlPressed = (modifiers & Clutter.ModifierType.CONTROL_MASK) != 0;
-      let openNewWindow =
-        app.can_open_new_window() &&
-        app.state == Shell.AppState.RUNNING &&
-        (isCtrlPressed || isMiddleButton);
-      if (openNewWindow) return;
-
-      let workspaceManager = global.workspace_manager;
-      let activeWs = workspaceManager.get_active_workspace();
-      let focusedWindow = null;
-
-      windows.forEach((w) => {
-        if (w.has_focus()) {
-          focusedWindow = w;
-        }
-      });
-
-      // delay - allow dash to actually call 'activate' first
-      if (focusedWindow) {
-        this.extension._hiTimer.runOnce(() => {
+      // Let Dash process the click first, then check that the target still exists.
+      this.extension._hiTimer.runOnce(() => {
+        if (!this.dash) return;
+        const current = this.getAppWindowsFiltered(app).filter(window => windows.includes(window));
+        if (focusedWindow) {
+          if (!current.includes(focusedWindow)) return;
           if (shift) {
-            if (
-              (focusedWindow.is_maximized && focusedWindow.is_maximized()) ||
-              (focusedWindow.get_maximized &&
-                focusedWindow.get_maximized() == 3)
-            ) {
-              focusedWindow.unmaximize(3);
+            if (typeof focusedWindow.get_maximize_flags === 'function') {
+              if (focusedWindow.is_maximized()) focusedWindow.unmaximize();
+              else focusedWindow.maximize();
+            } else if (focusedWindow.get_maximized() === Meta.MaximizeFlags.BOTH) {
+              focusedWindow.unmaximize(Meta.MaximizeFlags.BOTH);
             } else {
-              focusedWindow.maximize(3);
+              focusedWindow.maximize(Meta.MaximizeFlags.BOTH);
             }
           } else {
-            windows.forEach((w) => {
-              w.minimize();
-            });
-          }
-        }, 50);
-      } else {
-        const hidden = windows.filter((w) => {
-          return w.is_hidden();
-        });
-
-        // multi-monitors fix -- where focus can seem to get lost
-        if (!hidden.length) {
-          let windows = dockWindows(app).filter((w) => {
-            return w.get_monitor() == this._monitor.index;
-          });
-          if (windows.length > 0) {
-            this.extension._hiTimer.runOnce(() => {
-              this._raiseAndFocus(windows[0]);
-            }, 50);
-          }
-          return;
-        }
-
-        this.extension._hiTimer.runOnce(() => {
-          windows.forEach((w) => {
-            if (w.is_hidden()) {
-              w.unminimize();
-              if (w.has_focus()) {
-                w.raise();
-              }
+            for (const window of current) {
+              if (window.located_on_workspace(activeWorkspace) && window.can_minimize())
+                window.minimize();
             }
-          });
-        }, 50);
-      }
+          }
+        } else if (!current.some(window => window.minimized)) {
+          const local = current.find(window => window.get_monitor() === this._monitor.index);
+          if (local) this._raiseAndFocus(local);
+        }
+      }, 50);
     }
 
     _pauseAllBounce(t = 250) {
@@ -1592,9 +1559,7 @@ export let Dock = GObject.registerClass(
 
     _onScrollEvent(obj, evt) {
       this._lastScrollEvent = evt;
-      let pointer = global.get_pointer();
-      let target = this._nearestIcon; // this._hoveredIcon;
-      // console.log(`${target == this._hoveredIcon}`);
+      let target = this._nearestIcon;
       if (target) {
         if (this._scrollCounter < -2 || this._scrollCounter > 2)
           this._scrollCounter = 0;
@@ -1618,6 +1583,7 @@ export let Dock = GObject.registerClass(
           (MAX_SCROLL_RESOLUTION * this.extension.scroll_sensitivity || 0);
 
         if (icon._appwell && icon._appwell.app) {
+          if (this._lastScrollObject !== icon) this._scrollCounter = 0;
           this._lastScrollObject = icon;
           let direction = evt.get_scroll_direction();
           switch (direction) {
@@ -1629,6 +1595,13 @@ export let Dock = GObject.registerClass(
             case Clutter.ScrollDirection.RIGHT:
               this._scrollCounter -= (1 / SCROLL_RESOLUTION) * multiplier;
               break;
+            case Clutter.ScrollDirection.SMOOTH: {
+              const [dx, dy] = evt.get_scroll_delta();
+              this._scrollCounter -= (Math.abs(dx) > Math.abs(dy) ? dx : dy) / SCROLL_RESOLUTION;
+              break;
+            }
+            default:
+              return;
           }
           this._cycleWindows(icon._appwell.app, evt);
         }
@@ -1644,79 +1617,34 @@ export let Dock = GObject.registerClass(
       }, 150);
     }
 
-    _raiseAndFocus(w) {
-      let workspaceManager = global.workspace_manager;
-      let activeWs = workspaceManager.get_active_workspace();
-      if (activeWs == w.get_workspace()) {
-        w.raise();
-        w.focus(0);
-      } else {
-        activeWs.activate_with_focus(w, global.get_current_time());
-      }
+    _raiseAndFocus(window) {
+      if (window.get_workspace()) Main.activateWindow(window);
     }
 
-    _cycleWindows(app, evt) {
+    _cycleWindows(app, event) {
       if (this._lockedCycle) {
         this._scrollCounter = 0;
-        return false;
+        return;
       }
 
-      let focusId = 0;
-      let workspaceManager = global.workspace_manager;
-      let activeWs = workspaceManager.get_active_workspace();
-
-      // let windows = app.get_windows();
       let windows = this.getAppWindowsFiltered(app);
-
-      if (evt.modifier_state & Clutter.ModifierType.CONTROL_MASK) {
-        windows = windows.filter((w) => {
-          return activeWs == w.get_workspace();
-        });
+      if (event.get_state() & Clutter.ModifierType.CONTROL_MASK) {
+        const workspace = global.workspace_manager.get_active_workspace();
+        windows = windows.filter(window => window.located_on_workspace(workspace));
       }
-
-      let nw = windows.length;
-      windows.sort((w1, w2) => {
-        return w1.get_id() > w2.get_id() ? -1 : 1;
-      });
-
-      //! add explanations
-      if (nw > 1) {
-        for (let i = 0; i < nw; i++) {
-          if (windows[i].has_focus()) {
-            focusId = i;
-          }
-          if (windows[i].is_hidden()) {
-            windows[i].unminimize();
-            windows[i].raise();
-          }
-        }
-
-        let current_focus = focusId;
-
-        if (this._scrollCounter < -1 || this._scrollCounter > 1) {
-          focusId += Math.round(this._scrollCounter);
-          if (focusId < 0) {
-            focusId = nw - 1;
-          }
-          if (focusId >= nw) {
-            focusId = 0;
-          }
-          this._scrollCounter = 0;
-        }
-
-        if (current_focus == focusId) return;
-      } else if (nw == 1) {
-        if (windows[0].is_hidden()) {
-          windows[0].unminimize();
-          windows[0].raise();
-        }
+      if (!windows.length) return;
+      windows.sort((first, second) => second.get_id() - first.get_id());
+      let index = 0;
+      if (windows.length > 1) {
+        if (Math.abs(this._scrollCounter) <= 1) return;
+        const focused = windows.findIndex(window => window.has_focus());
+        const step = Math.round(this._scrollCounter);
+        index = (Math.max(focused, 0) + step) % windows.length;
+        if (index < 0) index += windows.length;
       }
-
-      let window = windows[focusId];
-      if (window) {
-        this._lockCycle();
-        this._raiseAndFocus(window);
-      }
+      this._scrollCounter = 0;
+      this._lockCycle();
+      this._raiseAndFocus(windows[index]);
     }
   }
 );

@@ -95,7 +95,7 @@ const DotCanvas = GObject.registerClass(
         );
       }
       if (this.state.rotate) {
-        ctx.rotate((this.state.rotate * 3.14) / 180);
+        ctx.rotate((this.state.rotate * Math.PI) / 180);
       }
       ctx.translate(-width / 2, -height / 2);
 
@@ -275,17 +275,14 @@ const DotCanvas = GObject.registerClass(
       let spacing = Math.ceil(width / 18); // separation between the dots
       let radius = height;
 
-      ctx.translate(
-        Math.floor(
-          (size - count * radius - (count - 1) * spacing) / 2 - radius / 2
-        ),
-        size - height
-      );
+      const step = 2 * radius + spacing;
+      const first = (size - (count - 1) * step) / 2;
+      ctx.translate(0, size - height);
 
       for (let i = 0; i < count; i++) {
         ctx.newSubPath();
         ctx.arc(
-          (2 * i + 1) * radius + i * radius,
+          first + i * step,
           -radius,
           radius,
           0,

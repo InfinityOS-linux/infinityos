@@ -86,40 +86,16 @@ const DockItemOverlay = GObject.registerClass(
 export const DockItemDotsOverlay = GObject.registerClass(
   {},
   class DockItemDotsOverlay extends DockItemOverlay {
-    update(icon, data) {
-      let renderer = this.renderer;
-      let { appCount, position, vertical, extension, dock } = data;
-
-      renderer.width = dock._iconSizeScaledDown || icon._icon.width;
-      renderer.height = dock._iconSizeScaledDown || icon._icon.height;
-      renderer.pivot_point = icon._icon.pivot_point;
-
-      let canvasScale = renderer.width / renderer._canvas.width;
-
-      // scaling fix
-      let scale = dock._monitor.geometry_scale || 1;
-      canvasScale *= scale;
+    update(data) {
+      const renderer = this.renderer;
+      const {appCount, position, vertical, extension, centerX, centerY, size} = data;
+      const canvasScale = size / renderer._canvas.width;
       renderer._canvas.set_scale(canvasScale, canvasScale);
-
-      let offsetX = 0;
-      let offsetY = renderer.height * 0.125 * scale;
-      if (vertical) {
-        offsetX = -offsetY;
-        if (position == DockPosition.RIGHT) {
-          offsetX = offsetY;
-        }
-        offsetY = 0;
-      } else {
-        if (position == DockPosition.TOP) {
-          offsetY = -offsetY;
-        }
-      }
-
-      // renderer.translationX = icon._icon.translationX + offsetX;
-      // renderer.translationY = icon._icon.translationY + offsetY;
-
-      renderer.translationX = offsetX;
-      renderer.translationY = offsetY;
+      const offset = size / 8;
+      const offsetX = vertical ? (position === DockPosition.RIGHT ? offset : -offset) : 0;
+      const offsetY = vertical ? 0 : (position === DockPosition.TOP ? -offset : offset);
+      this.set_size(size, size);
+      this.set_position(centerX - size / 2 + offsetX, centerY - size / 2 + offsetY);
 
       let options = extension.running_indicator_style_options;
       let running_indicator_style = options[extension.running_indicator_style];
@@ -326,6 +302,11 @@ export const DockItemContainer = GObject.registerClass(
         this._menuManager.addMenu(this._menu);
         this._menu.close();
         dashIcon._menu = this._menu;
+        this._menu.connect('destroy', menu => {
+          if (this._menu === menu) this._menu = null;
+          if (dashIcon._menu === menu) dashIcon._menu = null;
+        });
+        this.connect('destroy', () => this._menu?.destroy());
       }
     }
 

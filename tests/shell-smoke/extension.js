@@ -25,7 +25,9 @@ import {createDockBlurProxy, Dock} from '../dash2dock-animated@infinityos.org/do
 import {Integrations} from '../dash2dock-animated@infinityos.org/integrations.js';
 import {DashBlur} from '../blur-my-shell@aunetx/components/dash_to_dock.js';
 import {Connections} from '../blur-my-shell@aunetx/conveniences/connections.js';
-import {DockBackground} from '../dash2dock-animated@infinityos.org/dockItems.js';
+import {DockBackground, DockItemDotsOverlay} from '../dash2dock-animated@infinityos.org/dockItems.js';
+import {Animator} from '../dash2dock-animated@infinityos.org/animator.js';
+import {Dot} from '../dash2dock-animated@infinityos.org/apps/dot.js';
 import {PanelBlur} from '../blur-my-shell@aunetx/components/panel.js';
 import {MenuManager} from '../globalmenu@ShiroOSL.github.io/menuManager.js';
 import {PopupBlur} from '../blur-my-shell@aunetx/components/popup.js';
@@ -479,6 +481,53 @@ export default class Smoke extends Extension {
         dockHolder.hide();
         check(!dockInfo.background.is_mapped(), 'hidden dock left its blur visible');
         dockHolder.show();
+
+        const group = new St.BoxLayout({width: 240, height: 56});
+        const separator = new St.Widget();
+        const mountSeparator = new St.Widget();
+        const downloads = new St.Widget();
+        const disk = new St.Widget();
+        disk._mountType = true;
+        for (const actor of [separator, mountSeparator, disk, downloads]) group.add_child(actor);
+        dockHolder.add_child(group);
+        const extraDock = {_extraIcons: group, _separator: separator,
+            _mountSeparator: mountSeparator, _downloadsIcon: downloads};
+        Dock.prototype._orderExtraIcons.call(extraDock);
+        check(downloads.get_next_sibling() === mountSeparator && mountSeparator.get_next_sibling() === disk,
+            'native extra dock order must be Downloads, divider, mounted drive');
+        downloads._icon = {};
+        downloads._renderer = {_dockCenter: [80.25, 28]};
+        disk._icon = {};
+        disk._renderer = {_dockCenter: [172.75, 28]};
+        mountSeparator._prev = downloads;
+        mountSeparator._next = disk;
+        const dividerLayer = new St.Widget();
+        dockHolder.add_child(dividerLayer);
+        const dividerDock = {dash: {_box: group}, extension: {separator_thickness: 1},
+            renderArea: dividerLayer, _separators: [mountSeparator]};
+        const dividerAnimator = {_dividerRenderers: []};
+        await wait();
+        const origin = dividerLayer.get_transformed_position();
+        Animator.prototype._drawDividers.call(dividerAnimator, dividerDock, false, 44, 1, origin);
+        const line = dividerLayer.get_first_child();
+        check(line.visible && line.width === 1 && line.height === 33 &&
+            Math.abs(line.x + line.width / 2 - 126.5) <= 0.5,
+            'native dock divider is absent, uneven or outside the Downloads and drive gap');
+        group.remove_child(disk);
+        disk.destroy();
+        Dock.prototype._orderExtraIcons.call(extraDock);
+        check(!mountSeparator.visible, 'drive divider remains after unmount');
+        dividerDock._separators = [];
+        Animator.prototype._drawDividers.call(dividerAnimator, dividerDock, false, 44, 1, origin);
+        check(!line.visible, 'stale painted divider remains after unmount');
+        const indicator = new DockItemDotsOverlay(new Dot(96));
+        dividerLayer.add_child(indicator);
+        indicator.update({appCount: 2, position: 'bottom', vertical: false,
+            centerX: 84.25, centerY: 28, size: 44,
+            extension: {running_indicator_style_options: ['dots'], running_indicator_style: 0}});
+        check(indicator.x + indicator.width / 2 === 84.25, 'native running dots miss the icon center');
+        group.destroy();
+        dividerLayer.destroy();
 
         const dockTint = new St.Widget({name: 'wackPanelBackdropOverlay',
             style: 'background-color: rgba(80,60,110,.2);', reactive: false});

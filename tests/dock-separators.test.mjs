@@ -98,18 +98,51 @@ test('mounted drives follow Downloads and share a single divider across mount ch
   assert.equal(mounts.visible, false);
 });
 
-test('every divider uses the same integer thickness and length', () => {
-  const animator = readFileSync(new URL('../root/usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/animator.js', import.meta.url), 'utf8');
-  const start = animator.indexOf('    dock._separators.forEach((actor) => {');
-  const end = animator.indexOf('    let targetX = 0;', start);
-  const layout = new Function('dock', 'vertical', 'iconSize', 'scaleFactor', 'Clutter', animator.slice(start, end));
-  const neighbor = {_icon: {translationX: 0, translationY: 0}};
-  const divider = () => ({_prev: neighbor, _next: neighbor, set_size(w, h) { this.size = [w, h]; }});
-  const dock = {_separators: [divider(), divider(), divider()], extension: {separator_thickness: 1}};
+const animator = readFileSync(new URL('../root/usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/animator.js', import.meta.url), 'utf8');
+const drawStart = animator.indexOf('  _drawDividers(');
+const drawEnd = animator.indexOf('  //! begin optimization', drawStart);
+const draw = new Function('St', `return ({${animator.slice(drawStart, drawEnd)}})._drawDividers`)({
+  Widget: class {
+    constructor(props) { this.props = props; }
+    set_size(...size) { this.size = size; }
+    set_position(...position) { this.position = position; }
+    show() { this.visible = true; }
+    hide() { this.visible = false; }
+  },
+});
+
+test('displayed dividers share a pixel grid through fractional offsets and mount changes', () => {
+  const item = (x, y) => ({_icon: {}, _renderer: {_dockCenter: [x, y]}});
+  const divider = (prev, next) => ({_prev: prev, _next: next, set_size() {}});
+  const appDivider = divider(item(10.25, 17), item(47.3, 32));
+  const mountDivider = divider(item(94.81, 100), item(131.6, 135));
+  const dock = {
+    _separators: [appDivider, mountDivider],
+    extension: {separator_thickness: 1},
+    dash: {_box: {width: 54, height: 58, get_transformed_position: () => [0.75, 20.25]}},
+    renderArea: {add_child() {}},
+  };
+  const state = {_dividerRenderers: []};
+  const origin = [0.75, 20.25];
   for (const vertical of [false, true]) {
-    layout(dock, vertical, 37, 1.25, {ActorAlign: {CENTER: 0}});
-    const expected = vertical ? [23, 1] : [1, 35];
-    for (const actor of dock._separators)
-      assert.deepEqual(actor.size, expected);
+    draw.call(state, dock, vertical, 37, 1.25, origin);
+    const [first, second] = state._dividerRenderers;
+    for (const line of [first, second]) {
+      assert.equal(line.visible, true);
+      assert.deepEqual(line.size, vertical ? [23, 1] : [1, 35]);
+      assert.ok(line.position.every((value, index) => Number.isInteger(value + origin[index])));
+      assert.equal(line.props.reactive, false);
+    }
+    assert.equal(first.position[vertical ? 0 : 1], second.position[vertical ? 0 : 1]);
+    assert.ok(second.position[vertical ? 1 : 0] > first.position[vertical ? 1 : 0]);
   }
+  dock._separators = [appDivider];
+  draw.call(state, dock, false, 37, 1, origin);
+  assert.equal(state._dividerRenderers[1].visible, false);
+  dock._separators = [appDivider, mountDivider];
+  draw.call(state, dock, false, 37, 1, origin);
+  assert.equal(state._dividerRenderers[1].visible, true);
+  dock.extension.separator_thickness = 0;
+  draw.call(state, dock, false, 37, 1, origin);
+  assert.ok(state._dividerRenderers.every(line => !line.visible));
 });

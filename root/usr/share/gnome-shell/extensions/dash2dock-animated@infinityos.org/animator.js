@@ -47,6 +47,7 @@ export let Animator = class {
     }
     this._computed = null;
     this._iconSnapshots = null;
+    this._dividerRenderers ??= [];
     this._exitGhosts ??= new Set();
     this._animationSettings ??= new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
   }
@@ -58,6 +59,7 @@ export let Animator = class {
     }
     this._exitGhosts?.clear();
     this._iconSnapshots = null;
+    this._dividerRenderers = [];
     if (this._target) {
       this._target.remove_all_children();
     }
@@ -147,6 +149,45 @@ export let Animator = class {
         ghost.destroy();
       },
     });
+  }
+
+  _drawDividers(dock, vertical, iconSize, scaleFactor, renderOffset) {
+    const thickness = Math.max(0, Math.round(dock.extension.separator_thickness || 0));
+    const length = Math.round(iconSize * (vertical ? 0.5 : 0.75) * scaleFactor);
+    const width = vertical ? length : thickness;
+    const height = vertical ? thickness : length;
+    const box = dock.dash._box;
+    const [boxX, boxY] = box.get_transformed_position();
+    const crossCenter = vertical ? boxX + box.width / 2 : boxY + box.height / 2;
+    let used = 0;
+    for (const spacer of dock._separators) {
+      spacer.visible = thickness > 0 && Boolean(spacer._prev?._icon && spacer._next?._icon);
+      if (!spacer.visible) continue;
+      spacer.set_size(width, height);
+      const previous = spacer._prev._renderer?._dockCenter;
+      const next = spacer._next._renderer?._dockCenter;
+      if (!previous || !next) continue;
+      const axis = vertical ? 1 : 0;
+      // Snap the visible line in stage coordinates, independently of fractional
+      // icon motion or St's padding and allocation for the layout spacer.
+      const middle = (previous[axis] + next[axis]) / 2 + renderOffset[axis];
+      const x = vertical ? crossCenter : middle;
+      const y = vertical ? middle : crossCenter;
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      let line = this._dividerRenderers[used];
+      if (!line) {
+        line = new St.Widget({style_class: 'infinity-dock-divider', reactive: false});
+        dock.renderArea.add_child(line);
+        this._dividerRenderers.push(line);
+      }
+      line.set_size(width, height);
+      line.set_position(Math.round(x - width / 2) - renderOffset[0],
+        Math.round(y - height / 2) - renderOffset[1]);
+      line.show();
+      used++;
+    }
+    for (const line of this._dividerRenderers.slice(used))
+      line.hide();
   }
 
   //! begin optimization
@@ -290,7 +331,8 @@ export let Animator = class {
     if (animateChanges) {
       for (const [icon, snapshot] of this._iconSnapshots) {
         if (!presentIcons.has(icon))
-          this._fadeOutIcon(snapshot, dock);
+          if (!icon._filteredFromDock)
+            this._fadeOutIcon(snapshot, dock);
       }
       for (const icon of presentIcons) {
         if (!this._iconSnapshots.has(icon))
@@ -665,6 +707,7 @@ export let Animator = class {
         }
 
         let renderer = icon._renderer;
+        renderer._dockCenter = null;
         if (gicon) {
           // apply override
           renderer.gicon = gicon;
@@ -768,11 +811,13 @@ export let Animator = class {
               iconContainer.translationY = adjustY / 2;
             }
 
-            let ry = p[1] + adjustY + icon._icon.translationY - renderOffset[1];
+            const centerX = p[0] + adjustX + icon._icon.translationX - renderOffset[0] + targetSize / 2;
+            const centerY = p[1] + adjustY + icon._icon.translationY - renderOffset[1] + targetSize / 2;
+            renderer._dockCenter = [centerX, centerY];
+            renderer._dockSize = targetSize;
             renderer.set_position(
-              p[0] + adjustX + icon._icon.translationX - renderOffset[0] +
-                targetSize / 2 - paintedSize * entryScale * artwork.x,
-              ry + targetSize / 2 - paintedSize * entryScale * artwork.y
+              centerX - paintedSize * entryScale * artwork.x,
+              centerY - paintedSize * entryScale * artwork.y
             );
 
             // renderer.ease({
@@ -938,33 +983,24 @@ export let Animator = class {
         }
       }
 
-      // dots
-      //! ***dot requires a little more aligning at dock position other than bottom***
-      let dots = this._dots[icon._idx];
+      const dots = this._dots[icon._idx];
       dots.hide();
-      if (
-        icon != dock._dragged &&
-        icon._appwell &&
-        icon._appwell.app &&
-        icon._appwell.app.get_n_windows
-      ) {
-        let appCount = dock.getAppWindowsFiltered(icon._appwell.app).length;
-        // appCount = 1;
-        if (dots && appCount > 0) {
-          dots.update(icon, {
+      const renderer = icon._renderer;
+      const app = icon._appwell?.app;
+      if (icon !== dock._dragged && renderer?._dockCenter && app?.get_n_windows) {
+        const appCount = dock.getAppWindowsFiltered(app).length;
+        if (appCount > 0) {
+          const [x, y] = renderer._dockCenter;
+          dots.update({
             appCount,
             position: dock._position,
             vertical,
             extension: dock.extension,
-            dock,
+            centerX: x + renderer.translationX,
+            centerY: y + renderer.translationY,
+            size: renderer._dockSize,
           });
-
-          dots.width = icon._renderer.width * icon._renderer.scaleX;
-          dots.height = dots.width;
-          dots.x = icon._renderer.x;
-          dots.y = icon._renderer.y;
-          dots.set_scale(icon._scale, icon._scale);
-          dots.opacity = icon._renderer.opacity;
+          dots.opacity = renderer.opacity;
           dots.show();
         }
       }
@@ -979,30 +1015,7 @@ export let Animator = class {
       }
     });
 
-    // separators
-    dock._separators.forEach((actor) => {
-      let prev = actor._prev; // get_previous_sibling() || actor._prev;
-      let next = actor._next; // get_next_sibling();
-      if (prev && next && prev._icon && next._icon) {
-        actor.translationX =
-          (prev._icon.translationX + next._icon.translationX) / 2;
-        actor.translationY =
-          (prev._icon.translationY + next._icon.translationY) / 2;
-        const thickness = Math.round(dock.extension.separator_thickness || 0);
-        const length = Math.round(iconSize * (vertical ? 0.5 : 0.75) * scaleFactor);
-        actor.set_size(vertical ? length : thickness, vertical ? thickness : length);
-        actor.visible = thickness > 0;
-      }
-
-      let any = next ?? prev;
-      if (!vertical && any) {
-        // The separator is already centered by the horizontal box layout.
-        actor.y_align = Clutter.ActorAlign.CENTER;
-        actor.translationY = 0;
-      } else if (vertical && any) {
-        // actor.translationX = any.width / 2 - actor.width / 2;
-      }
-    });
+    this._drawDividers(dock, vertical, iconSize, scaleFactor, renderOffset);
 
     let targetX = 0;
     let targetY = 0;
