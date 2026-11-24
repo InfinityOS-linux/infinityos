@@ -1,5 +1,30 @@
 [
   {
+    "id": "2026-11-24-rpm-light-mode-and-lock-clock",
+    "date": "2026-11-24",
+    "title": "RPM update: light mode backdrops and lock screen clock",
+    "summary": "Light mode menus, the dock and terminal use a more consistent translucent backdrop. The native lock screen clock now uses IBM Plex Sans Light.",
+    "buildSha": "32745ff8d342b4c0574e0031361440810b100a37",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This RPM update is available for ARM64 and x64. The existing TV Mode installer images do not include these later changes; installed systems can receive them through InfinityUpdater."
+      },
+      {
+        "title": "Light mode blur and tint",
+        "text": "Shell popups, the dock and the shared terminal and updater backdrop use the desktop context menu's light appearance more consistently. Live blur preserves the background brightness, and extra dark panel layers no longer cover the light drawer tint."
+      },
+      {
+        "title": "Transparent menus and terminal",
+        "text": "Light Shell menus remove the extra background behind their content so blur remains visible. Translucent terminal windows also keep their toolbar and tab strip backgrounds transparent. The dock follows the default light color preference instead of inheriting a dark panel state."
+      },
+      {
+        "title": "Native lock screen clock",
+        "text": "The clock uses IBM Plex Sans with a light font weight in both system themes and the native login screen styling. The date keeps its existing weight."
+      }
+    ]
+  },
+  {
     "id": "2026-11-24-rpm-terminal-widget-backdrop",
     "date": "2026-11-24",
     "title": "RPM update: shared terminal and widget backdrop",
