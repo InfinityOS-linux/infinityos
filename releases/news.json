@@ -1,5 +1,38 @@
 [
   {
+    "id": "2026-11-24-rpm-update-recovery-and-drive-groups",
+    "date": "2026-11-24",
+    "title": "RPM update: failed update recovery and dock drive groups",
+    "summary": "InfinityUpdater separates problematic updates and prevents failed RPM transactions from repeating on every restart. The dock filters script helper windows and places mounted drives in their own group.",
+    "buildSha": "9a75f86f8f9dd122cfb7c6aaf6c5cad2966492bd",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This RPM update is available for ARM64 and x64. It includes the Flatpak checks, offline update recovery and dock improvements published since the authentication dialog update. The installer images published earlier today do not include these later changes."
+      },
+      {
+        "title": "Failed offline updates",
+        "text": "The updater reports which stage failed, shows error details and identifies the recovery backup when available. Failed RPM builds appear under Updates with problems and are excluded from later transactions while newer builds remain eligible. Interrupted attempts and stale transactions no longer keep scheduling the same update on restart."
+      },
+      {
+        "title": "Fresh transaction preparation",
+        "text": "When installed packages have changed since download, the updater can prepare a fresh transaction without holding the same candidate builds. File conflicts are attributed to the affected packages when DNF identifies them. Empty or invalid saved transactions are rejected before offering a restart."
+      },
+      {
+        "title": "Flatpak verification and retry",
+        "text": "Flatpak updates are checked by their exact application or runtime reference and installed individually. The updater verifies that the planned change was deployed instead of relying only on a successful command exit. Unchanged failed plans stay in Updates with problems, with a retry button for the selected update; changed plans are checked again."
+      },
+      {
+        "title": "Dock helper windows",
+        "text": "Internal updater and Steam startup windows, transient dialogs and recognized script helpers stay out of the running application icons and window switching. Registered favorites and regular application windows remain available."
+      },
+      {
+        "title": "Mounted drives and matching dividers",
+        "text": "Mounted drives appear after Downloads in a separate dock group, with Trash kept at the end. Dividers now use matching dimensions and rounded pixel sizes, including when adjacent groups collapse into one divider."
+      }
+    ]
+  },
+  {
     "id": "2026-11-24-rpm-authentication-dialogs",
     "date": "2026-11-24",
     "title": "RPM update: clearer authentication dialogs",
