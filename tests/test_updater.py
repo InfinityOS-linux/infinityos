@@ -214,7 +214,7 @@ class UpdaterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             transaction = root / 'transaction.json'
-            transaction.write_text('transaction')
+            transaction.write_text('old transaction')
             os_release = root / 'os-release'
             os_release.write_text('NAME="Infinity OS"\nPRETTY_NAME="Infinity OS 44"\n'
                                   'ID=infinityos\nVERSION_ID=44\n')
@@ -223,6 +223,9 @@ class UpdaterTests(unittest.TestCase):
 
             def run(args, **_kwargs):
                 events.append(('run', args))
+                if 'distro-sync' in args:
+                    self.assertFalse(transaction.exists())
+                    transaction.write_text('transaction')
                 return type('R', (), {'stdout': outputs.pop(0)})()
 
             def write(path, content):
@@ -494,7 +497,15 @@ class UpdaterTests(unittest.TestCase):
             self.assertEqual(checker.offline_status(root, trigger)['status'], 'failed')
             trigger.symlink_to(root)
             self.assertFalse(checker.offline_status(root, trigger).get('pending'))
-            self.assertEqual(checker.offline_status(root, trigger, root), {'pending': True})
+            broken = checker.offline_status(root, trigger, root)
+            self.assertFalse(broken['pending'])
+            self.assertEqual(broken['phase'], 'prepare')
+            (root / 'transaction.json').write_text('{"rpms":[]}')
+            self.assertFalse(checker.offline_status(root, trigger, root)['pending'])
+            (root / 'transaction.json').write_text('{"rpms":[{"action":"Upgrade","nevra":"fixture-2-1.x86_64"}]}')
+            valid = checker.offline_status(root, trigger, root)
+            self.assertTrue(valid['pending'])
+            self.assertEqual(valid['packages'][0]['name'], 'fixture')
 
     def test_update_command_streams_carriage_return_progress(self):
         events = []

@@ -7,6 +7,7 @@ from datetime import datetime
 
 from checker import check_updates, read_state, save_state, offline_status, state_path, refresh_state
 from i18n import tr, update_count
+from pending import package_key
 from progress import run_update_command
 import flatpak_updates
 
@@ -201,19 +202,38 @@ def network_is_offline(monitor, gio):
                                            gio.NetworkConnectivity.PORTAL))
 
 
+OFFLINE_FAILURE_PHASES = {
+    'prepare': 'The saved RPM transaction could not be read.',
+    'backup': 'A complete Btrfs backup could not be created.',
+    'transaction': 'DNF could not complete the system package installation.',
+    'file_conflict': 'An RPM file conflicts with a file owned by another package.',
+    'rpmdb_changed': 'Installed packages changed after download. InfinityUpdater can prepare a fresh transaction.',
+    'finalize': 'Package installation finished, but update finalization failed.',
+}
+
+
 def update_rows(updates, offline):
-    """Keep queued versions visible when a repository no longer lists them."""
+    """Show failed builds separately and keep downloaded versions visible."""
     queued = offline.get('packages', []) if offline.get('pending') else []
+    holds = {package_key(item): item['phase'] for item in offline.get('held_packages', [])}
+    unqualified = {(name, version): phase for (name, _arch, version), phase in holds.items()}
     rows = []
     for item in updates:
-        ready = item['kind'] == 'RPM' and any(
-            p['name'] == item['name'] and (not item.get('arch') or p['arch'] == item['arch'])
-            and p['version'] == item['version'].removeprefix('0:')
-            for p in queued)
-        rows.append({**item, 'pending': ready, **({'deferred': False} if ready else {})})
+        ready = False
+        phase = None
+        if item['kind'] == 'RPM':
+            name, arch, version = package_key(item)
+            phase = holds.get((name, arch, version)) if arch else unqualified.get((name, version))
+            ready = not phase and any(p['name'] == name and (not arch or p['arch'] == arch)
+                                      and p['version'] == version for p in queued)
+        rows.append({**item, 'pending': ready,
+                     **({'deferred': True, 'offline_failure': phase, 'problem': tr(OFFLINE_FAILURE_PHASES.get(
+                         phase, 'The last offline update failed.'))} if phase else {}),
+                     **({'deferred': False} if ready else {})})
     names = {(item['name'], item.get('arch')) for item in updates if item['kind'] == 'RPM'}
     rows.extend({**item, 'pending': True} for item in queued
-                if (item['name'], item['arch']) not in names and (item['name'], None) not in names)
+                if (item['name'], item['arch']) not in names and (item['name'], None) not in names
+                and package_key(item) not in holds)
     return rows
 
 
@@ -620,6 +640,7 @@ def main():
             deferred = [item for item in rows if item.get('deferred') and not item.get('problem')]
             problems = [item for item in rows if item.get('problem')]
             updates = [item for item in rows if not item.get('deferred')]
+            failed_offline = offline.get('status') == 'failed'
             self.restart_ready = restart_ready(offline)
             if self.restart_ready:
                 self.refresh.set_label(tr('Restart to update'))
@@ -637,7 +658,7 @@ def main():
                 self.release_apply.set_visible(False)
                 self.refresh.set_sensitive(False)
                 return
-            if self.offline:
+            if self.offline and not (failed_offline or problems or self.restart_ready):
                 self.content.set_visible_child_name('offline')
                 self.apply.set_visible(False)
                 self.apply.set_sensitive(False)
@@ -650,7 +671,8 @@ def main():
                 self.items.remove(child)
             errors = self.state.get('errors', [])
             release = self.state.get('release')
-            empty_state = not (updates or deferred or problems or errors or release or offline.get('pending') or offline.get('status') == 'failed')
+            empty_state = not (updates or deferred or problems or errors or release
+                               or self.restart_ready or failed_offline)
             self.items.set_valign(Gtk.Align.CENTER if empty_state else Gtk.Align.FILL)
             if release:
                 card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
@@ -673,7 +695,7 @@ def main():
             self.items.append(count_row)
             if not updates:
                 message = (tr('Could not confirm whether updates are available.') if errors
-                           else tr('No updates ready to install.') if deferred or problems
+                           else tr('No updates ready to install.') if deferred or problems or failed_offline
                            else tr('Your system is up to date.'))
                 empty = Gtk.Label(label=message, xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER)
                 empty.set_margin_top(24)
@@ -696,6 +718,11 @@ def main():
                 group = Gtk.Expander(label=tr('Updates with problems ({count})').format(count=len(problems)))
                 group.set_expanded(True)
                 held = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+                if any(item.get('offline_failure') for item in problems):
+                    note = Gtk.Label(label=tr('Affected RPM builds are skipped. New builds are checked automatically.'),
+                                     xalign=0, wrap=True)
+                    note.add_css_class('muted')
+                    held.append(note)
                 for item in problems:
                     card = self.update_card(item)
                     detail = Gtk.Label(label=item['problem'], xalign=0, wrap=True, selectable=True)
@@ -703,7 +730,7 @@ def main():
                     card.append(detail)
                     if item.get('retryable'):
                         retry = Gtk.Button(label=tr('Retry this update'), halign=Gtk.Align.START)
-                        retry.set_sensitive(not self.busy)
+                        retry.set_sensitive(not self.busy and not self.offline)
                         retry.connect('clicked', self.on_apply, item)
                         card.append(retry)
                     held.append(card)
@@ -715,32 +742,34 @@ def main():
                 warning.set_wrap(True)
                 warning.add_css_class('muted')
                 self.items.append(warning)
-            if offline.get('pending'):
-                message = ''
-            elif offline.get('status') == 'failed':
-                message = tr('The last system update failed. Retry the update or restore system and /var from Backups in the boot menu. /home is preserved.')
+            if failed_offline:
+                message = (tr('The last offline update was interrupted.') if offline.get('interrupted')
+                           else tr(OFFLINE_FAILURE_PHASES.get(offline.get('phase'), 'The last offline update failed.')))
                 if offline.get('snapshot'):
-                    message += " #" + str(offline['snapshot'])
+                    message += '\n' + tr('Recovery backup #{snapshot} is available in the boot menu.').format(
+                        snapshot=offline['snapshot'])
+                summary = Gtk.Label(label=message, xalign=0, wrap=True)
+                summary.add_css_class('muted')
+                self.items.append(summary)
                 details = Gtk.Expander(label=tr('Error details'))
-                text = Gtk.Label(label=offline.get('log', ''), xalign=0, wrap=True, selectable=True)
+                log = '\n'.join(filter(None, [offline.get('log'), 'sudo cat /var/lib/infinityos/offline-update.log']))
+                text = Gtk.Label(label=log, xalign=0, wrap=True, selectable=True)
                 details.set_child(text)
                 self.items.append(details)
-            else:
-                message = ''
-            if message:
-                self.items.append(Gtk.Label(label=message, xalign=0.5, wrap=True, justify=Gtk.Justification.CENTER))
-            installable = any(not item.get('pending') for item in updates)
+            installable = not self.offline and any(not item.get('pending') for item in updates)
             self.apply.set_visible(installable)
             self.apply.set_sensitive(installable and not self.busy)
             self.release_apply.set_visible(bool(release))
-            self.release_apply.set_sensitive(bool(release and release.get('supported')) and not self.busy and not offline.get('pending'))
+            self.release_apply.set_sensitive(bool(release and release.get('supported')) and not self.busy
+                                             and not self.offline and not self.restart_ready)
             self.refresh.set_sensitive(not self.busy)
             self.layout_actions()
             if not self.busy:
                 checked_at = self.state.get('checked_at')
                 if checked_at:
                     checked_at = datetime.fromisoformat(checked_at).astimezone().strftime('%d %b %Y, %H:%M')
-                self.status.set_text(tr('Updates downloaded, restart to update.') if offline.get('pending')
+                self.status.set_text(tr('Updates downloaded, restart to update.') if self.restart_ready
+                                     else tr('No internet connection') if self.offline
                                      else tr('Last checked: ') + (checked_at or tr('never')))
 
         def on_refresh_action(self, button):
@@ -949,7 +978,7 @@ def main():
                 try:
                     state = check_updates()
                     if state.get('rpm_check_ok') and not prepared:
-                        pending = pending_rpm_names(updates, state['updates'])
+                        pending = pending_rpm_names(updates, update_rows(state['updates'], offline_status()))
                         if pending:
                             errors.append(tr('RPM updates waiting for compatible dependencies: {packages}').format(
                                 packages=', '.join(pending)))
@@ -958,11 +987,12 @@ def main():
                 except Exception as error:
                     GLib.idle_add(self.finish_error, str(error), prepared)
                 else:
+                    rows = update_rows(state['updates'], offline_status())
                     notice = (tr('Some updates could not be installed.') if errors else
                               tr('Updates downloaded, restart to update.')
                               if prepared else tr('Firmware updated. Restart may be required.')
                               if firmware_updated else tr('Some packages are waiting for compatible versions.')
-                              if any(item.get('deferred') for item in state['updates'])
+                              if any(item.get('deferred') and not item.get('offline_failure') for item in rows)
                               else tr('Updates installed.'))
                     GLib.idle_add(self.finish_refresh, state, notice, None, prepared)
             def guarded_work():

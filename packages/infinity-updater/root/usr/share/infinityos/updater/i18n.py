@@ -33,8 +33,20 @@ POLISH = {
     'Infinity OS releases': 'Wydania Infinity OS',
     "Firmware updated. Restart may be required.": "Oprogramowanie urządzeń zaktualizowano. Może być wymagany restart.",
     'Error details': 'Szczegóły błędu',
-    'The last system update failed. Retry the update or restore system and /var from Backups in the boot menu. /home is preserved.':
-        'Ostatnia aktualizacja systemu nie powiodła się. Ponów aktualizację lub przywróć system i /var przez Backups w menu rozruchowym. /home zostaje zachowany.',
+    'Affected RPM builds are skipped. New builds are checked automatically.':
+        'Updater pomija wstrzymane wersje i automatycznie sprawdza nowsze wydania pakietów.',
+    'The last offline update failed.': 'Ostatnia aktualizacja podczas rozruchu nie powiodła się.',
+    'The last offline update was interrupted.': 'Ostatnia aktualizacja podczas rozruchu została przerwana.',
+    'The saved RPM transaction could not be read.': 'Nie udało się odczytać zapisanej transakcji RPM.',
+    'A complete Btrfs backup could not be created.': 'Nie udało się utworzyć pełnej kopii zapasowej Btrfs.',
+    'DNF could not complete the system package installation.': 'DNF nie ukończył instalacji pakietów systemowych.',
+    'An RPM file conflicts with a file owned by another package.': 'Plik z pakietu RPM koliduje z plikiem innego pakietu.',
+    'Installed packages changed after download. InfinityUpdater can prepare a fresh transaction.':
+        'Po pobraniu zmieniły się zainstalowane pakiety. InfinityUpdater może przygotować nową transakcję.',
+    'Package installation finished, but update finalization failed.':
+        'Instalacja pakietów dobiegła końca, ale finalizacja aktualizacji się nie powiodła.',
+    'Recovery backup #{snapshot} is available in the boot menu.':
+        'Kopia zapasowa nr {snapshot} jest dostępna w menu rozruchowym.',
 
     'Updates downloaded, restart to update.':
         'Aktualizacje pobrane, uruchom ponownie, aby zaktualizować.',

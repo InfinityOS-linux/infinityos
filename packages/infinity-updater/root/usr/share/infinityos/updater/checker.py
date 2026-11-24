@@ -8,39 +8,43 @@ from datetime import datetime, timezone
 
 from release import available_release, installed_version, load_manifest
 from github_update import check_github_updates
-from pending import OFFLINE, packages as pending_packages
+from pending import OFFLINE, failed_result, package_key, read_result
+from pending import packages as pending_packages
 from compatibility import classify_updates
 import flatpak_updates
 
 
 def offline_status(directory=Path('/var/lib/infinityos'), trigger=Path('/system-update'), dnf_offline=OFFLINE):
+    stored = read_result(directory)
     try:
-        prepared = trigger.is_symlink() and trigger.resolve() == dnf_offline and dnf_offline.is_dir()
+        prepared = trigger.is_symlink() and trigger.resolve() == dnf_offline.resolve()
     except (OSError, RuntimeError):
         prepared = False
     if prepared:
         result = {'pending': True}
+        if stored.get('held_packages'):
+            result['held_packages'] = stored['held_packages']
         try:
             result['packages'] = pending_packages(dnf_offline)
-        except (OSError, ValueError, KeyError, TypeError):
-            pass
+        except (FileNotFoundError, ValueError, KeyError, TypeError, AttributeError):
+            return {**result, 'pending': False, 'status': 'failed', 'phase': 'prepare'}
+        except OSError:
+            return result  # Administrator-only metadata can still be valid.
+        held = {package_key(item) for item in result.get('held_packages', [])}
+        if any(package_key(item) in held for item in result['packages']):
+            return {**stored, 'pending': False, 'status': 'failed'}
         return result
-    try:
-        result = json.loads((directory / 'offline-update-result.json').read_text())
-        if not isinstance(result, dict):
-            return {}
-        if result.get('status') == 'failed':
-            result['log'] = result.get('error', '')
-            try:
-                with (directory / 'offline-update.log').open('rb') as log:
-                    log.seek(0, 2)
-                    log.seek(max(0, log.tell() - 16000))
-                    result['log'] = log.read().decode('utf-8', errors='replace')
-            except OSError:
-                pass  # Keep the public error summary when the detailed root log is private.
-        return result
-    except (OSError, ValueError):
-        return {}
+    result = failed_result(stored, directory)
+    if result.get('status') == 'failed':
+        result['log'] = result.get('error', '')
+        try:
+            with (directory / 'offline-update.log').open('rb') as log:
+                log.seek(0, 2)
+                log.seek(max(0, log.tell() - 16000))
+                result['log'] = log.read().decode('utf-8', errors='replace')
+        except OSError:
+            pass  # The detailed root log is private on installed systems.
+    return result
 
 
 def state_path():
@@ -190,7 +194,12 @@ def reconcile_offline_result(state, directory=Path('/var/lib/infinityos')):
         result_path = directory / 'offline-update-result.json'
         result = json.loads(result_path.read_text())
         checked = datetime.fromisoformat(state['checked_at']).timestamp()
-        if result.get('status') != 'success' or checked >= result_path.stat().st_mtime:
+        if checked >= result_path.stat().st_mtime:
+            return state
+        if result.get('status') in ('failed', 'running') and 'held_packages' in result:
+            # A partial transaction may have updated some packages before failing.
+            return {**state, 'checked_at': None, 'rpm_check_ok': False}
+        if result.get('status') != 'success':
             return state
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return state

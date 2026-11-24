@@ -190,7 +190,8 @@ class UpdaterActionsTests(unittest.TestCase):
         namespace = {'Gtk': Gtk, 'Pango': Pango, 'datetime': datetime,
                      'tr': lambda text: text, 'update_count': lambda count: f'{count} available updates',
                      'offline_status': lambda: {}, 'update_rows': module.update_rows,
-                     'restart_ready': module.restart_ready}
+                     'restart_ready': module.restart_ready,
+                     'OFFLINE_FAILURE_PHASES': module.OFFLINE_FAILURE_PHASES}
         exec(compile(ast.Module(body=methods, type_ignores=[]), str(source), 'exec'), namespace)
         held = dict(kind='RPM', name='held', version='2-1', source='repo', arch='x86_64', deferred=True)
         ready = dict(kind='RPM', name='ready', version='2-1', source='repo', arch='x86_64')
@@ -246,3 +247,18 @@ class UpdaterActionsTests(unittest.TestCase):
             exec(compile(ast.Module(body=[apply_method], type_ignores=[]), str(source), 'exec'), namespace)
             namespace['on_apply'](app, details[-1], selected)
             capture.assert_called_once_with([{**selected, 'deferred': False}])
+
+        previously_failed = {**ready, 'phase': 'file_conflict'}
+        namespace['offline_status'] = lambda: {
+            'status': 'failed', 'phase': 'file_conflict', 'held_packages': [previously_failed]}
+        app.state['updates'] = [ready]
+        app.offline = True
+        namespace['render'](app)
+        widgets = children(app.items)
+        self.assertEqual(widgets[0].get_first_child().get_label(), '0 available updates')
+        group = next(widget for widget in widgets if isinstance(widget, Gtk.Expander))
+        self.assertEqual(group.get_label(), 'Updates with problems (1)')
+        card = children(group.get_child())[1]
+        self.assertEqual(children(card)[-1].get_label(), module.OFFLINE_FAILURE_PHASES['file_conflict'])
+        self.assertFalse(app.apply.get_visible())
+        self.assertFalse(app.restart_ready)

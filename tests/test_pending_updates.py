@@ -146,3 +146,76 @@ class PendingUpdatesTests(unittest.TestCase):
                     run.assert_called_once()
                     self.assertIn('upgrade', run.call_args.args[0])
                     self.assertFalse(trigger.exists())
+
+    def test_cached_failed_build_is_separate_and_new_version_can_install(self):
+        held = {**package(), 'phase': 'file_conflict'}
+        newer = package(version='2-1')
+        multilib = package(arch='i686')
+        rows = updater.update_rows([package(version='0:1-1'), newer, multilib],
+                                   {'status': 'failed', 'held_packages': [held]})
+        self.assertEqual([row.get('offline_failure') for row in rows], ['file_conflict', None, None])
+        self.assertEqual(updater.install_commands(rows[:1]), [])
+        self.assertEqual(updater.install_commands(rows)[0][0], 'System packages')
+
+    def test_failed_transaction_is_never_rearmed_when_dnf_does_nothing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            offline = root / 'offline'
+            offline.mkdir()
+            saved = offline / 'transaction.json'
+            saved.write_text(json.dumps({'rpms': [
+                {'nevra': 'example-0:1-1.x86_64', 'action': 'Upgrade'}]}))
+            result = root / 'offline-update-result.json'
+            result.write_text('{"status":"failed"}')
+            trigger = root / 'system-update'
+            with patch.object(pending, 'OFFLINE', offline), patch.object(pending, 'TRIGGER', trigger), \
+                 patch.object(pending, 'RESULT_DIRECTORY', root), patch.object(pending.subprocess, 'run') as run:
+                pending.stage()
+                run.assert_called_once()
+                self.assertIn('--exclude=example-0:1-1.x86_64,example-1-1.x86_64', run.call_args.args[0])
+                self.assertFalse(trigger.is_symlink())
+                self.assertFalse(saved.exists())
+                self.assertEqual(pending.read_result()['held_packages'][0]['name'], 'example')
+
+    def test_stage_only_arms_a_transaction_without_the_previous_failed_build(self):
+        for version in ('1-1', '2-1'):
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                trigger = root / 'system-update'
+                failed = {**package(), 'phase': 'transaction'}
+                pending.write_result({'status': 'failed', 'held_packages': [failed]}, root)
+
+                def dnf(command, **kwargs):
+                    if 'reboot' in command:
+                        trigger.symlink_to(root)
+                    else:
+                        (root / 'transaction.json').write_text(json.dumps({'rpms': [
+                            {'nevra': f'example-{version}.x86_64', 'action': 'Upgrade'}]}))
+
+                with patch.object(pending, 'OFFLINE', root), patch.object(pending, 'TRIGGER', trigger), \
+                     patch.object(pending, 'RESULT_DIRECTORY', root), \
+                     patch.object(pending.subprocess, 'run', side_effect=dnf) as run:
+                    if version == '1-1':
+                        with self.assertRaisesRegex(RuntimeError, 'No restart was scheduled'):
+                            pending.stage()
+                        run.assert_called_once()
+                        self.assertFalse(trigger.is_symlink())
+                    else:
+                        pending.stage()
+                        self.assertEqual(run.call_count, 2)
+                        self.assertTrue(trigger.is_symlink())
+
+    def test_local_rpm_cannot_rearm_the_exact_failed_build(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            rpm = root / 'package.rpm'
+            rpm.touch()
+            failed = {**package(), 'phase': 'file_conflict'}
+            pending.write_result({'status': 'failed', 'held_packages': [failed]}, root)
+            with patch.object(pending, 'OFFLINE', root), patch.object(pending, 'TRIGGER', root / 'system-update'), \
+                 patch.object(pending, 'RESULT_DIRECTORY', root), \
+                 patch.object(pending.subprocess, 'check_output', return_value='example|x86_64|0:1-1'), \
+                 patch.object(pending.subprocess, 'run') as run:
+                with self.assertRaisesRegex(RuntimeError, 'on hold'):
+                    pending.stage(rpm)
+                run.assert_not_called()
