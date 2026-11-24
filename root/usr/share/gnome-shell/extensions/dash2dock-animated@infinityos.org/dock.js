@@ -395,6 +395,7 @@ export let Dock = GObject.registerClass(
         item.child.visible = false;
         if (excludeFromDock(app, dock._favorite_ids?.includes(app.get_id?.()))) {
           item._hiddenFromDock = true;
+          item._filteredFromDock = true;
           item.child.reactive = false;
           item.hide();
         }
@@ -420,6 +421,7 @@ export let Dock = GObject.registerClass(
       });
       this._separator.name = 'separator';
       this._extraIcons.add_child(this._separator);
+      this._showMountSeparator = false;
       this._mountSeparator = new St.Widget({
         style_class: 'dash-separator',
         name: 'mount-separator',
@@ -576,7 +578,8 @@ export let Dock = GObject.registerClass(
     _inspectIcon(c) {
       const app = c.child?.app;
       const favorite = this._favorite_ids?.includes(app?.get_id?.());
-      if (c.animatingOut || (!c.custom_icon && excludeFromDock(app, favorite))) {
+      c._filteredFromDock = !c.custom_icon && excludeFromDock(app, favorite);
+      if (c.animatingOut || c._filteredFromDock) {
         c._hiddenFromDock = true;
         if (c.child) {
           c.child.reactive = false;
@@ -590,7 +593,8 @@ export let Dock = GObject.registerClass(
         c._hiddenFromDock = false;
         c.show();
       }
-      if (!c.visible && c !== this.dash._separator && c !== this._separator) return false;
+      if (!c.visible && c !== this.dash._separator && c !== this._separator &&
+          !(c === this._mountSeparator && this._showMountSeparator)) return false;
 
       /* release any reference once destroyed */
       if (!c._destroyConnectId) {
@@ -604,7 +608,9 @@ export let Dock = GObject.registerClass(
 
       /* separator */
       c._cls = c._cls || c.get_style_class_name();
-      if (c._cls === 'dash-separator') {
+      if (c._cls === 'dash-separator' || c.has_style_class_name?.('dash-separator')) {
+        // Dash lays out this spacer. The animator paints the line separately.
+        c.opacity = 0;
         this._separators.push(c);
         this._dashItems.push(c);
         c.style = 'margin-left: 8px; margin-right: 8px;';
@@ -723,11 +729,15 @@ export let Dock = GObject.registerClass(
 
     _findIcons() {
       if (this._icons && !this._dragging) {
-        let _boxIconsLength = this.dash._box.get_children().length;
-        if (_boxIconsLength != this._boxIconsLength) {
+        const items = this.dash._box.get_children();
+        if (items.length !== this._boxIconsLength || items.some(item => {
+          const app = item.child?.app;
+          return app && !item.custom_icon && !item.animatingOut &&
+            Boolean(item._filteredFromDock) !== excludeFromDock(app, this._favorite_ids?.includes(app.get_id?.()));
+        })) {
           this._icons = null;
         }
-        this._boxIconsLength = _boxIconsLength;
+        this._boxIconsLength = items.length;
         if (this._extraIcons) {
           let _extraIconsLength = this._extraIcons.get_children().length;
           if (_extraIconsLength != this._extraIconsLength) {
@@ -1021,7 +1031,8 @@ export let Dock = GObject.registerClass(
       const mounts = this._extraIcons.get_children().filter(actor => actor._mountType);
       const showMountSeparator = mounts.length > 0 &&
         Boolean(this._downloadsIcon || this._recentFilesIcon);
-      if (this._mountSeparator.visible !== showMountSeparator) {
+      if (this._showMountSeparator !== showMountSeparator) {
+        this._showMountSeparator = showMountSeparator;
         this._mountSeparator.visible = showMountSeparator;
         this._icons = null;
       }

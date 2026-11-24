@@ -68,3 +68,19 @@ test('utility and transient windows are excluded from the dock independently of 
     assert.equal(excludeFromDock(favorite), true);
     assert.equal(excludeFromDock(favorite, true), false);
 });
+
+test('Shell-tracked sh desktop entries and late shell titles never become clickable', () => {
+    const sh = {get_id: () => 'sh.desktop', get_name: () => 'sh',
+        is_window_backed: () => false, get_windows: () => []};
+    assert.equal(excludeFromDock(sh, true), true);
+    assert.equal(excludeFromDock({...sh, get_id: () => 'window:12', get_name: () => 'sh'}), true);
+    const terminal = {get_wm_class: () => 'org.gnome.Console', get_title: () => 'sh'};
+    assert.equal(excludeFromDock({get_windows: () => [terminal], is_window_backed: () => true}), false);
+    const helper = {get_title: () => 'sh'};
+    const app = {is_window_backed: () => true, get_windows: () => [helper]};
+    const waiter = {child: {app, reactive: true}, hide() { this.visible = false; }};
+    assert.equal(inspect.call({}, waiter), false);
+    assert.equal(waiter.child.reactive, false);
+    assert.equal(waiter._filteredFromDock, true);
+    assert.deepEqual(dockWindows(app), []);
+});
