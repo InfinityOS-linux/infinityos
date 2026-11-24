@@ -455,11 +455,15 @@ def main():
             self.window.present()
 
         def layout_actions(self, *_args):
+            install = self.apply.get_visible()
+            ready = getattr(self, 'restart_ready', False)
+            if getattr(self, '_footer_layout', None) == (install, ready):
+                return
+            self._footer_layout = (install, ready)
             self.actions.set_start_widget(None)
             self.actions.set_center_widget(None)
             self.actions.set_end_widget(None)
-            install = self.apply.get_visible()
-            if getattr(self, 'restart_ready', False):
+            if ready:
                 self.actions.set_start_widget(self.apply if install else self.history_button)
                 self.actions.set_center_widget(self.history_button if install else None)
                 self.actions.set_end_widget(self.refresh)
@@ -720,6 +724,13 @@ def main():
 
         def on_refresh(self, _button, force=True):
             if self.busy:
+                return
+            # Activating a drawer that was closed while hidden starts a new GTK
+            # instance. A staged transaction can be restarted from local state.
+            if not force and restart_ready(offline_status()):
+                self.state = read_state()
+                self.offline = False
+                self.render()
                 return
             self.busy = True
             self.checking = True

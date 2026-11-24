@@ -11,6 +11,7 @@ import Clutter from 'gi://Clutter';
 import Graphene from 'gi://Graphene';
 import St from 'gi://St';
 
+import {excludeFromDock} from './dock-apps.mjs';
 import { Dash } from 'resource:///org/gnome/shell/ui/dash.js';
 
 import { TintEffect } from './effects/tint_effect.js';
@@ -561,9 +562,15 @@ export let Dock = GObject.registerClass(
     }
     
     _inspectIcon(c) {
-      if (c.child?.app?.get_id?.() === 'org.infinityos.Updater.desktop') {
+      if (c.animatingOut || (!c.custom_icon && excludeFromDock(c.child?.app))) {
+        c._hiddenFromDock = true;
+        if (c.child) c.child.reactive = false;
         c.hide();
         return false;
+      }
+      if (c._hiddenFromDock) {
+        c._hiddenFromDock = false;
+        c.show();
       }
       if (!c.visible && c !== this.dash._separator && c !== this._separator) return false;
 
@@ -732,13 +739,16 @@ export let Dock = GObject.registerClass(
 
       // Keep the custom separator before Downloads when Dash creates duplicates.
       const dashSeparators = this._separators.filter(c => c.get_parent() === this.dash._box);
-      for (const duplicate of dashSeparators.slice(1)) {
-        this.dash._box.remove_child(duplicate);
+      // Dash owns the actors and completes removal animations itself.
+      const appDivider = dashSeparators.includes(this.dash._separator)
+        ? this.dash._separator : dashSeparators[0];
+      for (const duplicate of dashSeparators) {
+        if (duplicate === appDivider) continue;
+        duplicate.visible = false;
         this._separators.splice(this._separators.indexOf(duplicate), 1);
         this._dashItems.splice(this._dashItems.indexOf(duplicate), 1);
       }
 
-      const appDivider = dashSeparators[0];
       if (appDivider) {
         appDivider.visible = !this.extension.favorites_only;
         if (!appDivider.visible) {
@@ -833,7 +843,8 @@ export let Dock = GObject.registerClass(
         }
         if (c._appwell && !c._appwell._activate) {
           c._appwell._activate = c._appwell.activate;
-          c._appwell.activate = () => {
+          c._appwell.activate = (...args) => {
+            if (!c.custom_icon && excludeFromDock(c._appwell.app)) return;
             if (c._appwell.app?.get_id?.() === 'com.infinityos.GhosTTY.desktop') {
               toggleInfinityTerminal();
               return;
@@ -844,7 +855,7 @@ export let Dock = GObject.registerClass(
               }
               this._markLaunching(c._appwell.app);
               this._maybeMinimizeOrMaximize(c._appwell.app);
-              c._appwell._activate();
+              c._appwell._activate(...args);
             } catch (err) {
               // happens with dummy DashIcons
             }
@@ -1400,7 +1411,7 @@ export let Dock = GObject.registerClass(
 
       let event = Clutter.get_current_event();
       let modifiers = event ? event.get_state() : 0;
-      let pressed = event.type() == Clutter.EventType.BUTTON_PRESS;
+
       let button1 = (modifiers & Clutter.ModifierType.BUTTON1_MASK) != 0;
       let button2 = (modifiers & Clutter.ModifierType.BUTTON2_MASK) != 0;
       let button3 = (modifiers & Clutter.ModifierType.BUTTON3_MASK) != 0;

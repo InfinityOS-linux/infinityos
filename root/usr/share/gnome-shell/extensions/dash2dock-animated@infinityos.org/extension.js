@@ -736,6 +736,8 @@ export default class Dash2DockLiteExt extends Extension {
   _addEvents() {
     this._appSystem = Shell.AppSystem.get_default();
 
+    Shell.WindowTracker.get_default().connectObject(
+      'tracked-windows-changed', () => this._onAppsChanged(), this);
     this._appSystem.connectObject(
       'installed-changed',
       () => {
@@ -858,6 +860,7 @@ export default class Dash2DockLiteExt extends Extension {
   }
 
   _removeEvents() {
+    Shell.WindowTracker.get_default().disconnectObject(this);
     this._appSystem.disconnectObject(this);
     this._appSystem = null;
     this._appFavorites.disconnectObject(this);

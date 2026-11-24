@@ -7,6 +7,7 @@ Comment[pl]=Przeglądaj aktualizacje systemu i Flatpaków
 Exec=infinity-updater
 Icon=/usr/share/icons/hicolor/512x512/apps/org.infinityos.Updater.png
 Categories=System;Settings;
+StartupWMClass=org.infinityos.Updater
 StartupNotify=true
 DBusActivatable=true
 X-GNOME-UsesNotifications=true

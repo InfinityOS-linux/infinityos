@@ -4,6 +4,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 import St from 'gi://St';
+import Shell from 'gi://Shell';
 
 import {Extension, InjectionManager} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -28,8 +29,8 @@ export default class InfinityUpdater extends Extension {
             }
         }
         this._destroyId = global.window_manager.connect('destroy', (_wm, actor) => {
-            if (this._isUpdater(actor.meta_window))
-                this._cancelOpening(actor.meta_window);
+            this._cancelOpening(actor.meta_window);
+            this._closingWindows?.delete(actor.meta_window);
             this._drawerBackdrop.detach(actor.meta_window);
         });
         this._focusId = global.display.connect('notify::focus-window',
@@ -81,7 +82,7 @@ export default class InfinityUpdater extends Extension {
                 return;
             }
             try {
-                Gio.Subprocess.new(['/usr/bin/infinity-updater'], Gio.SubprocessFlags.NONE);
+                Shell.AppSystem.get_default().lookup_app('org.infinityos.Updater.desktop').activate();
             } catch (error) {
                 console.warn(`Could not open InfinityUpdater: ${error}`);
             }
@@ -280,7 +281,7 @@ export default class InfinityUpdater extends Extension {
         this._drawerBackdrop?.attach(window);
         const reversing = this._closingWindows?.delete(window);
         Main.wm.skipNextEffect(actor);
-        actor.remove_all_transitions();
+        actor.remove_transition('translation-x');
         if (!reversing) actor.opacity = 0;
         const target = this._placeDrawer(window);
         if (!reversing) actor.translation_x = target.width + 16;
@@ -302,7 +303,7 @@ export default class InfinityUpdater extends Extension {
                 frame.width !== target.width || frame.height !== target.height)
                 return true;
             this._openingWindows.delete(window);
-            actor.remove_all_transitions();
+            actor.remove_transition('translation-x');
             actor.x = rect.x;
             actor.y = rect.y;
             actor.scale_x = actor.scale_y = 1;
@@ -327,13 +328,14 @@ export default class InfinityUpdater extends Extension {
         this._closingWindows ??= new WeakMap();
         const closing = {};
         this._closingWindows.set(window, closing);
-        actor.remove_all_transitions();
+        actor.remove_transition('translation-x');
         actor.ease({translation_x: window.get_frame_rect().width + 16, duration: St.Settings.get().enable_animations ? 280 : 0,
             mode: Clutter.AnimationMode.EASE_IN_CUBIC,
             onComplete: () => {
                 if (this._closingWindows?.get(window) !== closing)
                     return;
                 this._closingWindows.delete(window);
+                if (window.get_compositor_private() !== actor) return;
                 Main.wm.skipNextEffect(actor);
                 window.minimize();
                 this._drawerBackdrop?.detach(window);
@@ -435,7 +437,7 @@ export default class InfinityUpdater extends Extension {
         Main.layoutManager.disconnect(this._monitorsId);
         for (const actor of global.get_window_actors()) {
             if (this._isUpdater(actor.meta_window)) {
-                actor.remove_all_transitions();
+                actor.remove_transition('translation-x');
                 actor.translation_x = 0;
             }
         }

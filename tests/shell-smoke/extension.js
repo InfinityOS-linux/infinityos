@@ -18,6 +18,7 @@ import {widgetChoices} from '../ghostty@infinityos.org/monitor-widgets.js';
 import NowPlay from '../nowplay@LalaloyXyz/extension.js';
 import Raccoon from '../raccoonlauncher@shimafallah.github.io/extension.js';
 import Updater from '../infinity-updater@infinityos.org/extension.js';
+import {excludeFromDock} from '../dash2dock-animated@infinityos.org/dock-apps.mjs';
 import {opticalMetrics} from '../dash2dock-animated@infinityos.org/optical-icons.mjs';
 import {createDockBlurProxy, Dock} from '../dash2dock-animated@infinityos.org/dock.js';
 import {Integrations} from '../dash2dock-animated@infinityos.org/integrations.js';
@@ -684,6 +685,18 @@ export default class Smoke extends Extension {
         const area = Main.layoutManager.getWorkAreaForMonitor(drawer.meta_window.get_monitor());
         check(frame.width === Math.min(460, area.width) && frame.height === area.height, 'updater remained at initial size');
         check(drawer.opacity === 255 && Math.abs(drawer.translation_x) < 1, 'updater did not finish its spring slide');
+        const trackedDrawer = Shell.WindowTracker.get_default().get_window_app(drawer.meta_window);
+        check(trackedDrawer && excludeFromDock(trackedDrawer), 'drawer appears as a running dock application');
+        for (let i = 0; i < 3; i++) {
+            updater._toggleDrawer(drawer.meta_window);
+            await wait();
+            check(drawer.meta_window.minimized, 'hidden drawer did not minimize');
+            updater._toggleDrawer(drawer.meta_window);
+            await wait(); await wait();
+            check(!drawer.meta_window.minimized && drawer.opacity === 255 && Math.abs(drawer.translation_x) < 1,
+                'restored drawer is not interactive at its visible position');
+            check(excludeFromDock(trackedDrawer), 'restored drawer leaked into the running applications');
+        }
         const drawerBackdrop = updater._drawerBackdrop._entries.get(drawer.meta_window);
         check(drawerBackdrop?.backdrop, 'updater has no panel-matched native blur');
         check(drawerBackdrop.container.clip_to_allocation, 'updater blur includes the window shadow');

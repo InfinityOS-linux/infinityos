@@ -65,7 +65,7 @@ function drawer(area, deferred = false, animations = true) {
     const timers = new Map();
     const signals = new Map();
     let nextId = 1;
-    const actor = {remove_all_transitions() {}, ease(options) { calls.push(options); }};
+    const actor = {remove_transition(name) { assert.equal(name, 'translation-x'); }, ease(options) { calls.push(options); }};
     const window = {
         get_monitor: () => 1,
         unmaximize(...args) { assert.equal(args.length, 0, "GNOME 51 unmaximize takes no arguments"); },
