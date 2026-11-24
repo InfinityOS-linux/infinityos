@@ -988,15 +988,9 @@ export let Animator = class {
           (prev._icon.translationX + next._icon.translationX) / 2;
         actor.translationY =
           (prev._icon.translationY + next._icon.translationY) / 2;
-        let thickness = dock.extension.separator_thickness || 0;
-        const joined = actor === dock._joinedSeparator;
-        if (vertical) {
-          actor.width = iconSize * (joined ? 1 : 0.5) * scaleFactor;
-          actor.height = thickness + 0.5;
-        } else {
-          actor.width = thickness + 0.5;
-          actor.height = iconSize * (joined ? 1 : 0.75) * scaleFactor;
-        }
+        const thickness = Math.round(dock.extension.separator_thickness || 0);
+        const length = Math.round(iconSize * (vertical ? 0.5 : 0.75) * scaleFactor);
+        actor.set_size(vertical ? length : thickness, vertical ? thickness : length);
         actor.visible = thickness > 0;
       }
 
