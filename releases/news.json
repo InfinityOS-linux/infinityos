@@ -1,5 +1,85 @@
 [
   {
+    "id": "2026-11-24-rpm-native-lock-screen",
+    "date": "2026-11-24",
+    "title": "RPM update: native GNOME lock screen",
+    "summary": "InfinityOS returns to the native GNOME lock screen and retires the bundled WACK Sonoma lock screen extension.",
+    "buildSha": "fa1ba238017a5952a94ece8315d5effc4ae577e9",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This RPM update was published for ARM64 and x64 and is included in the current repository packages. The existing TV Mode installer images do not include these later changes."
+      },
+      {
+        "title": "Native locking",
+        "text": "The bundled Sonoma lock screen and its WACK Shell integration are removed. GNOME handles locking and authentication, while the desktop panel customization remains available."
+      },
+      {
+        "title": "Existing accounts",
+        "text": "The desktop migration removes the retired system extension from enabled extensions without replacing other choices. A separately installed user copy is preserved."
+      }
+    ]
+  },
+  {
+    "id": "2026-11-24-rpm-login-password-field",
+    "date": "2026-11-24",
+    "title": "RPM update: matching login password field",
+    "summary": "The GNOME password field gets rounded corners and a purple outline to match the InfinityOS account picker.",
+    "buildSha": "b3843be3ee43f24cea035c3536f7ac1fd7f46aec",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This RPM update was published for ARM64 and x64 and is included in the current repository packages. The existing TV Mode installer images do not include these later changes."
+      },
+      {
+        "title": "Password entry styling",
+        "text": "The login and native unlock password fields use a rounded purple outline with a brighter hover and focus state. GNOME's spacing for the password visibility and submit controls is preserved."
+      }
+    ]
+  },
+  {
+    "id": "2026-11-24-rpm-login-account-picker",
+    "date": "2026-11-24",
+    "title": "RPM update: InfinityOS login account picker",
+    "summary": "The login account picker uses rounded purple borders, with a simpler Not listed option below the accounts.",
+    "buildSha": "fc599ca2c83868142bb63471760acb7e4e2f31a3",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This RPM update was published for ARM64 and x64 and is included in the current repository packages. The existing TV Mode installer images do not include these later changes."
+      },
+      {
+        "title": "Account selection",
+        "text": "Account rows have fully rounded purple borders and a brighter outline when selected, hovered or focused."
+      },
+      {
+        "title": "Not listed option",
+        "text": "The Not listed label is centered below the account list on a transparent background, with an underline on hover or keyboard focus."
+      }
+    ]
+  },
+  {
+    "id": "2026-11-24-rpm-design-and-scrolling",
+    "date": "2026-11-24",
+    "title": "RPM update: Design settings and scroll direction",
+    "summary": "InfinityConfig brings cursor and dock controls together in Design and adds separate natural scrolling preferences for the mouse and touchpad.",
+    "buildSha": "cdbb659bebd2570a14de1096c016404f6995f908",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This RPM update was published for ARM64 and x64 and is included in the current repository packages. The existing TV Mode installer images do not include these later changes."
+      },
+      {
+        "title": "One Design page",
+        "text": "Cursor and dock size controls now share a scrollable Design page in InfinityConfig."
+      },
+      {
+        "title": "Independent scroll preferences",
+        "text": "Natural scrolling can be enabled separately for the mouse and touchpad. Each control stays synchronized with the corresponding GNOME setting."
+      }
+    ]
+  },
+  {
     "id": "2026-11-22-rpm-esde-xbox-adapter",
     "date": "2026-11-22",
     "title": "RPM update: ES-DE gamepad icon and Xbox adapter setup",
