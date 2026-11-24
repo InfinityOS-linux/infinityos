@@ -56,3 +56,32 @@ test('returning to the Live desktop redraws the dock even while the installer ac
   assert.equal(shown, true);
   assert.equal(redraws, 1);
 });
+
+test('monitor teardown removes only its own window signals and cancels pending autohide', () => {
+  const load = new Function(source.slice(source.indexOf('export let AutoHide = class {'))
+    .replace('export let AutoHide', 'let AutoHide') + '\nreturn AutoHide;')();
+  const owners = new Set();
+  const window = {
+    connectObject(...args) { owners.add(args.at(-1)); },
+    disconnectObject(owner) { owners.delete(owner); },
+  };
+  const monitorA = new load();
+  const monitorB = new load();
+  monitorB.dock = {extension: {checkHide() {}}};
+  monitorB._track(window);
+  monitorA._untrack(window);
+  monitorB._track(window);
+  assert.deepEqual([...owners], [monitorB]);
+
+  let canceled;
+  monitorB._enabled = true;
+  monitorB.show = () => {};
+  monitorB._debounceCheckSeq = {};
+  const pending = monitorB._debounceCheckSeq;
+  monitorB.extension = {_loTimer: {cancel: value => { canceled = value; }}};
+  monitorB.destroy();
+  assert.equal(canceled, pending);
+  assert.equal(owners.size, 0);
+  monitorB._installerOpen = () => { assert.fail('destroyed dock must not inspect or change visibility'); };
+  monitorB._checkHide();
+});

@@ -52,15 +52,17 @@ export let AutoHide = class {
 
     this._enabled = false;
 
-    let actors = global.get_window_actors();
-    let windows = actors.map((a) => a.get_meta_window());
-    windows.forEach((w) => {
-      if (w._tracked) {
-        this._untrack(w);
-      }
-    });
+    for (const window of this._trackedWindows ?? [])
+      this._untrack(window);
 
     console.log('autohide disabled');
+  }
+
+  destroy() {
+    this._destroyed = true;
+    this.disable();
+    this.extension._loTimer?.cancel(this._debounceCheckSeq);
+    this._debounceCheckSeq = null;
   }
 
   _getScaleFactor() {
@@ -198,33 +200,19 @@ export let AutoHide = class {
   }
 
   _track(window) {
-    //! window tracking should be made global
-    if (!window._tracked) {
-      window.connectObject(
-        'position-changed',
-        // this._debounceCheckHide.bind(this),
-        () => {
-          this.dock.extension.checkHide();
-        },
-        'size-changed',
-        // this._debounceCheckHide.bind(this),
-        () => {
-          this.dock.extension.checkHide();
-        },
-        this
-      );
-      window._tracked = true;
-    }
+    this._trackedWindows ??= new Set();
+    if (this._trackedWindows.has(window)) return;
+    const update = () => this.dock.extension.checkHide();
+    window.connectObject('position-changed', update, 'size-changed', update, this);
+    this._trackedWindows.add(window);
   }
 
   _untrack(window) {
+    if (!this._trackedWindows?.delete(window)) return;
     try {
-      if (window && window._tracked) {
-        window.disconnectObject(this);
-        window._tracked = false;
-      }
-    } catch (err) {
-      // may have been destroyed already
+      window.disconnectObject(this);
+    } catch (_error) {
+      // The compositor may have destroyed the window already.
     }
   }
 
@@ -276,18 +264,14 @@ export let AutoHide = class {
 
     let monitor = this.dock._monitor;
     let actors = global.get_window_actors();
-    let windows = actors.map((a) => {
-      let w = a.get_meta_window();
-      w._parent = a;
-      return w;
-    });
-    windows = windows.filter((w) => !w.minimized && w.can_close());
+    let windows = actors.map(actor => actor.get_meta_window());
+    windows = windows.filter((w) => w && !w.minimized && w.can_close());
     windows = windows.filter((w) => w.get_monitor() == monitor.index);
     // windows = windows.filter((w) => !w.is_override_redirect());
     let workspace = global.workspace_manager.get_active_workspace_index();
     windows = windows.filter(
       (w) =>
-        workspace == w.get_workspace().index() && w.showing_on_its_workspace()
+        workspace == w.get_workspace()?.index() && w.showing_on_its_workspace()
     );
     windows = windows.filter((w) => handledWindowTypes.includes(w.get_window_type()));
 
@@ -295,6 +279,11 @@ export let AutoHide = class {
     let dockRect = this.dock.struts.get_transformed_position();
     dockRect.push(this.dock.struts.width);
     dockRect.push(this.dock.struts.height);
+
+    const currentWindows = new Set(windows);
+    for (const window of this._trackedWindows ?? []) {
+      if (!currentWindows.has(window)) this._untrack(window);
+    }
 
     windows.forEach((w) => {
       this._track(w);
@@ -315,6 +304,7 @@ export let AutoHide = class {
   }
 
   _debounceCheckHide() {
+    if (this._destroyed) return;
     if (this.extension._loTimer) {
       if (!this._debounceCheckSeq) {
         this._debounceCheckSeq = this.extension._loTimer.runDebounced(
@@ -331,6 +321,7 @@ export let AutoHide = class {
   }
 
   _checkHide() {
+    if (this._destroyed) return;
     if (this._installerOpen()) {
       this._installerForcedHidden = true;
       this.dock.visible = false;
