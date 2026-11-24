@@ -150,6 +150,8 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
     "$source_root/usr/share/glib-2.0/schemas/"
   install -m 0644 "$repo/root/usr/share/infinityos/gnome-defaults" \
     "$repo/root/usr/share/infinityos/blur-defaults" \
+    "$repo/root/usr/share/infinityos/gtk4-adaptive.css" \
+    "$repo/root/usr/share/infinityos/gtk4-menus.css" \
     "$source_root/usr/share/infinityos/"
   for variant in Light Dark; do
     theme_css="usr/share/themes/Orchis-Purple-${variant}-Compact/gnome-shell/gnome-shell.css"

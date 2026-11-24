@@ -88,6 +88,8 @@ gtk-update-icon-cache -f -q /usr/share/icons/hicolor || :
 /usr/share/infinityos/build-revisions/infinityos-shell-extensions
 /usr/share/infinityos/gnome-defaults
 /usr/share/infinityos/blur-defaults
+/usr/share/infinityos/gtk4-adaptive.css
+/usr/share/infinityos/gtk4-menus.css
 /usr/share/infinityos/folder-icons/
 /usr/share/infinityos/bin.desktop
 /usr/share/icons/kora/places/scalable/folder-projects.svg
