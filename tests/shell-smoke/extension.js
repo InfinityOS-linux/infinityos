@@ -24,6 +24,7 @@ import {DashBlur} from '../blur-my-shell@aunetx/components/dash_to_dock.js';
 import {Connections} from '../blur-my-shell@aunetx/conveniences/connections.js';
 import {DockBackground} from '../dash2dock-animated@infinityos.org/dockItems.js';
 import {PanelBlur} from '../blur-my-shell@aunetx/components/panel.js';
+import {MenuManager} from '../globalmenu@ShiroOSL.github.io/menuManager.js';
 import {PopupBlur} from '../blur-my-shell@aunetx/components/popup.js';
 import {Settings} from '../blur-my-shell@aunetx/conveniences/settings.js';
 import {KEYS} from '../blur-my-shell@aunetx/conveniences/keys.js';
@@ -91,15 +92,19 @@ export default class Smoke extends Extension {
         const effectSignals = new Connections();
         const popupEffects = new EffectsManager(effectSignals);
         const popups = new PopupBlur(new Connections(), popupSettings, popupEffects);
+        const globalMenuExtension = new Extension(metadata('globalmenu@ShiroOSL.github.io'));
+        const globalMenus = new MenuManager(globalMenuExtension.uuid, globalMenuExtension.getSettings());
         try {
             popups.enable();
+            globalMenus.updateMenuForWindow(null);
+            check(globalMenus._buttons.length === 7, 'expected all seven desktop panel menus');
             for (const [variant, style, tint] of [['Dark', 2, 12], ['Light', 1, 226]]) {
                 const css = Gio.File.new_for_path(`${GLib.getenv('INFINITY_SMOKE_THEMES')}/Orchis-Purple-${variant}-Compact/gnome-shell/gnome-shell.css`);
                 theme.load_stylesheet(css);
                 try {
                     popupSettings.popup.settings.set_int('style-popup', style);
                     popups.update_background();
-                    for (const indicator of [Main.panel.statusArea.dateMenu, Main.panel.statusArea.quickSettings]) {
+                    for (const indicator of [Main.panel.statusArea.dateMenu, Main.panel.statusArea.quickSettings, ...globalMenus._buttons]) {
                         const menu = indicator.menu;
                         menu.open();
                         await wait();
@@ -116,6 +121,7 @@ export default class Smoke extends Extension {
                 }
             }
         } finally {
+            globalMenus.destroy();
             popups.disable();
             popupEffects.destroy_all();
             effectSignals.disconnect_all();

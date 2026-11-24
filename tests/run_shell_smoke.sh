@@ -25,7 +25,7 @@ cp -a "$repo/root/usr/share/icons/InfinityOS-Modern-Ice" "$sandbox/system/icons/
 # legacy wait bitmap. Source tests separately load every Xcursor size/frame.
 rm "$sandbox/system/icons/InfinityOS-Modern-Ice/cursors/wait"
 chmod 700 "$XDG_RUNTIME_DIR"
-for uuid in nowplay@LalaloyXyz raccoonlauncher@shimafallah.github.io dash2dock-animated@infinityos.org wack-shell@rinzler69-wastaken.github.com; do
+for uuid in globalmenu@ShiroOSL.github.io nowplay@LalaloyXyz raccoonlauncher@shimafallah.github.io dash2dock-animated@infinityos.org wack-shell@rinzler69-wastaken.github.com; do
     cp -a "$repo/root/usr/share/gnome-shell/extensions/$uuid" "$SMOKE_EXTENSIONS/"
 done
 for package in infinity-terminal infinity-updater; do
@@ -45,6 +45,8 @@ export GSETTINGS_SCHEMA_DIR="$sandbox/menu-schemas"
 mkdir -p "$GSETTINGS_SCHEMA_DIR"
 cp "$repo/vendor/gnome-shell/fedora-45/usr/share/glib-2.0/schemas/org.gnome.shell.extensions.blur-my-shell.gschema.xml" "$GSETTINGS_SCHEMA_DIR/"
 glib-compile-schemas --strict "$GSETTINGS_SCHEMA_DIR"
+export INFINITY_DING_CSS="$repo/root/usr/share/gnome-shell/extensions/ding@rastersoft.com/app/stylesheet.css"
+export INFINITY_DING_TEST="$repo/tests/ding-menu-backdrop.gjs"
 export SMOKE_LOG="$sandbox/shell.log"
 # The persistent terminal binary is not installed in this disposable Shell.
 # Keep its desktop ID while using an available inert executable for AppInfo.
@@ -72,6 +74,14 @@ dbus-run-session -- bash -euo pipefail -c '
     for attempt in $(seq 1 90); do
         if grep -q INFINITY_SMOKE_PASS "$SMOKE_LOG"; then
             if grep -q "JS ERROR" "$SMOKE_LOG"; then cat "$SMOKE_LOG"; exit 1; fi
+            for mode in DARK LIGHT; do
+                log="$XDG_RUNTIME_DIR/ding-$mode.log"
+                WAYLAND_DISPLAY=wayland-0 GDK_BACKEND=wayland WAYLAND_DEBUG=client gjs -m "$INFINITY_DING_TEST" "$INFINITY_DING_CSS" "$mode" 2>"$log" || { tail -80 "$log"; exit 1; }
+                if ! grep -Eq "set_blur_region\(wl_region[#@]" "$log"; then
+                    grep -E "background_effect|xdg_popup|Gjs-" "$log" | tail -60 || true
+                    echo "Desktop menu did not request compositor blur in $mode mode"; exit 1
+                fi
+            done
             exit 0
         fi
         if grep -q INFINITY_SMOKE_FAIL "$SMOKE_LOG" || ! kill -0 "$shell_pid" 2>/dev/null; then cat "$SMOKE_LOG"; exit 1; fi
