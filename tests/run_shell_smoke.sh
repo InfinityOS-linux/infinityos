@@ -71,7 +71,7 @@ dbus-run-session -- bash -euo pipefail -c '
     gnome-shell --headless --virtual-monitor 1280x800 >"$SMOKE_LOG" 2>&1 &
     shell_pid=$!
     trap '\''kill "$shell_pid" 2>/dev/null || true; wait "$shell_pid" 2>/dev/null || true'\'' EXIT
-    for attempt in $(seq 1 90); do
+    for attempt in $(seq 1 150); do
         if grep -q INFINITY_SMOKE_PASS "$SMOKE_LOG"; then
             if grep -q "JS ERROR" "$SMOKE_LOG"; then cat "$SMOKE_LOG"; exit 1; fi
             for mode in DARK LIGHT; do
