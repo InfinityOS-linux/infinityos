@@ -236,4 +236,13 @@ class UpdaterActionsTests(unittest.TestCase):
             details = children(group.get_child().get_first_child())
             self.assertEqual(details[-2].get_label(), 'Disk is full')
             details[-1].emit('clicked')
-            app.on_apply.assert_called_with(details[-1], failed)
+            selected = {**failed, 'pending': False}
+            app.on_apply.assert_called_with(details[-1], selected)
+            self.assertFalse(app.restart_ready)
+            capture = Mock(return_value=[])
+            apply_method = next(node for node in ast.walk(tree)
+                                if isinstance(node, ast.FunctionDef) and node.name == 'on_apply')
+            namespace['install_commands'] = capture
+            exec(compile(ast.Module(body=[apply_method], type_ignores=[]), str(source), 'exec'), namespace)
+            namespace['on_apply'](app, details[-1], selected)
+            capture.assert_called_once_with([{**selected, 'deferred': False}])

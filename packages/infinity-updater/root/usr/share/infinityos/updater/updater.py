@@ -887,10 +887,11 @@ def main():
         def on_apply(self, _button, retry_item=None):
             if getattr(self, 'busy', False):
                 return
-            updates = [item for item in update_rows(self.state['updates'], offline_status())
+            rows = update_rows(self.state['updates'], offline_status())
+            updates = [item for item in rows
                        if not item.get('pending') and not item.get('deferred')]
             if retry_item is not None:
-                updates = [{**item, 'deferred': False} for item in self.state['updates']
+                updates = [{**item, 'deferred': False} for item in rows
                            if item == retry_item and item.get('retryable')]
             if any(item['kind'].startswith('Flatpak ') and not item.get('ref') for item in updates):
                 self.on_refresh(None)

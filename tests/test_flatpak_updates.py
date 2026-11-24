@@ -1,4 +1,5 @@
 import os
+import runpy
 from pathlib import Path
 import subprocess
 import sys
@@ -37,6 +38,15 @@ class FlatpakUpdateTests(unittest.TestCase):
                 plan.return_value = []
                 self.assertIsNone(fp.classify('user', ref, '', 'fedora'))
 
+    def test_broker_accepts_only_a_single_full_ref_after_fixed_update_options(self):
+        allowed = runpy.run_path(str(ROOT / 'root/usr/libexec/infinityos-install-session'))['allowed']
+        prefix = ['/usr/bin/flatpak', 'update', '--system', '--noninteractive', '--assumeyes']
+        ref = 'runtime/org.fedoraproject.Platform.GL.default/x86_64/45'
+        with patch.dict(os.environ, PKEXEC_UID='1000'):
+            self.assertTrue(allowed(prefix + [ref]))
+            for suffix in ([ref, ref], ['--commit=abc'], ['org.example.Reader'], [ref + '/extra']):
+                self.assertFalse(allowed(prefix + suffix))
+
     def test_planning_error_visible_next_to_one_ref(self):
         with patch.object(fp, 'plan', side_effect=RuntimeError('runtime unavailable')):
             row = fp.classify('system', 'app/org.test.Reader/x86_64/stable', '1.0', 'test')
@@ -60,6 +70,7 @@ class NativeFlatpakTests(unittest.TestCase):
             build = root / 'build'
             repo = root / 'repo'
             (build / 'usr').mkdir(parents=True)
+            (build / 'files').mkdir()
             (build / 'metadata').write_text(f'[Runtime]\nname={name}\n')
             def export(revision):
                 (build / 'usr/revision').write_text(revision)
