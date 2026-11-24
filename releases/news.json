@@ -1,5 +1,30 @@
 [
   {
+    "id": "2026-11-24-rpm-terminal-widget-backdrop",
+    "date": "2026-11-24",
+    "title": "RPM update: shared terminal and widget backdrop",
+    "summary": "InfinityTerminal and its widget strip now use the same panel backdrop as InfinityUpdater, with matching blur and tint.",
+    "buildSha": "4bea90f3460769c929256440f6cef91723516a2a",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This RPM update is available for ARM64 and x64. The existing TV Mode installer images do not include these later changes; installed systems can receive them through InfinityUpdater."
+      },
+      {
+        "title": "Terminal and widget backgrounds",
+        "text": "The terminal drawer and widget strip share the updater's panel backdrop. The widget strip no longer paints a separate opaque gradient, and the terminal tab bar uses a transparent background while keeping its text and borders."
+      },
+      {
+        "title": "Transparency and closing animation",
+        "text": "The default terminal background is transparent so the Shell backdrop can show through, and background opacity can now be set to zero in preferences. The backdrop remains underneath the terminal until its closing slide finishes."
+      },
+      {
+        "title": "Release checks",
+        "text": "Release verification now rejects the retired WACK Sonoma lock screen extension if it is installed or enabled by default."
+      }
+    ]
+  },
+  {
     "id": "2026-11-24-rpm-menu-backdrops",
     "date": "2026-11-24",
     "title": "RPM update: consistent menu backdrops",
