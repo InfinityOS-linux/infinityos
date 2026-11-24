@@ -6,6 +6,7 @@ import St from 'gi://St';
 import Meta from 'gi://Meta';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import UserTray from '../wack-shell@rinzler69-wastaken.github.com/userTray.js';
 import AppDashboard from '../wack-shell@rinzler69-wastaken.github.com/appDashboard.js';
@@ -148,6 +149,43 @@ export default class Smoke extends Extension {
                             check(entry.get_theme_node().get_foreground_color().red === 41, 'unreadable password');
                             check(entry.get_theme_node().get_background_color().red === 250, 'missing light entry surface');
                         } finally { shield.destroy(); }
+                    }
+                    // Use Shell's modal input grab and the same widget hierarchy as polkit.
+                    const prompt = new ModalDialog.ModalDialog({styleClass: 'prompt-dialog'});
+                    const passwordBox = new St.BoxLayout({style_class: 'prompt-dialog-password-layout',
+                        orientation: Clutter.Orientation.VERTICAL});
+                    const password = new St.PasswordEntry({style_class: 'prompt-dialog-password-entry'});
+                    const placeholder = new St.Label({style_class: 'prompt-dialog-null-label', text: ' '});
+                    const errorLabel = new St.Label({style_class: 'prompt-dialog-error-label',
+                        text: 'Authentication failed', visible: false});
+                    passwordBox.add_child(password);
+                    passwordBox.add_child(placeholder);
+                    passwordBox.add_child(errorLabel);
+                    prompt.contentLayout.add_child(passwordBox);
+                    const confirm = prompt.addButton({label: 'Authenticate', action() {}});
+                    try {
+                        check(prompt.open(), 'could not open native password prompt');
+                        await wait();
+                        const card = prompt.contentLayout.get_parent();
+                        const surface = popups.surfaces.get(card);
+                        const color = card.get_theme_node().get_background_color();
+                        check(surface?.blur_actor?.mapped && surface.pipeline.effect.get_actor() === surface.blur_actor,
+                            'authentication card has no mapped blur');
+                        check(color.red === tint && color.alpha < 255 &&
+                            prompt.contentLayout.get_theme_node().get_background_color().alpha === 0,
+                            'authentication card obscures its backdrop');
+                        const bottom = actor => actor.get_transformed_position()[1] + actor.get_transformed_size()[1];
+                        const gap = confirm.get_transformed_position()[1] - bottom(password);
+                        check(gap >= 0 && gap <= 32, `unexpected password-to-button gap: ${gap}`);
+                        placeholder.hide();
+                        errorLabel.show();
+                        await wait();
+                        check(errorLabel.height > placeholder.get_preferred_height(-1)[1] &&
+                            bottom(errorLabel) <= confirm.get_transformed_position()[1],
+                            'authentication feedback overlaps the actions');
+                    } finally {
+                        prompt.close();
+                        await wait();
                     }
                     const checkOpenMenu = async menu => {
                         await wait();
