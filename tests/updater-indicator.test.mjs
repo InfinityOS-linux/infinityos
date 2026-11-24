@@ -31,19 +31,30 @@ for (const [name, state, total] of [
     });
 }
 
-for (const [name, status, checkedAt, remaining] of [
+for (const [name, status, checkedAt, remaining, heldPackages] of [
     ['successful offline install hides old RPM and release counts', 'success', '2026-11-09T19:00:00Z', 0],
     ['failed offline install keeps pending updates', 'failed', '2026-11-09T19:00:00Z', 3],
     ['new checks remain visible after an older successful install', 'success', '2026-11-09T21:00:00Z', 3],
+    ['failed builds are omitted from cached badge counts', 'failed', '2026-11-09T19:00:00Z', 2,
+        [{name: 'example', version: '1-1', arch: 'x86_64'}]],
+    ['unrelated success keeps older held builds out of the badge', 'success', '2026-11-09T21:00:00Z', 2,
+        [{name: 'example', version: '1-1', arch: 'x86_64'}]],
 ]) {
     test(name, () => {
-        const state = {checked_at: checkedAt, updates: [{kind: 'RPM'}, {kind: 'RPM'}], release: {version: '2.1'}};
+        const state = {checked_at: checkedAt, updates: [
+            {kind: 'RPM', name: 'example', version: '0:1-1', arch: 'x86_64'},
+            {kind: 'RPM', name: 'example', version: '2-1', arch: 'x86_64'},
+        ], release: {version: '2.1'}};
+        const result = {status, held_packages: heldPackages};
         const resultPath = '/var/lib/infinityos/offline-update-result.json';
         const indicator = vm.runInNewContext(`${source}\nnew InfinityUpdater()`, {
             Extension: class {}, TextDecoder,
-            GLib: {file_get_contents: path => [true, Buffer.from(JSON.stringify(path === resultPath ? {status} : state))]},
+            GLib: {file_get_contents: path => [true, Buffer.from(JSON.stringify(path === resultPath ? result : state))]},
             Gio: {FileQueryInfoFlags: {NONE: 0}, File: {new_for_path: () => ({
-                query_info: () => ({get_attribute_uint64: () => Date.parse('2026-11-09T20:00:00Z') / 1000}),
+                query_info: () => ({
+                    get_attribute_uint64: () => Date.parse('2026-11-09T20:00:00Z') / 1000,
+                    get_attribute_uint32: () => 0,
+                }),
             })}},
             Main: {notify() {}},
         });

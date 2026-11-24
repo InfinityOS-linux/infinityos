@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import os
 from pathlib import Path
 import shutil
@@ -75,7 +76,7 @@ class CompatibilityTests(unittest.TestCase):
 class NativeSolverTests(unittest.TestCase):
     def test_real_solver_holds_and_releases_an_update_without_installing_anything(self):
         ready = (importlib.util.find_spec('libdnf5') is not None and
-                 all(shutil.which(name) for name in ('rpmbuild', 'rpm', 'createrepo_c')) and os.geteuid() == 0)
+                 all(shutil.which(name) for name in ('rpmbuild', 'rpm', 'createrepo_c', 'dnf5')) and os.geteuid() == 0)
         if not ready:
             if os.environ.get('INFINITY_NATIVE_DNF_REQUIRED'):
                 self.fail('Native libdnf5/RPM fixture dependencies are unavailable')
@@ -140,6 +141,17 @@ A metadata-only dependency solver test package.
             run(['createrepo_c', '--quiet', '--update', str(repo)])
             second = inspect('ready')
             self.assertFalse(any(item.get('deferred') for item in second))
+            # Verify the CLI used by privileged staging excludes only the failed
+            # NEVRA. The other update must proceed without an RPM database write.
+            run(['dnf5', '-y', '--installroot', str(system), '--releasever=45',
+                 '--setopt=reposdir=/nonexistent', '--repofrompath=fixture,' + repo.as_uri(),
+                 '--setopt=fixture.gpgcheck=0', '--setopt=fixture.repo_gpgcheck=0',
+                 '--exclude=infinity-test-held-0:2-1.noarch,infinity-test-held-2-1.noarch',
+                 'upgrade', '--offline', '--no-best', '--skip-unavailable'])
+            transaction = system / 'usr/lib/sysimage/libdnf5/offline/transaction.json'
+            batch = json.loads(transaction.read_text())['rpms']
+            self.assertEqual([item['nevra'].replace('-0:', '-') for item in batch
+                              if item['action'] == 'Upgrade'], ['infinity-test-ready-2-1.noarch'])
             self.assertEqual(run(['rpm', '--root', str(system), '-qa']), installed)
 
 

@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 
+RESULT_DIRECTORY = Path('/var/lib/infinityos')
 OFFLINE = Path('/usr/lib/sysimage/libdnf5/offline')
 TRIGGER = Path('/system-update')
 INBOUND = {'Install', 'Upgrade', 'Downgrade', 'Reinstall'}
@@ -16,6 +17,12 @@ INBOUND = {'Install', 'Upgrade', 'Downgrade', 'Reinstall'}
 def packages(directory=None):
     directory = directory or OFFLINE
     transaction = json.loads((directory / 'transaction.json').read_text())
+    return transaction_packages(transaction)
+
+
+def transaction_packages(transaction):
+    if not any(transaction.get(key) for key in ('rpms', 'groups', 'environments')):
+        raise ValueError('The offline transaction is empty.')
     result = []
     for item in transaction.get('rpms', []):
         if item['action'] not in INBOUND:
@@ -29,6 +36,69 @@ def packages(directory=None):
                        'source': item.get('repo_id', ''), 'nevra': item['nevra'],
                        'path': item.get('package_path', ''), 'reason': item.get('reason', 'User')})
     return result
+
+
+def package_key(item):
+    return item['name'], item.get('arch'), item['version'].removeprefix('0:')
+
+
+def read_result(directory=None):
+    path = (directory or RESULT_DIRECTORY) / 'offline-update-result.json'
+    try:
+        result = json.loads(path.read_text())
+        return result if isinstance(result, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def write_result(result, directory=None):
+    directory = directory or RESULT_DIRECTORY
+    directory.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(mode='w', dir=directory, delete=False) as file:
+        temporary = Path(file.name)
+        try:
+            json.dump(result, file)
+            file.write('\n')
+            file.flush()
+            os.fchmod(file.fileno(), 0o644)
+            os.fsync(file.fileno())
+            temporary.replace(directory / 'offline-update-result.json')
+        finally:
+            temporary.unlink(missing_ok=True)
+    fd = os.open(directory, os.O_DIRECTORY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def failed_result(result, directory=None):
+    if result.get('status') == 'running':
+        holds = result.get('held_packages', [])
+        if not result.get('release'):
+            holds = record_holds(holds, result['attempted_packages'], result['phase'])
+        return {**result, 'status': 'failed', 'interrupted': True, 'held_packages': holds}
+    if result.get('status') == 'failed' and 'held_packages' not in result:
+        # Older updaters did not write package identities. Reuse the transaction
+        # only if its metadata predates the recorded failure.
+        path = (directory or RESULT_DIRECTORY) / 'offline-update-result.json'
+        try:
+            if (OFFLINE / 'transaction.json').stat().st_mtime_ns <= path.stat().st_mtime_ns:
+                holds = record_holds([], packages(), 'transaction')
+                return {**result, 'held_packages': holds}
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            pass
+    return result
+
+
+def record_holds(previous, failed, phase):
+    holds = {package_key(item): item for item in previous}
+    for item in failed:
+        holds[package_key(item)] = {
+            **{key: item[key] for key in ('name', 'arch', 'version', 'source', 'nevra')},
+            'phase': phase,
+        }
+    return list(holds.values())
 
 
 def evr_tuple(value):
@@ -85,15 +155,47 @@ def stage(local_rpm=None):
     existing = TRIGGER.is_symlink()
     if (TRIGGER.exists() or existing) and (not existing or TRIGGER.resolve() != OFFLINE):
         raise RuntimeError('Another updater owns the pending transaction. Restart first.')
-    pending = packages() if existing else []
+    previous = read_result()
+    result = failed_result(previous)
+    if result != previous:
+        write_result(result)
+    holds = result.get('held_packages', [])
+    held_keys = {package_key(item) for item in holds}
+    pending = []
     if existing:
-        transaction = json.loads((OFFLINE / 'transaction.json').read_text())
-        if transaction.get('groups') or transaction.get('environments'):
-            raise RuntimeError('A group update is pending. Restart to complete it first.')
-        if any(item.get('action') not in INBOUND | {'Replaced'}
-               for item in transaction.get('rpms', [])):
-            raise RuntimeError('The pending transaction contains removals or unsupported actions. Restart to complete it first.')
+        try:
+            transaction = json.loads((OFFLINE / 'transaction.json').read_text())
+            pending = transaction_packages(transaction)
+        except (FileNotFoundError, ValueError, KeyError, TypeError, AttributeError):
+            TRIGGER.unlink()
+            existing = False
+        else:
+            if transaction.get('groups') or transaction.get('environments'):
+                raise RuntimeError('A group update is pending. Restart to complete it first.')
+            if any(item.get('action') not in INBOUND | {'Replaced'}
+                   for item in transaction.get('rpms', [])):
+                raise RuntimeError('The pending transaction contains removals or unsupported actions. Restart to complete it first.')
+            if not pending or any(package_key(item) in held_keys for item in pending):
+                # An old updater may have already armed a transaction that is
+                # now known to be invalid. Replace it using the current solver.
+                TRIGGER.unlink()
+                existing = False
+                pending = []
     command = ['dnf', '-y']
+    if holds:
+        # The version and architecture are part of the exclusion, so a new build
+        # can resolve normally. Include both spellings of a zero epoch.
+        exclusions = {spec for item in holds for spec in (
+            item['nevra'], f"{item['name']}-{item['version']}.{item['arch']}")}
+        command.append('--exclude=' + ','.join(sorted(exclusions)))
+    replacing = None
+    if local_rpm and (pending or holds):
+        identity = subprocess.check_output(
+            ['rpm', '-qp', '--qf', '%{NAME}|%{ARCH}|%{EVR}', local_rpm], text=True)
+        name, arch, version = identity.split('|')
+        replacing = (name, arch)
+        if package_key(dict(name=name, arch=arch, version=version)) in held_keys:
+            raise RuntimeError(f'{name} {version} is on hold after a failed offline update.')
     if pending:
         import rpm
         query = subprocess.run(['dnf', '--quiet', '--refresh', 'repoquery', '--available',
@@ -103,17 +205,13 @@ def stage(local_rpm=None):
         available = []
         for line in query.stdout.splitlines():
             name, arch, version = line.split('|', 2)
-            available.append(dict(name=name, arch=arch, version=version,
-                                  nevra=f'{name}-{version}.{arch}'))
-        replacing = None
-        if local_rpm:
-            identity = subprocess.check_output(
-                ['rpm', '-qp', '--qf', '%{NAME}|%{ARCH}|%{EVR}', local_rpm], text=True)
-            name, arch, version = identity.split('|')
-            replacing = (name, arch)
-            if any((p['name'], p['arch']) == replacing and
-                   rpm.labelCompare(evr_tuple(version), evr_tuple(p['version'])) < 0 for p in pending):
-                raise RuntimeError('A newer version is already downloaded. The pending update was kept.')
+            candidate = dict(name=name, arch=arch, version=version,
+                             nevra=f'{name}-{version}.{arch}')
+            if package_key(candidate) not in held_keys:
+                available.append(candidate)
+        if replacing and any((p['name'], p['arch']) == replacing and
+                             rpm.labelCompare(evr_tuple(version), evr_tuple(p['version'])) < 0 for p in pending):
+            raise RuntimeError('A newer version is already downloaded. The pending update was kept.')
         specs = refresh_specs(pending, available, rpm.labelCompare, replacing)
         command += ['do', '--offline', '--refresh', '--no-best', '--no-allow-downgrade', '--action=upgrade', '*', '--action=install', *specs]
         if local_rpm:
@@ -126,24 +224,33 @@ def stage(local_rpm=None):
     # DNF keeps downloaded RPMs; preserve metadata until the replacement is ready.
     with tempfile.TemporaryDirectory(prefix='infinityos-pending-') as temporary:
         saved = Path(temporary)
-        for name in ('transaction.json', 'offline-transaction-state.toml'):
-            source = OFFLINE / name
-            if source.exists():
-                shutil.copy2(source, saved / name)
         if existing:
+            for name in ('transaction.json', 'offline-transaction-state.toml'):
+                source = OFFLINE / name
+                if source.exists():
+                    shutil.copy2(source, saved / name)
             TRIGGER.unlink()
+        transaction_path = OFFLINE / 'transaction.json'
         try:
-            stage_command(command, allow_retry=not local_rpm)
-            # DNF can succeed without staging anything when candidates are skipped.
+            # A no-op DNF command may leave old files untouched. A fresh queue
+            # must contain a transaction written by this staging attempt.
             if not existing:
-                transaction_path = OFFLINE / 'transaction.json'
-                if not transaction_path.exists():
-                    return
-                transaction = json.loads(transaction_path.read_text())
-                if not any(transaction.get(key) for key in ('rpms', 'groups', 'environments')):
-                    return
+                transaction_path.unlink(missing_ok=True)
+                (OFFLINE / 'offline-transaction-state.toml').unlink(missing_ok=True)
+            stage_command(command, allow_retry=not local_rpm)
+            if not transaction_path.exists():
+                if existing:
+                    raise RuntimeError('No replacement transaction was prepared.')
+                return
+            transaction = json.loads(transaction_path.read_text())
+            if not any(transaction.get(key) for key in ('rpms', 'groups', 'environments')):
+                if existing:
+                    raise RuntimeError('No replacement transaction was prepared.')
+                return
+            if held_keys and any(package_key(item) in held_keys
+                                 for item in transaction_packages(transaction)):
+                raise RuntimeError('DNF included a held package. No restart was scheduled.')
             if pending:
-                transaction = json.loads((OFFLINE / 'transaction.json').read_text())
                 reasons = {(p['name'], p['arch']): p['reason'] for p in pending}
                 for item in transaction.get('rpms', []):
                     nvr, arch = item['nevra'].rsplit('.', 1)
@@ -156,11 +263,12 @@ def stage(local_rpm=None):
             subprocess.run(['dnf', '-y', 'offline', 'reboot'], check=True,
                            env={**os.environ, 'DNF_SYSTEM_UPGRADE_NO_REBOOT': '1'})
         except BaseException:
-            OFFLINE.mkdir(parents=True, exist_ok=True)
-            for source in saved.iterdir():
-                shutil.copy2(source, OFFLINE / source.name)
+            if TRIGGER.is_symlink() and TRIGGER.resolve() == OFFLINE:
+                TRIGGER.unlink()
             if existing:
-                TRIGGER.unlink(missing_ok=True)
+                OFFLINE.mkdir(parents=True, exist_ok=True)
+                for source in saved.iterdir():
+                    shutil.copy2(source, OFFLINE / source.name)
                 TRIGGER.symlink_to(OFFLINE)
             raise
 
@@ -174,4 +282,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
+        sys.exit(f'System update preparation stopped: {error}')

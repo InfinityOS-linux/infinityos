@@ -3,9 +3,7 @@ import os
 from pathlib import Path
 import tempfile
 
-
-def package_key(item):
-    return item['name'], item.get('arch'), item['version'].removeprefix('0:')
+from pending import package_key
 
 
 def classify_transaction(updates, transaction):

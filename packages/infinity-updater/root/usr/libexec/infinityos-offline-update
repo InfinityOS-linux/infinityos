@@ -1,11 +1,34 @@
 #!/usr/bin/python3
 """Use DNF's offline transaction with a required, complete recovery point."""
-import json
 import hashlib
+import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
+
+sys.path.insert(0, '/usr/share/infinityos/updater')
+from pending import failed_result, read_result, record_holds, transaction_packages, write_result
+
+
+def transaction_failure(log_path, packages):
+    """Identify errors that DNF or RPM can attribute more precisely."""
+    try:
+        with log_path.open('rb') as log:
+            log.seek(0, os.SEEK_END)
+            log.seek(max(0, log.tell() - 65536))
+            text = log.read().decode('utf-8', errors='replace')
+    except OSError:
+        return 'transaction', packages
+    if 'The system has been modified since the offline transaction was prepared.' in text:
+        # DNF checks its RPM database cookie before running anything. A newly
+        # solved transaction can use the same candidate builds safely.
+        return 'rpmdb_changed', []
+    failures = set(re.findall(r'from install of (\S+) conflicts with file from package', text))
+    conflicts = [item for item in packages if failures.intersection({
+        item['nevra'], f"{item['name']}-{item['version']}.{item['arch']}"})]
+    return ('file_conflict', conflicts) if conflicts else ('transaction', packages)
 
 
 def main():
@@ -14,10 +37,26 @@ def main():
     if not trigger.is_symlink() or trigger.resolve() != pending:
         return 0
     directory = Path('/var/lib/infinityos')
-    directory.mkdir(parents=True, exist_ok=True)
-    result = {'status': 'failed', 'snapshot': None}
+    previous = read_result(directory)
+    result = {'status': 'running', 'phase': 'prepare', 'snapshot': None,
+              'release': Path('/etc/infinityos-release-pending.json').exists(),
+              'attempted_packages': [], 'held_packages': failed_result(previous, directory).get('held_packages', [])}
+    log_path = directory / 'offline-update.log'
     try:
-        with (directory / 'offline-update.log').open('w') as log:
+        transaction = (pending / 'transaction.json').read_bytes()
+        digest = hashlib.sha256(transaction).hexdigest()
+        if previous.get('status') == 'running' and previous.get('transaction') == digest:
+            # A power loss can leave the trigger armed before DNF gets to remove it.
+            trigger.unlink(missing_ok=True)
+            write_result(failed_result(previous, directory), directory)
+            return 1
+        result['transaction'] = digest
+        result['attempted_packages'] = transaction_packages(json.loads(transaction))
+        result['phase'] = 'backup'
+        # A power loss while copying /var must not replay the update, and the
+        # recovery snapshot must not contain an in-progress update result.
+        trigger.unlink()
+        with os.fdopen(os.open(log_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), 'w') as log:
             os.fchmod(log.fileno(), 0o600)
             backup = subprocess.run(['/usr/libexec/infinityos-backups-snapshot'],
                                     text=True, stdout=subprocess.PIPE, stderr=log, check=True)
@@ -25,10 +64,14 @@ def main():
             if not number:
                 raise RuntimeError('Backup did not return a snapshot number')
             result['snapshot'] = number
-            digest = hashlib.sha256((pending / 'transaction.json').read_bytes()).hexdigest()
+            result['phase'] = 'transaction'
+            write_result(result, directory)
+            trigger.symlink_to(pending)
             subprocess.run(['/usr/bin/dnf5', 'offline', '_execute'], check=True,
                            stdout=log, stderr=subprocess.STDOUT,
                            env={**os.environ, 'DNF_SYSTEM_UPGRADE_NO_REBOOT': '1'})
+            result['phase'] = 'finalize'
+            write_result(result, directory)
             # This root-owned marker prevents a release being finalized before DNF succeeds.
             marker = Path('/run/infinityos-offline-success')
             marker.write_text(digest)
@@ -40,14 +83,22 @@ def main():
                 marker.unlink(missing_ok=True)
         result['status'] = 'success'
     except Exception as error:
+        result['status'] = 'failed'
         result['error'] = str(error)
+        if not result['release']:
+            attempted = result['attempted_packages']
+            if result['phase'] == 'transaction':
+                result['phase'], attempted = transaction_failure(log_path, attempted)
+            result['held_packages'] = record_holds(result['held_packages'], attempted, result['phase'])
+    # Remove our trigger regardless of the result. Failure recovery can clean up
+    # DNF's private state, but a normal reboot must never replay this attempt.
+    if trigger.is_symlink() and trigger.resolve() == pending:
         trigger.unlink(missing_ok=True)
-    temporary = directory / 'offline-update-result.tmp'
-    temporary.write_text(json.dumps(result) + '\n')
-    temporary.replace(directory / 'offline-update-result.json')
+    result.pop('attempted_packages')
+    write_result(result, directory)
     if result['status'] != 'success':
-        print('Offline update failed. Use Backups to restore system + /var.', file=sys.stderr)
-        return 1  # DNF's existing failure service cleans the trigger and reboots.
+        print('Offline update failed. See /var/lib/infinityos/offline-update.log.', file=sys.stderr)
+        return 1  # DNF's existing failure service cleans up and reboots.
     subprocess.run(['systemctl', 'reboot', '--no-block'], check=True)
     return 0
 

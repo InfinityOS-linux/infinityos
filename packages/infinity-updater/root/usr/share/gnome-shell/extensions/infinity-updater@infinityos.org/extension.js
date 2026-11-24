@@ -374,24 +374,34 @@ export default class InfinityUpdater extends Extension {
             const [ok, contents] = GLib.file_get_contents(this._stateFile);
             if (ok) {
                 const state = JSON.parse(new TextDecoder().decode(contents));
-                count = Array.isArray(state.updates) ? state.updates.filter(update => !update.deferred).length : 0;
+                let available = Array.isArray(state.updates) ? state.updates.filter(update => !update.deferred) : [];
                 release = state.release?.version ?? null;
-                // Offline RPM installation cannot update each user's cached results.
+                // Boot-time updates cannot rewrite every user's cached results.
                 try {
                     const resultPath = '/var/lib/infinityos/offline-update-result.json';
                     const [resultOk, resultBytes] = GLib.file_get_contents(resultPath);
                     const result = resultOk ? JSON.parse(new TextDecoder().decode(resultBytes)) : {};
-                    const info = Gio.File.new_for_path(resultPath).query_info(
-                        'time::modified', Gio.FileQueryInfoFlags.NONE, null);
-                    if (result.status === 'success' &&
-                        Date.parse(state.checked_at) < info.get_attribute_uint64('time::modified') * 1000) {
-                        count = Array.isArray(state.updates)
-                            ? state.updates.filter(update => update.kind !== 'RPM' && !update.deferred).length : 0;
-                        release = null;
+                    const held = [...(result.held_packages ?? [])];
+                    if (result.status === 'running' && !result.release)
+                        held.push(...(result.attempted_packages ?? []));
+                    const isHeld = update => held.some(pkg => pkg.name === update.name &&
+                        (!update.arch || update.arch === pkg.arch) &&
+                        update.version?.replace(/^0:/, '') === pkg.version);
+                    available = available.filter(update => update.kind !== 'RPM' || !isHeld(update));
+                    if (result.status === 'success') {
+                        const info = Gio.File.new_for_path(resultPath).query_info(
+                            'time::modified,time::modified-usec', Gio.FileQueryInfoFlags.NONE, null);
+                        const modified = info.get_attribute_uint64('time::modified') * 1000 +
+                            info.get_attribute_uint32('time::modified-usec') / 1000;
+                        if (Date.parse(state.checked_at) < modified) {
+                            available = available.filter(update => update.kind !== 'RPM');
+                            release = null;
+                        }
                     }
                 } catch (_error) {
-                    // Without a successful result, keep pending updates visible.
+                    // A missing or unreadable result does not invalidate the cache.
                 }
+                count = available.length;
             }
         } catch (_error) {
             // No completed update check yet.
