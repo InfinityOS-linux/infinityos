@@ -22,6 +22,11 @@ mkdir -p "$work/source/$package-$version" "$work/rpmbuild/SOURCES" "$work/rpmbui
 if [[ -d "$repo/packages/$package/root" ]]; then
   cp -a "$repo/packages/$package/root/." "$work/source/$package-$version/"
 fi
+if [[ "$package" == infinity-terminal ]]; then
+  extensions=usr/share/gnome-shell/extensions
+  install -m 0644 "$repo/packages/infinity-updater/root/$extensions/infinity-updater@infinityos.org/panel-backdrop.js" \
+    "$work/source/$package-$version/$extensions/ghostty@infinityos.org/panel-backdrop.js"
+fi
 install -d "$work/source/$package-$version/usr/share/infinityos/build-revisions"
 printf '%s\n' "$revision" > "$work/source/$package-$version/usr/share/infinityos/build-revisions/$package"
 

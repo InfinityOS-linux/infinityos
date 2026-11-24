@@ -21,7 +21,7 @@ export class HardwareMonitor {
         this._cells = [];
         this._alive = true;
         this._widgets = new MonitorWidgets(() => { if (this._alive) this._updateWidgets(); }, this._settings);
-        this.actor = new St.BoxLayout({reactive: true, visible: false,
+        this.actor = new St.Widget({layout_manager: new Clutter.BinLayout(), reactive: true, visible: false,
             style_class: 'infinity-monitor', accessible_name: tr('Hardware monitors', 'Wskaźniki sprzętowe')});
         this._colorSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'});
         const syncTheme = () => {
@@ -186,12 +186,13 @@ export class HardwareMonitor {
 
     _rebuild() {
         this._widgets?.select(this._settings.get_strv('monitor-metrics'));
-        this.actor.destroy_all_children();
+        this._scroll?.destroy();
         this._cells = [];
-        const scroll = new St.ScrollView({x_expand: true, y_expand: true,
+        const scroll = new St.ScrollView({style_class: 'infinity-monitor-content', x_expand: true, y_expand: true,
             hscrollbar_policy: St.PolicyType.EXTERNAL, vscrollbar_policy: St.PolicyType.NEVER});
         const row = new St.BoxLayout({x_expand: false, x_align: Clutter.ActorAlign.CENTER});
         scroll.set_child(row);
+        this._scroll = scroll;
         this.actor.add_child(scroll);
         for (const id of new Set(this._settings.get_strv('monitor-metrics'))) {
             const actor = new St.Button({style_class: 'infinity-monitor-cell', width: 128 * St.ThemeContext.get_for_stage(global.stage).scale_factor, x_expand: false, can_focus: true});

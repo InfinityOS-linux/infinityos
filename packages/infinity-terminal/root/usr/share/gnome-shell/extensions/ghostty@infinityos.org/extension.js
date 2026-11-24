@@ -11,6 +11,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as Workspace from 'resource:///org/gnome/shell/ui/workspace.js';
 import {TerminalPullHandle} from './pull-handle.js';
+import {PanelBackdrop} from './panel-backdrop.js';
 import {HardwareMonitor} from './hardware-monitor.js';
 import {clampTerminalHeight, isFullHeight} from './resize.mjs';
 
@@ -38,6 +39,7 @@ export default class InfinityTerminal extends Extension {
         this._resizeHandle = new St.Widget({reactive: true, visible: false,
             accessible_name: 'Resize InfinityTerminal', can_focus: false});
         Main.layoutManager.addChrome(this._resizeHandle);
+        this._drawerBackdrop = new PanelBackdrop({exportReadiness: false});
         this._hardware = new HardwareMonitor(this, () => {
             if (this._window) this._place(this._window);
         }, () => this._syncResizeHandle());
@@ -258,6 +260,8 @@ export default class InfinityTerminal extends Extension {
             GLib.Source.remove(this._sourceId);
         if (this._placementId)
             GLib.Source.remove(this._placementId);
+        this._drawerBackdrop.destroy();
+        this._drawerBackdrop = null;
         this._hardware.destroy();
         this._hardware = null;
         this._window = null;
@@ -291,6 +295,11 @@ export default class InfinityTerminal extends Extension {
         const rect = visible ? window.get_frame_rect() : null;
         this._resizeHandle.visible = visible && !this._sliding;
         this._hardware?.sync(rect, visible, actor);
+        // Keep the blur under the client until the closing slide actually ends.
+        if (actor?.mapped && !window.minimized)
+            this._drawerBackdrop?.attach(window, null, this._hardware?.actor);
+        else if (window)
+            this._drawerBackdrop?.detach(window);
         if (rect) {
             this._resizeHandle.set_position(rect.x, rect.y + rect.height - RESIZE_EDGE);
             this._resizeHandle.set_size(rect.width, RESIZE_EDGE);
@@ -606,8 +615,10 @@ export default class InfinityTerminal extends Extension {
             this._window.disconnect(this._minimizedId);
         for (const id of this._geometryIds)
             this._window?.disconnect(id);
-        if (this._window !== window)
+        if (this._window !== window) {
+            if (this._window) this._drawerBackdrop?.detach(this._window);
             this._closingWindow = null;
+        }
         this._window = window;
         this._geometryIds = [
             window.connect('position-changed', () => { this._enforcePlacement(window); this._syncResizeHandle(); }),

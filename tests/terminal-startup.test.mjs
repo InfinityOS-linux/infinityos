@@ -18,7 +18,7 @@ function startup(username, initial = 0, fail = false) {
     const context = vm.createContext({
         Extension: class {getSettings() { return settings; }},
         InjectionManager: class {overrideMethod() {} clear() {}},
-        HardwareMonitor: class {},
+        HardwareMonitor: class {}, PanelBackdrop: class {},
         TerminalPullHandle: class {},
         Atk: {Role: {}}, St: {Icon: Widget, Button: Widget, Widget}, PanelMenu: {Button: Widget},
         Clutter: {ClickGesture: Widget}, Meta: {KeyBindingFlags: {}},

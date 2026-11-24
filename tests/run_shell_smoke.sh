@@ -31,6 +31,7 @@ done
 for package in infinity-terminal infinity-updater; do
     cp -a "$repo/packages/$package/root/usr/share/gnome-shell/extensions/." "$SMOKE_EXTENSIONS/"
 done
+cp "$SMOKE_EXTENSIONS/infinity-updater@infinityos.org/panel-backdrop.js" "$SMOKE_EXTENSIONS/ghostty@infinityos.org/"
 cp -a "$repo/vendor/gnome-shell/fedora-45/usr/share/gnome-shell/extensions/blur-my-shell@aunetx" "$SMOKE_EXTENSIONS/"
 cp -a "$repo/tests/shell-smoke" "$SMOKE_EXTENSIONS/infinity-smoke@test"
 for schemas in "$SMOKE_EXTENSIONS"/*/schemas; do glib-compile-schemas --strict "$schemas"; done
