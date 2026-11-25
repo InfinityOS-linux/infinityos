@@ -1,5 +1,30 @@
 [
   {
+    "id": "2026-11-25-rpm-media-controls",
+    "date": "2026-11-25",
+    "title": "RPM update: Media Controls in the panel and Quick Settings",
+    "summary": "Media Controls replaces NowPlay, with playback controls on the right of the top bar and in Quick Settings. Existing accounts migrate to the bundled InfinityOS edition.",
+    "buildSha": "6c9dcfec9d18c5bf9490161361302e2081726332",
+    "changes": [
+      {
+        "title": "Available through InfinityUpdater",
+        "text": "This RPM update is available for ARM64 and x64 in infinityos-shell-extensions 1.0.0-10000575.fc45. The current installer images do not include these changes. Log out and back in after installing the update to load the new extension."
+      },
+      {
+        "title": "Panel and Quick Settings playback",
+        "text": "Media Controls replaces the bundled NowPlay extension and defaults to the right side of the top bar. Quick Settings shows the active player's title, artist and previous, play or pause, and next controls. The player remains available there when its panel indicator is placed on the right or far right."
+      },
+      {
+        "title": "Existing accounts",
+        "text": "A one-time migration removes NowPlay from enabled extensions and enables the bundled Media Controls edition unless it was explicitly disabled. A separately installed upstream copy is disabled during migration while its files and settings are preserved."
+      },
+      {
+        "title": "System media controls",
+        "text": "The bundled player is treated as a system control, so application tray preferences do not hide or move it. Native Shell media controls remain enabled, and starting playback does not pause other players by default."
+      }
+    ]
+  },
+  {
     "id": "2026-11-25-rpm-dock-alignment-and-window-switching",
     "date": "2026-11-25",
     "title": "RPM update: dock alignment and window switching",
