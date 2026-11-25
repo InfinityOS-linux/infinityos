@@ -50,7 +50,7 @@ cp -a usr etc %{buildroot}/
 glib-compile-schemas /usr/share/glib-2.0/schemas || :
 for uuid in \
     raccoonlauncher@shimafallah.github.io \
-    nowplay@LalaloyXyz \
+    media-controller@infinityos.org \
     ding@rastersoft.com \
     wack-shell@rinzler69-wastaken.github.com \
     globalmenu@ShiroOSL.github.io \
@@ -58,6 +58,12 @@ for uuid in \
     dash2dock-animated@infinityos.org; do
     glib-compile-schemas "/usr/share/gnome-shell/extensions/$uuid/schemas" || :
 done
+# Older RPMs generated this cache without recording it in the file list.
+retired_media=/usr/share/gnome-shell/extensions/nowplay@LalaloyXyz
+if test -d "$retired_media" && ! test -e "$retired_media/metadata.json"; then
+    rm -f "$retired_media/schemas/gschemas.compiled"
+    rmdir "$retired_media/schemas" "$retired_media" 2>/dev/null || :
+fi
 dconf update || :
 if test -d /usr/share/icons/kora/places; then
     /usr/libexec/infinityos-tint-system-icons /usr/share/icons/kora || :
@@ -78,7 +84,7 @@ gtk-update-icon-cache -f -q /usr/share/icons/hicolor || :
 /usr/share/icons/InfinityOS-Modern-Ice/
 /etc/xdg/autostart/infinityos-enable-desktop-additions.desktop
 /etc/xdg/autostart/infinityos-automount.desktop
-/usr/share/gnome-shell/extensions/nowplay@LalaloyXyz/
+/usr/share/gnome-shell/extensions/media-controller@infinityos.org/
 /usr/share/gnome-shell/extensions/raccoonlauncher@shimafallah.github.io/
 /usr/bin/infinityos-shell-recover
 /usr/libexec/infinityos-enable-global-menu

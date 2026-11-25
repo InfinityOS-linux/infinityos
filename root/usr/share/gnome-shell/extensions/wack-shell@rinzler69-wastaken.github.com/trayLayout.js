@@ -1,7 +1,7 @@
 // System indicators, including the updater, always stay in the top panel.
 const SYSTEM_ROLES = new Set([
     'activities', 'appMenu', 'dateMenu', 'quickSettings', 'a11y', 'keyboard',
-    'dwellClick', 'screenRecording', 'screenSharing', 'infinity-updater',
+    'dwellClick', 'screenRecording', 'screenSharing', 'infinity-updater', 'infinity-media-controls',
 ]);
 
 export function isUserIndicator(role, parent, panel) {

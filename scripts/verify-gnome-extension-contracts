@@ -48,6 +48,13 @@ retired_lockscreen = "wack-lockscreen-clock@rinzler69-wastaken.github.com"
 if retired_lockscreen in enabled or (extensions / retired_lockscreen).exists():
     raise SystemExit("WACK Sonoma Lockscreen must not be installed or enabled by default")
 
+retired_media = "nowplay@LalaloyXyz"
+new_media = "media-controller@infinityos.org"
+if new_media not in enabled or retired_media in enabled or (extensions / retired_media).exists():
+    raise SystemExit("Media Controls must replace NowPlay in the system extension set")
+if not source_tree and not (extensions / new_media / "schemas/gschemas.compiled").is_file():
+    raise SystemExit("Media Controls schema was not compiled")
+
 new_dock = "dash2dock-animated@infinityos.org"
 old_dock = "dash2dock-lite@icedman.github.com"
 if new_dock not in enabled or old_dock in enabled:

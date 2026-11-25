@@ -3,7 +3,10 @@
 import os
 from pathlib import Path
 
-EXTENSIONS = ('nowplay@LalaloyXyz', 'raccoonlauncher@shimafallah.github.io')
+MEDIA_CONTROLS = 'media-controller@infinityos.org'
+UPSTREAM_MEDIA_CONTROLS = 'media-controller@naimur'
+RETIRED_MEDIA = 'nowplay@LalaloyXyz'
+EXTENSIONS = ('raccoonlauncher@shimafallah.github.io',)
 RETIRED_LOCKSCREEN = 'wack-lockscreen-clock@rinzler69-wastaken.github.com'
 
 def with_extensions(enabled):
@@ -15,13 +18,15 @@ def without_launcher_conflict(shortcuts):
 
 def main():
     from gi.repository import Gio
-    marker = Path(os.environ.get('XDG_STATE_HOME', Path.home() / '.local/state')) / 'infinityos/desktop-additions-v1'
+    state = Path(os.environ.get('XDG_STATE_HOME', Path.home() / '.local/state')) / 'infinityos'
+    marker = state / 'desktop-additions-v1'
+    media_marker = state / 'media-controls-v1'
     shell = Gio.Settings.new('org.gnome.shell')
     enabled = list(shell.get_strv('enabled-extensions'))
-    updated = enabled
+    updated = [uuid for uuid in enabled if uuid != RETIRED_MEDIA]
     user_data = Path(os.environ.get('XDG_DATA_HOME', Path.home() / '.local/share'))
     if RETIRED_LOCKSCREEN in enabled and not (user_data / 'gnome-shell/extensions' / RETIRED_LOCKSCREEN).exists():
-        updated = [uuid for uuid in enabled if uuid != RETIRED_LOCKSCREEN]
+        updated = [uuid for uuid in updated if uuid != RETIRED_LOCKSCREEN]
 
     first_run = not marker.exists()
     if first_run:
@@ -32,13 +37,24 @@ def main():
             return 1
         updated = with_extensions(updated)
 
+    migrate_media = not media_marker.exists()
+    if migrate_media and UPSTREAM_MEDIA_CONTROLS in updated:
+        # Keep the user-installed files and settings; enable the Infinity OS edition.
+        updated = [uuid for uuid in updated if uuid != UPSTREAM_MEDIA_CONTROLS]
+    if (migrate_media and MEDIA_CONTROLS not in updated
+            and MEDIA_CONTROLS not in shell.get_strv('disabled-extensions')):
+        updated.append(MEDIA_CONTROLS)
+
     if updated != enabled and not shell.set_strv('enabled-extensions', updated):
         return 1
-    if first_run or updated != enabled:
+    if first_run or migrate_media or updated != enabled:
         Gio.Settings.sync()
+    if first_run or migrate_media:
+        state.mkdir(parents=True, exist_ok=True)
     if first_run:
-        marker.parent.mkdir(parents=True, exist_ok=True)
         marker.touch()
+    if migrate_media:
+        media_marker.touch()
     return 0
 
 if __name__ == '__main__':
