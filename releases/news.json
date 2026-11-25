@@ -1,5 +1,38 @@
 [
   {
+    "id": "2026-11-25-media-controls-and-update-recovery-isos",
+    "date": "2026-11-25",
+    "title": "New installers with Media Controls and update recovery",
+    "summary": "New ARM64 and x64 installer images include Media Controls, dock layout and window switching fixes, and improved recovery from failed updates.",
+    "buildSha": "6aa41bcfbcb1816f155699a0b0703ac7665d29c8",
+    "changes": [
+      {
+        "title": "New ISO images and available RPM updates",
+        "text": "Both installer images have been built, verified and published. They include the changes released since the November 24 translucent light dock installers. These improvements are also available to existing installations through InfinityUpdater; reinstalling is not required."
+      },
+      {
+        "title": "Media Controls",
+        "text": "Media Controls replaces NowPlay and defaults to the right side of the top bar. Quick Settings retains playback controls with the current track and artist. Existing accounts migrate to the bundled edition while separately installed upstream files and settings are preserved."
+      },
+      {
+        "title": "Dock layout and window switching",
+        "text": "Running indicators stay centered and dividers keep a consistent thickness. Mounted drives form a separate group after Downloads, with Trash at the end. Internal updater and script helper windows stay out of the dock. Window switching selects one window without restoring all minimized windows, and automatic hiding handles monitor changes more reliably."
+      },
+      {
+        "title": "Failed update recovery",
+        "text": "InfinityUpdater reports failed offline transactions and separates affected RPM builds under Updates with problems. Interrupted attempts and stale transactions no longer repeatedly schedule the same failed update. Newer package builds remain eligible, and reopening the updater preserves the restart action for staged updates."
+      },
+      {
+        "title": "Flatpak verification and retry",
+        "text": "Flatpak updates are checked individually against their planned deployments. Unchanged failed plans remain under Updates with problems, where the selected update can be retried. Changed plans are checked again."
+      },
+      {
+        "title": "Authentication and light mode",
+        "text": "Password prompts reveal their blurred backdrop and use more compact spacing below the password field. The light unlock screen and login password field have clearer text, controls and focus outlines."
+      }
+    ]
+  },
+  {
     "id": "2026-11-25-rpm-media-controls",
     "date": "2026-11-25",
     "title": "RPM update: Media Controls in the panel and Quick Settings",
@@ -8,7 +41,7 @@
     "changes": [
       {
         "title": "Available through InfinityUpdater",
-        "text": "This RPM update is available for ARM64 and x64 in infinityos-shell-extensions 1.0.0-10000575.fc45. The current installer images do not include these changes. Log out and back in after installing the update to load the new extension."
+        "text": "This RPM update is available for ARM64 and x64 in infinityos-shell-extensions 1.0.0-10000575.fc45. The new installer images published on November 25 also include these changes. Log out and back in after installing the update to load the new extension."
       },
       {
         "title": "Panel and Quick Settings playback",
@@ -33,7 +66,7 @@
     "changes": [
       {
         "title": "Available through InfinityUpdater",
-        "text": "This RPM update is available for ARM64 and x64. It includes the dock improvements published since the failed update recovery and drive groups update. The current installer images do not include these later changes."
+        "text": "This RPM update is available for ARM64 and x64. It includes the dock improvements published since the failed update recovery and drive groups update. The new installer images published on November 25 also include these changes."
       },
       {
         "title": "Dividers and running indicators",
