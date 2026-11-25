@@ -25,7 +25,7 @@ cp -a "$repo/root/usr/share/icons/InfinityOS-Modern-Ice" "$sandbox/system/icons/
 # legacy wait bitmap. Source tests separately load every Xcursor size/frame.
 rm "$sandbox/system/icons/InfinityOS-Modern-Ice/cursors/wait"
 chmod 700 "$XDG_RUNTIME_DIR"
-for uuid in globalmenu@ShiroOSL.github.io media-controller@naimur raccoonlauncher@shimafallah.github.io dash2dock-animated@infinityos.org wack-shell@rinzler69-wastaken.github.com; do
+for uuid in globalmenu@ShiroOSL.github.io media-controller@infinityos.org raccoonlauncher@shimafallah.github.io dash2dock-animated@infinityos.org wack-shell@rinzler69-wastaken.github.com; do
     cp -a "$repo/root/usr/share/gnome-shell/extensions/$uuid" "$SMOKE_EXTENSIONS/"
 done
 for package in infinity-terminal infinity-updater; do

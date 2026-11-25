@@ -50,7 +50,7 @@ cp -a usr etc %{buildroot}/
 glib-compile-schemas /usr/share/glib-2.0/schemas || :
 for uuid in \
     raccoonlauncher@shimafallah.github.io \
-    media-controller@naimur \
+    media-controller@infinityos.org \
     ding@rastersoft.com \
     wack-shell@rinzler69-wastaken.github.com \
     globalmenu@ShiroOSL.github.io \
@@ -84,7 +84,7 @@ gtk-update-icon-cache -f -q /usr/share/icons/hicolor || :
 /usr/share/icons/InfinityOS-Modern-Ice/
 /etc/xdg/autostart/infinityos-enable-desktop-additions.desktop
 /etc/xdg/autostart/infinityos-automount.desktop
-/usr/share/gnome-shell/extensions/media-controller@naimur/
+/usr/share/gnome-shell/extensions/media-controller@infinityos.org/
 /usr/share/gnome-shell/extensions/raccoonlauncher@shimafallah.github.io/
 /usr/bin/infinityos-shell-recover
 /usr/libexec/infinityos-enable-global-menu

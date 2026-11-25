@@ -38,7 +38,7 @@ class DesktopAdditionsTests(unittest.TestCase):
         shell.set_strv.return_value = False
         gi = Mock()
         gi.Gio.Settings.new.return_value = shell
-        enabled = ['custom@test', funcs['RETIRED_MEDIA'], 'panel@test']
+        enabled = ['custom@test', funcs['RETIRED_MEDIA'], 'panel@test', funcs['UPSTREAM_MEDIA_CONTROLS']]
         disabled = []
         replacement = funcs['MEDIA_CONTROLS']
 
@@ -83,7 +83,7 @@ class DesktopAdditionsTests(unittest.TestCase):
     def test_both_extensions_are_bundled_and_packaged_with_schemas_and_licenses(self):
         spec = (ROOT / 'packages/infinityos-shell-extensions/infinityos-shell-extensions.spec').read_text()
         defaults = (ROOT / 'root/usr/share/infinityos/gnome-defaults').read_text()
-        for uuid in ('media-controller@naimur', 'raccoonlauncher@shimafallah.github.io'):
+        for uuid in ('media-controller@infinityos.org', 'raccoonlauncher@shimafallah.github.io'):
             folder = ROOT / 'root/usr/share/gnome-shell/extensions' / uuid
             metadata = json.loads((folder / 'metadata.json').read_text())
             self.assertIn('51', metadata['shell-version'])

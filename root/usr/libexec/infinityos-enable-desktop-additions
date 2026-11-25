@@ -3,7 +3,8 @@
 import os
 from pathlib import Path
 
-MEDIA_CONTROLS = 'media-controller@naimur'
+MEDIA_CONTROLS = 'media-controller@infinityos.org'
+UPSTREAM_MEDIA_CONTROLS = 'media-controller@naimur'
 RETIRED_MEDIA = 'nowplay@LalaloyXyz'
 EXTENSIONS = ('raccoonlauncher@shimafallah.github.io',)
 RETIRED_LOCKSCREEN = 'wack-lockscreen-clock@rinzler69-wastaken.github.com'
@@ -37,6 +38,9 @@ def main():
         updated = with_extensions(updated)
 
     migrate_media = not media_marker.exists()
+    if migrate_media and UPSTREAM_MEDIA_CONTROLS in updated:
+        # Keep the user-installed files and settings; enable the Infinity OS edition.
+        updated = [uuid for uuid in updated if uuid != UPSTREAM_MEDIA_CONTROLS]
     if (migrate_media and MEDIA_CONTROLS not in updated
             and MEDIA_CONTROLS not in shell.get_strv('disabled-extensions')):
         updated.append(MEDIA_CONTROLS)

@@ -49,7 +49,7 @@ if retired_lockscreen in enabled or (extensions / retired_lockscreen).exists():
     raise SystemExit("WACK Sonoma Lockscreen must not be installed or enabled by default")
 
 retired_media = "nowplay@LalaloyXyz"
-new_media = "media-controller@naimur"
+new_media = "media-controller@infinityos.org"
 if new_media not in enabled or retired_media in enabled or (extensions / retired_media).exists():
     raise SystemExit("Media Controls must replace NowPlay in the system extension set")
 if not source_tree and not (extensions / new_media / "schemas/gschemas.compiled").is_file():

@@ -26,7 +26,7 @@ import {UpdateNotice} from './updateNotice.js';
 import {loopIconName, nextLoopStatus, playPauseIconName, seekOffset,
     setReactive, setToggleStyle, volumeIconName} from './transport.js';
 
-const ROLE = 'media-controls';
+const ROLE = 'infinity-media-controls';
 
 /* Logical pixels for the menu's arrow and borders around the card: the stock
  * theme needs 8, the rest is slack for other themes. */

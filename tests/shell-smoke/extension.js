@@ -977,11 +977,11 @@ export default class Smoke extends Extension {
     }
 
     async _checkMediaControls(wait) {
-        const uuid = 'media-controller@naimur';
+        const uuid = 'media-controller@infinityos.org';
         const extensionManager = Main.extensionManager;
         const quick = Main.panel.statusArea.quickSettings;
         const tray = new UserTray();
-        tray._preferences['media-controls'] = 'hidden';
+        tray._preferences['infinity-media-controls'] = 'hidden';
 
         let playback = 'Playing';
         const service = Gio.DBusExportedObject.wrapJSObject(
@@ -1011,14 +1011,14 @@ export default class Smoke extends Extension {
         let settings;
         try {
             check(extensionManager.enableExtension(uuid), 'bundled Media Controls could not be enabled');
-            for (let attempt = 0; attempt < 8 && !Main.panel.statusArea['media-controls']; attempt++)
+            for (let attempt = 0; attempt < 8 && !Main.panel.statusArea['infinity-media-controls']; attempt++)
                 await wait();
             const media = extensionManager.lookup(uuid).stateObj;
             check(media?._quickSettingsPlayer, 'bundled Media Controls did not start');
             settings = media.getSettings();
             check(settings.get_string('panel-position') === 'right', 'media panel default is not right');
             check(!settings.get_boolean('hide-shell-media-controls'), 'native media controls hidden by default');
-            const indicator = Main.panel.statusArea['media-controls'];
+            const indicator = Main.panel.statusArea['infinity-media-controls'];
             const player = media._quickSettingsPlayer;
             check(!player.actor.visible, 'Quick Settings showed a player with no media');
 

@@ -132,7 +132,7 @@ elif [[ "$package" == infinityos-shell-extensions ]]; then
   install -m 0644 "$repo/root/etc/xdg/autostart/infinityos-enable-desktop-additions.desktop" "$source_root/etc/xdg/autostart/"
   install -m 0644 "$repo/root/etc/xdg/autostart/infinityos-automount.desktop" "$source_root/etc/xdg/autostart/"
   install -m 0644 "$repo/root/usr/share/gnome-shell/extensions/raccoonlauncher@shimafallah.github.io/LICENSE" "$source_root/usr/share/licenses/infinityos-shell-extensions/RaccoonLauncher-GPL-2.0"
-  install -m 0644 "$repo/root/usr/share/gnome-shell/extensions/media-controller@naimur/LICENSE" "$source_root/usr/share/licenses/infinityos-shell-extensions/MediaControls-GPL-2.0"
+  install -m 0644 "$repo/root/usr/share/gnome-shell/extensions/media-controller@infinityos.org/LICENSE" "$source_root/usr/share/licenses/infinityos-shell-extensions/MediaControls-GPL-2.0"
   install -m 0755 "$repo/root/usr/libexec/infinityos-enable-global-menu" \
     "$source_root/usr/libexec/infinityos-enable-global-menu"
   install -m 0644 "$repo/root/etc/xdg/autostart/infinityos-enable-global-menu.desktop" \
