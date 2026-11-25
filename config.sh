@@ -68,12 +68,14 @@ EOF
 	gtk-update-icon-cache -f -q /usr/share/icons/hicolor
 	bsdtar -xf /usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz -C /usr/share/icons
 	rm /usr/share/infinityos/Bibata-Modern-Ice-v2.0.7.tar.xz
+	glib-compile-schemas /usr/share/gnome-shell/extensions/media-controller@naimur/schemas
 	glib-compile-schemas /usr/share/gnome-shell/extensions/ding@rastersoft.com/schemas
 	glib-compile-schemas /usr/share/gnome-shell/extensions/wack-shell@rinzler69-wastaken.github.com/schemas
 	glib-compile-schemas /usr/share/gnome-shell/extensions/globalmenu@ShiroOSL.github.io/schemas
 	glib-compile-schemas /usr/share/gnome-shell/extensions/tilingshell@ferrarodomenico.com/schemas
 	glib-compile-schemas /usr/share/gnome-shell/extensions/dash2dock-animated@infinityos.org/schemas
 	chmod 0644 \
+		/usr/share/gnome-shell/extensions/media-controller@naimur/schemas/gschemas.compiled \
 		/usr/share/gnome-shell/extensions/ding@rastersoft.com/schemas/gschemas.compiled \
 		/usr/share/gnome-shell/extensions/wack-shell@rinzler69-wastaken.github.com/schemas/gschemas.compiled \
 		/usr/share/gnome-shell/extensions/globalmenu@ShiroOSL.github.io/schemas/gschemas.compiled

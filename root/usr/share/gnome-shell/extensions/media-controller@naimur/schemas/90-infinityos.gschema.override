@@ -1,0 +1,5 @@
+[org.gnome.shell.extensions.media-controller]
+panel-position='right'
+hide-shell-media-controls=false
+pause-others-on-play=false
+last-announced-version='3.6'

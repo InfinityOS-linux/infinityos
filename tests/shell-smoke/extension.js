@@ -16,7 +16,6 @@ import {TerminalPullHandle} from '../ghostty@infinityos.org/pull-handle.js';
 import {PanelBackdrop} from '../ghostty@infinityos.org/panel-backdrop.js';
 import {HardwareMonitor} from '../ghostty@infinityos.org/hardware-monitor.js';
 import {widgetChoices} from '../ghostty@infinityos.org/monitor-widgets.js';
-import NowPlay from '../nowplay@LalaloyXyz/extension.js';
 import Raccoon from '../raccoonlauncher@shimafallah.github.io/extension.js';
 import Updater from '../infinity-updater@infinityos.org/extension.js';
 import {excludeFromDock} from '../dash2dock-animated@infinityos.org/dock-apps.mjs';
@@ -58,7 +57,7 @@ export default class Smoke extends Extension {
             return {...JSON.parse(new TextDecoder().decode(bytes)), dir, path: dir.get_path()};
         };
         const theme = St.ThemeContext.get_for_stage(global.stage).get_theme();
-        for (const uuid of ['ghostty@infinityos.org', 'nowplay@LalaloyXyz', 'raccoonlauncher@shimafallah.github.io', 'infinity-updater@infinityos.org', 'wack-shell@rinzler69-wastaken.github.com']) {
+        for (const uuid of ['ghostty@infinityos.org', 'raccoonlauncher@shimafallah.github.io', 'infinity-updater@infinityos.org', 'wack-shell@rinzler69-wastaken.github.com']) {
             const file = root.get_child(uuid).get_child('stylesheet.css');
             if (file.query_exists(null)) theme.load_stylesheet(file);
         }
@@ -625,15 +624,6 @@ export default class Smoke extends Extension {
 
         const {default: Blur} = await import('gi://Blur');
         check(Blur.BlurEffect.list_properties().some(property => property.name === 'corner-radius'), 'native rounded blur unavailable');
-        const nowplay = new NowPlay(metadata('nowplay@LalaloyXyz'));
-        this._objects.push(nowplay); nowplay.enable();
-        check(!nowplay._ui._createStatusPill.toString().includes('animateUp'), 'loaded obsolete NowPlay equalizer');
-        console.log('INFINITY_NOWPLAY_TIMER_SOURCE_CONFIRMED');
-        const player = {busName: 'org.mpris.MediaPlayer2.smoke', title: 'InfinityOS test', artist: 'CI',
-            status: 'Playing', position: 30, trackLen: 180, canSeek: true, trackId: '/test', artUrl: '', appIconName: 'audio-x-generic'};
-        nowplay._ui.showPopup(player, [player]); await wait();
-        check(nowplay._ui.popupVisible, 'NowPlay did not open');
-        nowplay._ui.destroyPopup();
         const trayApp = new PanelMenu.Button(0, 'Tray smoke');
         const trayIcon = new St.Icon({icon_name: 'edit-paste-symbolic', style_class: 'system-status-icon',
             icon_size: 48, style: 'icon-size: 48px;'});
@@ -729,6 +719,7 @@ export default class Smoke extends Extension {
         output.visible = outputVisible;
         tray.destroy(); tray = null;
         check(trayApp.container.get_parent() === Main.panel._rightBox, 'tray disable lost app');
+        await this._checkMediaControls(wait);
         const updater = new Updater(metadata('infinity-updater@infinityos.org'));
         this._objects.push(updater); updater.enable();
         check(Main.panel.statusArea['infinity-updater'], 'updater indicator failed');
@@ -983,6 +974,93 @@ export default class Smoke extends Extension {
             seat.uninhibit_unfocus();
         }
         console.log('INFINITY_SMOKE_PASS');
+    }
+
+    async _checkMediaControls(wait) {
+        const uuid = 'media-controller@naimur';
+        const extensionManager = Main.extensionManager;
+        const quick = Main.panel.statusArea.quickSettings;
+        const tray = new UserTray();
+        tray._preferences['media-controls'] = 'hidden';
+
+        let playback = 'Playing';
+        const service = Gio.DBusExportedObject.wrapJSObject(
+            `<node><interface name="org.mpris.MediaPlayer2.Player">
+                <method name="PlayPause"/>
+                <property name="PlaybackStatus" type="s" access="read"/>
+                <property name="Metadata" type="a{sv}" access="read"/>
+                <property name="CanPlay" type="b" access="read"/>
+                <property name="CanPause" type="b" access="read"/>
+                <property name="CanControl" type="b" access="read"/>
+            </interface></node>`, {
+                PlayPause() {
+                    playback = playback === 'Playing' ? 'Paused' : 'Playing';
+                    service.emit_property_changed('PlaybackStatus', new GLib.Variant('s', playback));
+                },
+                get PlaybackStatus() { return playback; },
+                Metadata: {
+                    'xesam:title': new GLib.Variant('s', 'InfinityOS test'),
+                    'xesam:artist': new GLib.Variant('as', ['CI']),
+                },
+                CanPlay: true,
+                CanPause: true,
+                CanControl: true,
+            });
+        let nameId = 0;
+        let exported = false;
+        let settings;
+        try {
+            check(extensionManager.enableExtension(uuid), 'bundled Media Controls could not be enabled');
+            for (let attempt = 0; attempt < 8 && !Main.panel.statusArea['media-controls']; attempt++)
+                await wait();
+            const media = extensionManager.lookup(uuid).stateObj;
+            check(media?._quickSettingsPlayer, 'bundled Media Controls did not start');
+            settings = media.getSettings();
+            check(settings.get_string('panel-position') === 'right', 'media panel default is not right');
+            check(!settings.get_boolean('hide-shell-media-controls'), 'native media controls hidden by default');
+            const indicator = Main.panel.statusArea['media-controls'];
+            const player = media._quickSettingsPlayer;
+            check(!player.actor.visible, 'Quick Settings showed a player with no media');
+
+            service.export(Gio.DBus.session, '/org/mpris/MediaPlayer2');
+            exported = true;
+            nameId = Gio.bus_own_name_on_connection(Gio.DBus.session,
+                'org.mpris.MediaPlayer2.infinitySmoke', Gio.BusNameOwnerFlags.NONE, null, null);
+            for (let attempt = 0; attempt < 8 && !player.actor.visible; attempt++)
+                await wait();
+            check(player._label.text === 'InfinityOS test · CI', 'Quick Settings media metadata did not load');
+            check(indicator.container.visible && indicator.container.get_parent() === Main.panel._rightBox,
+                'tray preferences hid or moved the media panel indicator');
+
+            quick.menu.open();
+            await wait();
+            check(player.actor.mapped && player.actor.get_parent() === quick.menu._grid,
+                'the right-side media indicator removed the player from Quick Settings');
+            player._playPause.emit('clicked', 1);
+            for (let attempt = 0; attempt < 8 && player._playPause.child.icon_name !== 'media-playback-start-symbolic'; attempt++)
+                await wait();
+            check(playback === 'Paused' && player._playPause.child.icon_name === 'media-playback-start-symbolic',
+                'Quick Settings play/pause did not control the active player');
+            settings.set_string('panel-position', 'far-right');
+            await wait();
+            check(player.actor.mapped && indicator.container.get_parent() === Main.panel._rightBox,
+                'moving the panel indicator hid the Quick Settings player');
+
+            Gio.bus_unown_name(nameId);
+            nameId = 0;
+            for (let attempt = 0; attempt < 8 && player.actor.visible; attempt++)
+                await wait();
+            check(!player.actor.visible && !indicator.container.visible, 'closed player left stale media controls');
+        } finally {
+            quick.menu.close();
+            settings?.reset('panel-position');
+            if (nameId)
+                Gio.bus_unown_name(nameId);
+            if (exported)
+                service.unexport();
+            extensionManager.disableExtension(uuid);
+            tray.destroy();
+        }
     }
 
     disable() {

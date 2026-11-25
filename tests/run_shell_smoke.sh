@@ -25,7 +25,7 @@ cp -a "$repo/root/usr/share/icons/InfinityOS-Modern-Ice" "$sandbox/system/icons/
 # legacy wait bitmap. Source tests separately load every Xcursor size/frame.
 rm "$sandbox/system/icons/InfinityOS-Modern-Ice/cursors/wait"
 chmod 700 "$XDG_RUNTIME_DIR"
-for uuid in globalmenu@ShiroOSL.github.io nowplay@LalaloyXyz raccoonlauncher@shimafallah.github.io dash2dock-animated@infinityos.org wack-shell@rinzler69-wastaken.github.com; do
+for uuid in globalmenu@ShiroOSL.github.io media-controller@naimur raccoonlauncher@shimafallah.github.io dash2dock-animated@infinityos.org wack-shell@rinzler69-wastaken.github.com; do
     cp -a "$repo/root/usr/share/gnome-shell/extensions/$uuid" "$SMOKE_EXTENSIONS/"
 done
 for package in infinity-terminal infinity-updater; do
@@ -35,19 +35,6 @@ cp "$SMOKE_EXTENSIONS/infinity-updater@infinityos.org/panel-backdrop.js" "$SMOKE
 cp -a "$repo/vendor/gnome-shell/fedora-45/usr/share/gnome-shell/extensions/blur-my-shell@aunetx" "$SMOKE_EXTENSIONS/"
 cp -a "$repo/tests/shell-smoke" "$SMOKE_EXTENSIONS/infinity-smoke@test"
 for schemas in "$SMOKE_EXTENSIONS"/*/schemas; do glib-compile-schemas --strict "$schemas"; done
-cmp "$repo/root/usr/share/gnome-shell/extensions/nowplay@LalaloyXyz/ui.js" "$SMOKE_EXTENSIONS/nowplay@LalaloyXyz/ui.js"
-sha256sum "$SMOKE_EXTENSIONS/nowplay@LalaloyXyz/ui.js"
-if grep -n 'const animateUp' "$SMOKE_EXTENSIONS/nowplay@LalaloyXyz/ui.js"; then
-    echo 'Obsolete recursive equalizer implementation'; exit 1
-fi
-export INFINITY_SMOKE_THEMES="$repo/root/usr/share/themes"
-export INFINITY_SMOKE_BLUR_DEFAULTS="$repo/root/usr/share/infinityos/blur-defaults"
-export GSETTINGS_SCHEMA_DIR="$sandbox/menu-schemas"
-mkdir -p "$GSETTINGS_SCHEMA_DIR"
-cp "$repo/vendor/gnome-shell/fedora-45/usr/share/glib-2.0/schemas/org.gnome.shell.extensions.blur-my-shell.gschema.xml" "$GSETTINGS_SCHEMA_DIR/"
-glib-compile-schemas --strict "$GSETTINGS_SCHEMA_DIR"
-export INFINITY_DING_CSS="$repo/root/usr/share/gnome-shell/extensions/ding@rastersoft.com/app/stylesheet.css"
-export INFINITY_DING_TEST="$repo/tests/ding-menu-backdrop.gjs"
 export SMOKE_LOG="$sandbox/shell.log"
 # The persistent terminal binary is not installed in this disposable Shell.
 # Keep its desktop ID while using an available inert executable for AppInfo.
