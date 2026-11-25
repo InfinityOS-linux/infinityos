@@ -8,8 +8,23 @@ concurrency:
   group: infinityos-reviewed-iso
   cancel-in-progress: true
 jobs:
+  rpms:
+    name: Require published RPMs from this exact commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Publish missing RPMs and wait for deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/ensure-iso-rpms
+
   iso:
     name: Build ISO (${{ matrix.arch }})
+    needs: rpms
     strategy:
       fail-fast: false
       matrix:
@@ -22,18 +37,6 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v6
-      - name: Require signed, tested RPMs from this exact commit
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          for attempt in $(seq 1 120); do
-            conclusion=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/publish-rpm.yml/runs?head_sha=$GITHUB_SHA&branch=main&event=push&per_page=10" --jq '.workflow_runs[0].conclusion // "pending"')
-            if [[ "$conclusion" == success ]]; then exit 0; fi
-            if [[ "$conclusion" != pending ]]; then echo "RPM publication failed: $conclusion"; exit 1; fi
-            sleep 30
-          done
-          echo 'Timed out waiting for signed RPMs'; exit 1
       - name: Free disposable runner space
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
       - name: Build and verify a fresh Fedora 45 ISO
