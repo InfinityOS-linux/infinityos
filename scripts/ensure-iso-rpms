@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# An ISO must use tested, deployed RPMs stamped with its exact source revision.
+set -euo pipefail
+
+: "${GITHUB_REPOSITORY:?}" "${GITHUB_SHA:?}" "${GITHUB_REF:?}"
+if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+    echo 'Published ISOs must be built from main.' >&2
+    exit 1
+fi
+
+dispatched=false
+for attempt in $(seq 1 120); do
+    runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/publish-rpm.yml/runs?head_sha=$GITHUB_SHA&branch=main&per_page=100")
+    run=$(jq -c --arg sha "$GITHUB_SHA" '
+        [.workflow_runs[] | select(.head_sha == $sha and .head_branch == "main"
+            and (.event == "push" or .event == "workflow_dispatch"))]
+        | sort_by(.id) | last' <<< "$runs")
+    if [[ "$run" == null ]]; then
+        # Dispatch accepts a branch, so never publish a different main revision
+        # on behalf of an old ISO run. Recheck while waiting for it to appear.
+        main_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+        if [[ "$main_sha" != "$GITHUB_SHA" ]]; then
+            echo 'main has moved. Start a new ISO workflow on main instead of rerunning this build.' >&2
+            exit 1
+        fi
+        if [[ "$dispatched" == false ]]; then
+            echo "No RPM publication exists for $GITHUB_SHA; starting one on main."
+            gh workflow run publish-rpm.yml --repo "$GITHUB_REPOSITORY" --ref main
+            dispatched=true
+        fi
+    else
+        status=$(jq -r '.status' <<< "$run")
+        url=$(jq -r '.html_url' <<< "$run")
+        if [[ "$status" == completed ]]; then
+            conclusion=$(jq -r '.conclusion' <<< "$run")
+            if [[ "$conclusion" == success ]]; then
+                echo "RPM publication and deployment completed: $url"
+                exit 0
+            fi
+            echo "RPM publication failed ($conclusion): $url" >&2
+            exit 1
+        fi
+        echo "Waiting for RPM publication ($status): $url"
+    fi
+    sleep 30
+done
+echo "Timed out waiting for RPM publication and deployment for $GITHUB_SHA." >&2
+exit 1
