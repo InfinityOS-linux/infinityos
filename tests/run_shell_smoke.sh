@@ -35,6 +35,14 @@ cp "$SMOKE_EXTENSIONS/infinity-updater@infinityos.org/panel-backdrop.js" "$SMOKE
 cp -a "$repo/vendor/gnome-shell/fedora-45/usr/share/gnome-shell/extensions/blur-my-shell@aunetx" "$SMOKE_EXTENSIONS/"
 cp -a "$repo/tests/shell-smoke" "$SMOKE_EXTENSIONS/infinity-smoke@test"
 for schemas in "$SMOKE_EXTENSIONS"/*/schemas; do glib-compile-schemas --strict "$schemas"; done
+export INFINITY_SMOKE_THEMES="$repo/root/usr/share/themes"
+export INFINITY_SMOKE_BLUR_DEFAULTS="$repo/root/usr/share/infinityos/blur-defaults"
+export GSETTINGS_SCHEMA_DIR="$sandbox/menu-schemas"
+mkdir -p "$GSETTINGS_SCHEMA_DIR"
+cp "$repo/vendor/gnome-shell/fedora-45/usr/share/glib-2.0/schemas/org.gnome.shell.extensions.blur-my-shell.gschema.xml" "$GSETTINGS_SCHEMA_DIR/"
+glib-compile-schemas --strict "$GSETTINGS_SCHEMA_DIR"
+export INFINITY_DING_CSS="$repo/root/usr/share/gnome-shell/extensions/ding@rastersoft.com/app/stylesheet.css"
+export INFINITY_DING_TEST="$repo/tests/ding-menu-backdrop.gjs"
 export SMOKE_LOG="$sandbox/shell.log"
 # The persistent terminal binary is not installed in this disposable Shell.
 # Keep its desktop ID while using an available inert executable for AppInfo.
